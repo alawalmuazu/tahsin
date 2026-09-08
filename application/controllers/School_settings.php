@@ -912,7 +912,7 @@ class School_settings extends Admin_Controller
                 $data = array();
                 $data['branch_id'] = $branchID;
                 $data['recipient'] = $recipient;
-                $data['subject'] = 'SmartSchool SMTP Config Testing';
+                $data['subject'] = 'Tahsin Academy SMTP Config Testing';
                 $data['message'] = 'This is test SMTP config email. <br />If you received this message that means that your SMTP settings is set correctly.';
                 $r = $this->mailer->send($data, true);
                 if ($r == "true") {

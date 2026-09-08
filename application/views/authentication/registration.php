@@ -4,8 +4,8 @@
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="description" content="<?php echo isset($global_config['institute_name']) ? $global_config['institute_name'] : 'SmartSchool'; ?>">
-    <title>Public Registration — <?php echo isset($global_config['institute_name']) ? $global_config['institute_name'] : 'SmartSchool'; ?></title>
+    <meta name="description" content="<?php echo isset($global_config['institute_name']) ? $global_config['institute_name'] : 'Tahsin Academy'; ?>">
+    <title>Public Registration — <?php echo isset($global_config['institute_name']) ? $global_config['institute_name'] : 'Tahsin Academy'; ?></title>
     <link rel="shortcut icon" href="<?php echo base_url('uploads/app_image/logo.png'); ?>">
 
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">

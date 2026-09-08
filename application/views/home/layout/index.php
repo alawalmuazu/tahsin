@@ -7,7 +7,7 @@
 		<meta name="keyword" content="<?php echo $page_data['meta_keyword']; ?>">
 		<meta name="description" content="<?php echo $page_data['meta_description']; ?>">
 		<!-- Favicon -->
-		<link rel="shortcut icon" href="<?php echo base_url('uploads/frontend/images/' . $cms_setting['fav_icon'] . img_reload()); ?>">
+		<link rel="shortcut icon" href="<?php echo base_url('uploads/app_image/logo.png'); ?>">
 		<title><?php echo $page_data['page_title'] . " - " . $cms_setting['application_title']; ?></title>
 		<!-- Bootstrap -->
 		<link href="<?php echo base_url() ?>assets/frontend/css/bootstrap.min.css" rel="stylesheet">

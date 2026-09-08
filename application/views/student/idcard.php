@@ -73,7 +73,7 @@
 						</div>
 						<div class="id-card-holder">
 							<header class="id-card-heading">
-								<center><img class="img-fs" src="<?=base_url('uploads/app_image/printing-logo.png')?>" alt="SmartSchool Img" /></center>
+								<center><img class="img-fs" src="<?=base_url('uploads/app_image/printing-logo.png')?>" alt="Tahsin Academy" /></center>
 							</header>
 							<div class="id-card">
 								<div class="photo">

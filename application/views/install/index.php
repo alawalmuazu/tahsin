@@ -5,9 +5,9 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta content="width=device-width,initial-scale=1" name="viewport">
     <meta name="keywords" content=""/>
-    <meta name="description" content="SmartSchool">
-    <meta name="author" content="SmartSchool">
-    <title>SmartSchool - Installation</title>
+    <meta name="description" content="Tahsin Academy">
+    <meta name="author" content="Tahsin Academy">
+    <title>Tahsin Academy - Installation</title>
     <link rel="shortcut icon" href="<?=base_url('assets/images/favicon.png')?>">
     <link href="<?=$this->_install->is_secure('fonts.googleapis.com/css?family=Open+Sans:300,400,600,700,800|Shadows+Into+Light')?>" rel="stylesheet" type="text/css">
     <link rel="stylesheet" href="<?=base_url('assets/vendor/bootstrap/css/bootstrap.css')?>"/>
@@ -374,7 +374,7 @@
                     </div>
                 </div>
             </section>
-            <center> <?php echo date('Y') ?> © All Rights Reserved - <a href="about:blank">SmartSchool</a></center>
+            <center> <?php echo date('Y') ?> © All Rights Reserved - <a href="about:blank">Tahsin Academy</a></center>
 		</div>
 		<script src="<?=base_url('assets/vendor/bootstrap/js/bootstrap.js')?>"></script>
 		<script src="<?php echo base_url('assets/vendor/select2/js/select2.js');?>"></script>

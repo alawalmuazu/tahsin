@@ -34,6 +34,10 @@ class MY_Controller extends CI_Controller
                 $get_config['timezone'] = $branch->timezone;
             }
         }
+        $get_config['institute_name'] = $this->brandName($get_config['institute_name'] ?? '');
+        if (!empty($get_config['footer_text'])) {
+            $get_config['footer_text'] = $this->rebrandText($get_config['footer_text']);
+        }
         $this->data['global_config'] = $get_config;
         $this->data['theme_config'] = $this->db->get_where('theme_settings', array('id' => 1))->row_array();
         date_default_timezone_set($get_config['timezone']);
@@ -114,6 +118,20 @@ class MY_Controller extends CI_Controller
         }
         return true;
     }
+
+    protected function brandName($name = '')
+    {
+        $name = trim((string) $name);
+        if ($name === '' || stripos($name, 'smartschool') !== false || stripos($name, 'smart school') !== false) {
+            return 'Tahsin Academy';
+        }
+        return $this->rebrandText($name);
+    }
+
+    protected function rebrandText($text = '')
+    {
+        return str_ireplace(array('Smart School', 'SmartSchool'), 'Tahsin Academy', (string) $text);
+    }
 }
 
 class Admin_Controller extends MY_Controller
@@ -164,7 +182,7 @@ class Frontend_Controller extends MY_Controller
             'cms_active'              => 1,
             'branch_id'               => $branchID,
             'url_alias'               => '',
-            'application_title'       => 'SmartSchool',
+            'application_title'       => 'Tahsin Academy',
             'theme'                   => 'green',
             'fav_icon'                => '',
             'logo'                    => '',
@@ -183,7 +201,7 @@ class Frontend_Controller extends MY_Controller
             'footer_background_color' => '#383838',
             'footer_about_text'       => '',
             'footer_text_color'       => '#8d8d8d',
-            'copyright_text'          => '© ' . date('Y') . ' SmartSchool',
+            'copyright_text'          => '© ' . date('Y') . ' Tahsin Academy',
             'copyright_bg_color'      => '#262626',
             'copyright_text_color'    => '#8d8d8d',
             'facebook_url'            => '',
@@ -209,6 +227,19 @@ class Frontend_Controller extends MY_Controller
             $cms_setting = $defaults;
         }
         $cms_setting['cms_active'] = 1;
+        $cms_setting['application_title'] = $this->brandName($cms_setting['application_title'] ?? '');
+        if (!empty($cms_setting['copyright_text'])) {
+            $cms_setting['copyright_text'] = $this->rebrandText($cms_setting['copyright_text']);
+        }
+        if (!empty($cms_setting['footer_about_text'])) {
+            $cms_setting['footer_about_text'] = $this->rebrandText($cms_setting['footer_about_text']);
+        }
+        if (empty($cms_setting['logo']) || !file_exists(FCPATH . 'uploads/frontend/images/' . $cms_setting['logo'])) {
+            $cms_setting['logo'] = 'tahsin-logo.png';
+        }
+        if (empty($cms_setting['fav_icon']) || !file_exists(FCPATH . 'uploads/frontend/images/' . $cms_setting['fav_icon'])) {
+            $cms_setting['fav_icon'] = 'tahsin-logo.png';
+        }
 
         $this->data['cms_setting'] = $cms_setting;
     }

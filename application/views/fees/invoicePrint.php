@@ -15,7 +15,7 @@ if (count($student_array)) {
 		<div class="row">
 			<div class="col-xs-6">
 				<div class="ib">
-					<img src="<?=$this->application_model->getBranchImage($basic['branch_id'], 'printing-logo')?>" alt="SmartSchool Img" />
+					<img src="<?=$this->application_model->getBranchImage($basic['branch_id'], 'printing-logo')?>" alt="Tahsin Academy" />
 				</div>
 			</div>
 			<div class="col-md-6 text-right">

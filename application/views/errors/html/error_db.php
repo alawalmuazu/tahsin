@@ -13,7 +13,7 @@ $base_url = (isset($_SERVER['HTTPS']) ? 'https://' : 'http://')
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Service Unavailable — SmartSchool</title>
+    <title>Service Unavailable — Tahsin Academy</title>
     <link rel="stylesheet" href="<?php echo $base_url; ?>assets/vendor/bootstrap/css/bootstrap.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
     <style>
@@ -133,7 +133,7 @@ $base_url = (isset($_SERVER['HTTPS']) ? 'https://' : 'http://')
 <body>
     <div class="error-card">
         <div class="error-icon">⚠️</div>
-        <div class="error-code">SmartSchool · System Error</div>
+        <div class="error-code">Tahsin Academy · System Error</div>
         <h1>Something went wrong</h1>
         <p class="lead">
             We couldn't complete your request due to a temporary system issue.

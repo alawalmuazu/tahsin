@@ -5,12 +5,7 @@
             <div class="row">
                 <div class="col-lg-4 col-md-4 col-sm-12">
                     <div class="footer-logo">
-                        <?php if (!empty($cms_setting['logo'])) { ?>
-                            <img src="<?php echo base_url('uploads/frontend/images/' . $cms_setting['logo'] . img_reload()); ?>" alt="Logo" onerror="this.style.display='none';this.nextElementSibling.style.display='inline-flex';">
-                            <span class="ss-text-logo ss-text-logo-footer" style="display:none;"><i class="fas fa-graduation-cap"></i> Smart<strong>School</strong></span>
-                        <?php } else { ?>
-                            <span class="ss-text-logo ss-text-logo-footer"><i class="fas fa-graduation-cap"></i> Smart<strong>School</strong></span>
-                        <?php } ?>
+                        <img src="<?php echo base_url('uploads/app_image/logo.png'); ?>" alt="Tahsin Academy" style="height:72px;width:auto;max-width:200px;object-fit:contain;">
                     </div>
                     <?php if ($global_config['footer_branch_switcher']) {  ?>
                     <div class="footer-select mb-3 mt-4">
@@ -85,7 +80,7 @@
         </div>
     </div>
     <div class="ss-gov-footer-strip">
-        🏛️ An official digital platform of the Kaduna State Government — Ministry of Education
+        Tahsin Academy — Motto: Excellence In Deen &amp; Duniya
     </div>
     <div class="copyright" style="background-color: <?php echo $cms_setting['copyright_bg_color'] ?>; color: <?php echo $cms_setting['copyright_text_color'] ?>;">
         <div class="container px-md-0 clearfix text-center">

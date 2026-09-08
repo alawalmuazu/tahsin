@@ -41,12 +41,7 @@
 				<div class="container-md px-md-0">
 				<!-- Logo Starts -->
 					<a href="<?php echo $homeURL ?>" class="navbar-brand">
-						<?php if (!empty($cms_setting['logo'])) { ?>
-							<img src="<?php echo base_url('uploads/frontend/images/' . $cms_setting['logo'] . img_reload()); ?>" alt="Logo" onerror="this.style.display='none';this.nextElementSibling.style.display='inline-flex';">
-							<span class="ss-text-logo" style="display:none;"><i class="fas fa-graduation-cap"></i> Smart<strong>School</strong></span>
-						<?php } else { ?>
-							<span class="ss-text-logo"><i class="fas fa-graduation-cap"></i> Smart<strong>School</strong></span>
-						<?php } ?>
+						<img src="<?php echo base_url('uploads/app_image/logo.png'); ?>" alt="Tahsin Academy" class="tahsin-nav-logo" style="height:52px;width:auto;max-width:180px;object-fit:contain;">
 					</a>
 					<!-- Logo Ends -->
 					<!-- Collapse Button Starts -->

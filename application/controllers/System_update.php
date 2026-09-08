@@ -201,7 +201,7 @@ class System_update extends Admin_Controller
             exit();
         }
         $message = '<div>
-            <h4>Congratulations your SmartSchool software has been successfully updated ' . config_item('version') . '.</h4>
+            <h4>Congratulations your Tahsin Academy software has been successfully updated ' . config_item('version') . '.</h4>
             <p>
                 This window will reload automatically in 5 seconds. You are strongly recommended to manually clear your browser cache.
             </p>

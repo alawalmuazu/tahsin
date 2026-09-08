@@ -5,7 +5,7 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="description" content="<?php echo $global_config['institute_name'] ?>">
-    <meta name="author" content="Kaduna State Ministry of Education">
+    <meta name="author" content="Tahsin Academy">
     <title><?php echo translate('login'); ?> — <?php echo $global_config['institute_name']; ?></title>
     <link rel="shortcut icon" href="<?php echo base_url('uploads/app_image/logo.png'); ?>">
 
@@ -30,17 +30,17 @@
         <div class="ring2"></div>
 
         <div class="brand-logo-wrap" id="brandLogoWrap">
-            <img id="brandLogo" src="<?php echo $this->application_model->getBranchImage($branch_id, 'logo'); ?>" alt="Kaduna State Ministry of Education">
+            <img id="brandLogo" src="<?php echo $this->application_model->getBranchImage($branch_id, 'logo'); ?>" alt="Tahsin Academy">
         </div>
 
         <div class="brand-divider"></div>
 
-        <h2 class="brand-title" id="brandTitle">Kaduna State<br>Ministry of Education</h2>
-        <p class="brand-subtitle" id="brandSubtitle">School Management System</p>
+        <h2 class="brand-title" id="brandTitle">Tahsin Academy</h2>
+        <p class="brand-subtitle" id="brandSubtitle">Excellence In Deen &amp; Duniya</p>
 
         <p class="brand-tagline" id="brandTagline">
-            Unified platform for managing schools, students, staff,
-            and educational data across Kaduna State.
+            School management for Tahsin Academy — students, staff,
+            parents, and academic records in one place.
         </p>
 
         <div class="brand-badges" id="brandBadges">
@@ -123,7 +123,7 @@
         <div class="form-footer">
             <p><?php echo $global_config['footer_text']; ?></p>
             <p style="margin-top:6px; font-size:10px; letter-spacing:0.5px; text-transform:uppercase; color:#666;">
-                Kaduna State Government &middot; Ministry of Education
+                Tahsin Academy &middot; Excellence In Deen &amp; Duniya
             </p>
         </div>
     </main>
@@ -155,9 +155,9 @@
         var _timer     = null;
         var _lastQuery = '';
         var _default   = {
-            title:    'Kaduna State<br>Ministry of Education',
-            subtitle: 'School Management System',
-            tagline:  'Unified platform for managing schools, students, staff, and educational data across Kaduna State.',
+            title:    'Tahsin Academy',
+            subtitle: 'Excellence In Deen & Duniya',
+            tagline:  'School management for Tahsin Academy — students, staff, parents, and academic records in one place.',
             logoSrc:  $('#brandLogo').attr('src')
         };
 

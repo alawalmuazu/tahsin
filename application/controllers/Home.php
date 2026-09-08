@@ -45,8 +45,8 @@ class Home extends Frontend_Controller
         if (empty($page_data)) {
             $page_data = array(
                 'page_title'       => 'Home',
-                'meta_keyword'     => 'SmartSchool Education',
-                'meta_description' => 'SmartSchool — Statewide School Management Platform',
+                'meta_keyword'     => 'Tahsin Academy Education',
+                'meta_description' => 'Tahsin Academy — School Management Platform',
             );
         }
         $this->data['page_data'] = $page_data;

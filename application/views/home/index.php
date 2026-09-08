@@ -36,7 +36,7 @@
 <?php 
 // Determine if we are on a specific branch or the statewide landing page
 $is_statewide = empty($cms_setting['url_alias']);
-$app_title = !empty($cms_setting['application_title']) ? $cms_setting['application_title'] : 'SmartSchool';
+$app_title = !empty($cms_setting['application_title']) ? $cms_setting['application_title'] : 'Tahsin Academy';
 
 // Dynamic formatting for the hero heading
 $words = explode(' ', $app_title);
@@ -85,7 +85,7 @@ $first_part = implode(' ', $words);
         <div class="ss-hero-content">
             <?php if ($is_statewide): ?>
                 <div class="ss-live-badge"><span class="ss-pulse-dot"></span> LIVE — 2,000+ Schools Online</div>
-                <div class="ss-hero-badge"><i class="fas fa-graduation-cap"></i> Kaduna State Education Platform</div>
+                <div class="ss-hero-badge"><i class="fas fa-graduation-cap"></i> Tahsin Academy</div>
             <?php else: ?>
                 <div class="ss-live-badge"><span class="ss-pulse-dot"></span> Official School Portal</div>
                 <div class="ss-hero-badge"><i class="fas fa-award"></i> Welcome to Excellence</div>
@@ -475,7 +475,7 @@ $first_part = implode(' ', $words);
         <div class="ss-section-header text-center">
             <span class="ss-kicker"><i class="fas fa-route"></i> Getting Started</span>
             <h2 class="ss-title">How It Works</h2>
-            <p class="ss-subtitle">Three simple steps to get started with SmartSchool</p>
+            <p class="ss-subtitle">Three simple steps to get started with Tahsin Academy</p>
         </div>
         <div class="ss-steps-container">
             <div class="ss-steps-line"></div>
@@ -627,7 +627,7 @@ $first_part = implode(' ', $words);
         <div class="ss-endorsement-grid">
             <div class="ss-quote-card ss-reveal">
                 <div class="ss-quote-mark">"</div>
-                <p class="ss-quote-text">SmartSchool gives us real-time visibility across every school in Kaduna State — this is the future of education governance.</p>
+                <p class="ss-quote-text">Tahsin Academy gives us real-time visibility across every school in Kaduna State — this is the future of education governance.</p>
                 <div class="ss-quote-divider"></div>
                 <p class="ss-quote-author">Commissioner, Kaduna State Ministry of Education</p>
             </div>
