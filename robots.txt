@@ -1,0 +1,36 @@
+User-agent: *
+# Allow public-facing pages
+Allow: /SmartSchool/$
+Allow: /SmartSchool/home
+Allow: /SmartSchool/login
+
+# Block all admin/internal routes from crawlers
+Disallow: /SmartSchool/dashboard
+Disallow: /SmartSchool/students
+Disallow: /SmartSchool/staff
+Disallow: /SmartSchool/classes
+Disallow: /SmartSchool/sections
+Disallow: /SmartSchool/subjects
+Disallow: /SmartSchool/exams
+Disallow: /SmartSchool/attendance
+Disallow: /SmartSchool/fees
+Disallow: /SmartSchool/accounts
+Disallow: /SmartSchool/reports
+Disallow: /SmartSchool/nemis
+Disallow: /SmartSchool/settings
+Disallow: /SmartSchool/admin
+Disallow: /SmartSchool/superadmin
+Disallow: /SmartSchool/inventory
+Disallow: /SmartSchool/library
+Disallow: /SmartSchool/hostel
+Disallow: /SmartSchool/transport
+Disallow: /SmartSchool/communication
+Disallow: /SmartSchool/hr
+Disallow: /SmartSchool/assets/
+Disallow: /SmartSchool/uploads/
+Disallow: /SmartSchool/application/
+Disallow: /SmartSchool/system/
+
+# Disallow common scanner paths
+Disallow: /SmartSchool/index.php/
+Disallow: /phpmyadmin/

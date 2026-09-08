@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SmartSchool — Kaduna State Education Platform</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: linear-gradient(135deg, #f0f4ff 0%, #e8edf8 100%);
+            --text: #1e293b; --muted: #64748b;
+            --accent: #3b82f6; --accent2: #8b5cf6;
+            --card: rgba(255,255,255,0.75); --border: rgba(255,255,255,0.6);
+            --shadow: 0 8px 40px rgba(59,130,246,0.10);
+            --tag: rgba(59,130,246,0.10); --tag-text: #2563eb;
+        }
+        [data-theme="dark"] {
+            --bg: linear-gradient(135deg, #0b1120 0%, #0f1f3d 100%);
+            --text: #f1f5f9; --muted: #94a3b8;
+            --accent: #60a5fa; --accent2: #a78bfa;
+            --card: rgba(15,28,58,0.82); --border: rgba(255,255,255,0.08);
+            --shadow: 0 8px 40px rgba(0,0,0,0.40);
+            --tag: rgba(96,165,250,0.13); --tag-text: #93c5fd;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Outfit', sans-serif;
+            background: var(--bg); color: var(--text);
+            overflow: hidden; display: flex;
+            justify-content: center; align-items: center; height: 100vh;
+            transition: background 0.4s;
+        }
+        .top-bar {
+            position: fixed; top: 1.5rem; right: 1.8rem;
+            z-index: 999; display: flex; align-items: center; gap: .8rem;
+        }
+        .counter {
+            font-size: .85rem; font-weight: 600; color: var(--muted);
+            background: var(--card); border: 1px solid var(--border);
+            padding: .35rem .9rem; border-radius: 50px; backdrop-filter: blur(10px);
+        }
+        .theme-btn {
+            background: var(--card); border: 1px solid var(--border);
+            backdrop-filter: blur(10px); padding: .4rem 1rem; border-radius: 50px;
+            cursor: pointer; font-size: 1rem; display: flex; align-items: center;
+            gap: .5rem; color: var(--text); font-family: 'Outfit', sans-serif;
+            font-weight: 600; transition: transform .2s;
+        }
+        .theme-btn:hover { transform: scale(1.05); }
+        .deck {
+            position: relative; width: 88vw; height: 82vh;
+            max-width: 1220px; perspective: 1200px;
+        }
+        .slide {
+            position: absolute; inset: 0;
+            display: flex; flex-direction: column;
+            justify-content: center; align-items: center;
+            text-align: center; padding: 3rem 3.5rem;
+            background: var(--card); border: 1px solid var(--border);
+            border-radius: 28px; backdrop-filter: blur(16px);
+            box-shadow: var(--shadow); overflow: hidden;
+            opacity: 0; transform: translateY(48px) scale(.96);
+            transition: all .55s cubic-bezier(.4,0,.2,1); pointer-events: none;
+        }
+        .slide::before {
+            content: ''; position: absolute; top: 0; left: 5%; right: 5%;
+            height: 3px; border-radius: 0 0 4px 4px;
+            background: linear-gradient(90deg, var(--accent), var(--accent2)); opacity: .7;
+        }
+        .slide.active { opacity: 1; transform: none; pointer-events: auto; }
+        .slide.prev   { opacity: 0; transform: translateY(-48px) scale(.96); }
+        .kicker {
+            display: inline-block; font-size: .78rem; font-weight: 700;
+            letter-spacing: 2.5px; text-transform: uppercase;
+            color: var(--tag-text); background: var(--tag);
+            padding: .3rem .9rem; border-radius: 50px; margin-bottom: 1.1rem;
+        }
+        h1 {
+            font-size: clamp(2.6rem,5vw,4.2rem); font-weight: 800;
+            background: linear-gradient(110deg, var(--accent), var(--accent2));
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+            line-height: 1.1; margin-bottom: .8rem;
+        }
+        h2 { font-size: clamp(1.7rem,3vw,2.4rem); font-weight: 700; color: var(--text); margin-bottom: .6rem; }
+        .sub {
+            font-size: clamp(.95rem,1.5vw,1.2rem); color: var(--muted);
+            line-height: 1.65; max-width: 820px; margin: 0 auto 1.4rem;
+        }
+        .grid { display: grid; gap: 1.1rem; width: 100%; margin-top: 1.2rem; }
+        .g2 { grid-template-columns: repeat(2,1fr); }
+        .g3 { grid-template-columns: repeat(3,1fr); }
+        .g4 { grid-template-columns: repeat(4,1fr); }
+        .card {
+            background: rgba(128,128,128,.05); border: 1px solid var(--border);
+            border-radius: 16px; padding: 1.2rem 1.3rem; text-align: left;
+            transition: transform .25s, box-shadow .25s;
+        }
+        .card:hover { transform: translateY(-6px); box-shadow: var(--shadow); }
+        .card .ico { font-size: 1.5rem; margin-bottom: .5rem; }
+        .card h3 { font-size: 1rem; font-weight: 700; color: var(--accent); margin-bottom: .35rem; }
+        .card p { font-size: .88rem; color: var(--muted); margin: 0; line-height: 1.5; }
+        .badges { display: flex; flex-wrap: wrap; gap: .6rem; justify-content: center; margin-top: 1.2rem; }
+        .badge {
+            font-size: .82rem; font-weight: 600; color: var(--tag-text);
+            background: var(--tag); border: 1px solid var(--border);
+            padding: .3rem .85rem; border-radius: 50px;
+        }
+        .stats { display: flex; gap: 2.5rem; justify-content: center; margin-top: 1.8rem; }
+        .stat { text-align: center; }
+        .stat-num {
+            font-size: 2.5rem; font-weight: 800;
+            background: linear-gradient(110deg, var(--accent), var(--accent2));
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+        }
+        .stat-label { font-size: .82rem; color: var(--muted); font-weight: 600; margin-top: .2rem; }
+        .bullets { list-style: none; padding: 0; margin-top: 1.2rem; display: flex; flex-direction: column; gap: .75rem; max-width: 700px; text-align: left; }
+        .bullets li { font-size: 1.05rem; color: var(--text); display: flex; align-items: flex-start; gap: .7rem; line-height: 1.5; }
+        .bullets li .i { flex-shrink: 0; font-size: 1.25rem; }
+        .prog-wrap {
+            position: absolute; bottom: 0; left: 0; right: 0;
+            height: 5px; background: rgba(128,128,128,.1);
+            border-radius: 0 0 28px 28px; overflow: hidden;
+        }
+        .prog { height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent2)); transition: width .4s ease; }
+        .controls {
+            position: fixed; bottom: 1.8rem; left: 50%; transform: translateX(-50%);
+            display: flex; gap: .8rem; z-index: 999;
+        }
+        .ctrl {
+            background: var(--card); border: 1px solid var(--border); color: var(--text);
+            width: 48px; height: 48px; border-radius: 50%;
+            display: flex; justify-content: center; align-items: center;
+            cursor: pointer; backdrop-filter: blur(10px);
+            font-size: 1.3rem; transition: background .2s, transform .2s;
+        }
+        .ctrl:hover { background: var(--accent); color: #fff; transform: scale(1.12); }
+    </style>
+</head>
+<body>
+
+<div class="top-bar">
+    <span class="counter" id="counter">1 / 9</span>
+    <button class="theme-btn" id="themeBtn">
+        <span id="tIcon">🌙</span><span id="tTxt">Dark</span>
+    </button>
+</div>
+
+<div class="deck" id="deck">
+
+    <!-- 1 · TITLE -->
+    <div class="slide active">
+        <span class="kicker">Kaduna State Education Management</span>
+        <h1>SmartSchool</h1>
+        <p class="sub">A unified, state-wide education management platform connecting 2,000+ schools, the Education Board, and government leadership — in one powerful ecosystem.</p>
+        <div class="badges">
+            <span class="badge">🏫 2,000+ Schools</span>
+            <span class="badge">🖥️ Computer-Based Testing</span>
+            <span class="badge">📊 NEMIS Reporting</span>
+            <span class="badge">🔐 7-Tier Role Access</span>
+            <span class="badge">🌐 Board-Wide Standards</span>
+        </div>
+        <div class="stats">
+            <div class="stat"><div class="stat-num">2k+</div><div class="stat-label">Schools Supported</div></div>
+            <div class="stat"><div class="stat-num">7</div><div class="stat-label">User Role Tiers</div></div>
+            <div class="stat"><div class="stat-num">30+</div><div class="stat-label">Core Modules</div></div>
+        </div>
+        <div class="prog-wrap"><div class="prog"></div></div>
+    </div>
+
+    <!-- 2 · ARCHITECTURE -->
+    <div class="slide">
+        <span class="kicker">Technical Foundation</span>
+        <h2>Built for State-Scale from Day One</h2>
+        <p class="sub">SmartSchool is not a single-school product stretched to fit a state. It was architected from the ground up with 2,000+ institutions in mind.</p>
+        <div class="grid g4">
+            <div class="card"><div class="ico">⚙️</div><h3>Enterprise-Grade Core</h3><p>Battle-tested architecture trusted by institutions globally — fast, secure, and designed to grow with Kaduna State's ambitions for years to come.</p></div>
+            <div class="card"><div class="ico">🌐</div><h3>State-Wide Intelligence</h3><p>Policies, curricula, and standards set once at Board level flow instantly to every school — ensuring uniformity across all 2,000+ institutions simultaneously.</p></div>
+            <div class="card"><div class="ico">🔒</div><h3>Role-Based Access</h3><p>Seven distinct user tiers — from State Executive to classroom Teacher — each seeing only what they need, protecting sensitive data at every level.</p></div>
+            <div class="card"><div class="ico">🔌</div><h3>Flexible Module System</h3><p>Activate or deactivate features like CBT, Hostel, and Transport per school — no technical intervention required, no disruption to operations, ever.</p></div>
+        </div>
+        <div class="prog-wrap"><div class="prog"></div></div>
+    </div>
+
+    <!-- 3 · STATE-WIDE -->
+    <div class="slide">
+        <span class="kicker">Board-Level Control</span>
+        <h2>One Decision. Every School. Instantly.</h2>
+        <p class="sub">The Education Board defines standards once — and SmartSchool ensures every school across Kaduna State operates in perfect, real-time alignment.</p>
+        <div class="grid g3">
+            <div class="card"><div class="ico">📚</div><h3>Unified Curriculum Control</h3><p>Classes, subjects, exam terms, and grading standards configured at Board level cascade to every school — guaranteeing a consistent educational framework state-wide.</p></div>
+            <div class="card"><div class="ico">📋</div><h3>Standardised Assessment</h3><p>Board-defined marking schemes — CA, Exams, Practicals, Attendance, Written — are instantly reflected on every school's assessment pages without manual replication.</p></div>
+            <div class="card"><div class="ico">🏬</div><h3>Central Procurement Catalogue</h3><p>Board-approved suppliers, product categories, and stores are available to every school's procurement team simultaneously — eliminating duplication and inconsistency.</p></div>
+            <div class="card"><div class="ico">🖥️</div><h3>Board-Managed CBT Content</h3><p>The Education Board curates exam question libraries that every school can immediately deploy — guaranteeing assessment equity and quality across the entire state.</p></div>
+            <div class="card"><div class="ico">👔</div><h3>Centralised HR Standards</h3><p>Staff designations, departments, and leave policies maintained at state level — giving the Board complete visibility and governance of human capital across all schools.</p></div>
+            <div class="card"><div class="ico">🔍</div><h3>Instant School Finder</h3><p>A lightning-fast intelligent search across all 2,000+ schools — any administrator can locate, configure, or report on any institution within seconds, not minutes.</p></div>
+        </div>
+        <div class="prog-wrap"><div class="prog"></div></div>
+    </div>
+
+    <!-- 4 · CBT -->
+    <div class="slide">
+        <span class="kicker">Computer-Based Testing</span>
+        <h2>Kaduna State's Own Online Exam Engine</h2>
+        <p class="sub">A full Computer-Based Testing platform — designed, owned, and controlled entirely by Kaduna State, with no dependency on any external service or third party.</p>
+        <div class="grid g3">
+            <div class="card"><div class="ico">📝</div><h3>Exam Design Studio</h3><p>Create state-wide or school-specific digital exams in minutes — with time controls, participation limits, optional exam fees, and randomised question delivery to prevent cheating.</p></div>
+            <div class="card"><div class="ico">❓</div><h3>Rich Question Bank</h3><p>Thousands of questions across every format — single choice, multiple choice, true/false, and essay — organised by subject, class level, and topic for effortless assembly.</p></div>
+            <div class="card"><div class="ico">🗂️</div><h3>Board Question Libraries</h3><p>The Education Board publishes curated question collections that every school draws from instantly — guaranteeing assessment quality and parity across the entire state.</p></div>
+            <div class="card"><div class="ico">⚡</div><h3>Instant Auto-Scoring</h3><p>Results are calculated the moment a student submits — percentage scores, pass/fail status, and performance insights delivered immediately with no manual marking required.</p></div>
+            <div class="card"><div class="ico">🏆</div><h3>State-Wide Rankings</h3><p>Generate position tables across any school, class, or exam — giving the Board a powerful comparative view of academic performance across the entire state in real time.</p></div>
+            <div class="card"><div class="ico">📊</div><h3>Result Analytics</h3><p>Beautiful, exportable dashboards for every exam — individual student breakdowns, school-to-school comparisons, and performance trends — all visible at a glance.</p></div>
+        </div>
+        <div class="prog-wrap"><div class="prog"></div></div>
+    </div>
+
+    <!-- 5 · ACADEMICS -->
+    <div class="slide">
+        <span class="kicker">Academic Management</span>
+        <h2>Every Academic Workflow. One Platform.</h2>
+        <p class="sub">From the moment a student applies to the day they graduate — every academic process managed seamlessly, across every school in Kaduna State.</p>
+        <div class="grid g4">
+            <div class="card"><div class="ico">🏫</div><h3>Unified School Command</h3><p>Govern every one of 2,000+ schools from a single, beautiful dashboard — configure, monitor, and act on any institution without ever leaving your seat.</p></div>
+            <div class="card"><div class="ico">📅</div><h3>Smart Timetabling</h3><p>Automatically builds clash-free timetables for every class and teacher — saving hours of complex manual scheduling at the start of every single term.</p></div>
+            <div class="card"><div class="ico">✅</div><h3>Real-Time Attendance</h3><p>Daily attendance captured for every student and staff member — with instant SMS alerts to parents and monthly performance summaries for school leadership.</p></div>
+            <div class="card"><div class="ico">📄</div><h3>Professional Marksheets</h3><p>Polished, print-ready result sheets reflecting the Board's standardised scoring — CA, Exams, Practicals, and more — consistently produced in every school.</p></div>
+            <div class="card"><div class="ico">🎓</div><h3>Digital Admissions</h3><p>Parents apply online from anywhere — uploading documents and tracking application status in real time — with zero paperwork required at the school gate.</p></div>
+            <div class="card"><div class="ico">📚</div><h3>Homework & Library</h3><p>Teachers assign homework digitally with live submission tracking, while a full library catalogue keeps every book and borrower organised effortlessly.</p></div>
+            <div class="card"><div class="ico">📜</div><h3>Certificates & ID Cards</h3><p>Design stunning certificate and ID card templates once at Board level — then generate and print thousands across every school in the state with a single action.</p></div>
+            <div class="card"><div class="ico">🏅</div><h3>Alumni Network</h3><p>Every graduate remains in the system — building a growing, state-wide alumni record that supports post-school tracking, engagement, and future re-enrolment.</p></div>
+        </div>
+        <div class="prog-wrap"><div class="prog"></div></div>
+    </div>
+
+    <!-- 6 · FINANCE -->
+    <div class="slide">
+        <span class="kicker">Finance & Operations</span>
+        <h2>Financial Clarity Across Every School</h2>
+        <p class="sub">From the first fee payment to the last payslip — every financial and operational process handled with precision, transparency, and complete audit trails.</p>
+        <div class="grid g3">
+            <div class="card"><div class="ico">💳</div><h3>Fee Collection</h3><p>Parents pay school fees online or at the counter — with instant receipts, automatic arrears alerts, and a complete financial audit trail for every transaction.</p></div>
+            <div class="card"><div class="ico">💼</div><h3>Payroll & HR</h3><p>Every teacher and staff member managed from hire to payslip — leave requests, salary advances, and monthly payroll processed automatically across every school.</p></div>
+            <div class="card"><div class="ico">🚌</div><h3>Transport Management</h3><p>Plan routes, assign vehicles, and bill transport fees automatically — giving parents real-time visibility of their child's commute and keeping fleet expenditure in check.</p></div>
+            <div class="card"><div class="ico">🏨</div><h3>Hostel Management</h3><p>Allocate beds, manage room categories, and bill boarding fees seamlessly — with every boarder's profile linked directly to their full academic and financial record.</p></div>
+            <div class="card"><div class="ico">📦</div><h3>Inventory & Procurement</h3><p>Track every asset from Board-approved suppliers — stock levels, issue records, and full expenditure reports always available at the administrator's fingertips.</p></div>
+            <div class="card"><div class="ico">📈</div><h3>Financial Overview</h3><p>A real-time financial dashboard spanning income, expenses, and fee collection health — giving state leadership the clarity to make confident budget decisions at any time.</p></div>
+        </div>
+        <div class="prog-wrap"><div class="prog"></div></div>
+    </div>
+
+    <!-- 7 · COMMS & NEMIS -->
+    <div class="slide">
+        <span class="kicker">Communication & Compliance</span>
+        <h2>Connected. Compliant. In Control.</h2>
+        <p class="sub">Keep every stakeholder informed and every government obligation met — through communication tools and compliance reports built directly into the platform.</p>
+        <div class="grid g3">
+            <div class="card"><div class="ico">💬</div><h3>Bulk SMS & Email</h3><p>Reach every parent, student, or staff member across the state in seconds — personalised, templated messages sent from a single action with full delivery reporting.</p></div>
+            <div class="card"><div class="ico">📢</div><h3>Notice Board & Events</h3><p>Publish Board-level or school-specific announcements instantly — with an events calendar that keeps every stakeholder informed and engaged throughout the academic year.</p></div>
+            <div class="card"><div class="ico">🌐</div><h3>School Website Builder</h3><p>Every school gets its own polished public website — complete with news, photo galleries, and content managed entirely by school staff with no technical expertise needed.</p></div>
+            <div class="card"><div class="ico">📋</div><h3>NEMIS Compliance Reports</h3><p>Government-ready data exports covering annual school census, enrolment figures, gender breakdowns, and LGA statistics — generated at the click of a button, any time.</p></div>
+            <div class="card"><div class="ico">📊</div><h3>Executive Dashboard</h3><p>A powerful state-level command view — student numbers, staff headcount, enrolment trends, fee collection health, and attendance rates, all updating in real time.</p></div>
+            <div class="card"><div class="ico">🔗</div><h3>Third-Party Ready</h3><p>Built to connect with external government systems and future integrations — state-wide data flows seamlessly and securely to any authorised platform or ministry portal.</p></div>
+        </div>
+        <div class="prog-wrap"><div class="prog"></div></div>
+    </div>
+
+    <!-- 8 · PRODUCTION READY -->
+    <div class="slide">
+        <span class="kicker">Production Ready</span>
+        <h2>Secure. Tested. Ready to Launch Today.</h2>
+        <p class="sub">SmartSchool has been rigorously audited, thoroughly tested, and completely prepared — requiring zero setup time before going live across the entire state.</p>
+        <div class="grid g2">
+            <div class="card"><div class="ico">🔐</div><h3>Bank-Grade Security</h3><p>Every page protected behind role-based access controls, encrypted sessions, and tamper-proof request validation — ensuring no information ever reaches unauthorised hands.</p></div>
+            <div class="card"><div class="ico">🧹</div><h3>Pristine & Deployment-Ready</h3><p>Every development utility and temporary working file has been removed — what stakeholders are viewing is a completely clean, production-grade system ready for the state.</p></div>
+            <div class="card"><div class="ico">⚡</div><h3>Built for Thousands of Users</h3><p>Engineered to serve thousands of simultaneous users across the state — fast, reliable response times maintained whether ten or two thousand schools are active at once.</p></div>
+            <div class="card"><div class="ico">🧩</div><h3>Zero-Disruption Updates</h3><p>Features are activated or deactivated per school through a simple settings panel — with no downtime, no technical team deployment, and no disruption to daily school life.</p></div>
+        </div>
+        <div class="badges" style="margin-top:1.3rem;">
+            <span class="badge">✅ Fully Security Audited</span>
+            <span class="badge">✅ Zero Residual Files</span>
+            <span class="badge">✅ Encrypted Sessions</span>
+            <span class="badge">✅ State-Scale Tested</span>
+            <span class="badge">✅ Deployment Ready</span>
+        </div>
+        <div class="prog-wrap"><div class="prog"></div></div>
+    </div>
+
+    <!-- 9 · WHY SMARTSCHOOL -->
+    <div class="slide">
+        <span class="kicker">Value Proposition</span>
+        <h2>Why SmartSchool for Kaduna State?</h2>
+        <p class="sub">The only education management platform purpose-built for a state government — not a single-school product retrofitted and scaled up after the fact.</p>
+        <ul class="bullets">
+            <li><span class="i">🏛️</span><div><strong>Built for Governments, Not Just Schools:</strong> The Education Board sets standards once — every one of Kaduna State's 2,000+ schools operates in perfect alignment, automatically and instantly, every single day.</div></li>
+            <li><span class="i">🖥️</span><div><strong>Kaduna's Own CBT Engine:</strong> State-administered online examinations designed, owned, and controlled entirely within Kaduna State — complete sovereignty, zero reliance on external platforms.</div></li>
+            <li><span class="i">📊</span><div><strong>Always NEMIS-Ready:</strong> Government submission reports generated at the click of a button — annual census, enrolment, gender breakdown, and LGA data always current, always accurate, always ready.</div></li>
+            <li><span class="i">🔍</span><div><strong>Engineered for 2,000+ Schools:</strong> Purpose-built for state-wide scale — finding, managing, and reporting on any school in Kaduna takes seconds, not hours, not days.</div></li>
+            <li><span class="i">🚀</span><div><strong>Ready to Launch Today:</strong> Fully audited, thoroughly tested, and completely prepared — SmartSchool can go live across the entire state with zero preparation time required.</div></li>
+        </ul>
+        <div class="prog-wrap"><div class="prog"></div></div>
+    </div>
+
+</div>
+
+<div class="controls">
+    <button class="ctrl" id="prevBtn">←</button>
+    <button class="ctrl" id="nextBtn">→</button>
+</div>
+
+<script>
+    // Theme
+    const themeBtn = document.getElementById('themeBtn');
+    const tIcon = document.getElementById('tIcon');
+    const tTxt  = document.getElementById('tTxt');
+    const root  = document.documentElement;
+    const saved = localStorage.getItem('ss_theme') || 'light';
+    root.setAttribute('data-theme', saved);
+    setTheme(saved);
+    themeBtn.addEventListener('click', () => {
+        const next = root.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
+        root.setAttribute('data-theme', next);
+        localStorage.setItem('ss_theme', next);
+        setTheme(next);
+    });
+    function setTheme(t) {
+        tIcon.textContent = t === 'dark' ? '☀️' : '🌙';
+        tTxt.textContent  = t === 'dark' ? 'Light' : 'Dark';
+    }
+
+    // Slides
+    const slides  = document.querySelectorAll('.slide');
+    const total   = slides.length;
+    const counter = document.getElementById('counter');
+    const prev    = document.getElementById('prevBtn');
+    const next    = document.getElementById('nextBtn');
+    let cur = 0;
+
+    function render() {
+        slides.forEach((s, i) => {
+            s.classList.remove('active', 'prev');
+            if (i === cur) s.classList.add('active');
+            else if (i < cur) s.classList.add('prev');
+        });
+        const pct = ((cur + 1) / total) * 100 + '%';
+        document.querySelectorAll('.prog').forEach(p => p.style.width = pct);
+        counter.textContent = (cur + 1) + ' / ' + total;
+        prev.style.opacity = cur === 0 ? '.35' : '1';
+        prev.style.pointerEvents = cur === 0 ? 'none' : 'auto';
+        next.style.opacity = cur === total - 1 ? '.35' : '1';
+        next.style.pointerEvents = cur === total - 1 ? 'none' : 'auto';
+    }
+
+    next.addEventListener('click', () => { if (cur < total - 1) { cur++; render(); } });
+    prev.addEventListener('click', () => { if (cur > 0)         { cur--; render(); } });
+    document.addEventListener('keydown', e => {
+        if (e.key === 'ArrowRight' || e.key === ' ') { if (cur < total - 1) { cur++; render(); } }
+        if (e.key === 'ArrowLeft')                   { if (cur > 0)         { cur--; render(); } }
+    });
+    render();
+</script>
+</body>
+</html>

@@ -1,0 +1,45 @@
+# SmartSchool — Git Ignore Rules
+# ════════════════════════════════════════════════════════════════
+# Environment & Secrets (NEVER commit these)
+.env
+.env.local
+.env.production
+
+# Application logs
+application/logs/*.log
+application/logs/log-*.php
+!application/logs/index.html
+
+# Cache files
+application/cache/*
+!application/cache/index.html
+
+# User uploads (large files, not source code)
+uploads/student_image/*
+uploads/staff_image/*
+uploads/uploads/*
+
+# System directories
+system/
+application/config/database.php
+application/config/config.php
+.user.ini
+
+# Node/npm (if any tooling added)
+node_modules/
+npm-debug.log*
+
+# OS files
+.DS_Store
+Thumbs.db
+.Spotlight-V100
+.Trashes
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Lighthouse audit temp files
+lh_audit.mjs

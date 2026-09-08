@@ -1,0 +1,778 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SmartSchool Architecture & Codebase Documentation</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
+    <style>
+        :root {
+            --bg-primary: #0f172a;
+            --bg-secondary: #1e293b;
+            --bg-glass: rgba(30, 41, 59, 0.7);
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --accent-primary: #3b82f6;
+            --accent-secondary: #8b5cf6;
+            --accent-gradient: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+            --border-color: rgba(255, 255, 255, 0.1);
+            --card-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5);
+            --code-bg: #0b1120;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.7;
+            overflow-x: hidden;
+            background-image: 
+                radial-gradient(circle at 15% 50%, rgba(59, 130, 246, 0.15) 0%, transparent 50%),
+                radial-gradient(circle at 85% 30%, rgba(139, 92, 246, 0.15) 0%, transparent 50%);
+            background-attachment: fixed;
+        }
+
+        h1, h2, h3, h4, h5, h6 {
+            font-weight: 600;
+            line-height: 1.3;
+            margin-bottom: 1rem;
+            color: var(--text-primary);
+        }
+
+        h1 { font-size: 3rem; background: var(--accent-gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        h2 { font-size: 2rem; margin-top: 3rem; padding-bottom: 0.5rem; border-bottom: 1px solid var(--border-color); }
+        h3 { font-size: 1.5rem; margin-top: 2rem; color: #e2e8f0; }
+
+        a { color: var(--accent-primary); text-decoration: none; transition: color 0.2s ease; }
+        a:hover { color: var(--accent-secondary); }
+
+        p { margin-bottom: 1.5rem; color: var(--text-secondary); font-size: 1.05rem; }
+
+        ul, ol { margin-bottom: 1.5rem; padding-left: 2rem; color: var(--text-secondary); }
+        li { margin-bottom: 0.5rem; }
+
+        /* Layout */
+        .container {
+            display: flex;
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: 300px;
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 100vh;
+            background: var(--bg-glass);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border-right: 1px solid var(--border-color);
+            padding: 2rem;
+            overflow-y: auto;
+            z-index: 100;
+        }
+
+        .sidebar-logo {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 2rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: var(--accent-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .sidebar-nav {
+            list-style: none;
+            padding: 0;
+        }
+
+        .sidebar-nav li { margin-bottom: 0.25rem; }
+
+        .sidebar-nav a {
+            display: block;
+            padding: 0.75rem 1rem;
+            border-radius: 8px;
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+            transition: all 0.3s ease;
+        }
+
+        .sidebar-nav a:hover, .sidebar-nav a.active {
+            background: rgba(59, 130, 246, 0.1);
+            color: var(--text-primary);
+            transform: translateX(5px);
+        }
+
+        /* Main Content */
+        .main-content {
+            flex: 1;
+            margin-left: 300px;
+            padding: 4rem 6rem;
+            max-width: 1100px;
+        }
+
+        /* Cards & Glassmorphism */
+        .glass-panel {
+            background: var(--bg-glass);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: var(--card-shadow);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .glass-panel:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 40px -10px rgba(0, 0, 0, 0.6);
+        }
+
+        /* Tables */
+        .table-container {
+            overflow-x: auto;
+            margin-bottom: 2rem;
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: rgba(15, 23, 42, 0.6);
+        }
+
+        th, td {
+            padding: 1rem;
+            text-align: left;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        th {
+            background: rgba(30, 41, 59, 0.9);
+            font-weight: 600;
+            color: var(--text-primary);
+            text-transform: uppercase;
+            font-size: 0.85rem;
+            letter-spacing: 0.05em;
+        }
+
+        tr:last-child td { border-bottom: none; }
+        tr:hover td { background: rgba(59, 130, 246, 0.05); }
+
+        /* Code & Pre */
+        code {
+            font-family: 'Fira Code', monospace;
+            background: var(--code-bg);
+            padding: 0.2rem 0.4rem;
+            border-radius: 4px;
+            font-size: 0.85em;
+            color: #38bdf8;
+        }
+
+        pre {
+            background: var(--code-bg);
+            padding: 1.5rem;
+            border-radius: 12px;
+            overflow-x: auto;
+            margin-bottom: 1.5rem;
+            border: 1px solid rgba(255,255,255,0.05);
+        }
+
+        pre code {
+            background: none;
+            padding: 0;
+            color: #e2e8f0;
+            font-size: 0.9rem;
+        }
+
+        /* Mermaid Diagrams */
+        .mermaid-wrapper {
+            background: rgba(255, 255, 255, 0.02);
+            padding: 2rem;
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+            margin: 2rem 0;
+            display: flex;
+            justify-content: center;
+        }
+
+        /* Callouts / Alerts */
+        .alert {
+            padding: 1.5rem;
+            border-radius: 12px;
+            margin-bottom: 1.5rem;
+            border-left: 4px solid;
+            background: rgba(255, 255, 255, 0.03);
+        }
+
+        .alert-info { border-color: #3b82f6; }
+        .alert-warning { border-color: #f59e0b; }
+        .alert-important { border-color: #ef4444; }
+        
+        .alert h4 { margin-top: 0; margin-bottom: 0.5rem; display: flex; align-items: center; gap: 8px;}
+        .alert p:last-child { margin-bottom: 0; }
+
+        /* Tags */
+        .tag {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            background: rgba(59, 130, 246, 0.2);
+            color: #60a5fa;
+            border: 1px solid rgba(59, 130, 246, 0.3);
+        }
+
+        /* Micro Animations */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .animate-in {
+            animation: fadeIn 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+            opacity: 0;
+        }
+        
+        .delay-1 { animation-delay: 0.1s; }
+        .delay-2 { animation-delay: 0.2s; }
+        .delay-3 { animation-delay: 0.3s; }
+
+        /* Responsive */
+        @media (max-width: 1024px) {
+            .sidebar { width: 250px; }
+            .main-content { margin-left: 250px; padding: 3rem; }
+        }
+
+        @media (max-width: 768px) {
+            .container { flex-direction: column; }
+            .sidebar {
+                position: relative;
+                width: 100%;
+                height: auto;
+                border-right: none;
+                border-bottom: 1px solid var(--border-color);
+                padding: 1.5rem;
+            }
+            .main-content {
+                margin-left: 0;
+                padding: 2rem 1.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <!-- Sidebar Navigation -->
+    <aside class="sidebar">
+        <div class="sidebar-logo">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5v-15A2.5 2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/></svg>
+            SmartSchool Docs
+        </div>
+        <ul class="sidebar-nav">
+            <li><a href="#overview" class="active">1. High-Level Overview</a></li>
+            <li><a href="#architecture">2. Architecture & Structure</a></li>
+            <li><a href="#controllers">3. Controller Hierarchy</a></li>
+            <li><a href="#multitenancy">4. Multi-Tenancy (Branch/Board)</a></li>
+            <li><a href="#modules">5. Core Modules</a></li>
+            <li><a href="#integrations">6. Integrations</a></li>
+            <li><a href="#database">7. Database Schema</a></li>
+            <li><a href="#patterns">8. Key Design Patterns</a></li>
+            <li><a href="#csv-feature">9. CSV Import/Export Feature</a></li>
+            <li><a href="#iam">10. Identity & Access (Login/Reg)</a></li>
+            <li><a href="#workflows">11. System Workflows</a></li>
+        </ul>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="main-content">
+        
+        <header class="animate-in">
+            <div class="tag mb-4" style="margin-bottom: 1rem;">System Architecture</div>
+            <h1>SmartSchool Codebase Analysis</h1>
+            <p>A comprehensive technical reference for the state-wide school management platform managing 2,000+ schools under KADSUBEB & KADSSSEB.</p>
+        </header>
+
+        <section id="overview" class="glass-panel animate-in delay-1">
+            <h2>1. High-Level Overview</h2>
+            <p>SmartSchool is a PHP-based multi-tenant school management system built on the CodeIgniter 3 framework. It is designed to operate at a state government scale, connecting a centralized Education Board to thousands of individual schools (branches) in a single deployment.</p>
+            
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Attribute</th>
+                            <th>Value</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr><td><strong>Framework</strong></td><td>CodeIgniter 3.x (MVC)</td></tr>
+                        <tr><td><strong>Language</strong></td><td>PHP 8.2, MySQL/MariaDB 10.4</td></tr>
+                        <tr><td><strong>Server</strong></td><td>Apache, .htaccess URL rewriting</td></tr>
+                        <tr><td><strong>Database</strong></td><td>100+ tables</td></tr>
+                        <tr><td><strong>Architecture</strong></td><td>Multi-tenant (Branch/Board Level)</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <section id="architecture" class="glass-panel animate-in delay-2">
+            <h2>2. Architecture & Directory Structure</h2>
+            <p>The application follows standard CodeIgniter 3 MVC structure but is extended with custom core controllers and a comprehensive layout system.</p>
+            
+            <div class="mermaid-wrapper">
+                <div class="mermaid">
+                graph TB
+                    subgraph Root["Root (c:\xampp\htdocs\SmartSchool)"]
+                        IDX["index.php (Front Controller)"]
+                        SYS["system/ (CI3 Core)"]
+                        APP["application/ (App Code)"]
+                        AST["assets/ (CSS/JS/Vendor)"]
+                        UPL["uploads/ (User Files)"]
+                        SQL["smartschool.sql (Schema)"]
+                    end
+
+                    subgraph Application["application/"]
+                        CFG["config/"]
+                        CTRL["controllers/ (74 files)"]
+                        MDL["models/ (70 files)"]
+                        VW["views/ (69 subdirs)"]
+                        CORE["core/ (MY_Controller)"]
+                        LIB["libraries/ (25 files)"]
+                        HLP["helpers/ (3 custom)"]
+                    end
+
+                    APP --> CFG
+                    APP --> CTRL
+                    APP --> MDL
+                    APP --> VW
+                    APP --> CORE
+                    APP --> LIB
+                    APP --> HLP
+                    
+                    classDef default fill:#1e293b,stroke:#3b82f6,stroke-width:1px,color:#f8fafc;
+                    classDef root fill:#0f172a,stroke:#8b5cf6,stroke-width:2px,color:#f8fafc;
+                    class Root root;
+                </div>
+            </div>
+        </section>
+
+        <section id="controllers" class="glass-panel animate-in delay-3">
+            <h2>3. Controller Hierarchy & Authentication</h2>
+            <p>The system uses a sophisticated 4-tier controller hierarchy defined in <code>application/core/MY_Controller.php</code>. Access control is managed through a granular, role-based permission system.</p>
+            
+            <div class="mermaid-wrapper">
+                <div class="mermaid">
+                classDiagram
+                    CI_Controller <|-- MY_Controller
+                    MY_Controller <|-- Admin_Controller
+                    MY_Controller <|-- User_Controller
+                    MY_Controller <|-- Authentication_Controller
+                    MY_Controller <|-- Frontend_Controller
+
+                    class MY_Controller {
+                        +global_config
+                        +theme_config
+                        +photoHandleUpload()
+                        +getBranchDetails()
+                    }
+                    class Admin_Controller {
+                        <<requires login>>
+                        Staff/Admin access
+                    }
+                    class User_Controller {
+                        <<requires login>>
+                        Student/Parent portal
+                    }
+                </div>
+            </div>
+            
+            <h3>Role System</h3>
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr><th>Role ID</th><th>Name</th><th>Access Level</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td>1</td><td>Super Admin</td><td>State-level executive — sees all branches</td></tr>
+                        <tr><td>2</td><td>Admin</td><td>School-level administrator</td></tr>
+                        <tr><td>3</td><td>Teacher</td><td>Class/subject-restricted access</td></tr>
+                        <tr><td>6</td><td>Parent</td><td>Parent portal</td></tr>
+                        <tr><td>7</td><td>Student</td><td>Student portal</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <section id="multitenancy" class="glass-panel">
+            <h2>4. Multi-Tenancy: The Branch & Board System</h2>
+            <p>This is the most architecturally significant aspect. It implements a two-level organizational hierarchy allowing both state-wide shared data and school-specific data.</p>
+            
+            <div class="mermaid-wrapper">
+                <div class="mermaid">
+                graph TD
+                    STATE["State Government (Super Admin)"]
+                    BOARD1["KADSUBEB (Basic Ed)"]
+                    BOARD2["KADSSSEB (Senior Sec)"]
+
+                    SCHOOL1["LEA Primary Malali (branch_id=4)"]
+                    SCHOOL2["JSS Kawo (branch_id=6)"]
+                    SCHOOL3["Govt College Kaduna (branch_id=1)"]
+
+                    STATE --> BOARD1
+                    STATE --> BOARD2
+                    BOARD1 --> SCHOOL1
+                    BOARD1 --> SCHOOL2
+                    BOARD2 --> SCHOOL3
+                    
+                    classDef state fill:#ef4444,stroke:#dc2626,stroke-width:2px,color:#fff;
+                    classDef board fill:#3b82f6,stroke:#2563eb,stroke-width:2px,color:#fff;
+                    classDef school fill:#10b981,stroke:#059669,stroke-width:2px,color:#fff;
+                    
+                    class STATE state;
+                    class BOARD1,BOARD2 board;
+                    class SCHOOL1,SCHOOL2,SCHOOL3 school;
+                </div>
+            </div>
+            
+            <div class="alert alert-info">
+                <h4>Hybrid Loading Pattern</h4>
+                <p>Tables like <code>class</code>, <code>subject</code>, and <code>grade</code> are linked to boards. The system loads items that belong to the school's board PLUS any custom items created specifically for that branch.</p>
+            </div>
+        </section>
+
+        <section id="modules" class="glass-panel">
+            <h2>5. Complete Codebase MVCs</h2>
+            <p>This section lists the complete set of Controllers, Models, and View Directories found in the codebase.</p>
+            <div class='table-container'>
+            <table>
+            <thead><tr><th>Component Type</th><th>Files / Directories</th><th>Count</th></tr></thead>
+            <tbody>
+            <tr><td valign='top'><strong>Controllers</strong></td><td><div style='display:flex; flex-wrap:wrap; gap:5px;'><span class='tag' style='background:rgba(59, 130, 246, 0.1); border-color:#3b82f6; color:#60a5fa;'>Accounting.php</span> <span class='tag' style='background:rgba(59, 130, 246, 0.1); border-color:#3b82f6; color:#60a5fa;'>Addons.php</span> <span class='tag' style='background:rgba(59, 130, 246, 0.1); border-color:#3b82f6; color:#60a5fa;'>Admissionpayment.php</span> <span class='tag' style='background:rgba(59, 130, 246, 0.1); border-color:#3b82f6; color:#60a5fa;'>Advance_salary.php</span> <span class='tag' style='background:rgba(59, 130, 246, 0.1); border-color:#3b82f6; color:#60a5fa;'>Ajax.php</span> <span class='tag' style='background:rgba(59, 130, 246, 0.1); border-color:#3b82f6; color:#60a5fa;'>Alumni.php</span> <span class='tag' style='background:rgba(59, 130, 246, 0.1); border-color:#3b82f6; color:#60a5fa;'>Attachments.php</span> <span class='tag' style='background:rgba(59, 130, 246, 0.1); border-color:#3b82f6; color:#60a5fa;'>Attendance.php</span> <span class='tag' style='background:rgba(59, 130, 246, 0.1); border-color:#3b82f6; color:#60a5fa;'>Attendance_period.php</span> <span class='tag' style='background:rgba(59, 130, 246, 0.1); border-color:#3b82f6; color:#60a5fa;'>Authentication.php</span> <span class='tag' style='background:rgba(59, 130, 246, 0.1); border-color:#3b82f6; color:#60a5fa;'>Award.php</span> <span class='tag' style='background:rgba(59, 130, 246, 0.1); border-color:#3b82f6; color:#60a5fa;'>Backup.php</span> <span class='tag' style='background:rgba(59, 130, 246, 0.1); border-color:#3b82f6; color:#60a5fa;'>Birthday.php</span> <span class='tag' style='background:rgba(59, 130, 246, 0.1); border-color:#3b82f6; color:#60a5fa;'>Branch.php</span> <span class='tag' style='background:rgba(59, 130, 246, 0.1); border-color:#3b82f6; color:#60a5fa;'>Card_manage.php</span> <span class='tag' style='background:rgba(59, 130, 246, 0.1); border-color:#3b82f6; color:#60a5fa;'>Certificate.php</span> <span class='tag' style='background:rgba(59, 130, 246, 0.1); border-color:#3b82f6; color:#60a5fa;'>Classes.php</span> <span class='tag' style='background:rgba(59, 130, 246, 0.1); border-color:#3b82f6; color:#60a5fa;'>Communication.php</span> <span class='tag' style='background:rgba(59, 130, 246, 0.1); border-color:#3b82f6; color:#60a5fa;'>Cron_api.php</span> <span class='tag' style='background:rgba(59, 130, 246, 0.1); border-color:#3b82f6; color:#60a5fa;'>Custom_field.php</span> <span class='tag' style='background:rgba(59, 130, 246, 0.1); border-color:#3b82f6; color:#60a5fa;'>Dashboard.php</span> <span class='tag' style='background:rgba(59, 130, 246, 0.1); border-color:#3b82f6; color:#60a5fa;'>Education_board.php</span> <span class='tag' style='background:rgba(59, 130, 246, 0.1); border-color:#3b82f6; color:#60a5fa;'>Employee.php</span> <span class='tag' style='background:rgba(59, 130, 246, 0.1); border-color:#3b82f6; color:#60a5fa;'>Errors.php</span> <span class='tag' style='background:rgba(59, 130, 246, 0.1); border-color:#3b82f6; color:#60a5fa;'>Event.php</span> <span class='tag' style='background:rgba(59, 130, 246, 0.1); border-color:#3b82f6; color:#60a5fa;'>Exam.php</span> <span class='tag' style='background:rgba(59, 130, 246, 0.1); border-color:#3b82f6; color:#60a5fa;'>Exam_progress.php</span> <span class='tag' style='background:rgba(59, 130, 246, 0.1); border-color:#3b82f6; color:#60a5fa;'>Fees.php</span> <span class='tag' style='background:rgba(59, 130, 246, 0.1); border-color:#3b82f6; color:#60a5fa;'>Feespayment.php</span> <span class='tag' style='background:rgba(59, 130, 246, 0.1); border-color:#3b82f6; color:#60a5fa;'>Health.php</span> <span class='tag' style='background:rgba(59, 130, 246, 0.1); border-color:#3b82f6; color:#60a5fa;'>Home.php</span> <span class='tag' style='background:rgba(59, 130, 246, 0.1); border-color:#3b82f6; color:#60a5fa;'>Homework.php</span> <span class='tag' style='background:rgba(59, 130, 246, 0.1); border-color:#3b82f6; color:#60a5fa;'>Hostels.php</span> <span class='tag' style='background:rgba(59, 130, 246, 0.1); border-color:#3b82f6; color:#60a5fa;'>Infrastructure.php</span> <span class='tag' style='background:rgba(59, 130, 246, 0.1); border-color:#3b82f6; color:#60a5fa;'>Install.php</span> <span class='tag' style='background:rgba(59, 130, 246, 0.1); border-color:#3b82f6; color:#60a5fa;'>Inventory.php</span> <span class='tag' style='background:rgba(59, 130, 246, 0.1); border-color:#3b82f6; color:#60a5fa;'>Leave.php</span> <span class='tag' style='background:rgba(59, 130, 246, 0.1); border-color:#3b82f6; color:#60a5fa;'>Library.php</span> <span class='tag' style='background:rgba(59, 130, 246, 0.1); border-color:#3b82f6; color:#60a5fa;'>Live_class.php</span> <span class='tag' style='background:rgba(59, 130, 246, 0.1); border-color:#3b82f6; color:#60a5fa;'>Marksheet_template.php</span> <span class='tag' style='background:rgba(59, 130, 246, 0.1); border-color:#3b82f6; color:#60a5fa;'>Modules.php</span> <span class='tag' style='background:rgba(59, 130, 246, 0.1); border-color:#3b82f6; color:#60a5fa;'>Multiclass.php</span> <span class='tag' style='background:rgba(59, 130, 246, 0.1); border-color:#3b82f6; color:#60a5fa;'>Nemis.php</span> <span class='tag' style='background:rgba(59, 130, 246, 0.1); border-color:#3b82f6; color:#60a5fa;'>Offline_payments.php</span> <span class='tag' style='background:rgba(59, 130, 246, 0.1); border-color:#3b82f6; color:#60a5fa;'>Onlineexam.php</span> <span class='tag' style='background:rgba(59, 130, 246, 0.1); border-color:#3b82f6; color:#60a5fa;'>Onlineexam_payment.php</span> <span class='tag' style='background:rgba(59, 130, 246, 0.1); border-color:#3b82f6; color:#60a5fa;'>Online_admission.php</span> <span class='tag' style='background:rgba(59, 130, 246, 0.1); border-color:#3b82f6; color:#60a5fa;'>Parents.php</span> <span class='tag' style='background:rgba(59, 130, 246, 0.1); border-color:#3b82f6; color:#60a5fa;'>Payroll.php</span> <span class='tag' style='background:rgba(59, 130, 246, 0.1); border-color:#3b82f6; color:#60a5fa;'>Popupbox.php</span> <span class='tag' style='background:rgba(59, 130, 246, 0.1); border-color:#3b82f6; color:#60a5fa;'>Profile.php</span> <span class='tag' style='background:rgba(59, 130, 246, 0.1); border-color:#3b82f6; color:#60a5fa;'>Reception.php</span> <span class='tag' style='background:rgba(59, 130, 246, 0.1); border-color:#3b82f6; color:#60a5fa;'>Reception_config.php</span> <span class='tag' style='background:rgba(59, 130, 246, 0.1); border-color:#3b82f6; color:#60a5fa;'>Role.php</span> <span class='tag' style='background:rgba(59, 130, 246, 0.1); border-color:#3b82f6; color:#60a5fa;'>School_inspection.php</span> <span class='tag' style='background:rgba(59, 130, 246, 0.1); border-color:#3b82f6; color:#60a5fa;'>School_settings.php</span> <span class='tag' style='background:rgba(59, 130, 246, 0.1); border-color:#3b82f6; color:#60a5fa;'>Sections.php</span> <span class='tag' style='background:rgba(59, 130, 246, 0.1); border-color:#3b82f6; color:#60a5fa;'>Sendsmsmail.php</span> <span class='tag' style='background:rgba(59, 130, 246, 0.1); border-color:#3b82f6; color:#60a5fa;'>Sessions.php</span> <span class='tag' style='background:rgba(59, 130, 246, 0.1); border-color:#3b82f6; color:#60a5fa;'>Settings.php</span> <span class='tag' style='background:rgba(59, 130, 246, 0.1); border-color:#3b82f6; color:#60a5fa;'>Sslcommerz.php</span> <span class='tag' style='background:rgba(59, 130, 246, 0.1); border-color:#3b82f6; color:#60a5fa;'>State_analytics.php</span> <span class='tag' style='background:rgba(59, 130, 246, 0.1); border-color:#3b82f6; color:#60a5fa;'>Student.php</span> <span class='tag' style='background:rgba(59, 130, 246, 0.1); border-color:#3b82f6; color:#60a5fa;'>Student_promotion.php</span> <span class='tag' style='background:rgba(59, 130, 246, 0.1); border-color:#3b82f6; color:#60a5fa;'>Subject.php</span> <span class='tag' style='background:rgba(59, 130, 246, 0.1); border-color:#3b82f6; color:#60a5fa;'>System_student_field.php</span> <span class='tag' style='background:rgba(59, 130, 246, 0.1); border-color:#3b82f6; color:#60a5fa;'>System_update.php</span> <span class='tag' style='background:rgba(59, 130, 246, 0.1); border-color:#3b82f6; color:#60a5fa;'>Teacher_transfer.php</span> <span class='tag' style='background:rgba(59, 130, 246, 0.1); border-color:#3b82f6; color:#60a5fa;'>Timetable.php</span> <span class='tag' style='background:rgba(59, 130, 246, 0.1); border-color:#3b82f6; color:#60a5fa;'>Translations.php</span> <span class='tag' style='background:rgba(59, 130, 246, 0.1); border-color:#3b82f6; color:#60a5fa;'>Transport.php</span> <span class='tag' style='background:rgba(59, 130, 246, 0.1); border-color:#3b82f6; color:#60a5fa;'>Userrole.php</span> <span class='tag' style='background:rgba(59, 130, 246, 0.1); border-color:#3b82f6; color:#60a5fa;'>frontend</span> <span class='tag' style='background:rgba(59, 130, 246, 0.1); border-color:#3b82f6; color:#60a5fa;'>index.html</span></div></td><td valign='top'>74</td></tr>
+            <tr><td valign='top'><strong>Models</strong></td><td><div style='display:flex; flex-wrap:wrap; gap:5px;'><span class='tag' style='background:rgba(16, 185, 129, 0.1); border-color:#10b981; color:#34d399;'>Accounting_model.php</span> <span class='tag' style='background:rgba(16, 185, 129, 0.1); border-color:#10b981; color:#34d399;'>Addons_model.php</span> <span class='tag' style='background:rgba(16, 185, 129, 0.1); border-color:#10b981; color:#34d399;'>Admissionpayment_model.php</span> <span class='tag' style='background:rgba(16, 185, 129, 0.1); border-color:#10b981; color:#34d399;'>Advancesalary_model.php</span> <span class='tag' style='background:rgba(16, 185, 129, 0.1); border-color:#10b981; color:#34d399;'>Ajax_model.php</span> <span class='tag' style='background:rgba(16, 185, 129, 0.1); border-color:#10b981; color:#34d399;'>Alumni_model.php</span> <span class='tag' style='background:rgba(16, 185, 129, 0.1); border-color:#10b981; color:#34d399;'>Application_model.php</span> <span class='tag' style='background:rgba(16, 185, 129, 0.1); border-color:#10b981; color:#34d399;'>Attachments_model.php</span> <span class='tag' style='background:rgba(16, 185, 129, 0.1); border-color:#10b981; color:#34d399;'>Attendance_model.php</span> <span class='tag' style='background:rgba(16, 185, 129, 0.1); border-color:#10b981; color:#34d399;'>Attendance_period_model.php</span> <span class='tag' style='background:rgba(16, 185, 129, 0.1); border-color:#10b981; color:#34d399;'>Authentication_model.php</span> <span class='tag' style='background:rgba(16, 185, 129, 0.1); border-color:#10b981; color:#34d399;'>Award_model.php</span> <span class='tag' style='background:rgba(16, 185, 129, 0.1); border-color:#10b981; color:#34d399;'>Birthday_model.php</span> <span class='tag' style='background:rgba(16, 185, 129, 0.1); border-color:#10b981; color:#34d399;'>Branch_model.php</span> <span class='tag' style='background:rgba(16, 185, 129, 0.1); border-color:#10b981; color:#34d399;'>Card_manage_model.php</span> <span class='tag' style='background:rgba(16, 185, 129, 0.1); border-color:#10b981; color:#34d399;'>Certificate_model.php</span> <span class='tag' style='background:rgba(16, 185, 129, 0.1); border-color:#10b981; color:#34d399;'>Classes_model.php</span> <span class='tag' style='background:rgba(16, 185, 129, 0.1); border-color:#10b981; color:#34d399;'>Communication_model.php</span> <span class='tag' style='background:rgba(16, 185, 129, 0.1); border-color:#10b981; color:#34d399;'>Content_model.php</span> <span class='tag' style='background:rgba(16, 185, 129, 0.1); border-color:#10b981; color:#34d399;'>Crud_model.php</span> <span class='tag' style='background:rgba(16, 185, 129, 0.1); border-color:#10b981; color:#34d399;'>Custom_field_model.php</span> <span class='tag' style='background:rgba(16, 185, 129, 0.1); border-color:#10b981; color:#34d399;'>Dashboard_model.php</span> <span class='tag' style='background:rgba(16, 185, 129, 0.1); border-color:#10b981; color:#34d399;'>Education_board_model.php</span> <span class='tag' style='background:rgba(16, 185, 129, 0.1); border-color:#10b981; color:#34d399;'>Email_model.php</span> <span class='tag' style='background:rgba(16, 185, 129, 0.1); border-color:#10b981; color:#34d399;'>Employee_model.php</span> <span class='tag' style='background:rgba(16, 185, 129, 0.1); border-color:#10b981; color:#34d399;'>Event_model.php</span> <span class='tag' style='background:rgba(16, 185, 129, 0.1); border-color:#10b981; color:#34d399;'>Exam_model.php</span> <span class='tag' style='background:rgba(16, 185, 129, 0.1); border-color:#10b981; color:#34d399;'>Exam_progress_model.php</span> <span class='tag' style='background:rgba(16, 185, 129, 0.1); border-color:#10b981; color:#34d399;'>Feespayment_model.php</span> <span class='tag' style='background:rgba(16, 185, 129, 0.1); border-color:#10b981; color:#34d399;'>Fees_model.php</span> <span class='tag' style='background:rgba(16, 185, 129, 0.1); border-color:#10b981; color:#34d399;'>Frontend_model.php</span> <span class='tag' style='background:rgba(16, 185, 129, 0.1); border-color:#10b981; color:#34d399;'>Gallery_model.php</span> <span class='tag' style='background:rgba(16, 185, 129, 0.1); border-color:#10b981; color:#34d399;'>Homework_model.php</span> <span class='tag' style='background:rgba(16, 185, 129, 0.1); border-color:#10b981; color:#34d399;'>Home_model.php</span> <span class='tag' style='background:rgba(16, 185, 129, 0.1); border-color:#10b981; color:#34d399;'>Hostel_model.php</span> <span class='tag' style='background:rgba(16, 185, 129, 0.1); border-color:#10b981; color:#34d399;'>Infrastructure_model.php</span> <span class='tag' style='background:rgba(16, 185, 129, 0.1); border-color:#10b981; color:#34d399;'>Install_model.php</span> <span class='tag' style='background:rgba(16, 185, 129, 0.1); border-color:#10b981; color:#34d399;'>Inventory_model.php</span> <span class='tag' style='background:rgba(16, 185, 129, 0.1); border-color:#10b981; color:#34d399;'>Leave_model.php</span> <span class='tag' style='background:rgba(16, 185, 129, 0.1); border-color:#10b981; color:#34d399;'>Library_model.php</span> <span class='tag' style='background:rgba(16, 185, 129, 0.1); border-color:#10b981; color:#34d399;'>Live_class_model.php</span> <span class='tag' style='background:rgba(16, 185, 129, 0.1); border-color:#10b981; color:#34d399;'>Marksheet_template_model.php</span> <span class='tag' style='background:rgba(16, 185, 129, 0.1); border-color:#10b981; color:#34d399;'>Module_model.php</span> <span class='tag' style='background:rgba(16, 185, 129, 0.1); border-color:#10b981; color:#34d399;'>Multiclass_model.php</span> <span class='tag' style='background:rgba(16, 185, 129, 0.1); border-color:#10b981; color:#34d399;'>News_model.php</span> <span class='tag' style='background:rgba(16, 185, 129, 0.1); border-color:#10b981; color:#34d399;'>Offline_payments_model.php</span> <span class='tag' style='background:rgba(16, 185, 129, 0.1); border-color:#10b981; color:#34d399;'>Onlineexam_model.php</span> <span class='tag' style='background:rgba(16, 185, 129, 0.1); border-color:#10b981; color:#34d399;'>Online_admission_model.php</span> <span class='tag' style='background:rgba(16, 185, 129, 0.1); border-color:#10b981; color:#34d399;'>Parents_model.php</span> <span class='tag' style='background:rgba(16, 185, 129, 0.1); border-color:#10b981; color:#34d399;'>Payroll_model.php</span> <span class='tag' style='background:rgba(16, 185, 129, 0.1); border-color:#10b981; color:#34d399;'>Profile_model.php</span> <span class='tag' style='background:rgba(16, 185, 129, 0.1); border-color:#10b981; color:#34d399;'>Reception_model.php</span> <span class='tag' style='background:rgba(16, 185, 129, 0.1); border-color:#10b981; color:#34d399;'>Role_model.php</span> <span class='tag' style='background:rgba(16, 185, 129, 0.1); border-color:#10b981; color:#34d399;'>School_inspection_model.php</span> <span class='tag' style='background:rgba(16, 185, 129, 0.1); border-color:#10b981; color:#34d399;'>School_model.php</span> <span class='tag' style='background:rgba(16, 185, 129, 0.1); border-color:#10b981; color:#34d399;'>Sendsmsmail_model.php</span> <span class='tag' style='background:rgba(16, 185, 129, 0.1); border-color:#10b981; color:#34d399;'>Sessions_model.php</span> <span class='tag' style='background:rgba(16, 185, 129, 0.1); border-color:#10b981; color:#34d399;'>Settings_model.php</span> <span class='tag' style='background:rgba(16, 185, 129, 0.1); border-color:#10b981; color:#34d399;'>Sms_model.php</span> <span class='tag' style='background:rgba(16, 185, 129, 0.1); border-color:#10b981; color:#34d399;'>Student_fields_model.php</span> <span class='tag' style='background:rgba(16, 185, 129, 0.1); border-color:#10b981; color:#34d399;'>Student_model.php</span> <span class='tag' style='background:rgba(16, 185, 129, 0.1); border-color:#10b981; color:#34d399;'>Subject_model.php</span> <span class='tag' style='background:rgba(16, 185, 129, 0.1); border-color:#10b981; color:#34d399;'>System_update_model.php</span> <span class='tag' style='background:rgba(16, 185, 129, 0.1); border-color:#10b981; color:#34d399;'>Teacher_transfer_model.php</span> <span class='tag' style='background:rgba(16, 185, 129, 0.1); border-color:#10b981; color:#34d399;'>Testimonial_model.php</span> <span class='tag' style='background:rgba(16, 185, 129, 0.1); border-color:#10b981; color:#34d399;'>Timetable_model.php</span> <span class='tag' style='background:rgba(16, 185, 129, 0.1); border-color:#10b981; color:#34d399;'>Transport_fees_model.php</span> <span class='tag' style='background:rgba(16, 185, 129, 0.1); border-color:#10b981; color:#34d399;'>Transport_model.php</span> <span class='tag' style='background:rgba(16, 185, 129, 0.1); border-color:#10b981; color:#34d399;'>Userrole_model.php</span> <span class='tag' style='background:rgba(16, 185, 129, 0.1); border-color:#10b981; color:#34d399;'>User_login_log_model.php</span> <span class='tag' style='background:rgba(16, 185, 129, 0.1); border-color:#10b981; color:#34d399;'>index.html</span></div></td><td valign='top'>71</td></tr>
+            <tr><td valign='top'><strong>Views (Subdirectories)</strong></td><td><div style='display:flex; flex-wrap:wrap; gap:5px;'><span class='tag' style='background:rgba(245, 158, 11, 0.1); border-color:#f59e0b; color:#fbbf24;'>accounting</span> <span class='tag' style='background:rgba(245, 158, 11, 0.1); border-color:#f59e0b; color:#fbbf24;'>addons</span> <span class='tag' style='background:rgba(245, 158, 11, 0.1); border-color:#f59e0b; color:#fbbf24;'>advance_salary</span> <span class='tag' style='background:rgba(245, 158, 11, 0.1); border-color:#f59e0b; color:#fbbf24;'>alumni</span> <span class='tag' style='background:rgba(245, 158, 11, 0.1); border-color:#f59e0b; color:#fbbf24;'>attachments</span> <span class='tag' style='background:rgba(245, 158, 11, 0.1); border-color:#f59e0b; color:#fbbf24;'>attendance</span> <span class='tag' style='background:rgba(245, 158, 11, 0.1); border-color:#f59e0b; color:#fbbf24;'>attendance_period</span> <span class='tag' style='background:rgba(245, 158, 11, 0.1); border-color:#f59e0b; color:#fbbf24;'>authentication</span> <span class='tag' style='background:rgba(245, 158, 11, 0.1); border-color:#f59e0b; color:#fbbf24;'>award</span> <span class='tag' style='background:rgba(245, 158, 11, 0.1); border-color:#f59e0b; color:#fbbf24;'>birthday</span> <span class='tag' style='background:rgba(245, 158, 11, 0.1); border-color:#f59e0b; color:#fbbf24;'>branch</span> <span class='tag' style='background:rgba(245, 158, 11, 0.1); border-color:#f59e0b; color:#fbbf24;'>card_manage</span> <span class='tag' style='background:rgba(245, 158, 11, 0.1); border-color:#f59e0b; color:#fbbf24;'>certificate</span> <span class='tag' style='background:rgba(245, 158, 11, 0.1); border-color:#f59e0b; color:#fbbf24;'>classes</span> <span class='tag' style='background:rgba(245, 158, 11, 0.1); border-color:#f59e0b; color:#fbbf24;'>communication</span> <span class='tag' style='background:rgba(245, 158, 11, 0.1); border-color:#f59e0b; color:#fbbf24;'>cron_api</span> <span class='tag' style='background:rgba(245, 158, 11, 0.1); border-color:#f59e0b; color:#fbbf24;'>custom_field</span> <span class='tag' style='background:rgba(245, 158, 11, 0.1); border-color:#f59e0b; color:#fbbf24;'>dashboard</span> <span class='tag' style='background:rgba(245, 158, 11, 0.1); border-color:#f59e0b; color:#fbbf24;'>database_backup</span> <span class='tag' style='background:rgba(245, 158, 11, 0.1); border-color:#f59e0b; color:#fbbf24;'>education_board</span> <span class='tag' style='background:rgba(245, 158, 11, 0.1); border-color:#f59e0b; color:#fbbf24;'>employee</span> <span class='tag' style='background:rgba(245, 158, 11, 0.1); border-color:#f59e0b; color:#fbbf24;'>errors</span> <span class='tag' style='background:rgba(245, 158, 11, 0.1); border-color:#f59e0b; color:#fbbf24;'>event</span> <span class='tag' style='background:rgba(245, 158, 11, 0.1); border-color:#f59e0b; color:#fbbf24;'>exam</span> <span class='tag' style='background:rgba(245, 158, 11, 0.1); border-color:#f59e0b; color:#fbbf24;'>exam_progress</span> <span class='tag' style='background:rgba(245, 158, 11, 0.1); border-color:#f59e0b; color:#fbbf24;'>fees</span> <span class='tag' style='background:rgba(245, 158, 11, 0.1); border-color:#f59e0b; color:#fbbf24;'>frontend</span> <span class='tag' style='background:rgba(245, 158, 11, 0.1); border-color:#f59e0b; color:#fbbf24;'>health</span> <span class='tag' style='background:rgba(245, 158, 11, 0.1); border-color:#f59e0b; color:#fbbf24;'>home</span> <span class='tag' style='background:rgba(245, 158, 11, 0.1); border-color:#f59e0b; color:#fbbf24;'>homework</span> <span class='tag' style='background:rgba(245, 158, 11, 0.1); border-color:#f59e0b; color:#fbbf24;'>hostels</span> <span class='tag' style='background:rgba(245, 158, 11, 0.1); border-color:#f59e0b; color:#fbbf24;'>infrastructure</span> <span class='tag' style='background:rgba(245, 158, 11, 0.1); border-color:#f59e0b; color:#fbbf24;'>inspection</span> <span class='tag' style='background:rgba(245, 158, 11, 0.1); border-color:#f59e0b; color:#fbbf24;'>install</span> <span class='tag' style='background:rgba(245, 158, 11, 0.1); border-color:#f59e0b; color:#fbbf24;'>inventory</span> <span class='tag' style='background:rgba(245, 158, 11, 0.1); border-color:#f59e0b; color:#fbbf24;'>language</span> <span class='tag' style='background:rgba(245, 158, 11, 0.1); border-color:#f59e0b; color:#fbbf24;'>layout</span> <span class='tag' style='background:rgba(245, 158, 11, 0.1); border-color:#f59e0b; color:#fbbf24;'>leave</span> <span class='tag' style='background:rgba(245, 158, 11, 0.1); border-color:#f59e0b; color:#fbbf24;'>library</span> <span class='tag' style='background:rgba(245, 158, 11, 0.1); border-color:#f59e0b; color:#fbbf24;'>live_class</span> <span class='tag' style='background:rgba(245, 158, 11, 0.1); border-color:#f59e0b; color:#fbbf24;'>marksheet_template</span> <span class='tag' style='background:rgba(245, 158, 11, 0.1); border-color:#f59e0b; color:#fbbf24;'>modules</span> <span class='tag' style='background:rgba(245, 158, 11, 0.1); border-color:#f59e0b; color:#fbbf24;'>multiclass</span> <span class='tag' style='background:rgba(245, 158, 11, 0.1); border-color:#f59e0b; color:#fbbf24;'>nemis</span> <span class='tag' style='background:rgba(245, 158, 11, 0.1); border-color:#f59e0b; color:#fbbf24;'>offline_payments</span> <span class='tag' style='background:rgba(245, 158, 11, 0.1); border-color:#f59e0b; color:#fbbf24;'>onlineexam</span> <span class='tag' style='background:rgba(245, 158, 11, 0.1); border-color:#f59e0b; color:#fbbf24;'>online_admission</span> <span class='tag' style='background:rgba(245, 158, 11, 0.1); border-color:#f59e0b; color:#fbbf24;'>parents</span> <span class='tag' style='background:rgba(245, 158, 11, 0.1); border-color:#f59e0b; color:#fbbf24;'>payroll</span> <span class='tag' style='background:rgba(245, 158, 11, 0.1); border-color:#f59e0b; color:#fbbf24;'>profile</span> <span class='tag' style='background:rgba(245, 158, 11, 0.1); border-color:#f59e0b; color:#fbbf24;'>reception</span> <span class='tag' style='background:rgba(245, 158, 11, 0.1); border-color:#f59e0b; color:#fbbf24;'>reception_config</span> <span class='tag' style='background:rgba(245, 158, 11, 0.1); border-color:#f59e0b; color:#fbbf24;'>role</span> <span class='tag' style='background:rgba(245, 158, 11, 0.1); border-color:#f59e0b; color:#fbbf24;'>school_settings</span> <span class='tag' style='background:rgba(245, 158, 11, 0.1); border-color:#f59e0b; color:#fbbf24;'>sections</span> <span class='tag' style='background:rgba(245, 158, 11, 0.1); border-color:#f59e0b; color:#fbbf24;'>sendsmsmail</span> <span class='tag' style='background:rgba(245, 158, 11, 0.1); border-color:#f59e0b; color:#fbbf24;'>sessions</span> <span class='tag' style='background:rgba(245, 158, 11, 0.1); border-color:#f59e0b; color:#fbbf24;'>settings</span> <span class='tag' style='background:rgba(245, 158, 11, 0.1); border-color:#f59e0b; color:#fbbf24;'>state_analytics</span> <span class='tag' style='background:rgba(245, 158, 11, 0.1); border-color:#f59e0b; color:#fbbf24;'>student</span> <span class='tag' style='background:rgba(245, 158, 11, 0.1); border-color:#f59e0b; color:#fbbf24;'>student_promotion</span> <span class='tag' style='background:rgba(245, 158, 11, 0.1); border-color:#f59e0b; color:#fbbf24;'>subject</span> <span class='tag' style='background:rgba(245, 158, 11, 0.1); border-color:#f59e0b; color:#fbbf24;'>system_student_field</span> <span class='tag' style='background:rgba(245, 158, 11, 0.1); border-color:#f59e0b; color:#fbbf24;'>system_update</span> <span class='tag' style='background:rgba(245, 158, 11, 0.1); border-color:#f59e0b; color:#fbbf24;'>timetable</span> <span class='tag' style='background:rgba(245, 158, 11, 0.1); border-color:#f59e0b; color:#fbbf24;'>transfer</span> <span class='tag' style='background:rgba(245, 158, 11, 0.1); border-color:#f59e0b; color:#fbbf24;'>transport</span> <span class='tag' style='background:rgba(245, 158, 11, 0.1); border-color:#f59e0b; color:#fbbf24;'>userrole</span> <span class='tag' style='background:rgba(245, 158, 11, 0.1); border-color:#f59e0b; color:#fbbf24;'>user_login_log</span> </div></td><td valign='top'>69</td></tr>
+            </tbody>
+            </table>
+            </div>
+        </section>
+
+        <section id="database" class="glass-panel">
+            <h2>6. Database Schema Highlights</h2>
+            <p>The database contains over 100 tables structuring the massive operational data required for state-wide deployment. A critical aspect of this schema is how user entities (Parents, Students, Staff) are linked.</p>
+            
+            <div class="alert alert-info">
+                <h4>Parent & Student Relational Model</h4>
+                <p>The system uses a strict <strong>One-to-Many</strong> relationship between Parents and Students. The <code>student</code> table contains a <code>parent_id</code> foreign key. This allows a single Parent/Guardian account to be linked to multiple children across the system. The <code>login_credential</code> table sits above all user entities, securely handling authentication.</p>
+            </div>
+
+            <div class="mermaid-wrapper">
+                <div class="mermaid">
+                erDiagram
+                    BRANCH ||--o{ ENROLL : contains
+                    BRANCH ||--o{ STAFF : employs
+                    EDUCATION_BOARD ||--o{ BRANCH : manages
+                    
+                    PARENT ||--o{ STUDENT : "has children (parent_id)"
+                    STUDENT ||--o{ ENROLL : "has enrollment"
+                    
+                    LOGIN_CREDENTIAL ||--|| STUDENT : "authenticates (Role 7)"
+                    LOGIN_CREDENTIAL ||--|| PARENT : "authenticates (Role 6)"
+                    LOGIN_CREDENTIAL ||--|| STAFF : "authenticates (Role 1-3)"
+
+                    PARENT {
+                        int id PK
+                        string name
+                        string occupation
+                    }
+                    STUDENT {
+                        int id PK
+                        int parent_id FK
+                        string first_name
+                        string last_name
+                    }
+                    LOGIN_CREDENTIAL {
+                        int id PK
+                        int user_id FK
+                        int role
+                        int active
+                    }
+                </div>
+            </div>
+        </section>
+
+        <section id="patterns" class="glass-panel">
+            <h2>7. Key Design Patterns</h2>
+            <ul>
+                <li><strong>Branch Scoping:</strong> Almost all queries are scoped by <code>branch_id</code> using <code>Application_model::get_branch_id()</code>.</li>
+                <li><strong>Session-Based Data:</strong> Academic year separation via <code>session_id</code>.</li>
+                <li><strong>Dynamic Translations:</strong> The <code>translate()</code> helper auto-inserts missing strings into the DB.</li>
+                <li><strong>Addon System:</strong> Extensible plugin architecture (e.g., SaaS, 2FA modules).</li>
+            </ul>
+        </section>
+
+        <section id="csv-feature" class="glass-panel">
+            <h2>8. Implemented Feature: CSV Bulk Actions</h2>
+            <p>A recent architectural update standardized bulk data operations (Import/Export) across the three main entity types: Students, Employees, and Parents.</p>
+            
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Entity</th>
+                            <th>Import Feature</th>
+                            <th>Export Feature</th>
+                            <th>Implementation Detail</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>Students</strong></td>
+                            <td><span class="tag">Existing</span></td>
+                            <td><span class="tag" style="color:#10b981; border-color:#10b981; background:rgba(16, 185, 129, 0.1)">Added</span></td>
+                            <td>Exports 27 columns including guardian details. Scoped by branch & session.</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Employees</strong></td>
+                            <td><span class="tag" style="color:#f59e0b; border-color:#f59e0b; background:rgba(245, 158, 11, 0.1)">Upgraded</span></td>
+                            <td><span class="tag" style="color:#10b981; border-color:#10b981; background:rgba(16, 185, 129, 0.1)">Added</span></td>
+                            <td>Moved from AJAX modal to dedicated page. Exports staff joining roles/designation.</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Parents</strong></td>
+                            <td><span class="tag" style="color:#10b981; border-color:#10b981; background:rgba(16, 185, 129, 0.1)">New</span></td>
+                            <td><span class="tag" style="color:#10b981; border-color:#10b981; background:rgba(16, 185, 129, 0.1)">New</span></td>
+                            <td>Full bulk creation logic including auto-generating <code>login_credential</code> rows.</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            
+            <div class="alert alert-warning">
+                <h4>Security Considerations</h4>
+                <p>When exporting entities, the <code>Password</code> hashes are strictly excluded from the CSV outputs to maintain system integrity. The <code>Username</code> is included to allow cross-referencing.</p>
+            </div>
+        </section>
+
+        <section id="iam" class="glass-panel">
+            <h2>10. Identity & Access Management (Login & Registration)</h2>
+            <p>SmartSchool centralizes login for all entity types (Students, Teachers, Employees, Parents) through a unified authentication gateway while segregating registration methodologies based on administrative roles.</p>
+            
+            <h3>Unified Login Architecture</h3>
+            <p>All users authenticate at <code>/authentication</code>. The system queries the centralized <code>login_credential</code> table, which maps the user to their respective underlying entity table via the <code>user_id</code> and <code>role</code> fields.</p>
+            
+            <div class="mermaid-wrapper">
+                <div class="mermaid">
+                flowchart TD
+                    LOGIN[User visits /authentication] --> CRED{login_credential table}
+                    CRED -- "Role 7" --> STUDENT[Student Dashboard]
+                    CRED -- "Role 6" --> PARENT[Parent Dashboard]
+                    CRED -- "Role 3" --> TEACHER[Teacher Dashboard]
+                    CRED -- "Role 1,2,etc" --> ADMIN[Admin/Employee Dashboard]
+                    
+                    STUDENT -.-> DB_STU[(student table)]
+                    PARENT -.-> DB_PAR[(parent table)]
+                    TEACHER -.-> DB_EMP[(staff table)]
+                    ADMIN -.-> DB_EMP
+                    
+                    classDef default fill:#1e293b,stroke:#3b82f6,color:#fff;
+                    classDef db fill:#0f172a,stroke:#10b981,color:#fff,stroke-dasharray: 5 5;
+                    class DB_STU,DB_PAR,DB_EMP db;
+                </div>
+            </div>
+
+            <h3>Registration / Onboarding Flows (Hybrid IAM)</h3>
+            <p>SmartSchool employs a <strong>Hybrid User-Led Credentialing Architecture</strong>. Rather than Administrators generating and distributing plain text passwords, the system empowers end-users to securely set their own credentials via two distinct pathways, both of which culminate in a centralized Administrative Approval phase.</p>
+
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Flow Scenario</th>
+                            <th>Trigger Point</th>
+                            <th>Credential Generation</th>
+                            <th>Account State</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>Scenario A: Admin Invitation</strong></td>
+                            <td>Admin creates the user record (Employee, Student, Parent) but selects "Send Setup Invitation Link".</td>
+                            <td>A secure <code>setup_token</code> is generated. The user clicks the link to choose their own Username and Password.</td>
+                            <td>Starts at <code>active = 2</code> (Pending Setup). Moves to <code>active = 0</code> after setup.</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Scenario B: Public Registration</strong></td>
+                            <td>User navigates to the public <code>/registration</code> portal (can be disabled globally by Admin).</td>
+                            <td>User inputs their desired details, Username, and Password on the public form.</td>
+                            <td>Starts at <code>active = 0</code> (Pending Admin Approval).</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Admin Approval (Final)</strong></td>
+                            <td>Admin reviews pending accounts in the <code>/credential_approvals</code> dashboard.</td>
+                            <td>Admin approves the account, granting system access.</td>
+                            <td>Moves to <code>active = 1</code> (Fully Active).</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="alert alert-info">
+                <h4>Dynamic Role Assignment & Security</h4>
+                <p>When an Admin creates an <strong>Employee</strong>, they assign a specific System Role (e.g., Teacher, Accountant, Receptionist). Students and Parents are permanently hardcoded to Role 7 and Role 6, respectively. All passwords are automatically hashed using <code>pass_hashed()</code> before ever touching the database.</p>
+            </div>
+
+            <h3>Deferred Credentialing Lifecycle (Hybrid IAM)</h3>
+            <div class="mermaid-wrapper">
+                <div class="mermaid">
+                sequenceDiagram
+                    actor Admin
+                    actor User
+                    participant AuthController
+                    participant Database
+
+                    Admin->>AuthController: Bulk CSV Import (No Passwords)
+                    AuthController->>Database: Saves Entities & Generates setup_token (active=2)
+                    Note over Admin,Database: Accounts are now Pending Setup
+                    
+                    Admin->>AuthController: Clicks "Dispatch Invites"
+                    AuthController->>Database: Queries all active=2 accounts
+                    AuthController-->>User: Dispatches Email with tokenized Setup Link
+                    
+                    User->>AuthController: Visits /authentication/setup_account/{token}
+                    AuthController->>Database: Validates Token
+                    User->>AuthController: Submits Desired Username & Password
+                    AuthController->>Database: Hashes Password, Nullifies Token, Sets active=1
+                    AuthController-->>User: Setup Complete. Redirects to Login
+                </div>
+            </div>
+        </section>
+
+        <section id="workflows" class="glass-panel">
+            <h2>11. System Workflows</h2>
+            <p>The following diagrams illustrate the core process flows within the SmartSchool application.</p>
+            
+            <h3>Authentication & Authorization Flow</h3>
+            <div class="mermaid-wrapper">
+                <div class="mermaid">
+                sequenceDiagram
+                    actor User
+                    participant AuthController
+                    participant AuthModel
+                    participant Session
+                    participant Dashboard
+
+                    User->>AuthController: Submits Credentials
+                    AuthController->>AuthModel: verify_password(email, password)
+                    alt Invalid Credentials
+                        AuthModel-->>AuthController: false
+                        AuthController-->>User: Redirect to Login + Error Msg
+                    else Valid Credentials
+                        AuthModel-->>AuthController: User Data (role, branch_id)
+                        AuthController->>Session: set_userdata(logged_in, user_id, role)
+                        AuthController->>Dashboard: Redirect based on role
+                        Dashboard-->>User: Display role-specific dashboard
+                    end
+                </div>
+            </div>
+
+            <h3>Hybrid IAM Bulk Import Pipeline</h3>
+            <div class="mermaid-wrapper">
+                <div class="mermaid">
+                flowchart TD
+                    A[Admin Uploads Credential-less CSV] --> B[Controller: csv_import]
+                    B --> C{Validate Headers & File}
+                    C -- Invalid --> D[Return Error]
+                    C -- Valid --> E[Parse CSV Rows]
+                    E --> F[Loop Over Rows]
+                    F --> G{Validate Entity Data}
+                    G -- Valid --> H[Insert/Update Entity Database]
+                    H --> I[Assign setup_token & active=2]
+                    I --> J[Save login_credential row]
+                    G -- Invalid --> K[Skip or Log Error]
+                    J --> L[Return Success & Update Pending Queue]
+                </div>
+            </div>
+            
+            <h3>Data Request Lifecycle</h3>
+            <div class="mermaid-wrapper">
+                <div class="mermaid">
+                flowchart LR
+                    A[Browser Request] --> B[routes.php]
+                    B --> C[CI_Controller]
+                    C --> D[MY_Controller]
+                    D --> E[Specific Module Controller]
+                    E --> F[Auth Check & Branch Scope]
+                    F --> G[Module Model]
+                    G --> H[(Database)]
+                    H --> G
+                    G --> E
+                    E --> I[Load View Header + Content + Footer]
+                    I --> J[HTML Response sent to Browser]
+                </div>
+            </div>
+        </section>
+
+    </main>
+</div>
+
+<script>
+    // Initialize MermaidJS
+    mermaid.initialize({ 
+        startOnLoad: true,
+        theme: 'dark',
+        themeVariables: {
+            fontFamily: 'Inter',
+            primaryColor: '#3b82f6',
+            primaryTextColor: '#f8fafc',
+            primaryBorderColor: '#2563eb',
+            lineColor: '#64748b',
+            secondaryColor: '#1e293b',
+            tertiaryColor: '#0f172a'
+        }
+    });
+
+    // Simple scroll spy for sidebar navigation
+    const sections = document.querySelectorAll('section');
+    const navLinks = document.querySelectorAll('.sidebar-nav a');
+
+    window.addEventListener('scroll', () => {
+        let current = '';
+        sections.forEach(section => {
+            const sectionTop = section.offsetTop;
+            const sectionHeight = section.clientHeight;
+            if (scrollY >= (sectionTop - 200)) {
+                current = section.getAttribute('id');
+            }
+        });
+
+        navLinks.forEach(link => {
+            link.classList.remove('active');
+            if (link.getAttribute('href').includes(current)) {
+                link.classList.add('active');
+            }
+        });
+    });
+</script>
+
+</body>
+</html>
