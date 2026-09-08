@@ -270,12 +270,12 @@ $first_part = implode(' ', $words);
             <div class="ss-cap-card ss-reveal">
                 <div class="ss-cap-icon"><i class="fas fa-laptop-code"></i></div>
                 <h4>Computer-Based Testing</h4>
-                <p>State-owned CBT engine — no third-party dependency</p>
+                <p>Built-in exam engine — no third-party dependency</p>
             </div>
             <div class="ss-cap-card ss-reveal">
                 <div class="ss-cap-icon"><i class="fas fa-chart-bar"></i></div>
                 <h4>NEMIS Reporting</h4>
-                <p>Government-ready data exports at one click</p>
+                <p>School data exports at one click</p>
             </div>
             <div class="ss-cap-card ss-reveal">
                 <div class="ss-cap-icon"><i class="fas fa-money-bill-wave"></i></div>
@@ -295,17 +295,17 @@ $first_part = implode(' ', $words);
             <div class="ss-cap-card ss-reveal">
                 <div class="ss-cap-icon"><i class="fas fa-sms"></i></div>
                 <h4>Bulk SMS & Comms</h4>
-                <p>Reach every parent across the state instantly</p>
+                <p>Reach every Tahsin parent instantly</p>
             </div>
             <div class="ss-cap-card ss-reveal">
                 <div class="ss-cap-icon"><i class="fas fa-globe"></i></div>
-                <h4>School Websites</h4>
-                <p>Every school gets its own public website</p>
+                <h4>Academy Website</h4>
+                <p>News, galleries, and admissions on tahsinacademy.ng</p>
             </div>
             <div class="ss-cap-card ss-reveal">
                 <div class="ss-cap-icon"><i class="fas fa-shield-alt"></i></div>
-                <h4>7-Tier Security</h4>
-                <p>Role-based access from Governor to Teacher</p>
+                <h4>Secure Access</h4>
+                <p>Role-based access for staff, parents, and students</p>
             </div>
         </div>
     </section>
