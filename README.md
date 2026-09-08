@@ -1,6 +1,6 @@
-# Tahsin / SmartSchool
+# Tahsin Academy
 
-Multi-tenant school management platform built on CodeIgniter 3. Customized for Kaduna State education boards (KADSUBEB, KADSSSEB): schools (branches), shared board curriculum, and statewide reporting.
+Multi-tenant school management platform built on CodeIgniter 3. Live at [tahsinacademy.ng](https://tahsinacademy.ng/). Motto: Excellence In Deen & Duniya. Supports schools (branches), shared board curriculum, and statewide reporting.
 
 **Version:** 7.0.0
 

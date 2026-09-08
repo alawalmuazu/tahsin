@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tahsin / SmartSchool — Codebase Documentation</title>
+    <title>Tahsin Academy — Codebase Documentation</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
@@ -227,19 +227,21 @@
             <li><a href="#navigate">11. How to find a feature</a></li>
             <li><a href="#database">12. Database highlights</a></li>
             <li><a href="#csv">13. CSV import / export</a></li>
+            <li><a href="#deploy">14. Deploy</a></li>
+            <li><a href="#branding">15. Branding</a></li>
         </ul>
     </aside>
 
     <main class="main-content">
         <header>
             <div class="tag" style="margin-bottom: 1rem;">System Architecture · v7.0.0</div>
-            <h1>Tahsin / SmartSchool</h1>
-            <p>CodeIgniter 3 school-management platform customized for Kaduna State — a single deployment covering many schools under education boards such as KADSUBEB and KADSSSEB.</p>
+            <h1>Tahsin Academy</h1>
+            <p>CodeIgniter 3 school-management platform for Tahsin Academy (live at <a href="https://tahsinacademy.ng/">tahsinacademy.ng</a>). Motto: Excellence In Deen &amp; Duniya. Built to cover many schools under education boards such as KADSUBEB and KADSSSEB.</p>
         </header>
 
         <section id="overview" class="glass-panel">
             <h2>1. What the app is</h2>
-            <p>Tahsin is a <strong>multi-tenant school ERP</strong> branded SmartSchool. It started from a commercial multi-school product (Ramom School lineage) and has been extended for state-government use. Stack: PHP, MySQL/MariaDB, Apache with <code>.htaccess</code> rewriting. App version is <code>7.0.0</code>.</p>
+            <p>Tahsin Academy is a <strong>multi-tenant school ERP</strong> (CodeIgniter lineage). The public brand is Tahsin Academy; older Smart School strings are rewritten in <code>MY_Controller::brandName()</code>. Stack: PHP, MySQL/MariaDB, Apache with <code>.htaccess</code> rewriting. App version is <code>7.0.0</code>.</p>
             <p>It adds two layers on top of a normal single-school product:</p>
             <ol>
                 <li><strong>School (branch)</strong> — one school’s students, staff, fees, attendance.</li>
@@ -317,7 +319,9 @@ flowchart LR
                         <tr><td><code>application/helpers/general_helper.php</code></td><td><code>translate()</code>, <code>get_permission()</code>, login helpers</td></tr>
                         <tr><td><code>application/third_party/</code></td><td>Payments, SMS, PDF, Zoom, BBB, mail</td></tr>
                         <tr><td><code>assets/</code></td><td>CSS/JS, DataTables, CKEditor, Bootstrap</td></tr>
-                        <tr><td><code>uploads/</code></td><td>Photos, CSVs, backups</td></tr>
+                        <tr><td><code>uploads/</code></td><td>Photos, CSVs, backups; default logos in <code>uploads/app_image/</code></td></tr>
+                        <tr><td><code>Logo/logo.png</code></td><td>Source crest used for app logos</td></tr>
+                        <tr><td><code>.cursor/skills/up/</code></td><td><code>/up</code> skill — refresh docs and push to GitHub</td></tr>
                         <tr><td><code>smartschool.sql</code></td><td>Full schema dump</td></tr>
                     </tbody>
                 </table>
@@ -332,7 +336,7 @@ flowchart LR
                 <table>
                     <thead><tr><th>Class</th><th>Who uses it</th><th>Gate</th></tr></thead>
                     <tbody>
-                        <tr><td><code>MY_Controller</code></td><td>Everyone</td><td>Redirects to installer if not installed; loads <code>global_settings</code> and branch currency/timezone</td></tr>
+                        <tr><td><code>MY_Controller</code></td><td>Everyone</td><td>Install check; loads <code>global_settings</code>, branch currency/timezone; rewrites Smart School names to Tahsin Academy</td></tr>
                         <tr><td><code>Admin_Controller</code></td><td>Staff back office</td><td><code>is_loggedin()</code></td></tr>
                         <tr><td><code>User_Controller</code></td><td>Student / parent portal</td><td>Student or parent session</td></tr>
                         <tr><td><code>Authentication_Controller</code></td><td>Login, forgot, setup</td><td>Public</td></tr>
@@ -575,6 +579,34 @@ erDiagram
                 <h4>Security</h4>
                 <p>CSV exports include username for cross-reference but exclude password hashes. Imported accounts typically start at <code>active = 2</code> until the user sets credentials via the tokenized setup link.</p>
             </div>
+        </section>
+
+        <section id="deploy" class="glass-panel">
+            <h2>14. Deploy (GitHub → Hostinger)</h2>
+            <p>Source of truth is <a href="https://github.com/alawalmuazu/tahsin">github.com/alawalmuazu/tahsin</a>, branch <code>main</code>. Hostinger Git (hPanel → Advanced → Git) pulls that branch into <code>public_html</code> on every push. Live site: <a href="https://tahsinacademy.ng/">tahsinacademy.ng</a>.</p>
+            <ul>
+                <li>First Git connect requires <code>public_html</code> to be empty.</li>
+                <li><code>application/config/database.php</code> and <code>application/config/config.php</code> are gitignored. Upload them once via File Manager after deploy. They switch local XAMPP vs live Hostinger by hostname.</li>
+                <li>Import <code>smartschool.sql</code> into the Hostinger database if the schema is empty. Optional branding SQL: <code>application/migrations/brand_tahsin_academy.sql</code>.</li>
+                <li>Type <code>/up</code> in Cursor to refresh this document and push <code>main</code>.</li>
+            </ul>
+        </section>
+
+        <section id="branding" class="glass-panel">
+            <h2>15. Branding</h2>
+            <p>Public name is <strong>Tahsin Academy</strong>. Motto: <em>Excellence In Deen &amp; Duniya</em>.</p>
+            <div class="table-container">
+                <table>
+                    <thead><tr><th>Item</th><th>Where</th></tr></thead>
+                    <tbody>
+                        <tr><td>Source logo</td><td><code>Logo/logo.png</code></td></tr>
+                        <tr><td>App / login / favicon</td><td><code>uploads/app_image/logo.png</code> (also <code>logo-small</code>, <code>printing-logo</code>, <code>report-card-logo</code>)</td></tr>
+                        <tr><td>CMS fallback</td><td><code>uploads/frontend/images/tahsin-logo.png</code></td></tr>
+                        <tr><td>Name rewrite</td><td><code>MY_Controller::brandName()</code> / <code>rebrandText()</code></td></tr>
+                    </tbody>
+                </table>
+            </div>
+            <p>Header, footer, login panel, and homepage fallbacks use the Tahsin crest. Database <code>institute_name</code> / <code>application_title</code> still display as Tahsin Academy even if the stored value is Smart School.</p>
         </section>
     </main>
 </div>
