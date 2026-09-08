@@ -227,6 +227,7 @@ class Frontend_Controller extends MY_Controller
             $cms_setting = $defaults;
         }
         $cms_setting['cms_active'] = 1;
+        $cms_setting['online_admission'] = 1;
         $cms_setting['application_title'] = $this->brandName($cms_setting['application_title'] ?? '');
         if (!empty($cms_setting['copyright_text'])) {
             $cms_setting['copyright_text'] = $this->rebrandText($cms_setting['copyright_text']);

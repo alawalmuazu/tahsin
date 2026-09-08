@@ -162,11 +162,6 @@ class Home extends Frontend_Controller
 
     public function admission()
     {
-        if (!$this->data['cms_setting']['online_admission']) {
-            redirect(site_url('home'));
-        }
-
-
         $branchID = $this->home_model->getDefaultBranch();
         $captcha = $this->data['cms_setting']['captcha_status'];
         if ($captcha == 'enable') {
@@ -323,7 +318,25 @@ class Home extends Frontend_Controller
         }
 
         $this->data['branchID'] = $branchID;
-        $this->data['page_data'] = $this->home_model->get('front_cms_admission', array('branch_id' => $branchID), true);
+        $page_data = $this->home_model->get('front_cms_admission', array('branch_id' => $branchID), true);
+        if (empty($page_data)) {
+            $page_data = $this->home_model->get('front_cms_admission', array(), true);
+        }
+        if (empty($page_data)) {
+            $page_data = array();
+        }
+        $page_data = array_merge(array(
+            'page_title' => 'Admission',
+            'title' => 'Apply for Admission',
+            'description' => '<p>Complete the Tahsin Academy admission form below.</p>',
+            'banner_image' => '',
+            'application_form_file' => '',
+            'meta_keyword' => 'Tahsin Academy admission',
+            'meta_description' => 'Apply for admission to Tahsin Academy.',
+            'terms_conditions_title' => '',
+            'terms_conditions_description' => '',
+        ), $page_data);
+        $this->data['page_data'] = $page_data;
         $this->data['main_contents'] = $this->load->view('home/admission', $this->data, true);
         $this->load->view('home/layout/index', $this->data);
     }

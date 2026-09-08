@@ -10,10 +10,20 @@ SET
   `application_title` = 'Tahsin Academy',
   `copyright_text` = REPLACE(REPLACE(`copyright_text`, 'SmartSchool', 'Tahsin Academy'), 'Smart School', 'Tahsin Academy'),
   `logo` = 'tahsin-logo.png',
-  `fav_icon` = 'tahsin-logo.png'
+  `fav_icon` = 'tahsin-logo.png',
+  `online_admission` = 1
 WHERE `application_title` LIKE '%Smart%'
    OR `application_title` = 'School Management System With CMS'
    OR `application_title` = '';
+
+UPDATE `front_cms_setting`
+SET `online_admission` = 1;
+
+UPDATE `global_settings`
+SET `cms_default_branch` = (
+  SELECT `id` FROM (SELECT MIN(`id`) AS `id` FROM `branch`) AS `first_branch`
+)
+WHERE `id` = 1 AND (`cms_default_branch` IS NULL OR `cms_default_branch` = 0);
 
 UPDATE `education_board`
 SET

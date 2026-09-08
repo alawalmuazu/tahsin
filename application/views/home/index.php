@@ -37,6 +37,10 @@
 // Determine if we are on a specific branch or the statewide landing page
 $is_statewide = empty($cms_setting['url_alias']);
 $app_title = !empty($cms_setting['application_title']) ? $cms_setting['application_title'] : 'Tahsin Academy';
+$public_alias = trim((string) $cms_setting['url_alias'], '/');
+$admission_url = $public_alias ? base_url($public_alias . '/admission') : base_url('admission');
+$results_url = $public_alias ? base_url($public_alias . '/exam_results') : base_url('exam_results');
+$admit_card_url = $public_alias ? base_url($public_alias . '/admit_card') : base_url('admit_card');
 
 // Dynamic formatting for the hero heading
 $words = explode(' ', $app_title);
@@ -104,10 +108,10 @@ $first_part = implode(' ', $words);
             <div class="ss-hero-typewriter"></div>
             
             <div class="ss-hero-actions">
-                <a href="<?php echo base_url($cms_setting['url_alias'] . '/admission'); ?>" class="ss-hero-btn ss-hero-btn-primary">
+                <a href="<?php echo $admission_url; ?>" class="ss-hero-btn ss-hero-btn-primary">
                     <i class="fas fa-user-plus"></i> Apply for Admission
                 </a>
-                <a href="<?php echo base_url($cms_setting['url_alias'] . '/exam_results'); ?>" class="ss-hero-btn ss-hero-btn-outline">
+                <a href="<?php echo $results_url; ?>" class="ss-hero-btn ss-hero-btn-outline">
                     <i class="fas fa-chart-bar"></i> Check Results
                 </a>
             </div>
@@ -201,7 +205,7 @@ $first_part = implode(' ', $words);
         <div class="row g-4">
             <!-- Card 1: Online Admission -->
             <div class="col-lg-4 col-md-6 col-sm-12">
-                <a href="<?php echo base_url($cms_setting['url_alias'] . '/admission'); ?>" class="ss-service-card ss-card-admission">
+                <a href="<?php echo $admission_url; ?>" class="ss-service-card ss-card-admission">
                     <div class="ss-card-glow"></div>
                     <div class="ss-card-icon">
                         <div class="ss-icon-ring">
@@ -220,7 +224,7 @@ $first_part = implode(' ', $words);
             </div>
             <!-- Card 2: Admit Card -->
             <div class="col-lg-4 col-md-6 col-sm-12">
-                <a href="<?php echo base_url($cms_setting['url_alias'] . '/admit_card'); ?>" class="ss-service-card ss-card-admitcard">
+                <a href="<?php echo $admit_card_url; ?>" class="ss-service-card ss-card-admitcard">
                     <div class="ss-card-glow"></div>
                     <div class="ss-card-icon">
                         <div class="ss-icon-ring">
@@ -238,7 +242,7 @@ $first_part = implode(' ', $words);
             </div>
             <!-- Card 3: Exam Results -->
             <div class="col-lg-4 col-md-12 col-sm-12">
-                <a href="<?php echo base_url($cms_setting['url_alias'] . '/exam_results'); ?>" class="ss-service-card ss-card-results">
+                <a href="<?php echo $results_url; ?>" class="ss-service-card ss-card-results">
                     <div class="ss-card-glow"></div>
                     <div class="ss-card-icon">
                         <div class="ss-icon-ring">
@@ -831,7 +835,7 @@ $first_part = implode(' ', $words);
             } else {
                 results.forEach(function(s) {
                     var alias = (s.url_alias || s.alias || '');
-                    var url = alias ? (base_url + alias + '/admission') : '#';
+                    var url = alias ? (base_url + alias + '/admission') : (base_url + 'admission');
                     html += '<a class="ss-finder-result-item" href="' + url + '">' +
                         '<div class="school-info">' +
                             '<div class="school-icon"><i class="fas fa-school"></i></div>' +
@@ -872,7 +876,7 @@ $first_part = implode(' ', $words);
                     var html = '<div style="padding:10px 0 6px;color:var(--thm-primary);font-weight:700;font-size:13px;"><i class="fas fa-info-circle"></i> Showing nearby schools. Refine by typing school name or ward.</div>';
                     results.forEach(function(s) {
                         var alias = (s.url_alias || s.alias || '');
-                        var url = alias ? (base_url + alias + '/admission') : '#';
+                        var url = alias ? (base_url + alias + '/admission') : (base_url + 'admission');
                         html += '<a class="ss-finder-result-item" href="' + url + '">' +
                             '<div class="school-info">' +
                                 '<div class="school-icon"><i class="fas fa-school"></i></div>' +

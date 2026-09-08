@@ -184,12 +184,16 @@ class Home_model extends MY_Model
         }
         
         if ($array['system'] && $array['alias'] !== 'pages') {
-            $url = base_url($school . '/' . $array['alias']);
+            $url = empty($school)
+                ? base_url($array['alias'])
+                : base_url(ltrim($school, '/') . '/' . $array['alias']);
         } else {
             if ($array['ext_url']) {
                 $url = $array['ext_url_address'];
             } else {
-                $url = base_url( $school . '/page/' . $array['alias']);
+                $url = empty($school)
+                    ? base_url('page/' . $array['alias'])
+                    : base_url(ltrim($school, '/') . '/page/' . $array['alias']);
             }
         }
         return $url;
@@ -301,11 +305,16 @@ class Home_model extends MY_Model
     }
 
     public function getCMSdefault()
-    {  
+    {
         $this->db->select('cms_default_branch');
         $this->db->where('id', 1);
         $row = $this->db->get('global_settings')->row_array();
-        return $row['cms_default_branch'];
+        $branchID = !empty($row['cms_default_branch']) ? (int) $row['cms_default_branch'] : 0;
+        if ($branchID > 0) {
+            return $branchID;
+        }
+        $first = $this->db->select('id')->order_by('id', 'asc')->limit(1)->get('branch')->row_array();
+        return !empty($first['id']) ? (int) $first['id'] : 0;
     }
 
     public function checkAdmissionReferenceNo($ref_no)

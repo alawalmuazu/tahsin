@@ -1,7 +1,13 @@
 <!-- Main Banner Starts -->
-<div class="main-banner" style="background: url(<?php echo base_url('uploads/frontend/banners/' . $page_data['banner_image']); ?>) center top;">
+<?php
+$page_title = !empty($page_data['page_title']) ? $page_data['page_title'] : 'Admission';
+$page_heading = !empty($page_data['title']) ? $page_data['title'] : 'Apply for Admission';
+$banner_file = !empty($page_data['banner_image']) ? $page_data['banner_image'] : '';
+$banner_url = $banner_file ? base_url('uploads/frontend/banners/' . $banner_file) : base_url('assets/frontend/images/14.png');
+?>
+<div class="main-banner" style="background: url(<?php echo $banner_url; ?>) center top;">
     <div class="container px-md-0">
-        <h2><span><?php echo $page_data['page_title']; ?></span></h2>
+        <h2><span><?php echo $page_title; ?></span></h2>
     </div>
 </div>
 <!-- Main Banner Ends -->
@@ -10,15 +16,15 @@
     <div class="container px-md-0">
         <ul class="list-unstyled list-inline">
             <li class="list-inline-item"><a href="<?php echo base_url('home') ?>">Home</a></li>
-            <li class="list-inline-item active"><?php echo $page_data['page_title']; ?></li>
+            <li class="list-inline-item active"><?php echo $page_title; ?></li>
         </ul>
     </div>
 </div>
 <!-- Breadcrumb Ends -->
 <!-- Main Container Starts -->
 <div class="container px-md-0 main-container">
-    <h3 class="main-heading2 mt-0"><?php echo $page_data['title']; ?></h3>
-    <?php echo $page_data['description'];?>
+    <h3 class="main-heading2 mt-0"><?php echo $page_heading; ?></h3>
+    <?php echo !empty($page_data['description']) ? $page_data['description'] : ''; ?>
 
     <div class="box2 form-box position-relative">
         <div class="admission-status-frm">

@@ -16,6 +16,9 @@ class Student_fields_model extends CI_Model
         $this->db->join('online_admission_fields as oaf', 'oaf.fields_id = student_fields.id and oaf.system = 1 and oaf.branch_id = ' . $branchID, 'left');
         $this->db->where('student_fields.prefix', $prefix);
         $result = $this->db->get()->row_array();
+        if (empty($result)) {
+            return array('status' => 0, 'required' => 0);
+        }
         return $result;
     }
 

@@ -131,6 +131,17 @@ $route['infrastructure'] = 'infrastructure/index';
 
 $route['authentication'] = 'authentication/index';
 $route['home'] = 'home/index';
+$route['admission'] = 'home/admission';
+$route['exam_results'] = 'home/exam_results';
+$route['admit_card'] = 'home/admit_card';
+$route['certificates'] = 'home/certificates';
+$route['about'] = 'home/about';
+$route['faq'] = 'home/faq';
+$route['contact'] = 'home/contact';
+$route['gallery'] = 'home/gallery';
+$route['teachers'] = 'home/teachers';
+$route['events'] = 'home/events';
+$route['news'] = 'home/news';
 $route['404_override'] = 'errors';
 if (!empty($saas_default) && $saas_default == true) {
 	$route['default_controller'] = 'saas_website/index';
