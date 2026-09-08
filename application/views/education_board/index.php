@@ -52,7 +52,7 @@
 					<div class="form-group mt-md">
 						<label class="col-md-3 control-label">Board Name <span class="required">*</span></label>
 						<div class="col-md-6">
-							<input type="text" class="form-control" name="name" value="<?=set_value('name')?>" placeholder="e.g. SUBEB, SMB" />
+							<input type="text" class="form-control" name="name" value="<?=set_value('name')?>" placeholder="e.g. Basic Education, Secondary" />
 							<span class="error"><?=form_error('name')?></span>
 						</div>
 					</div>

@@ -5,7 +5,7 @@ define('UPDATE_INFO_URL', 'https://www.ramomcoder.com/purchase/api/update_info')
 define('UPDATE_INSTALL_URL', 'https://www.ramomcoder.com/purchase/api/update_install');
 define('UPDATE_ADDON_INFO_URL', 'https://www.ramomcoder.com/purchase/api/update_addon_info');
 define('UPDATE_INSTALL_ADDON_URL', 'https://www.ramomcoder.com/purchase/api/update_install_addon');
-define('APP_VERSION', '7.0.1'); // Tahsin nav logo: transparent crest, no white box
+define('APP_VERSION', '7.0.2'); // Tahsin Academy copy — no Kaduna government branding
 define('U2FA', 'r_2FA');
 
 /*

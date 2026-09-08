@@ -46,7 +46,7 @@
         <div class="brand-badges" id="brandBadges">
             <span class="brand-badge">NEMIS</span>
             <span class="brand-badge">WAEC / NECO</span>
-            <span class="brand-badge">State-wide</span>
+            <span class="brand-badge">Academy</span>
         </div>
     </div>
 
@@ -181,7 +181,7 @@
                     $tagline.text('Welcome to your school portal. Sign in to access your dashboard, records, and resources.');
                     $badges.fadeOut(200);
                 } else {
-                    // Reset to default ministry branding
+                    // Reset to default academy branding
                     $('#brandLogo').attr('src', _default.logoSrc);
                     $title.html(_default.title);
                     $subtitle.text(_default.subtitle);

@@ -22,7 +22,8 @@
         <div class="brand-logo-wrap">
             <img src="<?php echo base_url('uploads/app_image/logo.png'); ?>" alt="Logo">
         </div>
-        <h2 class="brand-title">Kaduna State<br>Ministry of Education</h2>
+        <h2 class="brand-title">Tahsin Academy</h2>
+        <p class="brand-subtitle">Excellence In Deen &amp; Duniya</p>
     </div>
 
     <main class="form-panel" style="display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; padding: 40px;">

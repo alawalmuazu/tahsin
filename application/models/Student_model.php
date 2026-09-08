@@ -109,12 +109,12 @@ class Student_model extends MY_Model
             $this->db->insert('student', $inser_data1);
             $student_id = $this->db->insert_id();
 
-            // Auto-generate Kaduna State Student ID: KD-{LGA_CODE}-{YEAR}-{ZERO_PADDED_ID}
+            // Auto-generate Tahsin Academy student ID: TA-{LGA_CODE}-{YEAR}-{ZERO_PADDED_ID}
             // Derive a short LGA code from the branch's lga field if available
             $branch_data = $this->db->select('name, lga')->where('id', $this->application_model->get_branch_id())->get('branch')->row_array();
-            $lga_raw = !empty($branch_data['lga']) ? $branch_data['lga'] : (!empty($branch_data['name']) ? substr(preg_replace('/[^A-Z]/','', strtoupper($branch_data['name'])), 0, 3) : 'KDS');
+            $lga_raw = !empty($branch_data['lga']) ? $branch_data['lga'] : (!empty($branch_data['name']) ? substr(preg_replace('/[^A-Z]/','', strtoupper($branch_data['name'])), 0, 3) : 'TA');
             $lga_code = strtoupper(substr(preg_replace('/[^A-Za-z]/', '', $lga_raw), 0, 3));
-            $state_student_id = 'KD-' . $lga_code . '-' . date('Y') . '-' . str_pad($student_id, 5, '0', STR_PAD_LEFT);
+            $state_student_id = 'TA-' . $lga_code . '-' . date('Y') . '-' . str_pad($student_id, 5, '0', STR_PAD_LEFT);
             $this->db->where('id', $student_id)->update('student', ['state_student_id' => $state_student_id]);
 
             // save student login credential information in the database

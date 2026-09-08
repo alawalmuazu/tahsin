@@ -84,7 +84,7 @@ $first_part = implode(' ', $words);
     <div class="container">
         <div class="ss-hero-content">
             <?php if ($is_statewide): ?>
-                <div class="ss-live-badge"><span class="ss-pulse-dot"></span> LIVE — 2,000+ Schools Online</div>
+                <div class="ss-live-badge"><span class="ss-pulse-dot"></span> LIVE — Tahsin Academy Portal</div>
                 <div class="ss-hero-badge"><i class="fas fa-graduation-cap"></i> Tahsin Academy</div>
             <?php else: ?>
                 <div class="ss-live-badge"><span class="ss-pulse-dot"></span> Official School Portal</div>
@@ -96,7 +96,7 @@ $first_part = implode(' ', $words);
             </h1>
             
             <?php if ($is_statewide): ?>
-                <p class="ss-hero-text">Empowering 2,000+ schools across Kaduna State with seamless digital education management — admissions, results, attendance & more.</p>
+                <p class="ss-hero-text">Excellence In Deen &amp; Duniya — admissions, results, attendance, and academic life in one place.</p>
             <?php else: ?>
                 <p class="ss-hero-text">Welcome to the official portal for <strong><?php echo $app_title; ?></strong>. Access admissions, student records, e-learning resources, and essential services all in one place.</p>
             <?php endif; ?>
@@ -114,11 +114,11 @@ $first_part = implode(' ', $words);
             
             <?php if ($is_statewide): ?>
             <div class="ss-hero-stats">
-                <div class="ss-stat"><span class="ss-stat-num">2,000+</span><span class="ss-stat-label">Schools</span></div>
+                <div class="ss-stat"><span class="ss-stat-num">Deen</span><span class="ss-stat-label">&amp; Duniya</span></div>
                 <div class="ss-stat-divider"></div>
-                <div class="ss-stat"><span class="ss-stat-num">500K+</span><span class="ss-stat-label">Students</span></div>
+                <div class="ss-stat"><span class="ss-stat-num">Full</span><span class="ss-stat-label">Academics</span></div>
                 <div class="ss-stat-divider"></div>
-                <div class="ss-stat"><span class="ss-stat-num">23</span><span class="ss-stat-label">LGAs</span></div>
+                <div class="ss-stat"><span class="ss-stat-num">One</span><span class="ss-stat-label">Portal</span></div>
             </div>
             <?php else: ?>
             <div class="ss-hero-stats ss-branch-stats">
@@ -143,18 +143,18 @@ $first_part = implode(' ', $words);
         <div class="ss-impact-row">
             <div class="ss-impact-item">
                 <div class="ss-impact-icon"><i class="fas fa-school"></i></div>
-                <div class="ss-impact-num"><span class="counter" data-count="2000">0</span>+</div>
-                <div class="ss-impact-label">Schools Connected</div>
+                <div class="ss-impact-num"><span class="counter" data-count="1">0</span></div>
+                <div class="ss-impact-label">Academy</div>
             </div>
             <div class="ss-impact-item">
                 <div class="ss-impact-icon"><i class="fas fa-user-graduate"></i></div>
-                <div class="ss-impact-num"><span class="counter" data-count="500000">0</span>+</div>
-                <div class="ss-impact-label">Students Managed</div>
+                <div class="ss-impact-num"><span class="counter" data-count="30">0</span>+</div>
+                <div class="ss-impact-label">Academic Modules</div>
             </div>
             <div class="ss-impact-item">
                 <div class="ss-impact-icon"><i class="fas fa-map-marker-alt"></i></div>
-                <div class="ss-impact-num"><span class="counter" data-count="23">0</span></div>
-                <div class="ss-impact-label">LGAs Covered</div>
+                <div class="ss-impact-num"><span class="counter" data-count="7">0</span></div>
+                <div class="ss-impact-label">User Roles</div>
             </div>
             <div class="ss-impact-item">
                 <div class="ss-impact-icon"><i class="fas fa-cubes"></i></div>
@@ -264,7 +264,7 @@ $first_part = implode(' ', $words);
         <div class="ss-section-header text-center">
             <span class="ss-kicker"><i class="fas fa-layer-group"></i> Comprehensive Platform</span>
             <h2 class="ss-title">Platform Capabilities</h2>
-            <p class="ss-subtitle">30+ modules designed specifically for state-wide education management</p>
+            <p class="ss-subtitle">Modules built for Tahsin Academy — academics, fees, exams, and parent access</p>
         </div>
         <div class="ss-cap-grid">
             <div class="ss-cap-card ss-reveal">
@@ -484,8 +484,8 @@ $first_part = implode(' ', $words);
                     <div class="ss-step" data-step="1">
                         <div class="ss-step-number">1</div>
                         <div class="ss-step-icon"><i class="fas fa-search-location"></i></div>
-                        <h4>Find Your School</h4>
-                        <p>Search for schools near you by location, ward, or LGA. Browse schools across Kaduna State.</p>
+                        <h4>Visit the Portal</h4>
+                        <p>Open Tahsin Academy online to apply, check results, and stay connected with your school.</p>
                     </div>
                 </div>
                 <div class="col-lg-4 col-md-4 col-sm-12">
@@ -517,11 +517,11 @@ $first_part = implode(' ', $words);
         <div class="row align-items-center">
             <div class="col-lg-6 col-md-12 mb-5 mb-lg-0">
                 <span class="ss-kicker"><i class="fas fa-chart-pie"></i> Executive Intelligence</span>
-                <h2 class="ss-title">Real-Time Command. State-Wide.</h2>
+                <h2 class="ss-title">Real-Time Academy Dashboard</h2>
                 <ul class="ss-dash-list">
-                    <li><i class="fas fa-check-circle"></i> Live student & staff headcount across all 2,000+ schools</li>
-                    <li><i class="fas fa-check-circle"></i> Fee collection health, attendance rates & exam performance</li>
-                    <li><i class="fas fa-check-circle"></i> NEMIS-ready reports generated at the click of a button</li>
+                    <li><i class="fas fa-check-circle"></i> Live student and staff records for Tahsin Academy</li>
+                    <li><i class="fas fa-check-circle"></i> Fee collection, attendance, and exam performance</li>
+                    <li><i class="fas fa-check-circle"></i> Reports and results generated in one place</li>
                 </ul>
                 <a href="<?php echo isset($authenticationURL) ? $authenticationURL : base_url('authentication'); ?>" class="btn btn-1 ss-dash-btn">See the Dashboard <i class="fas fa-arrow-right"></i></a>
             </div>
@@ -566,55 +566,55 @@ $first_part = implode(' ', $words);
 <section class="ss-gov-trust">
     <div class="container px-md-0">
         <div class="ss-section-header text-center">
-            <span class="ss-kicker ss-kicker-light"><i class="fas fa-shield-alt"></i> Official Platform</span>
-            <h2 class="ss-title ss-title-light">Trusted by Kaduna State Government</h2>
-            <p class="ss-subtitle ss-subtitle-light">Proudly endorsed and regulated by the State's education authorities</p>
+            <span class="ss-kicker ss-kicker-light"><i class="fas fa-shield-alt"></i> Our Foundation</span>
+            <h2 class="ss-title ss-title-light">Why Tahsin Academy</h2>
+            <p class="ss-subtitle ss-subtitle-light">Excellence In Deen &amp; Duniya — faith, character, and strong academics</p>
         </div>
         <div class="ss-gov-cards">
             <div class="row g-4 justify-content-center">
                 <div class="col-lg col-md-6 col-sm-6">
                     <div class="ss-gov-card">
-                        <div class="ss-gov-icon"><i class="fas fa-landmark"></i></div>
-                        <h5>Ministry of Education</h5>
-                        <p>Kaduna State Ministry of Education — Policy direction & oversight</p>
+                        <div class="ss-gov-icon"><i class="fas fa-mosque"></i></div>
+                        <h5>Deen</h5>
+                        <p>Islamic knowledge and character at the heart of every student&rsquo;s journey</p>
                     </div>
                 </div>
                 <div class="col-lg col-md-6 col-sm-6">
                     <div class="ss-gov-card">
-                        <div class="ss-gov-icon"><i class="fas fa-university"></i></div>
-                        <h5>SUBEB</h5>
-                        <p>State Universal Basic Education Board — Quality basic education for all</p>
+                        <div class="ss-gov-icon"><i class="fas fa-globe"></i></div>
+                        <h5>Duniya</h5>
+                        <p>Modern academics, skills, and digital learning for life beyond school</p>
                     </div>
                 </div>
                 <div class="col-lg col-md-6 col-sm-6">
                     <div class="ss-gov-card">
-                        <div class="ss-gov-icon"><i class="fas fa-school"></i></div>
-                        <h5>SEB</h5>
-                        <p>Secondary Education Board — Oversight of secondary schools statewide</p>
+                        <div class="ss-gov-icon"><i class="fas fa-user-graduate"></i></div>
+                        <h5>Academics</h5>
+                        <p>Classes, exams, results, and progress tracking in one portal</p>
                     </div>
                 </div>
                 <div class="col-lg col-md-6 col-sm-6">
                     <div class="ss-gov-card">
-                        <div class="ss-gov-icon"><i class="fas fa-clipboard-check"></i></div>
-                        <h5>Quality Assurance</h5>
-                        <p>Kaduna State Quality Assurance Authority — Standards & school inspection</p>
+                        <div class="ss-gov-icon"><i class="fas fa-users"></i></div>
+                        <h5>Parents</h5>
+                        <p>Admission, fees, attendance, and communication from home</p>
                     </div>
                 </div>
                 <div class="col-lg col-md-6 col-sm-6">
                     <div class="ss-gov-card">
-                        <div class="ss-gov-icon"><i class="fas fa-database"></i></div>
-                        <h5>NEMIS Compliant</h5>
-                        <p>National Education Management Information System — Full data reporting</p>
+                        <div class="ss-gov-icon"><i class="fas fa-shield-alt"></i></div>
+                        <h5>Secure Portal</h5>
+                        <p>Role-based access for staff, students, and parents</p>
                     </div>
                 </div>
             </div>
         </div>
         <div class="ss-compliance-badges">
             <div class="ss-badge"><i class="fas fa-check-circle"></i> Data Encrypted</div>
-            <div class="ss-badge"><i class="fas fa-check-circle"></i> 7-Tier Access Control</div>
-            <div class="ss-badge"><i class="fas fa-check-circle"></i> NEMIS Ready</div>
-            <div class="ss-badge"><i class="fas fa-check-circle"></i> State-Scale Tested</div>
-            <div class="ss-badge"><i class="fas fa-check-circle"></i> 2,000+ Schools</div>
+            <div class="ss-badge"><i class="fas fa-check-circle"></i> Role-Based Access</div>
+            <div class="ss-badge"><i class="fas fa-check-circle"></i> Online Admissions</div>
+            <div class="ss-badge"><i class="fas fa-check-circle"></i> Instant Results</div>
+            <div class="ss-badge"><i class="fas fa-check-circle"></i> Tahsin Academy</div>
         </div>
     </div>
 </section>
@@ -627,21 +627,21 @@ $first_part = implode(' ', $words);
         <div class="ss-endorsement-grid">
             <div class="ss-quote-card ss-reveal">
                 <div class="ss-quote-mark">"</div>
-                <p class="ss-quote-text">Tahsin Academy gives us real-time visibility across every school in Kaduna State — this is the future of education governance.</p>
+                <p class="ss-quote-text">Tahsin Academy keeps our children&rsquo;s results, attendance, and fees in one place — we finally see everything clearly.</p>
                 <div class="ss-quote-divider"></div>
-                <p class="ss-quote-author">Commissioner, Kaduna State Ministry of Education</p>
+                <p class="ss-quote-author">Parent, Tahsin Academy</p>
             </div>
             <div class="ss-quote-card ss-reveal">
                 <div class="ss-quote-mark">"</div>
-                <p class="ss-quote-text">For the first time, we can generate NEMIS reports and track enrolment across all 23 LGAs from a single platform.</p>
+                <p class="ss-quote-text">Admissions, marksheets, and class records are simple to manage. The portal matches how we actually run the school.</p>
                 <div class="ss-quote-divider"></div>
-                <p class="ss-quote-author">Director, State Education Board</p>
+                <p class="ss-quote-author">Administrator, Tahsin Academy</p>
             </div>
             <div class="ss-quote-card ss-reveal">
                 <div class="ss-quote-mark">"</div>
-                <p class="ss-quote-text">The CBT engine alone saves us months of exam logistics every year. This is exactly what Kaduna State needed.</p>
+                <p class="ss-quote-text">Online exams and instant results save us weeks of marking and paper work every term.</p>
                 <div class="ss-quote-divider"></div>
-                <p class="ss-quote-author">Principal, Government Secondary School</p>
+                <p class="ss-quote-author">Teacher, Tahsin Academy</p>
             </div>
         </div>
     </div>
@@ -654,25 +654,25 @@ $first_part = implode(' ', $words);
     <div class="container px-md-0">
         <div class="ss-section-header text-center">
             <span class="ss-kicker"><i class="fas fa-map-marker-alt"></i> Discover</span>
-            <h2 class="ss-title">Find Schools Near You</h2>
-            <p class="ss-subtitle">Enter your ward or LGA to discover nearby schools and apply for admission online</p>
+            <h2 class="ss-title">Join Tahsin Academy</h2>
+            <p class="ss-subtitle">Search our portal and apply for admission online</p>
         </div>
         <div class="ss-finder-box">
             <div class="ss-finder-inner">
                 <div class="ss-finder-glow"></div>
                 <div class="row g-3 align-items-end">
                     <div class="col-lg-5 col-md-5">
-                        <label class="ss-finder-label">Search School by Name</label>
+                        <label class="ss-finder-label">Search Tahsin Academy</label>
                         <div class="ss-finder-input-wrap">
                             <i class="fas fa-search"></i>
-                            <input type="text" class="form-control ss-finder-input" id="ssSchoolSearch" placeholder="Type school name..." autocomplete="off" />
+                            <input type="text" class="form-control ss-finder-input" id="ssSchoolSearch" placeholder="Type a programme or campus..." autocomplete="off" />
                         </div>
                     </div>
                     <div class="col-lg-4 col-md-4">
-                        <label class="ss-finder-label">Filter by Ward / LGA</label>
+                        <label class="ss-finder-label">Filter by Class</label>
                         <div class="ss-finder-input-wrap">
                             <i class="fas fa-map-pin"></i>
-                            <input type="text" class="form-control ss-finder-input" id="ssWardFilter" placeholder="Enter ward or LGA..." autocomplete="off" />
+                            <input type="text" class="form-control ss-finder-input" id="ssWardFilter" placeholder="Enter class or section..." autocomplete="off" />
                         </div>
                     </div>
                     <div class="col-lg-3 col-md-3">
@@ -683,7 +683,7 @@ $first_part = implode(' ', $words);
                 </div>
                 <div class="ss-finder-results" id="ssFinderResults" style="display:none;">
                     <div class="ss-finder-results-header">
-                        <span id="ssResultCount">0</span> schools found
+                        <span id="ssResultCount">0</span> results found
                     </div>
                     <div class="ss-finder-results-list" id="ssResultsList"></div>
                 </div>

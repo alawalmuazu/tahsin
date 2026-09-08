@@ -741,7 +741,7 @@
                                         </a>
                                     </li>
                                     <?php } ?>
-                                    <!-- salary_payment hidden: Kaduna staff are paid via IPPIS -->
+                                    <!-- salary_payment hidden: staff payroll is handled outside this portal -->
                                 </ul>
                             </li>
                             <?php } ?>

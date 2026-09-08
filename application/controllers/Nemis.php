@@ -4,7 +4,7 @@ defined('BASEPATH') or exit('No direct script access allowed');
 /**
  * NEMIS Reporting Controller
  * National Education Management Information System
- * Generates government-required data exports for Kaduna State Schools
+ * Generates government-required data exports for Tahsin Academy
  */
 class Nemis extends Admin_Controller
 {
@@ -150,9 +150,9 @@ class Nemis extends Admin_Controller
             // Auto-filter by exam type
             if ($exam_type === 'bece') {
                 // NECO BECE — Basic 9 (JSS3) candidates only
-                // Kaduna State uses "Basic 9" as the modern name for JSS 3
+                // Basic 9 is used as the modern name for JSS 3
                 $this->db->group_start();
-                $this->db->like('c.name', 'Basic 9', 'both');       // Kaduna modern name
+                $this->db->like('c.name', 'Basic 9', 'both');
                 $this->db->or_like('c.name', 'JSS 3', 'both');      // legacy
                 $this->db->or_like('c.name', 'JSS3', 'both');       // legacy compact
                 $this->db->or_like('c.name', 'Junior Secondary 3', 'both'); // verbose
@@ -252,7 +252,7 @@ class Nemis extends Admin_Controller
         $rows = $this->db->get()->result_array();
 
         header('Content-Type: text/csv');
-        header('Content-Disposition: attachment; filename="ASC_Kaduna_' . date('Y') . '.csv"');
+        header('Content-Disposition: attachment; filename="ASC_Tahsin_' . date('Y') . '.csv"');
         $out = fopen('php://output', 'w');
         fputcsv($out, ['School Name', 'LGA', 'Education Board', 'Total Students', 'Male', 'Female']);
         foreach ($rows as $row) {
@@ -285,7 +285,7 @@ class Nemis extends Admin_Controller
         } else {
             if ($exam_type === 'bece') {
                 $this->db->group_start();
-                $this->db->like('c.name', 'Basic 9', 'both');       // Kaduna modern name
+                $this->db->like('c.name', 'Basic 9', 'both');
                 $this->db->or_like('c.name', 'JSS 3', 'both');      // legacy
                 $this->db->or_like('c.name', 'JSS3', 'both');       // legacy compact
                 $this->db->or_like('c.name', 'Junior Secondary 3', 'both'); // verbose
@@ -306,7 +306,7 @@ class Nemis extends Admin_Controller
 
         $exam_label = $exam_type === 'bece' ? 'NECO_BECE' : 'WAEC_SSCE';
         header('Content-Type: text/csv');
-        header('Content-Disposition: attachment; filename="' . $exam_label . '_Candidates_Kaduna_' . date('Y') . '.csv"');
+        header('Content-Disposition: attachment; filename="' . $exam_label . '_Candidates_Tahsin_' . date('Y') . '.csv"');
         $out = fopen('php://output', 'w');
         fputcsv($out, ['State Student ID', 'NIN', 'Surname', 'First Name', 'Gender', 'Date of Birth', 'Reg No', 'School', 'LGA', 'Class', 'Exam Type']);
         foreach ($rows as $row) {
@@ -339,7 +339,7 @@ class Nemis extends Admin_Controller
         $rows = $this->db->get()->result_array();
 
         header('Content-Type: text/csv');
-        header('Content-Disposition: attachment; filename="UBEC_Compliance_Kaduna_' . date('Y') . '.csv"');
+        header('Content-Disposition: attachment; filename="UBEC_Compliance_Tahsin_' . date('Y') . '.csv"');
         $out = fopen('php://output', 'w');
         fputcsv($out, ['School Name', 'LGA', 'Total Students', 'Total Teachers', 'Ratio (S:T)', 'Status']);
         foreach ($rows as $row) {

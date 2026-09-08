@@ -3,7 +3,7 @@
         <section class="panel">
             <header class="panel-heading">
                 <h4 class="panel-title"><i class="fas fa-chart-bar"></i> NEMIS — National Education Management Information System</h4>
-                <p class="text-muted mb-none" style="margin-top:4px">Government reporting portal for Kaduna State Schools. Select a report type below.</p>
+                <p class="text-muted mb-none" style="margin-top:4px">Reporting portal for Tahsin Academy. Select a report type below.</p>
             </header>
             <div class="panel-body">
                 <div class="row">

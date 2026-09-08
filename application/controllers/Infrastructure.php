@@ -4,7 +4,7 @@ defined('BASEPATH') or exit('No direct script access allowed');
 /**
  * Infrastructure Register Controller
  * Tracks school buildings, facilities, and physical assets per branch
- * Kaduna State Secondary Education Board — SmartSchool
+ * Tahsin Academy — facilities and assets per branch
  */
 class Infrastructure extends Admin_Controller
 {

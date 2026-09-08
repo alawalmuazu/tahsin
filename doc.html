@@ -221,7 +221,7 @@
             <li><a href="#multitenancy">5. Branch &amp; board</a></li>
             <li><a href="#iam">6. Identity &amp; access</a></li>
             <li><a href="#modules">7. Core modules</a></li>
-            <li><a href="#kaduna">8. Kaduna / state layer</a></li>
+            <li><a href="#kaduna">8. Academy reporting layer</a></li>
             <li><a href="#views">9. Views &amp; layout</a></li>
             <li><a href="#libraries">10. Shared libraries</a></li>
             <li><a href="#navigate">11. How to find a feature</a></li>
@@ -236,7 +236,7 @@
         <header>
             <div class="tag" style="margin-bottom: 1rem;">System Architecture · v7.0.0</div>
             <h1>Tahsin Academy</h1>
-            <p>CodeIgniter 3 school-management platform for Tahsin Academy (live at <a href="https://tahsinacademy.ng/">tahsinacademy.ng</a>). Motto: Excellence In Deen &amp; Duniya. Built to cover many schools under education boards such as KADSUBEB and KADSSSEB.</p>
+            <p>CodeIgniter 3 school-management platform for Tahsin Academy (live at <a href="https://tahsinacademy.ng/">tahsinacademy.ng</a>). Motto: Excellence In Deen &amp; Duniya.</p>
         </header>
 
         <section id="overview" class="glass-panel">
@@ -376,12 +376,12 @@ classDiagram
             <div class="mermaid-wrapper">
                 <div class="mermaid">
 graph TD
-    STATE["State / Super Admin"]
-    BOARD1["KADSUBEB Basic Ed"]
-    BOARD2["KADSSSEB Senior Sec"]
-    SCHOOL1["LEA Primary"]
-    SCHOOL2["JSS Kawo"]
-    SCHOOL3["Govt College"]
+    STATE["Super Admin"]
+    BOARD1["Basic Education"]
+    BOARD2["Secondary Education"]
+    SCHOOL1["Primary"]
+    SCHOOL2["Junior Secondary"]
+    SCHOOL3["Senior Secondary"]
     STATE --> BOARD1
     STATE --> BOARD2
     BOARD1 --> SCHOOL1
@@ -467,8 +467,8 @@ flowchart TD
         </section>
 
         <section id="kaduna" class="glass-panel">
-            <h2>8. Kaduna / state-government layer</h2>
-            <p>This is what distinguishes Tahsin from a stock single-school product.</p>
+            <h2>8. Academy reporting layer</h2>
+            <p>Extra modules that sit above a single-school ERP — boards, analytics, inspections, and government-style exports.</p>
             <div class="table-container">
                 <table>
                     <thead><tr><th>Area</th><th>Controllers</th><th>Purpose</th></tr></thead>
@@ -480,7 +480,7 @@ flowchart TD
                         <tr><td>Infrastructure</td><td><code>Infrastructure</code></td><td>Facilities tracking</td></tr>
                         <tr><td>Transfers</td><td><code>Teacher_transfer</code></td><td>Move staff between schools</td></tr>
                         <tr><td>Health</td><td><code>Health</code></td><td>Student health records</td></tr>
-                        <tr><td>Seeds</td><td><code>application/migrations/kaduna_nerdc_seeds.sql</code></td><td>Kaduna NERDC class/subject data</td></tr>
+                        <tr><td>Seeds</td><td><code>application/migrations/kaduna_nerdc_seeds.sql</code></td><td>NERDC class/subject seed data</td></tr>
                     </tbody>
                 </table>
             </div>

@@ -1,6 +1,6 @@
 # Tahsin Academy
 
-Multi-tenant school management platform built on CodeIgniter 3. Live at [tahsinacademy.ng](https://tahsinacademy.ng/). Motto: Excellence In Deen & Duniya. Supports schools (branches), shared board curriculum, and statewide reporting.
+School management platform for Tahsin Academy, built on CodeIgniter 3. Live at [tahsinacademy.ng](https://tahsinacademy.ng/). Motto: Excellence In Deen & Duniya. Covers academics, fees, exams, and parent access.
 
 **Version:** 7.0.0
 
@@ -42,6 +42,6 @@ The File Manager URL (`srv1066-files.hstgr.io/…/public_html`) is only a browse
 ## Highlights
 
 - Branch + education-board multi-tenancy with hybrid shared catalogs
-- Role-based access (Super Admin, staff, parent, student, statewide roles)
+- Role-based access (Super Admin, staff, parent, student)
 - Academics, fees, HR, inventory, CBT / online exams
 - NEMIS exports, inspections, infrastructure, teacher transfer

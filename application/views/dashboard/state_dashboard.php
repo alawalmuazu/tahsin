@@ -5,7 +5,7 @@ $this->load->helper('general');
     <!-- Header Title -->
     <div class="row">
         <div class="col-md-12">
-            <h2 class="text-primary mt-none mb-md">Kaduna State Education Board Analytics</h2>
+            <h2 class="text-primary mt-none mb-md">Tahsin Academy Analytics</h2>
         </div>
     </div>
     

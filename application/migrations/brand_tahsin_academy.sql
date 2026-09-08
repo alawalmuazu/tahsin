@@ -14,3 +14,17 @@ SET
 WHERE `application_title` LIKE '%Smart%'
    OR `application_title` = 'School Management System With CMS'
    OR `application_title` = '';
+
+UPDATE `education_board`
+SET
+  `name` = 'Tahsin Basic Education',
+  `description` = 'Tahsin Academy basic education board'
+WHERE `name` IN ('KADSUBEB', 'Kaduna State Universal Basic Education Board')
+   OR `description` LIKE '%Kaduna State Universal Basic%';
+
+UPDATE `education_board`
+SET
+  `name` = 'Tahsin Secondary Education',
+  `description` = 'Tahsin Academy secondary education board'
+WHERE `name` IN ('KADSSSEB', 'Kaduna State Senior Secondary School Education Board')
+   OR `description` LIKE '%Kaduna State Senior Secondary%';

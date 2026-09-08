@@ -28,13 +28,13 @@
             <img src="<?php echo $this->application_model->getBranchImage($branch_id, 'logo'); ?>" alt="Logo">
         </div>
         <div class="brand-divider"></div>
-        <h2 class="brand-title">Kaduna State<br>Ministry of Education</h2>
-        <p class="brand-subtitle">School Management System</p>
-        <p class="brand-tagline">Unified platform for managing schools, students, staff, and educational data across Kaduna State.</p>
+        <h2 class="brand-title">Tahsin Academy</h2>
+        <p class="brand-subtitle">Excellence In Deen &amp; Duniya</p>
+        <p class="brand-tagline">School management for Tahsin Academy — students, staff, parents, and academic records in one place.</p>
         <div class="brand-badges">
             <span class="brand-badge">NEMIS</span>
             <span class="brand-badge">WAEC / NECO</span>
-            <span class="brand-badge">State-wide</span>
+            <span class="brand-badge">Academy</span>
         </div>
     </div>
 
@@ -128,7 +128,7 @@
         <div class="form-footer">
             <p><?php echo isset($global_config['footer_text']) ? $global_config['footer_text'] : ''; ?></p>
             <p style="margin-top:6px;font-size:10px;letter-spacing:0.5px;text-transform:uppercase;color:#aaa;">
-                Kaduna State Government &middot; Ministry of Education
+                Tahsin Academy &middot; Excellence In Deen &amp; Duniya
             </p>
         </div>
     </main>
