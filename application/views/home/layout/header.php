@@ -40,8 +40,8 @@
 			<nav id="nav" class="navbar navbar-expand-lg" role="navigation">
 				<div class="container-md px-md-0">
 				<!-- Logo Starts -->
-					<a href="<?php echo $homeURL ?>" class="navbar-brand">
-						<img src="<?php echo base_url('uploads/app_image/logo.png'); ?>" alt="Tahsin Academy" class="tahsin-nav-logo" style="height:52px;width:auto;max-width:180px;object-fit:contain;">
+					<a href="<?php echo $homeURL ?>" class="navbar-brand tahsin-brand">
+						<img src="<?php echo base_url('uploads/app_image/logo-nav.png?v=' . APP_VERSION); ?>" alt="Tahsin Academy" class="tahsin-nav-logo">
 					</a>
 					<!-- Logo Ends -->
 					<!-- Collapse Button Starts -->

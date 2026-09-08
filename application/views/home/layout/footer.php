@@ -5,7 +5,7 @@
             <div class="row">
                 <div class="col-lg-4 col-md-4 col-sm-12">
                     <div class="footer-logo">
-                        <img src="<?php echo base_url('uploads/app_image/logo.png'); ?>" alt="Tahsin Academy" style="height:72px;width:auto;max-width:200px;object-fit:contain;">
+                        <img src="<?php echo base_url('uploads/app_image/logo-nav.png?v=' . APP_VERSION); ?>" alt="Tahsin Academy" class="tahsin-footer-logo">
                     </div>
                     <?php if ($global_config['footer_branch_switcher']) {  ?>
                     <div class="footer-select mb-3 mt-4">

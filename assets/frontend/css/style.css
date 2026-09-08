@@ -837,10 +837,42 @@ color: #8d8d8d;
     background: none;
 }
 
-#nav .navbar-brand {
+#nav .navbar-brand,
+#nav .navbar-brand.tahsin-brand {
     color: var(--thm-primary);
     height: auto;
     line-height: normal;
+    padding: 4px 0;
+    margin-right: 16px;
+    background: transparent !important;
+    box-shadow: none !important;
+    border: none !important;
+}
+
+#nav .navbar-brand img.tahsin-nav-logo {
+    height: 64px;
+    width: auto;
+    max-width: 72px;
+    max-height: 64px;
+    object-fit: contain;
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    display: block;
+}
+
+.main-footer .footer-logo,
+.footer-area .footer-logo {
+    background: transparent !important;
+}
+
+.tahsin-footer-logo {
+    height: 88px;
+    width: auto;
+    max-width: 96px;
+    object-fit: contain;
+    background: transparent !important;
 }
 
 #nav.navbar {
