@@ -38,3 +38,14 @@ SET
   `description` = 'Tahsin Academy secondary education board'
 WHERE `name` IN ('KADSSSEB', 'Kaduna State Senior Secondary School Education Board')
    OR `description` LIKE '%Kaduna State Senior Secondary%';
+
+UPDATE `branch`
+SET
+  `name` = 'Tahsin Academy',
+  `school_name` = 'Tahsin Academy'
+WHERE `id` = 1
+   OR `name` LIKE '%Kaduna%'
+   OR `school_name` LIKE '%Kaduna%';
+
+UPDATE `front_cms_setting`
+SET `application_title` = 'Tahsin Academy';

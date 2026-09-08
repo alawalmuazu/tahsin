@@ -337,6 +337,7 @@ class Home extends Frontend_Controller
             'terms_conditions_description' => '',
         ), $page_data);
         $this->data['page_data'] = $page_data;
+        $this->data['school_name'] = $this->brandName(get_type_name_by_id('branch', $branchID, 'school_name'));
         $this->data['main_contents'] = $this->load->view('home/admission', $this->data, true);
         $this->load->view('home/layout/index', $this->data);
     }

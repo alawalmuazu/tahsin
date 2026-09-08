@@ -122,7 +122,12 @@ class MY_Controller extends CI_Controller
     protected function brandName($name = '')
     {
         $name = trim((string) $name);
-        if ($name === '' || stripos($name, 'smartschool') !== false || stripos($name, 'smart school') !== false) {
+        if ($name === ''
+            || stripos($name, 'smartschool') !== false
+            || stripos($name, 'smart school') !== false
+            || stripos($name, 'school management system') !== false
+            || stripos($name, 'kaduna') !== false
+        ) {
             return 'Tahsin Academy';
         }
         return $this->rebrandText($name);
@@ -130,7 +135,8 @@ class MY_Controller extends CI_Controller
 
     protected function rebrandText($text = '')
     {
-        return str_ireplace(array('Smart School', 'SmartSchool'), 'Tahsin Academy', (string) $text);
+        $text = str_ireplace(array('Smart School', 'SmartSchool', 'Government College Kaduna'), 'Tahsin Academy', (string) $text);
+        return $text;
     }
 }
 
@@ -234,6 +240,23 @@ class Frontend_Controller extends MY_Controller
         }
         if (!empty($cms_setting['footer_about_text'])) {
             $cms_setting['footer_about_text'] = $this->rebrandText($cms_setting['footer_about_text']);
+        }
+        $demoAddress = array('', 'your address', 'address');
+        $address = trim((string) ($cms_setting['address'] ?? ''));
+        if ($address === '' || in_array(strtolower($address), $demoAddress, true) || stripos($address, 'kaduna') !== false) {
+            $cms_setting['address'] = 'Tahsin Academy';
+        }
+        $phone = trim((string) ($cms_setting['mobile_no'] ?? ''));
+        if ($phone === '' || strpos($phone, '123456') !== false) {
+            $cms_setting['mobile_no'] = '';
+        }
+        $fax = trim((string) ($cms_setting['fax'] ?? ''));
+        if ($fax === '' || strpos($fax, '123456') !== false) {
+            $cms_setting['fax'] = '';
+        }
+        $email = trim((string) ($cms_setting['email'] ?? ''));
+        if ($email === '' || stripos($email, 'jamilusalis') !== false || stripos($email, 'smartschool') !== false) {
+            $cms_setting['email'] = '';
         }
         if (empty($cms_setting['logo']) || !file_exists(FCPATH . 'uploads/frontend/images/' . $cms_setting['logo'])) {
             $cms_setting['logo'] = 'tahsin-logo.png';

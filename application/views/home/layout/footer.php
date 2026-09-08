@@ -41,18 +41,26 @@
                 <div class="col-lg-4 col-md-4 col-sm-12">
                     <h4>Address</h4>
                     <ul class="list-unstyled address-list">
+                        <?php if (!empty($cms_setting['address'])): ?>
                         <li class="clearfix address">
                             <i class="fas fa-map-marker-alt"></i> <?php echo $cms_setting['address']; ?>
                         </li>
+                        <?php endif; ?>
+                        <?php if (!empty($cms_setting['mobile_no'])): ?>
                         <li class="clearfix">
                             <i class="fas fa-phone"></i> <?php echo $cms_setting['mobile_no']; ?>
                         </li>
+                        <?php endif; ?>
+                        <?php if (!empty($cms_setting['fax'])): ?>
                         <li class="clearfix">
-                            <i class="fas fa-fax"></i></i> <?php echo $cms_setting['fax']; ?>
+                            <i class="fas fa-fax"></i> <?php echo $cms_setting['fax']; ?>
                         </li>
+                        <?php endif; ?>
+                        <?php if (!empty($cms_setting['email'])): ?>
                         <li class="clearfix">
                             <i class="fas fa-envelope"></i> <a href="mailto:<?php echo $cms_setting['email']; ?>"><?php echo $cms_setting['email']; ?></a>
                         </li>
+                        <?php endif; ?>
                     </ul>
                 </div>
                 <div class="col-lg-4 col-md-4 col-sm-12">

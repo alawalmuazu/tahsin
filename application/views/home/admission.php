@@ -47,7 +47,7 @@ $banner_url = $banner_file ? base_url('uploads/frontend/banners/' . $banner_file
                             <div class="col-md-<?php echo $section['status'] == 1 ? '4' : '6' ?>">
                                 <div class="form-group">
                                     <label>School Name <span class="required">*</span></label>
-                                    <input type="text" class="form-control" name="schoolname" value="<?php echo get_type_name_by_id('branch', $branchID, 'school_name'); ?>" readonly />
+                                    <input type="text" class="form-control" name="schoolname" value="<?php echo !empty($school_name) ? $school_name : 'Tahsin Academy'; ?>" readonly />
                                 </div>
                             </div>
                             <div class="col-md-<?php echo $section['status'] == 1 ? '4' : '6' ?>">
