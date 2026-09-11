@@ -252,7 +252,7 @@ class Home extends Frontend_Controller
                     'permanent_address' => $this->input->post('permanent_address'),
                     'city' => $this->input->post('city'),
                     'state' => $this->input->post('state'),
-                    'category_id' => $this->input->post('category'),
+                    'category_id' => $this->input->post('category') ? $this->input->post('category') : $this->input->post('category_id'),
                     'email' => $this->input->post('student_email'),
                     'student_photo' => $this->uploadImage('images/student', 'student_photo'),
                     'previous_school_details' => $previous_details,
@@ -342,6 +342,7 @@ class Home extends Frontend_Controller
         ), $page_data);
         $this->data['page_data'] = $page_data;
         $this->data['school_name'] = $this->brandName(get_type_name_by_id('branch', $branchID, 'school_name'));
+        $this->data['admission_types'] = $this->home_model->getAdmissionTypes($branchID);
         $this->data['main_contents'] = $this->load->view('home/admission', $this->data, true);
         $this->load->view('home/layout/index', $this->data);
     }

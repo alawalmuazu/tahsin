@@ -26,7 +26,165 @@ $banner_url = $banner_file ? base_url('uploads/frontend/banners/' . $banner_file
     <h3 class="main-heading2 mt-0"><?php echo $page_heading; ?></h3>
     <?php echo !empty($page_data['description']) ? $page_data['description'] : ''; ?>
 
-    <div class="box2 form-box position-relative">
+    <!-- Types of Admission Showcase Starts -->
+    <style>
+        .tahsin-track-card {
+            transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+        }
+        .tahsin-track-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08) !important;
+            border-color: #10b981 !important;
+        }
+    </style>
+    <div class="tahsin-admission-types mb-4 mt-3">
+        <div class="sec-title text-center mb-4">
+            <span class="badge px-3 py-2 text-uppercase mb-2" style="background: rgba(16,185,129,0.15); color: #10b981; font-weight: 700; letter-spacing: 0.8px; border-radius: 30px; font-size: 12px;">
+                <i class="fas fa-graduation-cap me-1"></i> Available Study Tracks
+            </span>
+            <h2 style="font-size: 26px; font-weight: 700; color: #0f1923; margin-top: 6px;">Types of Admission</h2>
+            <p class="text-muted" style="max-width: 680px; margin: 0 auto; font-size: 14px;">
+                Tahsin Academy offers comprehensive Boarding, Day, and Weekend tracks integrating authentic Quranic memorization with or without modern technical skills. Choose your preferred track below:
+            </p>
+        </div>
+        <div class="row g-3">
+            <!-- 1. Boarding Quran without Technical skills -->
+            <div class="col-lg-4 col-md-6 mb-3">
+                <div class="tahsin-track-card" onclick="selectAdmissionType(1)" style="cursor: pointer; background: #fff; border: 1.5px solid #e5e7eb; border-radius: 12px; padding: 22px; height: 100%; position: relative; box-shadow: 0 4px 15px rgba(0,0,0,0.03);">
+                    <div class="d-flex align-items-center mb-3">
+                        <div style="width: 44px; height: 44px; border-radius: 10px; background: rgba(16,185,129,0.12); color: #10b981; display: flex; align-items: center; justify-content: center; font-size: 20px; margin-right: 12px; flex-shrink: 0;">
+                            <i class="fas fa-bed"></i>
+                        </div>
+                        <div>
+                            <span class="badge" style="background: #0f1923; color: #fff; font-size: 10px;">Boarding Track</span>
+                            <h5 style="margin: 3px 0 0; font-size: 14px; font-weight: 700; color: #1f2937;">Boarding Quran without Technical skills</h5>
+                        </div>
+                    </div>
+                    <p style="font-size: 13px; color: #6b7280; line-height: 1.5; margin-bottom: 15px;">
+                        Full boarding residency focused on intensive Quranic memorization, Tajweed, Islamic jurisprudence, and moral discipline.
+                    </p>
+                    <div class="d-flex align-items-center justify-content-between pt-2" style="border-top: 1px solid #f3f4f6;">
+                        <span style="font-size: 12px; font-weight: 600; color: #10b981;"><i class="fas fa-quran me-1"></i> Pure Hifz</span>
+                        <span class="btn btn-sm btn-outline-success" style="font-size: 11px; padding: 3px 12px; border-radius: 20px;">Select Track <i class="fas fa-arrow-down ms-1"></i></span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 2. Boarding Quran with Technical skills -->
+            <div class="col-lg-4 col-md-6 mb-3">
+                <div class="tahsin-track-card" onclick="selectAdmissionType(2)" style="cursor: pointer; background: #fff; border: 1.5px solid #10b981; border-radius: 12px; padding: 22px; height: 100%; position: relative; box-shadow: 0 6px 20px rgba(16,185,129,0.08);">
+                    <span style="position: absolute; top: -10px; right: 18px; background: linear-gradient(135deg, #10b981, #059669); color: #fff; font-size: 10px; font-weight: 700; padding: 2px 10px; border-radius: 12px; text-transform: uppercase; letter-spacing: 0.5px;">Recommended</span>
+                    <div class="d-flex align-items-center mb-3">
+                        <div style="width: 44px; height: 44px; border-radius: 10px; background: rgba(16,185,129,0.18); color: #059669; display: flex; align-items: center; justify-content: center; font-size: 20px; margin-right: 12px; flex-shrink: 0;">
+                            <i class="fas fa-laptop-code"></i>
+                        </div>
+                        <div>
+                            <span class="badge" style="background: #10b981; color: #fff; font-size: 10px;">Boarding + STEM</span>
+                            <h5 style="margin: 3px 0 0; font-size: 14px; font-weight: 700; color: #1f2937;">Boarding Quran with Technical skills</h5>
+                        </div>
+                    </div>
+                    <p style="font-size: 13px; color: #6b7280; line-height: 1.5; margin-bottom: 15px;">
+                        Full boarding residency integrating complete Quran memorization with digital skills, ICT, coding, and hands-on technical proficiencies.
+                    </p>
+                    <div class="d-flex align-items-center justify-content-between pt-2" style="border-top: 1px solid #f3f4f6;">
+                        <span style="font-size: 12px; font-weight: 600; color: #059669;"><i class="fas fa-star me-1"></i> Deen + Modern Skills</span>
+                        <span class="btn btn-sm btn-success" style="font-size: 11px; padding: 3px 12px; border-radius: 20px; background: #10b981; border: none;">Select Track <i class="fas fa-arrow-down ms-1"></i></span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 3. Day without Technical Skills -->
+            <div class="col-lg-4 col-md-6 mb-3">
+                <div class="tahsin-track-card" onclick="selectAdmissionType(3)" style="cursor: pointer; background: #fff; border: 1.5px solid #e5e7eb; border-radius: 12px; padding: 22px; height: 100%; position: relative; box-shadow: 0 4px 15px rgba(0,0,0,0.03);">
+                    <div class="d-flex align-items-center mb-3">
+                        <div style="width: 44px; height: 44px; border-radius: 10px; background: rgba(59,130,246,0.12); color: #3b82f6; display: flex; align-items: center; justify-content: center; font-size: 20px; margin-right: 12px; flex-shrink: 0;">
+                            <i class="fas fa-sun"></i>
+                        </div>
+                        <div>
+                            <span class="badge" style="background: #3b82f6; color: #fff; font-size: 10px;">Day Track</span>
+                            <h5 style="margin: 3px 0 0; font-size: 14px; font-weight: 700; color: #1f2937;">Day without Technical Skills</h5>
+                        </div>
+                    </div>
+                    <p style="font-size: 13px; color: #6b7280; line-height: 1.5; margin-bottom: 15px;">
+                        Standard daytime schedule covering regular academic subjects, Quran recitation, Arabic grammar, and Islamic moral education.
+                    </p>
+                    <div class="d-flex align-items-center justify-content-between pt-2" style="border-top: 1px solid #f3f4f6;">
+                        <span style="font-size: 12px; font-weight: 600; color: #3b82f6;"><i class="fas fa-check-circle me-1"></i> Day Scholar</span>
+                        <span class="btn btn-sm btn-outline-primary" style="font-size: 11px; padding: 3px 12px; border-radius: 20px;">Select Track <i class="fas fa-arrow-down ms-1"></i></span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 4. Day with Technical Skills -->
+            <div class="col-lg-4 col-md-6 mb-3">
+                <div class="tahsin-track-card" onclick="selectAdmissionType(4)" style="cursor: pointer; background: #fff; border: 1.5px solid #e5e7eb; border-radius: 12px; padding: 22px; height: 100%; position: relative; box-shadow: 0 4px 15px rgba(0,0,0,0.03);">
+                    <div class="d-flex align-items-center mb-3">
+                        <div style="width: 44px; height: 44px; border-radius: 10px; background: rgba(59,130,246,0.18); color: #2563eb; display: flex; align-items: center; justify-content: center; font-size: 20px; margin-right: 12px; flex-shrink: 0;">
+                            <i class="fas fa-microchip"></i>
+                        </div>
+                        <div>
+                            <span class="badge" style="background: #2563eb; color: #fff; font-size: 10px;">Day + Technical</span>
+                            <h5 style="margin: 3px 0 0; font-size: 14px; font-weight: 700; color: #1f2937;">Day with Technical Skills</h5>
+                        </div>
+                    </div>
+                    <p style="font-size: 13px; color: #6b7280; line-height: 1.5; margin-bottom: 15px;">
+                        Weekday schedule combining regular academic and Islamic learning with computer science laboratory sessions and practical skills.
+                    </p>
+                    <div class="d-flex align-items-center justify-content-between pt-2" style="border-top: 1px solid #f3f4f6;">
+                        <span style="font-size: 12px; font-weight: 600; color: #2563eb;"><i class="fas fa-bolt me-1"></i> Academics + ICT</span>
+                        <span class="btn btn-sm btn-outline-primary" style="font-size: 11px; padding: 3px 12px; border-radius: 20px;">Select Track <i class="fas fa-arrow-down ms-1"></i></span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 5. Weekend Tahfeez with Skills -->
+            <div class="col-lg-4 col-md-6 mb-3">
+                <div class="tahsin-track-card" onclick="selectAdmissionType(5)" style="cursor: pointer; background: #fff; border: 1.5px solid #e5e7eb; border-radius: 12px; padding: 22px; height: 100%; position: relative; box-shadow: 0 4px 15px rgba(0,0,0,0.03);">
+                    <div class="d-flex align-items-center mb-3">
+                        <div style="width: 44px; height: 44px; border-radius: 10px; background: rgba(245,158,11,0.15); color: #d97706; display: flex; align-items: center; justify-content: center; font-size: 20px; margin-right: 12px; flex-shrink: 0;">
+                            <i class="fas fa-calendar-week"></i>
+                        </div>
+                        <div>
+                            <span class="badge" style="background: #d97706; color: #fff; font-size: 10px;">Weekend + Skills</span>
+                            <h5 style="margin: 3px 0 0; font-size: 14px; font-weight: 700; color: #1f2937;">Weekend Tahfeez with Skills</h5>
+                        </div>
+                    </div>
+                    <p style="font-size: 13px; color: #6b7280; line-height: 1.5; margin-bottom: 15px;">
+                        Saturday &amp; Sunday intensive sessions tailored for memorization, Tajweed correction, and practical weekend ICT skill modules.
+                    </p>
+                    <div class="d-flex align-items-center justify-content-between pt-2" style="border-top: 1px solid #f3f4f6;">
+                        <span style="font-size: 12px; font-weight: 600; color: #d97706;"><i class="fas fa-clock me-1"></i> Sat &amp; Sun</span>
+                        <span class="btn btn-sm btn-outline-warning" style="font-size: 11px; padding: 3px 12px; border-radius: 20px; color: #d97706; border-color: #d97706;">Select Track <i class="fas fa-arrow-down ms-1"></i></span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 6. Weekend Tahfeez without Technical skills -->
+            <div class="col-lg-4 col-md-6 mb-3">
+                <div class="tahsin-track-card" onclick="selectAdmissionType(6)" style="cursor: pointer; background: #fff; border: 1.5px solid #e5e7eb; border-radius: 12px; padding: 22px; height: 100%; position: relative; box-shadow: 0 4px 15px rgba(0,0,0,0.03);">
+                    <div class="d-flex align-items-center mb-3">
+                        <div style="width: 44px; height: 44px; border-radius: 10px; background: rgba(107,114,128,0.12); color: #4b5563; display: flex; align-items: center; justify-content: center; font-size: 20px; margin-right: 12px; flex-shrink: 0;">
+                            <i class="fas fa-quran"></i>
+                        </div>
+                        <div>
+                            <span class="badge" style="background: #4b5563; color: #fff; font-size: 10px;">Weekend Tahfeez</span>
+                            <h5 style="margin: 3px 0 0; font-size: 14px; font-weight: 700; color: #1f2937;">Weekend Tahfeez without Technical skills</h5>
+                        </div>
+                    </div>
+                    <p style="font-size: 13px; color: #6b7280; line-height: 1.5; margin-bottom: 15px;">
+                        Focused weekend Quran memorization and recitation revision track for students enrolled in other weekday schools.
+                    </p>
+                    <div class="d-flex align-items-center justify-content-between pt-2" style="border-top: 1px solid #f3f4f6;">
+                        <span style="font-size: 12px; font-weight: 600; color: #4b5563;"><i class="fas fa-book-open me-1"></i> Pure Tahfeez</span>
+                        <span class="btn btn-sm btn-outline-secondary" style="font-size: 11px; padding: 3px 12px; border-radius: 20px;">Select Track <i class="fas fa-arrow-down ms-1"></i></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- Types of Admission Showcase Ends -->
+
+    <div class="box2 form-box position-relative" id="admission-application-form">
         <div class="admission-status-frm">
             <button type="button" class="btn btn-1 admission-status-btn" data-bs-toggle="modal" data-bs-target="#admissionModal"><i class="fa-solid fa-file-lines"></i> Check Admission Status</button>
 <?php if (!empty($page_data['application_form_file'])) { ?>
@@ -36,7 +194,7 @@ $banner_url = $banner_file ? base_url('uploads/frontend/banners/' . $banner_file
 
         <div class="tabs-panel tabs-product mt-4">
             <div class="nav nav-tabs">
-                <a class="nav-item nav-link active" data-toggle="tab" href="#new-admission" role="tab" aria-controls="tab-details" aria-selected="true">New Admission</a>
+                <a class="nav-item nav-link active" data-toggle="tab" href="#new-admission" role="tab" aria-controls="tab-details" aria-selected="true">New Admission Application</a>
             </div>
             <div class="tab-content clearfix">
                 <div class="tab-pane fade show active" id="new-admission" role="tabpanel" aria-labelledby="tab-new-admission">
@@ -91,9 +249,10 @@ $banner_url = $banner_file ? base_url('uploads/frontend/banners/' . $banner_file
                             <?php } if ($category['status']) { ?>
                             <div class="col-md-<?php echo $div ?>">
                                 <div class="form-group">
-                                    <label for="admission_date">Category<?php echo $category['required'] == 1 ? ' <span class="required">*</span>' : ''; ?></label>
+                                    <label class="control-label">Type of Admission <span class="required">*</span></label>
                                     <?php
-                                        $arrayCategory = $this->app_lib->getStudentCategory($branchID);
+                                        $admissionTypes = !empty($admission_types) ? $admission_types : $this->home_model->getAdmissionTypes($branchID);
+                                        $arrayCategory = array('' => 'Select Type of Admission') + $admissionTypes;
                                         echo form_dropdown("category", $arrayCategory, set_value('category_id'), "class='form-control'
                                         data-plugin-selectTwo data-width='100%' id='category_id' data-minimum-results-for-search='Infinity' ");
                                     ?>
@@ -597,3 +756,22 @@ $banner_url = $banner_file ? base_url('uploads/frontend/banners/' . $banner_file
         </div>
     </div>
 </div>
+
+<script>
+function selectAdmissionType(val) {
+    var select = $('#category_id');
+    if (select.length) {
+        select.val(val).trigger('change');
+        var target = select.closest('.form-group');
+        if (target.length) {
+            $('html, body').animate({
+                scrollTop: target.offset().top - 120
+            }, 600);
+            target.css({'transition': 'background 0.3s ease', 'background': 'rgba(16, 185, 129, 0.15)', 'padding': '10px', 'border-radius': '8px'});
+            setTimeout(function() {
+                target.css('background', 'transparent');
+            }, 1800);
+        }
+    }
+}
+</script>

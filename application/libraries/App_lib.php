@@ -322,13 +322,17 @@ class App_lib
     public function getStudentCategory($branch_id = '')
     {
         if (empty($branch_id)) {
-            $array = array('' => translate('select_branch_first'));
-        } else {
-            $result = $this->getHybridItems('student_category', $branch_id);
-            $array = array('' => translate('select'));
-            foreach ($result as $row) {
-                $array[$row->id] = $row->name;
-            }
+            return array('' => translate('select_branch_first'));
+        }
+        $this->CI->load->model('home_model');
+        $official = $this->CI->home_model->getAdmissionTypes($branch_id);
+        if (!empty($official)) {
+            return array('' => translate('select')) + $official;
+        }
+        $result = $this->getHybridItems('student_category', $branch_id);
+        $array = array('' => translate('select'));
+        foreach ($result as $row) {
+            $array[$row->id] = $row->name;
         }
         return $array;
     }

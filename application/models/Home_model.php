@@ -54,6 +54,40 @@ class Home_model extends MY_Model
         return $query->$method();
     }
 
+    public function getAdmissionTypes($branch_id = '')
+    {
+        $official = array(
+            'Boarding Quran without Technical skills',
+            'Boarding Quran with Technical skills',
+            'Day without Technical Skills',
+            'Day with Technical Skills',
+            'Weekend Tahfeez with Skills',
+            'Weekend Tahfeez without Technical skills',
+        );
+
+        if (empty($branch_id)) {
+            $branch_id = $this->getDefaultBranch();
+        }
+
+        $list = array();
+        foreach ($official as $catName) {
+            $row = $this->db->where('name', $catName)->order_by('id', 'asc')->get('student_category')->row();
+            if (empty($row)) {
+                $this->db->insert('student_category', array(
+                    'name' => $catName,
+                    'branch_id' => $branch_id,
+                ));
+                $list[$this->db->insert_id()] = $catName;
+            } else {
+                if ((int) $row->branch_id !== (int) $branch_id) {
+                    $this->db->where('id', $row->id)->update('student_category', array('branch_id' => $branch_id));
+                }
+                $list[$row->id] = $catName;
+            }
+        }
+        return $list;
+    }
+
     public function whatsappChat()
     {
         $branchID = $this->getDefaultBranch();

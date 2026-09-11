@@ -293,6 +293,81 @@ $first_part = implode(' ', $words);
     </section>
 
     <!-- ═══════════════════════════════════════════════════════════════════ -->
+    <!-- ★ TYPES OF ADMISSION TRACKS — NEW LANDING SECTION                  -->
+    <!-- ═══════════════════════════════════════════════════════════════════ -->
+    <section class="ss-admission-tracks my-5">
+        <div class="ss-section-header text-center mb-4">
+            <span class="ss-kicker"><i class="fas fa-graduation-cap"></i> Academic Pathways</span>
+            <h2 class="ss-title">Types of Admission</h2>
+            <p class="ss-subtitle">Tailored Boarding, Day, and Weekend tracks integrating authentic Quranic memorization with technical skills</p>
+        </div>
+        <div class="row g-4 justify-content-center">
+            <!-- 1. Boarding Track -->
+            <div class="col-lg-4 col-md-6 mb-3">
+                <div class="ss-track-box p-4" style="background: #fff; border: 1.5px solid #e5e7eb; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.04); height: 100%; display: flex; flex-direction: column;">
+                    <div class="d-flex align-items-center mb-3">
+                        <div style="width: 48px; height: 48px; border-radius: 12px; background: rgba(16,185,129,0.15); color: #10b981; display: flex; align-items: center; justify-content: center; font-size: 22px; margin-right: 14px; flex-shrink: 0;">
+                            <i class="fas fa-bed"></i>
+                        </div>
+                        <div>
+                            <span class="badge" style="background: #0f1923; color: #fff;">Boarding Residency</span>
+                            <h4 style="margin: 4px 0 0; font-size: 16px; font-weight: 700; color: #111;">Boarding Quran Tracks</h4>
+                        </div>
+                    </div>
+                    <p style="font-size: 13.5px; color: #6b7280; flex-grow: 1;">Full-time campus residency immersed in intensive Tahfeez, Tajweed, Islamic character building, and academic studies.</p>
+                    <ul class="list-unstyled mb-3" style="font-size: 13px; color: #374151;">
+                        <li class="mb-2"><i class="fas fa-check-circle text-success me-2"></i> Boarding Quran without Technical skills</li>
+                        <li><i class="fas fa-check-circle text-success me-2"></i> Boarding Quran with Technical skills</li>
+                    </ul>
+                    <a href="<?php echo $admission_url; ?>" class="btn btn-1 w-100 mt-auto" style="border-radius: 8px;"><i class="fas fa-user-plus me-1"></i> Apply for Boarding</a>
+                </div>
+            </div>
+
+            <!-- 2. Day Track -->
+            <div class="col-lg-4 col-md-6 mb-3">
+                <div class="ss-track-box p-4" style="background: #fff; border: 1.5px solid #e5e7eb; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.04); height: 100%; display: flex; flex-direction: column;">
+                    <div class="d-flex align-items-center mb-3">
+                        <div style="width: 48px; height: 48px; border-radius: 12px; background: rgba(59,130,246,0.15); color: #3b82f6; display: flex; align-items: center; justify-content: center; font-size: 22px; margin-right: 14px; flex-shrink: 0;">
+                            <i class="fas fa-sun"></i>
+                        </div>
+                        <div>
+                            <span class="badge" style="background: #3b82f6; color: #fff;">Day Scholar</span>
+                            <h4 style="margin: 4px 0 0; font-size: 16px; font-weight: 700; color: #111;">Day Student Tracks</h4>
+                        </div>
+                    </div>
+                    <p style="font-size: 13.5px; color: #6b7280; flex-grow: 1;">Regular weekday schedule offering balanced core curriculum, Quran memorization, Arabic language, and optional technical training.</p>
+                    <ul class="list-unstyled mb-3" style="font-size: 13px; color: #374151;">
+                        <li class="mb-2"><i class="fas fa-check-circle text-primary me-2"></i> Day without Technical Skills</li>
+                        <li><i class="fas fa-check-circle text-primary me-2"></i> Day with Technical Skills</li>
+                    </ul>
+                    <a href="<?php echo $admission_url; ?>" class="btn btn-outline-primary w-100 mt-auto" style="border-radius: 8px; font-weight: 600;"><i class="fas fa-user-plus me-1"></i> Apply for Day Program</a>
+                </div>
+            </div>
+
+            <!-- 3. Weekend Tahfeez Track -->
+            <div class="col-lg-4 col-md-6 mb-3">
+                <div class="ss-track-box p-4" style="background: #fff; border: 1.5px solid #e5e7eb; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.04); height: 100%; display: flex; flex-direction: column;">
+                    <div class="d-flex align-items-center mb-3">
+                        <div style="width: 48px; height: 48px; border-radius: 12px; background: rgba(245,158,11,0.15); color: #d97706; display: flex; align-items: center; justify-content: center; font-size: 22px; margin-right: 14px; flex-shrink: 0;">
+                            <i class="fas fa-calendar-week"></i>
+                        </div>
+                        <div>
+                            <span class="badge" style="background: #d97706; color: #fff;">Weekend Flexible</span>
+                            <h4 style="margin: 4px 0 0; font-size: 16px; font-weight: 700; color: #111;">Weekend Tahfeez Tracks</h4>
+                        </div>
+                    </div>
+                    <p style="font-size: 13.5px; color: #6b7280; flex-grow: 1;">Specialized Saturday and Sunday sessions designed for working families and students attending other schools on weekdays.</p>
+                    <ul class="list-unstyled mb-3" style="font-size: 13px; color: #374151;">
+                        <li class="mb-2"><i class="fas fa-check-circle text-warning me-2"></i> Weekend Tahfeez with Skills</li>
+                        <li><i class="fas fa-check-circle text-warning me-2"></i> Weekend Tahfeez without Technical skills</li>
+                    </ul>
+                    <a href="<?php echo $admission_url; ?>" class="btn btn-outline-warning w-100 mt-auto" style="border-radius: 8px; font-weight: 600; color: #d97706; border-color: #d97706;"><i class="fas fa-user-plus me-1"></i> Apply for Weekend Track</a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════════════════════ -->
     <!-- ★ PLATFORM CAPABILITIES — NEW LANDING SECTION                       -->
     <!-- ═══════════════════════════════════════════════════════════════════ -->
     <section class="ss-capabilities">
