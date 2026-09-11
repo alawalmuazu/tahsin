@@ -14,9 +14,14 @@
 						</a></li>
 						<li class="list-inline-item"><i class="fas fa-phone-volume"></i> <?php echo $cms_setting['mobile_no']; ?></li>
 					<?php 
-					$homeURL = base_url($cms_setting['url_alias']);
+					$alias = trim((string) ($cms_setting['url_alias'] ?? ''));
+					if (strtolower($alias) === 'example') {
+						$alias = '';
+					}
+					$homeURL = !empty($alias) ? base_url($alias) : base_url();
+					$admissionURL = !empty($alias) ? base_url($alias . '/admission') : base_url('admission');
 					if (!is_loggedin()) { 
-				        $authenticationURL = base_url($cms_setting['url_alias'] . '/authentication');
+				        $authenticationURL = !empty($alias) ? base_url($alias . '/authentication') : base_url('authentication');
 				        $saasExisting = $this->app_lib->isExistingAddon('saas');
 				        if ($saasExisting && $this->db->table_exists("custom_domain")) {
 				            $getDomain = $this->home_model->getCurrentDomain();
@@ -24,8 +29,10 @@
 				                $authenticationURL = base_url('authentication');
 				            }
 				        } ?>
+						<li class="list-inline-item"><a href="<?php echo $admissionURL; ?>"><i class="fas fa-graduation-cap"></i> Admission</a></li>
 						<li class="list-inline-item"><a href="<?php echo $authenticationURL; ?>"><i class="fas fa-user-lock"></i> Login</a></li>
 					<?php } else { ?>
+						<li class="list-inline-item"><a href="<?php echo $admissionURL; ?>"><i class="fas fa-graduation-cap"></i> Admission</a></li>
 						<li class="list-inline-item"><a href="<?php echo base_url('dashboard'); ?>"><i class="fas fa-home"></i> Dashboard</a></li>
 					<?php } ?>
 					</ul>
@@ -76,8 +83,7 @@
                                 if ($row['open_new_tab']) {
                                     $op_new_tab = "target='_blank'";
                                 }
-								if ($cms_setting['online_admission'] == 0 && $row['alias'] == 'admission') continue;
-								if ($row['alias'] == 'teachers') continue; // Not relevant for state portal
+								if ($row['alias'] == 'teachers') continue;
 							?>
 								<li class="nav-item<?php echo $active_menu; echo $submenu; echo $submenu_active; ?>">
 									<a href="<?php echo $row['url']; ?>" class="nav-link" <?php echo $op_new_tab; ?>><?php echo $row['title']; ?>  </a>
@@ -99,6 +105,11 @@
 								<?php } ?>
 								</li>
 							<?php } ?>
+							<li class="nav-item m-apply-btn me-lg-2">
+								<a href="<?php echo $admissionURL; ?>" class="btn d-grid btn-success mt-sm" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); border: none; color: #fff; font-weight: 600; padding: 7px 18px; border-radius: 6px; box-shadow: 0 2px 10px rgba(16,185,129,0.35);">
+									<i class="fas fa-user-plus me-1"></i> Apply Online
+								</a>
+							</li>
 							<li class="nav-item m-login">
 							<?php if (!is_loggedin()) { ?>
 								<a href="<?php echo $authenticationURL; ?>" class="btn d-grid btn-black mt-sm">Login</a>

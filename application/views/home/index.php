@@ -1,3 +1,22 @@
+<?php
+// Core landing variables — ensure always defined regardless of sliders presence
+$url_alias_raw = trim((string) ($cms_setting['url_alias'] ?? ''), '/');
+if (strtolower($url_alias_raw) === 'example') {
+    $url_alias_raw = '';
+}
+$is_statewide = empty($url_alias_raw);
+$app_title = !empty($cms_setting['application_title']) ? $cms_setting['application_title'] : 'Tahsin Academy';
+$public_alias = $url_alias_raw;
+$admission_url = $public_alias ? base_url($public_alias . '/admission') : base_url('admission');
+$results_url = $public_alias ? base_url($public_alias . '/exam_results') : base_url('exam_results');
+$admit_card_url = $public_alias ? base_url($public_alias . '/admit_card') : base_url('admit_card');
+$authentication_url = $public_alias ? base_url($public_alias . '/authentication') : base_url('authentication');
+
+// Dynamic formatting for headings
+$words = explode(' ', $app_title);
+$last_word = array_pop($words);
+$first_part = implode(' ', $words);
+?>
 <!-- Main Slider / Hero Section -->
 <?php if (!empty($sliders)) { ?>
 <section class="main-slider">
@@ -33,20 +52,6 @@
 </section>
 <?php } else { ?>
 <!-- Fallback Hero when no sliders configured -->
-<?php 
-// Determine if we are on a specific branch or the statewide landing page
-$is_statewide = empty($cms_setting['url_alias']);
-$app_title = !empty($cms_setting['application_title']) ? $cms_setting['application_title'] : 'Tahsin Academy';
-$public_alias = trim((string) $cms_setting['url_alias'], '/');
-$admission_url = $public_alias ? base_url($public_alias . '/admission') : base_url('admission');
-$results_url = $public_alias ? base_url($public_alias . '/exam_results') : base_url('exam_results');
-$admit_card_url = $public_alias ? base_url($public_alias . '/admit_card') : base_url('admit_card');
-
-// Dynamic formatting for the hero heading
-$words = explode(' ', $app_title);
-$last_word = array_pop($words);
-$first_part = implode(' ', $words);
-?>
 <style>
 .ss-branch-hero .ss-hero-bg {
     background: linear-gradient(135deg, var(--thm-primary) 0%, #111 100%);
@@ -87,23 +92,14 @@ $first_part = implode(' ', $words);
     </div>
     <div class="container">
         <div class="ss-hero-content">
-            <?php if ($is_statewide): ?>
-                <div class="ss-live-badge"><span class="ss-pulse-dot"></span> LIVE — Tahsin Academy Portal</div>
-                <div class="ss-hero-badge"><i class="fas fa-graduation-cap"></i> Tahsin Academy</div>
-            <?php else: ?>
-                <div class="ss-live-badge"><span class="ss-pulse-dot"></span> Official School Portal</div>
-                <div class="ss-hero-badge"><i class="fas fa-award"></i> Welcome to Excellence</div>
-            <?php endif; ?>
+            <div class="ss-live-badge"><span class="ss-pulse-dot"></span> Admissions Open &bull; 2026/2027 Session</div>
+            <div class="ss-hero-badge"><i class="fas fa-graduation-cap"></i> Tahsin Academy</div>
             
             <h1 class="ss-hero-heading">
-                <?php echo !empty($first_part) ? $first_part . ' ' : ''; ?><span><?php echo $last_word; ?></span>
+                <?php echo !empty($first_part) ? $first_part . ' ' : 'Tahsin '; ?><span><?php echo !empty($last_word) ? $last_word : 'Academy'; ?></span>
             </h1>
             
-            <?php if ($is_statewide): ?>
-                <p class="ss-hero-text">Excellence In Deen &amp; Duniya — admissions, results, attendance, and academic life in one place.</p>
-            <?php else: ?>
-                <p class="ss-hero-text">Welcome to the official portal for <strong><?php echo $app_title; ?></strong>. Access admissions, student records, e-learning resources, and essential services all in one place.</p>
-            <?php endif; ?>
+            <p class="ss-hero-text">Excellence In Deen &amp; Duniya — Nurturing future leaders through authentic Islamic values, Quranic memorization, and rigorous academic excellence.</p>
             
             <div class="ss-hero-typewriter"></div>
             
@@ -114,25 +110,20 @@ $first_part = implode(' ', $words);
                 <a href="<?php echo $results_url; ?>" class="ss-hero-btn ss-hero-btn-outline">
                     <i class="fas fa-chart-bar"></i> Check Results
                 </a>
+                <a href="<?php echo $admission_url; ?>" class="ss-hero-btn ss-hero-btn-outline">
+                    <i class="fas fa-search"></i> Admission Status
+                </a>
             </div>
             
-            <?php if ($is_statewide): ?>
             <div class="ss-hero-stats">
-                <div class="ss-stat"><span class="ss-stat-num">Deen</span><span class="ss-stat-label">&amp; Duniya</span></div>
+                <div class="ss-stat"><span class="ss-stat-num">Deen</span><span class="ss-stat-label">&amp; Akhlaaq</span></div>
                 <div class="ss-stat-divider"></div>
-                <div class="ss-stat"><span class="ss-stat-num">Full</span><span class="ss-stat-label">Academics</span></div>
+                <div class="ss-stat"><span class="ss-stat-num">Tahfiz</span><span class="ss-stat-label">&amp; Tajweed</span></div>
                 <div class="ss-stat-divider"></div>
-                <div class="ss-stat"><span class="ss-stat-num">One</span><span class="ss-stat-label">Portal</span></div>
+                <div class="ss-stat"><span class="ss-stat-num">STEM</span><span class="ss-stat-label">&amp; ICT</span></div>
+                <div class="ss-stat-divider"></div>
+                <div class="ss-stat"><span class="ss-stat-num">Creche</span><span class="ss-stat-label">To Secondary</span></div>
             </div>
-            <?php else: ?>
-            <div class="ss-hero-stats ss-branch-stats">
-                <div class="ss-stat"><span class="ss-stat-num"><i class="fas fa-desktop"></i></span><span class="ss-stat-label">Digital</span></div>
-                <div class="ss-stat-divider"></div>
-                <div class="ss-stat"><span class="ss-stat-num"><i class="fas fa-shield-alt"></i></span><span class="ss-stat-label">Secure</span></div>
-                <div class="ss-stat-divider"></div>
-                <div class="ss-stat"><span class="ss-stat-num"><i class="fas fa-bolt"></i></span><span class="ss-stat-label">Fast</span></div>
-            </div>
-            <?php endif; ?>
         </div>
     </div>
     <a href="#ss-quick-services" class="ss-scroll-chevron"><i class="fas fa-chevron-down"></i></a>
@@ -175,23 +166,53 @@ $first_part = implode(' ', $words);
 </section>
 <div class="container px-md-0 main-container">
     <!-- Features Section Starts -->
+    <?php if (!empty($features)) { ?>
     <div class="notification-boxes row">
         <?php
 		foreach ($features as $key => $value) {
 			$elements = json_decode($value['elements'], true);
+            $feature_title = trim((string)$value['title']);
+            $feature_desc = trim((string)$value['description']);
+            $feature_icon = !empty($elements['icon']) ? $elements['icon'] : 'fas fa-book';
+            $btn_url = !empty($elements['button_url']) && $elements['button_url'] !== '#' ? $elements['button_url'] : $admission_url;
+            $btn_text = !empty($elements['button_text']) ? $elements['button_text'] : 'Learn More';
+
+            // Sanitize placeholder latin text with authentic Islamic academy copy
+            if (stripos($feature_desc, 'Nulla metus') !== false || stripos($feature_desc, 'Lorem Ipsum') !== false) {
+                if (stripos($feature_title, 'Online') !== false) {
+                    $feature_title = 'Online Learning & CBT';
+                    $feature_desc = 'Interactive virtual classrooms and computer-based testing accessible from anywhere.';
+                    $feature_icon = 'fas fa-laptop-code';
+                } elseif (stripos($feature_title, 'Scholarship') !== false) {
+                    $feature_title = 'Scholarship & Merit';
+                    $feature_desc = 'Rewarding academic diligence and Quranic memorization excellence.';
+                    $feature_icon = 'fas fa-graduation-cap';
+                } elseif (stripos($feature_title, 'Book') !== false || stripos($feature_title, 'Liberary') !== false || stripos($feature_title, 'Library') !== false) {
+                    $feature_title = 'Books & Library';
+                    $feature_desc = 'Rich physical and digital repository of Islamic reference texts and academic literature.';
+                    $feature_icon = 'fas fa-book-reader';
+                } elseif (stripos($feature_title, 'Course') !== false) {
+                    $feature_title = 'Tajweed & STEM';
+                    $feature_desc = 'Specialized instruction in Quranic recitation, sciences, languages, and ICT.';
+                    $feature_icon = 'fas fa-quran';
+                } else {
+                    $feature_desc = 'Committed to nurturing excellence in Deen and Duniya through structured learning.';
+                }
+            }
 			?>
         <div class="col-lg-3 col-md-6 col-sm-12">
             <div class="box hover-border-outer hover-border">
-                <div class="icon"><i class="<?php echo $elements['icon']; ?>"></i></div>
-                <h4><?php echo $value['title']; ?></h4>
-                <p><?php echo $value['description']; ?></p>
-                <a href="<?php echo $elements['button_url']; ?>" class="btn btn-transparent">
-                    <?php echo $elements['button_text']; ?>
+                <div class="icon"><i class="<?php echo $feature_icon; ?>"></i></div>
+                <h4><?php echo $feature_title; ?></h4>
+                <p><?php echo $feature_desc; ?></p>
+                <a href="<?php echo $btn_url; ?>" class="btn btn-transparent">
+                    <?php echo $btn_text; ?>
                 </a>
             </div>
         </div>
         <?php } ?>
     </div>
+    <?php } ?>
 
     <!-- ═══════════════════════════════════════════════════════════════════ -->
     <!-- ★ QUICK SERVICES PANEL — NEW LANDING SECTION                      -->
@@ -317,21 +338,33 @@ $first_part = implode(' ', $words);
     <?php
         if (!empty($wellcome)) {
         $elements = json_decode($wellcome[ 'elements' ], true);
+        $wel_title = $wellcome['title'];
+        $wel_subtitle = $wellcome['subtitle'];
+        $wel_desc = $wellcome['description'];
+        if (stripos($wel_desc, 'Lorem Ipsum') !== false || stripos($wel_desc, 'distracted by the readable content') !== false || stripos($wel_subtitle, 'We will give you future') !== false) {
+            $wel_title = 'Welcome to Tahsin Academy';
+            $wel_subtitle = 'Excellence In Deen &amp; Duniya';
+            $wel_desc = "Tahsin Academy is committed to providing a transformative educational journey that harmonizes sound Islamic character (Deen) with rigorous modern academics (Duniya).\n\nFrom comprehensive Tahfiz and Tajweed instruction to mathematics, sciences, and digital literacy, our dedicated educators nurture every student's intellect, spirituality, and leadership potential in an inspiring and disciplined environment.";
+        }
         ?>
     <!-- Welcome Section Starts -->
     <section class="welcome-area">
-        <div class="row">
+        <div class="row align-items-center">
             <div class="col-md-6 col-sm-12">
-                <h2 class="main-heading1 lite" style="color: <?php echo $wellcome['color1'] == "" ? '#000' : $wellcome['color1']; ?>"><?php echo $wellcome['title']; ?></h2>
+                <h2 class="main-heading1 lite" style="color: <?php echo $wellcome['color1'] == "" ? '#000' : $wellcome['color1']; ?>"><?php echo $wel_title; ?></h2>
                 <div class="sec-title style-two mb-tt">
-                    <h2 class="main-heading2"><?php echo $wellcome['subtitle']; ?></h2>
+                    <h2 class="main-heading2"><?php echo $wel_subtitle; ?></h2>
                     <span class="decor"><span class="inner"></span></span>
                 </div>
-                <?php echo nl2br($wellcome['description']); ?>
+                <?php echo nl2br($wel_desc); ?>
             </div>
             <div class="col-md-6 col-sm-12">
                 <div class="wel-img">
-                    <img src="<?php echo base_url('uploads/frontend/home_page/' . $elements['image'] . img_reload()); ?>" alt="image" class="img-fluid">
+                    <?php if (!empty($elements['image']) && file_exists(FCPATH . 'uploads/frontend/home_page/' . $elements['image'])) { ?>
+                    <img src="<?php echo base_url('uploads/frontend/home_page/' . $elements['image'] . img_reload()); ?>" alt="Tahsin Academy" class="img-fluid">
+                    <?php } else { ?>
+                    <img src="<?php echo base_url('uploads/app_image/logo.png?v=' . APP_VERSION); ?>" alt="Tahsin Academy" class="img-fluid" style="max-height: 320px; object-fit: contain; margin: 0 auto; display: block;">
+                    <?php } ?>
                 </div>
             </div>
         </div>
@@ -343,17 +376,25 @@ $first_part = implode(' ', $words);
 <?php
     if (!empty($teachers)) {
     $elements = json_decode($teachers[ 'elements' ], true);
+    $teacher_start = !empty($elements['teacher_start']) ? $elements['teacher_start'] : '';
+    $doctor_list = $this->home_model->get_teacher_list($teacher_start, $branchID);
+    if (!empty($doctor_list)) {
+        $teacher_title = $teachers['title'];
+        $teacher_desc = $teachers['description'];
+        if (stripos($teacher_desc, 'Lorem Ipsum') !== false || stripos($teacher_desc, 'readable English') !== false || stripos($teacher_title, 'Doctor') !== false) {
+            $teacher_title = 'Our Dedicated Educators';
+            $teacher_desc = 'Passionate teachers committed to academic rigor, spiritual guidance, and student excellence.';
+        }
     ?>
 <section class="featured-doctors" style="background-image: url(<?php echo base_url('uploads/frontend/home_page/' . $elements['image']); ?>);">
     <div class="container px-md-0">
         <div class="sec-title text-center">
-            <h2 style="color: <?php echo $teachers['color1'] == "" ? '#fff' : $teachers['color1'] ?>"><?php echo $teachers['title'] ?></h2>
-            <p style="color: <?php echo $teachers['color2'] == "" ? '#fff' : $teachers['color2'] ?>"><?php echo nl2br($teachers['description']); ?></p>
+            <h2 style="color: <?php echo $teachers['color1'] == "" ? '#fff' : $teachers['color1'] ?>"><?php echo $teacher_title ?></h2>
+            <p style="color: <?php echo $teachers['color2'] == "" ? '#fff' : $teachers['color2'] ?>"><?php echo nl2br($teacher_desc); ?></p>
             <span class="decor"><span class="inner"></span></span>
         </div>
         <div class="row">
             <?php
-			$doctor_list = $this->home_model->get_teacher_list($elements['teacher_start'], $branchID);
 			foreach ($doctor_list as $row) {
                 ?>
             <div class="col-lg-3 col-sm-6">
@@ -362,20 +403,14 @@ $first_part = implode(' ', $words);
                         <div class="dlab-border-left"></div>
                         <div class="dlab-border-right"></div>
                         <div class="dlab-media">
-                            <img src="<?php echo get_image_url('staff', $row['photo']); ?>" alt="Doctor" class="img-fluid img-center-sm img-center-xs">
+                            <img src="<?php echo get_image_url('staff', $row['photo']); ?>" alt="<?php echo $row['name']; ?>" class="img-fluid img-center-sm img-center-xs">
                         </div>
                         <div class="overlay">
                             <div class="overlay-txt">
                                 <ul class="list-unstyled list-inline sm-links">
-                                    <li class="list-inline-item">
-                                        <a href="<?php echo $row['facebook_url']; ?>"><i class="fab fa-facebook-f"></i></a>
-                                    </li>
-                                    <li class="list-inline-item">
-                                        <a href="<?php echo $row['linkedin_url']; ?>"><i class="fab fa-linkedin-in"></i></a>
-                                    </li>
-                                    <li class="list-inline-item">
-                                        <a href="<?php echo $row['twitter_url']; ?>"><i class="fab fa-twitter"></i></a>
-                                    </li>
+                                    <?php if (!empty($row['facebook_url'])) { ?><li class="list-inline-item"><a href="<?php echo $row['facebook_url']; ?>"><i class="fab fa-facebook-f"></i></a></li><?php } ?>
+                                    <?php if (!empty($row['linkedin_url'])) { ?><li class="list-inline-item"><a href="<?php echo $row['linkedin_url']; ?>"><i class="fab fa-linkedin-in"></i></a></li><?php } ?>
+                                    <?php if (!empty($row['twitter_url'])) { ?><li class="list-inline-item"><a href="<?php echo $row['twitter_url']; ?>"><i class="fab fa-twitter"></i></a></li><?php } ?>
                                 </ul>
                             </div>
                         </div>
@@ -390,8 +425,20 @@ $first_part = implode(' ', $words);
         </div>
     </div>
 </section>
-<?php }
+<?php } }
     if (!empty($testimonial)) {
+        $this->db->where('branch_id', $branchID);
+        $testimonials = $this->db->get('front_cms_testimonial')->result_array();
+        $has_real_testimonials = false;
+        if (!empty($testimonials)) {
+            foreach ($testimonials as $t) {
+                if (stripos($t['description'], 'Lorem Ipsum') === false && stripos($t['description'], 'Fusce sem') === false) {
+                    $has_real_testimonials = true;
+                    break;
+                }
+            }
+        }
+        if ($has_real_testimonials) {
     ?>
 <!-- Testimonial Section Starts -->
 <section class="testimonial-wrapper" >
@@ -403,8 +450,6 @@ $first_part = implode(' ', $words);
         </div>
         <div class="testimonial-carousel owl-carousel owl-theme">
         <?php
-        $this->db->where('branch_id', $branchID);
-        $testimonials = $this->db->get('front_cms_testimonial')->result_array();
         foreach ($testimonials as $value) {
             ?>
             <div class="single-testimonial-style">
@@ -427,7 +472,7 @@ $first_part = implode(' ', $words);
                     </div>
                     <div class="client-info">
                         <div class="image">
-                            <img src="<?php echo $this->testimonial_model->get_image_url($value['image']); ?>" alt="Awesome Image">
+                            <img src="<?php echo $this->testimonial_model->get_image_url($value['image']); ?>" alt="Testimonial">
                         </div>
                         <div class="title">
                             <h3><?php echo $value['name']; ?></h3>
@@ -440,9 +485,14 @@ $first_part = implode(' ', $words);
         </div>
     </div>
 </section>
-<?php } 
+<?php } }
     if (!empty($statistics)) {
     $statisticsElem = json_decode($statistics['elements'], true);
+    $total_stat_count = 0;
+    for ($i=1; $i < 5; $i++) {
+        $total_stat_count += (int) $this->home_model->getStatisticsCounter($statisticsElem['type_' . $i] ?? '', $branchID);
+    }
+    if ($total_stat_count > 5) {
     ?>
 <!-- Statistics Section Starts -->
 <section class="counters-wrapper" style="background-image: url(<?php echo base_url('uploads/frontend/home_page/' . $statisticsElem['image']); ?>);" >
@@ -468,7 +518,7 @@ $first_part = implode(' ', $words);
         </div>
     </div>
 </section>
-<?php }
+<?php } }
 ?>
 
 <!-- ═══════════════════════════════════════════════════════════════════ -->
@@ -498,6 +548,7 @@ $first_part = implode(' ', $words);
                         <div class="ss-step-icon"><i class="fas fa-file-signature"></i></div>
                         <h4>Register & Enroll</h4>
                         <p>Complete the online admission form, upload required documents, and submit your application.</p>
+                        <div class="mt-3"><a href="<?php echo $admission_url; ?>" class="btn btn-sm btn-1" style="border-radius:20px; padding: 6px 18px; font-weight:600;"><i class="fas fa-user-plus me-1"></i> Apply Now</a></div>
                     </div>
                 </div>
                 <div class="col-lg-4 col-md-4 col-sm-12">
@@ -698,45 +749,89 @@ $first_part = implode(' ', $words);
 
 <?php
     if (!empty($services) || !empty($cta_box)) {
+        $serv_title = !empty($services['title']) ? $services['title'] : 'Why Choose Tahsin Academy';
+        $serv_desc = !empty($services['description']) ? $services['description'] : '';
+        $is_dummy_service = (stripos($serv_desc, 'Lorem Ipsum') !== false || stripos($serv_title, 'WHY CHOOSE US') !== false);
+        if ($is_dummy_service) {
+            $serv_title = 'Why Choose Tahsin Academy';
+            $serv_desc = 'A balanced, world-class educational foundation integrating classical Islamic scholarship with 21st-century academic and digital competencies.';
+        }
         ?>
 <!-- Services Section Starts -->      
-<div class="" style="background-image: url(<?php echo base_url('assets/frontend/images/14.png') ?>); padding: 60px 0; background-color: <?php echo $services['color2'] == "" ? '#fff' : $services['color2']; ?>;">
+<div class="" style="background-image: url(<?php echo base_url('assets/frontend/images/14.png') ?>); padding: 60px 0; background-color: <?php echo !empty($services['color2']) ? $services['color2'] : '#fff'; ?>;">
     <div class="container px-md-0">
     <?php if (!empty($services)) { ?>
         <section class="medical-services">
             <div class="sec-title text-center">
-                <h2 style="color: <?php echo $services['color1'] == "" ? '#000' : $services['color1']; ?>"><?php echo $services['title']; ?></h2>
-                <p><?php echo nl2br($services['description']); ?></p>
+                <h2 style="color: <?php echo $services['color1'] == "" ? '#000' : $services['color1']; ?>"><?php echo $serv_title; ?></h2>
+                <p><?php echo nl2br($serv_desc); ?></p>
                 <span class="decor"><span class="inner"></span></span>
             </div>
             <ul class="list-unstyled row text-center">
                 <?php
                 $this->db->where('branch_id', $branchID);
 				$services_list = $this->db->get('front_cms_services_list')->result_array();
+                $clean_services = array(
+                    'Online Course Facilities' => array('Online Learning & CBT', 'Modern digital testing and learning management tools.', 'fas fa-laptop-code'),
+                    'Modern Book Library' => array('Modern Library', 'Rich selection of Quranic, Islamic, and academic books.', 'fas fa-book-reader'),
+                    'Be Industrial Leader' => array('Character & Leadership', 'Mentorship programs nurturing upright future leaders.', 'fas fa-user-shield'),
+                    'Programming Courses' => array('Digital & STEM Skills', 'Computer science, practical coding, and digital literacy.', 'fas fa-code'),
+                    'Foreign Languages' => array('Quranic Arabic & English', 'Fluency in Quranic Arabic alongside standard English.', 'fas fa-language'),
+                    'Alumni Directory' => array('Community & Mentorship', 'Engaged parent-teacher partnerships and supportive network.', 'fas fa-users'),
+                );
 			    foreach ($services_list as $key => $value) {
+                    $item_title = $value['title'];
+                    $item_desc = $value['description'];
+                    $item_icon = $value['icon'];
+                    if ($is_dummy_service && isset($clean_services[$item_title])) {
+                        $clean = $clean_services[$item_title];
+                        $item_title = $clean[0];
+                        $item_desc  = $clean[1];
+                        $item_icon  = $clean[2];
+                    } elseif (stripos($item_desc, 'readable') !== false || stripos($item_desc, 'publishing') !== false) {
+                        $item_desc = 'Excellence and dedicated instruction for every learner.';
+                    }
 			    	?>
                 <li class="col-lg-2 col-sm-4">
                     <div class="icon">
-                        <div class="i-hover"><i class="<?php echo $value['icon']; ?>"></i></div>
+                        <div class="i-hover"><i class="<?php echo $item_icon; ?>"></i></div>
                     </div>
-                    <h5><?php echo $value['title']; ?></h5>
-                    <p><?php $string = $value['description']; echo (strlen($string) > 30) ? substr($string, 0, 30) . '...' : $string; ?></p>
+                    <h5><?php echo $item_title; ?></h5>
+                    <p><?php echo (strlen($item_desc) > 60) ? substr($item_desc, 0, 60) . '...' : $item_desc; ?></p>
                 </li>
                 <?php } ?>
             </ul>
         </section>
     <?php } 
-		if (!empty($cta_box)) {
+    if (!empty($cta_box)) {
         $elements = json_decode($cta_box[ 'elements' ], true);
+        $cta_phone = !empty($cms_setting['mobile_no']) ? $cms_setting['mobile_no'] : (!empty($elements['mobile_no']) && strpos($elements['mobile_no'], '123456') === false && $elements['mobile_no'] !== '08022332233' && $elements['mobile_no'] !== '+12345678' ? $elements['mobile_no'] : '');
+        $raw_btn_url = !empty($elements['button_url']) ? trim($elements['button_url']) : '';
+        if ($raw_btn_url === '' || $raw_btn_url === '#' || stripos($raw_btn_url, 'localhost') !== false || stripos($raw_btn_url, 'smartschool') !== false) {
+            $cta_btn_url = $admission_url;
+        } else {
+            $cta_btn_url = $raw_btn_url;
+        }
+        $raw_btn_text = !empty($elements['button_text']) ? trim($elements['button_text']) : '';
+        if ($raw_btn_text === '' || $raw_btn_text === '#' || stripos($raw_btn_text, 'Request') !== false) {
+            $cta_btn_text = 'Apply for Admission';
+        } else {
+            $cta_btn_text = $raw_btn_text;
+        }
+        $cta_title = !empty($cta_box['title']) && stripos($cta_box['title'], 'Appointment') === false ? $cta_box['title'] : 'Begin Your Child\'s Journey at Tahsin Academy';
 		?>
-        <div class="book-appointment-box" style="background-color: <?php echo $cta_box['color1'] == "" ? '#464646' : $cta_box['color1']; ?>;">
-            <div class="row">
+        <div class="book-appointment-box" style="background-color: <?php echo $cta_box['color1'] == "" ? '#0f1923' : $cta_box['color1']; ?>;">
+            <div class="row align-items-center">
                 <div class="col-lg-8 col-md-12 text-center text-lg-left">
-                    <h4 style="color: <?php echo $cta_box['color2'] == "" ? '#fff' : $cta_box['color2']; ?>;"><?php echo $cta_box['title']; ?></h4>
-                    <h3 style="color: <?php echo $cta_box['color2'] == "" ? '#fff' : $cta_box['color2']; ?>;"><div class="inner-box"><i class="fa fa-phone"></i></div> <?php echo $elements['mobile_no']; ?></h3>
+                    <h4 style="color: <?php echo $cta_box['color2'] == "" ? '#fff' : $cta_box['color2']; ?>;"><?php echo $cta_title; ?></h4>
+                    <?php if (!empty($cta_phone)) { ?>
+                    <h3 style="color: <?php echo $cta_box['color2'] == "" ? '#fff' : $cta_box['color2']; ?>;"><div class="inner-box"><i class="fa fa-phone"></i></div> <?php echo $cta_phone; ?></h3>
+                    <?php } else { ?>
+                    <p style="color: rgba(255,255,255,0.85); margin: 0.5rem 0 0; font-size: 1.05rem;">Online admissions are currently open. Apply now to secure enrollment.</p>
+                    <?php } ?>
                 </div>
-                <div class="col-lg-4 col-md-12 text-center text-lg-left">
-                    <a href="<?php echo $elements['button_url']; ?>" class="btn btn-main btn-1 text-uppercase"><?php echo $elements['button_text']; ?></a>
+                <div class="col-lg-4 col-md-12 text-center text-lg-right mt-3 mt-lg-0">
+                    <a href="<?php echo $cta_btn_url; ?>" class="btn btn-main btn-1 text-uppercase"><?php echo $cta_btn_text; ?></a>
                 </div>
             </div>
         </div>

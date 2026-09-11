@@ -49,3 +49,31 @@ WHERE `id` = 1
 
 UPDATE `front_cms_setting`
 SET `application_title` = 'Tahsin Academy';
+
+UPDATE `front_cms_setting`
+SET `url_alias` = ''
+WHERE `url_alias` = 'example' OR `url_alias` IS NULL;
+
+UPDATE `front_cms_setting`
+SET `footer_about_text` = 'Tahsin Academy — Excellence In Deen &amp; Duniya. Nurturing future leaders through authentic Islamic values and high academic standards.'
+WHERE `footer_about_text` LIKE '%LorIsum%'
+   OR `footer_about_text` LIKE '%Lorem Ipsum%'
+   OR `footer_about_text` = '';
+
+UPDATE `front_cms_setting`
+SET `working_hours` = '<span>Hours: </span> Mon - Fri: 8:00 AM - 3:00 PM'
+WHERE `working_hours` LIKE '%Sunday Closed%'
+   OR `working_hours` LIKE '%10AM - 04PM%';
+
+UPDATE `front_cms_home`
+SET `elements` = '{"mobile_no":"","button_text":"Apply for Admission","button_url":"admission"}'
+WHERE `item_type` = 'cta';
+
+UPDATE `front_cms_home`
+SET `title` = REPLACE(REPLACE(`title`, 'SmartSchool', 'Tahsin Academy'), 'Smart School', 'Tahsin Academy')
+WHERE `title` LIKE '%SmartSchool%' OR `title` LIKE '%Smart School%';
+
+UPDATE `front_cms_menu`
+SET `publish` = 1
+WHERE `alias` = 'admission';
+

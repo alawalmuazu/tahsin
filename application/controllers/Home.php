@@ -91,7 +91,11 @@ class Home extends Frontend_Controller
         $config = array();
         $config['page_query_string'] = TRUE;
         $config['query_string_segment'] = 'page';
-        $config["base_url"] = base_url() . $url_alias . '/events';
+        $clean_alias = trim((string)$url_alias, '/');
+        if (strtolower($clean_alias) === 'example') {
+            $clean_alias = '';
+        }
+        $config["base_url"] = !empty($clean_alias) ? base_url($clean_alias . '/events') : base_url('events');
         $config["total_rows"] = $total_records;
         $config["per_page"] = 12;
         $config['full_tag_open'] = '<ul class="pagination justify-content-center">';
@@ -752,7 +756,11 @@ class Home extends Frontend_Controller
         $config = array();
         $config['page_query_string'] = TRUE;
         $config['query_string_segment'] = 'page';
-        $config["base_url"] = base_url() . $url_alias . '/news';
+        $clean_alias = trim((string)$url_alias, '/');
+        if (strtolower($clean_alias) === 'example') {
+            $clean_alias = '';
+        }
+        $config["base_url"] = !empty($clean_alias) ? base_url($clean_alias . '/news') : base_url('news');
         $config["total_rows"] = $total_records;
         $config["per_page"] = 12;
         $config['full_tag_open'] = '<ul class="pagination justify-content-center">';

@@ -68,10 +68,13 @@
                     <ul class="list-unstyled quick-links">
                         <?php
                             $school = $this->uri->segment(1);
+                            if (strtolower((string)$school) === 'example') {
+                                $school = '';
+                            }
                             if (empty($school)) {
                                 $branchID = $this->home_model->getDefaultBranch();
                                 $r = $this->db->select('url_alias')->get_where('front_cms_setting', array('branch_id' => $branchID))->row();
-                                $school = !empty($r) ? $r->url_alias : '';
+                                $school = (!empty($r) && strtolower((string)$r->url_alias) !== 'example') ? $r->url_alias : '';
                             }
 							$result = web_menu_list(1);
 							foreach ($result as $row) {

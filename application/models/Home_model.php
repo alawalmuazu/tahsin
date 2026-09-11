@@ -170,6 +170,10 @@ class Home_model extends MY_Model
 
     public function genURL($array = array(), $school = '')
     {
+        $school = trim((string) $school, '/');
+        if (strtolower($school) === 'example') {
+            $school = '';
+        }
         $url = "#";
         if (!empty($school)) {
             $school = '/' . $school;

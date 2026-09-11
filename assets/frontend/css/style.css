@@ -5896,11 +5896,11 @@ ul#doctors-grid.grid > li > .bio-box {
 }
 @keyframes ssWordCycle {
     0%, 16.6% { content: "Admissions"; }
-    16.6%, 33.3% { content: "Results"; }
-    33.3%, 50% { content: "Attendance"; }
-    50%, 66.6% { content: "Payroll"; }
-    66.6%, 83.3% { content: "CBT"; }
-    83.3%, 100% { content: "NEMIS"; }
+    16.6%, 33.3% { content: "Tahfiz & Quran"; }
+    33.3%, 50% { content: "STEM & Computing"; }
+    50%, 66.6% { content: "Arabic & English"; }
+    66.6%, 83.3% { content: "Results & CBT"; }
+    83.3%, 100% { content: "Deen & Character"; }
 }
 
 .ss-live-badge {

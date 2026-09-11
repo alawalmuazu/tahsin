@@ -28,7 +28,7 @@ $banner_url = $banner_file ? base_url('uploads/frontend/banners/' . $banner_file
 
     <div class="box2 form-box position-relative">
         <div class="admission-status-frm">
-            <button type="button" class="btn btn-1 admission-status-btn" data-bs-toggle="modal" data-bs-target="#admissionModal"><i class="fa-solid fa-file-lines"></i> Check Addmision Status</button>
+            <button type="button" class="btn btn-1 admission-status-btn" data-bs-toggle="modal" data-bs-target="#admissionModal"><i class="fa-solid fa-file-lines"></i> Check Admission Status</button>
 <?php if (!empty($page_data['application_form_file'])) { ?>
             <a class="btn btn-1 admission-status-btn" href="<?php echo base_url('home/download_application_form/' . rtrim(strtr(base64_encode($branchID), '+/', '-_'), '=')); ?>"><i class="fas fa-download"></i> Download Application Form</a> 
 <?php } ?>
@@ -579,7 +579,7 @@ $banner_url = $banner_file ? base_url('uploads/frontend/banners/' . $banner_file
         <div class="modal-content">
             <?php echo form_open('home/checkAdmissionStatus', array('class' => 'form-horizontal frm-submit-data')); ?>
             <div class="modal-header">
-                <h5 class="modal-title" id="exampleModalLabel">Check Addmision Status</h5>
+                <h5 class="modal-title" id="exampleModalLabel">Check Admission Status</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">

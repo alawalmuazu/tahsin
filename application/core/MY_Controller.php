@@ -247,7 +247,7 @@ class Frontend_Controller extends MY_Controller
             $cms_setting['address'] = 'Tahsin Academy';
         }
         $phone = trim((string) ($cms_setting['mobile_no'] ?? ''));
-        if ($phone === '' || strpos($phone, '123456') !== false) {
+        if ($phone === '' || strpos($phone, '123456') !== false || $phone === '08022332233' || $phone === '+12345678') {
             $cms_setting['mobile_no'] = '';
         }
         $fax = trim((string) ($cms_setting['fax'] ?? ''));
@@ -257,6 +257,17 @@ class Frontend_Controller extends MY_Controller
         $email = trim((string) ($cms_setting['email'] ?? ''));
         if ($email === '' || stripos($email, 'jamilusalis') !== false || stripos($email, 'smartschool') !== false) {
             $cms_setting['email'] = '';
+        }
+        if (strtolower(trim((string) ($cms_setting['url_alias'] ?? ''))) === 'example') {
+            $cms_setting['url_alias'] = '';
+        }
+        $hours = trim((string) ($cms_setting['working_hours'] ?? ''));
+        if ($hours === '' || stripos($hours, 'Sunday Closed') !== false || stripos($hours, '10AM - 04PM') !== false) {
+            $cms_setting['working_hours'] = '<span>Hours: </span> Mon - Fri: 8:00 AM - 3:00 PM';
+        }
+        $footer_about = trim((string) ($cms_setting['footer_about_text'] ?? ''));
+        if ($footer_about === '' || stripos($footer_about, 'LorIsum') !== false || stripos($footer_about, 'Lorem Ipsum') !== false) {
+            $cms_setting['footer_about_text'] = 'Tahsin Academy — Excellence In Deen &amp; Duniya. Nurturing future leaders through authentic Islamic values and high academic standards.';
         }
         if (empty($cms_setting['logo']) || !file_exists(FCPATH . 'uploads/frontend/images/' . $cms_setting['logo'])) {
             $cms_setting['logo'] = 'tahsin-logo.png';

@@ -23,6 +23,7 @@ uploads/uploads/*
 system/
 application/config/database.php
 application/config/config.php
+application/config/purchase_key.php
 .user.ini
 
 # Node/npm (if any tooling added)
@@ -38,6 +39,8 @@ Thumbs.db
 # IDE files
 .vscode/
 .idea/
+.cursor/
+.github/
 *.swp
 *.swo
 
