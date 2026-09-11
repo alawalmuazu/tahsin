@@ -25,20 +25,30 @@ $first_part = implode(' ', $words);
             <?php
 			foreach ($sliders as $key => $value) {
 				$elements = json_decode($value['elements'], true);
+				$slider_title = $value['title'];
+				$slider_title = str_ireplace(array('Wellcome', 'SmartSchool', 'Smart School'), array('Welcome', 'Tahsin Academy', 'Tahsin Academy'), $slider_title);
+				$slider_desc = trim((string)$value['description']);
+				if (empty($slider_desc) || stripos($slider_desc, 'Lorem Ipsum') !== false || stripos($slider_desc, 'scrambled it') !== false) {
+					$slider_desc = 'Excellence In Deen &amp; Duniya — Nurturing future leaders through authentic Islamic values, Quranic memorization, and rigorous academic excellence.';
+				}
+				$btn1_url = (!empty($elements['button_url1']) && $elements['button_url1'] !== '#' && stripos($elements['button_url1'], 'youtube.com') === false && stripos($elements['button_url1'], 'localhost') === false) ? $elements['button_url1'] : $admission_url;
+				$btn1_text = (!empty($elements['button_text1']) && stripos($elements['button_text1'], 'View') === false && stripos($elements['button_text1'], 'Read') === false) ? $elements['button_text1'] : 'Apply for Admission';
+				$btn2_url = (!empty($elements['button_url2']) && $elements['button_url2'] !== '#' && stripos($elements['button_url2'], 'localhost') === false) ? $elements['button_url2'] : $results_url;
+				$btn2_text = (!empty($elements['button_text2']) && $elements['button_text2'] !== '#') ? $elements['button_text2'] : 'Check Results';
 				?>
             <li class="slider-wrapper">
                 <div class="image" style="background-image: url(<?php echo base_url('uploads/frontend/slider/' . $elements['image']) ?>)" ></div>
                 <div class="slider-caption <?php echo $elements['position'];  ?>">
                     <div class="container">
                         <div class="wrap-caption">
-                            <h1><?php echo $value['title']; ?></h1>
-                            <div class="text center"><?php echo $value['description']; ?></div>
+                            <h1><?php echo $slider_title; ?></h1>
+                            <div class="text center"><?php echo $slider_desc; ?></div>
                             <div class="link-btn">
-                                <a href="<?php echo $elements['button_url1']; ?>" class="btn">
-                                    <?php echo $elements['button_text1']; ?>
+                                <a href="<?php echo $btn1_url; ?>" class="btn">
+                                    <i class="fas fa-user-plus me-1"></i> <?php echo $btn1_text; ?>
                                 </a>
-                                <a href="<?php echo $elements['button_url2']; ?>" class="btn btn1">
-                                    <?php echo $elements['button_text2']; ?>
+                                <a href="<?php echo $btn2_url; ?>" class="btn btn1">
+                                    <i class="fas fa-chart-bar me-1"></i> <?php echo $btn2_text; ?>
                                 </a>
                             </div>
                         </div>
