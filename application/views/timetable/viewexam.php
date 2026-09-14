@@ -1,4 +1,4 @@
-<?php $widget = (is_superadmin_loggedin() ? 4 : 6); ?>
+<?php $widget = (is_multi_school() ? 4 : 6); ?>
 <div class="row">
 	<div class="col-md-12">
 
@@ -9,7 +9,7 @@
 			<?php echo form_open($this->uri->uri_string(), array('class' => 'validate'));?>
 			<div class="panel-body">
 				<div class="row mb-sm">
-				<?php if (is_superadmin_loggedin() ): ?>
+				<?php if (is_multi_school() ): ?>
 					<div class="col-md-4">
 						<div class="form-group">
 							<label class="control-label"><?=translate('branch')?> <span class="required">*</span></label>
@@ -63,7 +63,7 @@
 					<thead>
 						<tr>
 							<th><?=translate('sl')?></th>
-							<?php if (is_superadmin_loggedin() ): ?>
+							<?php if (is_multi_school() ): ?>
 							<th><?=translate('branch')?></th>
 							<?php endif; ?>
 							<th><?=translate('exam_name')?></th>
@@ -74,7 +74,7 @@
 					<?php $count = 1; foreach($examlist as $row): ?>
 						<tr>
 							<td><?php echo $count++;?></td>
-							<?php if (is_superadmin_loggedin() ): ?>
+							<?php if (is_multi_school() ): ?>
 							<td><?php echo $row['branch_name'];?></td>
 							<?php endif; ?>
 							<td><?php echo $this->application_model->exam_name_by_id($row['exam_id']);?></td>

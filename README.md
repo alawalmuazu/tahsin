@@ -2,7 +2,14 @@
 
 School management platform for Tahsin Academy, built on CodeIgniter 3. Live at [tahsinacademy.ng](https://tahsinacademy.ng/). Motto: Excellence In Deen & Duniya. Covers academics, fees, exams, and parent access.
 
-**Version:** 7.0.0
+**Version:** 7.1.0 — single-school build
+
+This app serves Tahsin Academy only. It began as a multi-school, state-government
+platform; that lineage is gone. Rows are still keyed by `branch_id` because the
+column appears in almost every table, but the key only ever takes one value,
+defined as `SCHOOL_ID` in `application/config/constants.php` alongside
+`SCHOOL_NAME` and `SCHOOL_MOTTO`. Resolve it in code through
+`get_loggedin_branch_id()`; never read it from a request.
 
 ## Stack
 
@@ -41,7 +48,7 @@ The File Manager URL (`srv1066-files.hstgr.io/…/public_html`) is only a browse
 
 ## Highlights
 
-- Branch + education-board multi-tenancy with hybrid shared catalogs
+- Single-school setup: no branch pickers, no cross-school catalogs
 - Role-based access (Super Admin, staff, parent, student)
 - Academics, fees, HR, inventory, CBT / online exams
-- NEMIS exports, inspections, infrastructure, teacher transfer
+- NERDC subject catalogue and WAEC A1–F9 grading

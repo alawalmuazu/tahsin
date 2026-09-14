@@ -3,7 +3,7 @@
 </header>
 <input type="hidden" name="allocation_id" value="<?=$data['id']?>">
 <div class="panel-body">
-	<?php if (is_superadmin_loggedin()): ?>
+	<?php if (is_multi_school()): ?>
 	<div class="form-group">
 		<label class="control-label"><?=translate('branch')?> <span class="required">*</span></label>
 		<?php

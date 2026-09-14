@@ -8,7 +8,7 @@
 				</h4>
 			</header>
 			<div class="panel-body">
-<?php if (is_superadmin_loggedin()) { ?>
+<?php if (is_multi_school()) { ?>
 				<!-- academic details-->
 				<div class="headers-line mt-md">
 					<i class="fas fa-school"></i> <?=translate('academic_details')?>

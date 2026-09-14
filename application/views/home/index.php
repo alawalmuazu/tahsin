@@ -4,7 +4,6 @@ $url_alias_raw = trim((string) ($cms_setting['url_alias'] ?? ''), '/');
 if (strtolower($url_alias_raw) === 'example') {
     $url_alias_raw = '';
 }
-$is_statewide = empty($url_alias_raw);
 $app_title = !empty($cms_setting['application_title']) ? $cms_setting['application_title'] : 'Tahsin Academy';
 $public_alias = $url_alias_raw;
 $admission_url = $public_alias ? base_url($public_alias . '/admission') : base_url('admission');
@@ -92,13 +91,11 @@ $first_part = implode(' ', $words);
     }
 }
 </style>
-<section class="ss-hero-fallback <?php echo !$is_statewide ? 'ss-branch-hero' : ''; ?>">
+<section class="ss-hero-fallback ss-branch-hero">
     <div class="ss-hero-bg">
         <div class="ss-hero-particles"></div>
         <div class="ss-hero-gradient"></div>
-        <?php if (!$is_statewide): ?>
         <div class="ss-branch-overlay"></div>
-        <?php endif; ?>
     </div>
     <div class="container">
         <div class="ss-hero-content">
@@ -384,8 +381,8 @@ $first_part = implode(' ', $words);
             </div>
             <div class="ss-cap-card ss-reveal">
                 <div class="ss-cap-icon"><i class="fas fa-chart-bar"></i></div>
-                <h4>NEMIS Reporting</h4>
-                <p>School data exports at one click</p>
+                <h4>Records &amp; Reports</h4>
+                <p>Student and staff data exports at one click</p>
             </div>
             <div class="ss-cap-card ss-reveal">
                 <div class="ss-cap-icon"><i class="fas fa-money-bill-wave"></i></div>
@@ -787,51 +784,6 @@ $first_part = implode(' ', $words);
     </div>
 </section>
 
-<!-- ═══════════════════════════════════════════════════════════════════ -->
-<!-- ★ NEARBY SCHOOLS FINDER — NEW LANDING SECTION                     -->
-<!-- ═══════════════════════════════════════════════════════════════════ -->
-<section class="ss-school-finder">
-    <div class="container px-md-0">
-        <div class="ss-section-header text-center">
-            <span class="ss-kicker"><i class="fas fa-map-marker-alt"></i> Discover</span>
-            <h2 class="ss-title">Join Tahsin Academy</h2>
-            <p class="ss-subtitle">Search our portal and apply for admission online</p>
-        </div>
-        <div class="ss-finder-box">
-            <div class="ss-finder-inner">
-                <div class="ss-finder-glow"></div>
-                <div class="row g-3 align-items-end">
-                    <div class="col-lg-5 col-md-5">
-                        <label class="ss-finder-label">Search Tahsin Academy</label>
-                        <div class="ss-finder-input-wrap">
-                            <i class="fas fa-search"></i>
-                            <input type="text" class="form-control ss-finder-input" id="ssSchoolSearch" placeholder="Type a programme or campus..." autocomplete="off" />
-                        </div>
-                    </div>
-                    <div class="col-lg-4 col-md-4">
-                        <label class="ss-finder-label">Filter by Class</label>
-                        <div class="ss-finder-input-wrap">
-                            <i class="fas fa-map-pin"></i>
-                            <input type="text" class="form-control ss-finder-input" id="ssWardFilter" placeholder="Enter class or section..." autocomplete="off" />
-                        </div>
-                    </div>
-                    <div class="col-lg-3 col-md-3">
-                        <button class="btn btn-1 ss-finder-btn" id="ssFinderBtn" onclick="ssUseMyLocation()">
-                            <i class="fas fa-location-arrow"></i> Use My Location
-                        </button>
-                    </div>
-                </div>
-                <div class="ss-finder-results" id="ssFinderResults" style="display:none;">
-                    <div class="ss-finder-results-header">
-                        <span id="ssResultCount">0</span> results found
-                    </div>
-                    <div class="ss-finder-results-list" id="ssResultsList"></div>
-                </div>
-            </div>
-        </div>
-    </div>
-</section>
-
 <?php
     if (!empty($services) || !empty($cta_box)) {
         $serv_title = !empty($services['title']) ? $services['title'] : 'Why Choose Tahsin Academy';
@@ -936,7 +888,7 @@ $first_part = implode(' ', $words);
     // ── Scroll Reveal ─────────────────────────────────────────────────
     var revealTargets = [
         '.ss-service-card', '.ss-step', '.ss-gov-card',
-        '.ss-finder-box', '.ss-section-header', '.ss-compliance-badges',
+        '.ss-section-header', '.ss-compliance-badges',
         '.ss-impact-item', '.ss-cap-card', '.ss-dash-mock', '.ss-quote-card'
     ];
     function ssReveal() {
@@ -957,132 +909,6 @@ $first_part = implode(' ', $words);
         // Initial check
         setTimeout(ssReveal, 200);
     });
-
-    // ── School Finder Search ──────────────────────────────────────────
-    var ssSearchTimer = null;
-    var ssSchoolData = [];
-    var ssDataLoaded = false;
-
-    function ssLoadSchools(callback) {
-        if (ssDataLoaded) { if (callback) callback(); return; }
-        $.ajax({
-            url: base_url + 'home/getSchoolList',
-            type: 'POST',
-            dataType: 'json',
-            success: function(data) {
-                if (Array.isArray(data)) {
-                    ssSchoolData = data;
-                }
-                ssDataLoaded = true;
-                if (callback) callback();
-            },
-            error: function() {
-                // Fallback: try branch list from footer dropdown
-                var opts = $('#activateSchool option');
-                ssSchoolData = [];
-                opts.each(function() {
-                    var v = $(this).val(), t = $(this).text();
-                    if (v && v !== '') {
-                        ssSchoolData.push({ id: v, name: t, lga: '' });
-                    }
-                });
-                ssDataLoaded = true;
-                if (callback) callback();
-            }
-        });
-    }
-
-    function ssFilterSchools() {
-        var q = ($('#ssSchoolSearch').val() || '').toLowerCase().trim();
-        var w = ($('#ssWardFilter').val() || '').toLowerCase().trim();
-        if (!q && !w) {
-            $('#ssFinderResults').slideUp(200);
-            return;
-        }
-        ssLoadSchools(function() {
-            var results = ssSchoolData.filter(function(s) {
-                var nameMatch = !q || (s.name && s.name.toLowerCase().indexOf(q) !== -1);
-                var lgaMatch = !w || (s.lga && s.lga.toLowerCase().indexOf(w) !== -1) ||
-                               (s.city && s.city.toLowerCase().indexOf(w) !== -1) ||
-                               (s.name && s.name.toLowerCase().indexOf(w) !== -1);
-                return nameMatch && lgaMatch;
-            }).slice(0, 15);
-
-            $('#ssResultCount').text(results.length);
-            var html = '';
-            if (results.length === 0) {
-                html = '<div style="text-align:center;padding:20px;color:var(--thm-secondary-text);">No schools found matching your search.</div>';
-            } else {
-                results.forEach(function(s) {
-                    var alias = (s.url_alias || s.alias || '');
-                    var url = alias ? (base_url + alias + '/admission') : (base_url + 'admission');
-                    html += '<a class="ss-finder-result-item" href="' + url + '">' +
-                        '<div class="school-info">' +
-                            '<div class="school-icon"><i class="fas fa-school"></i></div>' +
-                            '<div><div class="school-name">' + (s.name || s.school_name || 'School') + '</div>' +
-                            '<div class="school-lga">' + (s.lga || s.city || s.address || '') + '</div></div>' +
-                        '</div>' +
-                        '<div class="school-action">Apply <i class="fas fa-arrow-right"></i></div>' +
-                    '</a>';
-                });
-            }
-            $('#ssResultsList').html(html);
-            $('#ssFinderResults').slideDown(300);
-        });
-    }
-
-    $(document).on('input', '#ssSchoolSearch, #ssWardFilter', function() {
-        clearTimeout(ssSearchTimer);
-        ssSearchTimer = setTimeout(ssFilterSchools, 350);
-    });
-
-    // ── Geolocation ───────────────────────────────────────────────────
-    window.ssUseMyLocation = function() {
-        var btn = $('#ssFinderBtn');
-        if (!navigator.geolocation) {
-            btn.html('<i class="fas fa-exclamation-triangle"></i> Not Supported');
-            return;
-        }
-        btn.html('<i class="fas fa-spinner fa-spin"></i> Locating...');
-        navigator.geolocation.getCurrentPosition(
-            function(pos) {
-                btn.html('<i class="fas fa-check-circle"></i> Located!');
-                // Show all schools (location-aware filtering would need lat/lng in branch table)
-                ssLoadSchools(function() {
-                    $('#ssSchoolSearch').val('');
-                    $('#ssWardFilter').val('');
-                    var results = ssSchoolData.slice(0, 10);
-                    $('#ssResultCount').text(results.length + '+');
-                    var html = '<div style="padding:10px 0 6px;color:var(--thm-primary);font-weight:700;font-size:13px;"><i class="fas fa-info-circle"></i> Showing nearby schools. Refine by typing school name or ward.</div>';
-                    results.forEach(function(s) {
-                        var alias = (s.url_alias || s.alias || '');
-                        var url = alias ? (base_url + alias + '/admission') : (base_url + 'admission');
-                        html += '<a class="ss-finder-result-item" href="' + url + '">' +
-                            '<div class="school-info">' +
-                                '<div class="school-icon"><i class="fas fa-school"></i></div>' +
-                                '<div><div class="school-name">' + (s.name || s.school_name || 'School') + '</div>' +
-                                '<div class="school-lga">' + (s.lga || s.city || '') + '</div></div>' +
-                            '</div>' +
-                            '<div class="school-action">Apply <i class="fas fa-arrow-right"></i></div>' +
-                        '</a>';
-                    });
-                    $('#ssResultsList').html(html);
-                    $('#ssFinderResults').slideDown(300);
-                });
-                setTimeout(function() {
-                    btn.html('<i class="fas fa-location-arrow"></i> Use My Location');
-                }, 3000);
-            },
-            function() {
-                btn.html('<i class="fas fa-location-arrow"></i> Use My Location');
-                swal({
-                    toast: true, position: 'top-end', type: 'info',
-                    title: 'Location access denied. Please type your ward or school name instead.',
-                    confirmButtonClass: 'btn btn-default', buttonsStyling: false, timer: 5000
-                });
-            }
-        );
-    };
 
 })(jQuery);
 </script>

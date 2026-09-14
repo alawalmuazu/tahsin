@@ -10,11 +10,7 @@ class School_model extends MY_Model
 
     public function getBranchID()
     {
-        if (is_superadmin_loggedin()) {
-            return $this->input->get('branch_id', true);
-        } else {
-            return get_loggedin_branch_id();
-        }
+        return SCHOOL_ID;
     }
 
     public function branchUpdate($data)
@@ -22,14 +18,12 @@ class School_model extends MY_Model
         $calWithFine = isset($data['cal_with_fine']) ? 1 : 0;
 
         $arrayBranch = array(
-            'name' => $data['branch_name'],
+            'name' => $data['school_name'],
             'school_name' => $data['school_name'],
             'email' => $data['email'],
             'mobileno' => $data['mobileno'],
             'currency' => $data['currency'],
             'symbol' => $data['currency_symbol'],
-            'lga' => $data['lga'],
-            'state' => $data['state'],
             'address' => $data['address'],
             'teacher_restricted' => isset($data['teacher_restricted']) ? 1 : 0,
             'stu_generate' =>  isset($data['generate_student']) ? 1 : 0,

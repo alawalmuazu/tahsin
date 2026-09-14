@@ -9,7 +9,7 @@
 					<tr>
 						<th><?=translate('sl')?></th>
 						<th width="80"><?=translate('photo')?></th>
-					<?php if (is_superadmin_loggedin()) { ?>
+					<?php if (is_multi_school()) { ?>
 						<th><?=translate('branch')?></th>
 					<?php } ?>
 						<th><?=translate('name')?></th>
@@ -32,7 +32,7 @@
 					<tr>
 						<td class="center"><?php echo $count++; ?></td>
 						<td class="center"><img class="rounded" src="<?=get_image_url('student', $row->photo)?>" width="40" height="40"/></td>
-					<?php if (is_superadmin_loggedin()) { ?>
+					<?php if (is_multi_school()) { ?>
 						<td><?php echo get_type_name_by_id('branch', $row->branch_id);?></td>
 					<?php } ?>
 						<td><?php echo $row->first_name .' '.$row->last_name;?></td>

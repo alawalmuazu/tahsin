@@ -16,7 +16,6 @@
 					<thead>
 						<tr>
 							<th width="60"><?=translate('sl')?></th>
-							<th><?=translate('branch')?></th>
 							<th><?=translate('subject_name')?></th>
 							<th><?=translate('subject_code')?></th>
 							<th><?=translate('subject_type')?></th>
@@ -31,7 +30,6 @@
 						?>
 						<tr>
 							<td><?php echo $count++ ;?></td>
-							<td><?php echo $row['branch_name'];?></td>
 							<td><?php echo $row['name'];?></td>
 							<td><?php echo $row['subject_code'];?></td>
 							<td><?php echo $row['subject_type'];?></td>
@@ -43,25 +41,14 @@
 								<?php } else { echo '-'; } ?>
 							</td>
 							<td class="action">
-							<?php 
-							// Don't show Edit/Delete if it's a Board Item and the user is a School Admin
-							$is_board_item = ($row['board_id'] != null && $row['branch_id'] == 0);
-							$can_edit = get_permission('subject', 'is_edit') && (is_superadmin_loggedin() || !$is_board_item);
-							$can_delete = get_permission('subject', 'is_delete') && (is_superadmin_loggedin() || !$is_board_item);
-							if ($can_edit): 
-							?>
+							<?php if (get_permission('subject', 'is_edit')): ?>
 								<!-- subject update link -->
 								<a href="<?php echo base_url('subject/edit/' . $row['id']);?>" class="btn btn-circle btn-default icon" data-toggle="tooltip" title="<?=translate('edit')?>">
 									<i class="fas fa-pen-nib"></i>
 								</a>
-							<?php endif; if ($can_delete): ?>
+							<?php endif; if (get_permission('subject', 'is_delete')): ?>
 								<!-- delete link -->
 								<?php echo btn_delete('subject/delete/' . $row['id']);?>
-							<?php endif; 
-							if (!$can_edit && !$can_delete && $is_board_item && !is_superadmin_loggedin()): ?>
-								<button class="btn btn-circle btn-default icon" disabled data-toggle="tooltip" title="Board items cannot be modified">
-									<i class="fas fa-lock text-muted"></i>
-								</button>
 							<?php endif; ?>
 							</td>
 						</tr>
@@ -72,7 +59,7 @@
 <?php if (get_permission('subject', 'is_add')): ?>
 			<div class="tab-pane" id="create">
 				<?php echo form_open_multipart('subject/save', array('class' => 'form-horizontal form-bordered frm-submit-data'));?>
-					<?php if (is_superadmin_loggedin()): ?>
+					<?php if (is_multi_school()): ?>
 						<div class="form-group">
 							<label class="control-label col-md-3"><?=translate('branch')?> <span class="required">*</span></label>
 							<div class="col-md-6">

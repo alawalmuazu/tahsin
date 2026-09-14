@@ -1,6 +1,6 @@
 <?php 
 if (!is_teacher_loggedin()) {
-$widget = (is_superadmin_loggedin() ? "col-md-6" : "col-md-offset-3 col-md-6"); ?>
+$widget = (is_multi_school() ? "col-md-6" : "col-md-offset-3 col-md-6"); ?>
 <section class="panel">
 	<header class="panel-heading">
 		<h4 class="panel-title"><?=translate('select_ground')?></h4>
@@ -8,7 +8,7 @@ $widget = (is_superadmin_loggedin() ? "col-md-6" : "col-md-offset-3 col-md-6"); 
 	<?php echo form_open($this->uri->uri_string(), array('class' => 'validate')); ?>
 	<div class="panel-body">
 		<div class="row mb-sm">
-			<?php if (is_superadmin_loggedin()): ?>
+			<?php if (is_multi_school()): ?>
 			<div class="col-md-6 mb-sm">
 				<div class="form-group">
 					<label class="control-label"><?=translate('branch')?> <span class="required">*</span></label>

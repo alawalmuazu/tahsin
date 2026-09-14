@@ -28,7 +28,6 @@ class Exam extends Admin_Controller
     /* exam form validation rules */
     protected function exam_validation()
     {
-        // branch_id is optional for superadmin — empty = Statewide (NULL branch)
         $this->form_validation->set_rules('name', translate('name'), 'trim|required');
         $this->form_validation->set_rules('type_id', translate('exam_type'), 'trim|required');
         $this->form_validation->set_rules('mark_distribution[]', translate('mark_distribution'), 'trim|required');
@@ -700,23 +699,8 @@ class Exam extends Admin_Controller
     public function getDistributionByBranch()
     {
         $html = "";
-        $branch_id = $this->application_model->get_branch_id();
-
         $this->db->select('id,name');
-        if (!empty($branch_id)) {
-            // Load branch-specific + statewide (NULL branch_id) distributions
-            $this->db->group_start();
-            $this->db->where('branch_id', $branch_id);
-            $this->db->or_where('branch_id IS NULL', null, false);
-            $this->db->group_end();
-        } elseif (is_superadmin_loggedin()) {
-            // Superadmin with Statewide selected — show only statewide distributions
-            $this->db->where('branch_id IS NULL', null, false);
-        } else {
-            echo $html;
-            return;
-        }
-
+        $this->db->where('branch_id', SCHOOL_ID);
         $result = $this->db->get('exam_mark_distribution')->result_array();
         foreach ($result as $row) {
             $html .= '<option value="' . $row['id'] . '">' . $row['name'] . '</option>';

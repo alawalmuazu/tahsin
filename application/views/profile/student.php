@@ -4,7 +4,7 @@
 	}
 </style>
 <?php
-$widget = (is_superadmin_loggedin() ? 3 : 4);
+$widget = (is_multi_school() ? 3 : 4);
 $getParent = $this->student_model->get('parent', array('id' => $student['parent_id']), true);
 $branchID = $student['branch_id'];
 if (empty($student['previous_details'])) {

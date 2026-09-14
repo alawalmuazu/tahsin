@@ -21,7 +21,7 @@
 							</div>
 							<?php echo form_open($this->uri->uri_string(), array('class' => 'frm-submit'));?>
 							<div class="panel-body panel-body-custom">
-								<?php if (is_superadmin_loggedin()): ?>
+								<?php if (is_multi_school()): ?>
 									<div class="form-group">
 										<label class="control-label"><?=translate('branch')?> <span class="required">*</span></label>
 										<?php
@@ -46,7 +46,7 @@
 									<label class="control-label"><?=translate('section')?> <span class="required">*</span></label>
 									<?php
 										$arraySection = array();
-										if (!is_superadmin_loggedin()){
+										if (!is_multi_school()){
 											$result = $this->app_lib->getHybridItems('section', get_loggedin_branch_id());
 											foreach ($result as $row) {
 												$arraySection[$row->id] = $row->name;
@@ -80,7 +80,6 @@
 										<thead>
 											<tr>
 												<th>#</th>
-												<th><?=translate('branch')?></th>
 												<th><?=translate('class_name')?></th>
 												<th><?=translate('class_numeric')?></th>
 												<th><?=translate('section')?></th>
@@ -95,7 +94,6 @@
 											?>
 											<tr>
 												<td><?php echo $count++;?></td>
-												<td><?php echo $row['branch_name'];?></td>
 												<td><?php echo $row['name'];?></td>
 												<td><?php echo $row['name_numeric'];?></td>
 												<td>
@@ -107,24 +105,14 @@
 													?>
 												</td>
 							<td class="action">
-							<?php 
-							$is_board_item = ($row['board_id'] != null && $row['branch_id'] == 0);
-							$can_edit = get_permission('classes', 'is_edit') && (is_superadmin_loggedin() || !$is_board_item);
-							$can_delete = get_permission('classes', 'is_delete') && (is_superadmin_loggedin() || !$is_board_item);
-							if ($can_edit): 
-							?>
+							<?php if (get_permission('classes', 'is_edit')): ?>
 								<!-- update link -->
 								<a href="<?php echo base_url('classes/edit/' . $row['id']);?>" class="btn btn-default btn-circle icon" data-toggle="tooltip" title="<?=translate('edit')?>">
 									<i class="fas fa-pen-nib"></i>
 								</a>
-							<?php endif; if ($can_delete): ?>
+							<?php endif; if (get_permission('classes', 'is_delete')): ?>
 								<!-- delete link -->
 								<?php echo btn_delete('classes/delete/' . $row['id']);?>
-							<?php endif; 
-							if (!$can_edit && !$can_delete && $is_board_item && !is_superadmin_loggedin()): ?>
-								<button class="btn btn-circle btn-default icon" disabled data-toggle="tooltip" title="Board items cannot be modified">
-									<i class="fas fa-lock text-muted"></i>
-								</button>
 							<?php endif; ?>
 							</td>
 											</tr>

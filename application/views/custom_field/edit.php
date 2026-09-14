@@ -26,7 +26,7 @@ $fieldTypeOptions = array(
 					<div class="tab-pane active" id="create">
 						<?php echo form_open('custom_field/save', array('class' => 'form-bordered form-horizontal frm-submit')); ?>
 						<input type="hidden" name="custom_field_id" value="<?=$customfield['id']?>">
-							<?php if (is_superadmin_loggedin() ): ?>
+							<?php if (is_multi_school() ): ?>
 							<div class="form-group">
 								<label class="control-label col-md-3"><?=translate('branch')?> <span class="required">*</span></label>
 								<div class="col-md-6">

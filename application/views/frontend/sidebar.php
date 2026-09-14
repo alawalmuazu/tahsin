@@ -3,7 +3,7 @@
 		<ul class="nav nav-pills nav-stacked">
 			<?php
 			$branchID = "";
-			if (is_superadmin_loggedin()) {
+			if (is_multi_school()) {
 				$branchID = '?branch_id=' . $branch_id;
 			}
 

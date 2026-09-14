@@ -21,7 +21,7 @@
 									<h4 class="panel-title"><i class="far fa-edit"></i> <?=translate('create_section')?></h4>
 								</div>
 								<div class="panel-body panel-body-custom">
-								<?php if (is_superadmin_loggedin()): ?>
+								<?php if (is_multi_school()): ?>
 									<div class="form-group">
 										<label class="control-label"><?=translate('branch')?> <span class="required">*</span></label>
 										<?php
@@ -65,7 +65,6 @@
 										<thead>
 											<tr>
 												<th>#</th>
-												<th><?=translate('branch')?></th>
 												<th><?=translate('section_name')?></th>
 												<th><?=translate('capacity ')?></th>
 												<th><?=translate('action')?></th>
@@ -79,28 +78,17 @@
 											?>
 											<tr>
 												<td><?php echo $count++;?></td>
-												<td><?php echo $row['branch_name'];?></td>
 												<td><?php echo $row['name'];?></td>
 												<td><?php echo $row['capacity'];?></td>
 							<td class="action">
-							<?php 
-							$is_board_item = ($row['board_id'] != null && $row['branch_id'] == 0);
-							$can_edit = get_permission('section', 'is_edit') && (is_superadmin_loggedin() || !$is_board_item);
-							$can_delete = get_permission('section', 'is_delete') && (is_superadmin_loggedin() || !$is_board_item);
-							if ($can_edit): 
-							?>
+							<?php if (get_permission('section', 'is_edit')): ?>
 								<!-- update link -->
 								<a href="<?php echo base_url('sections/edit/' . $row['id']);?>" class="btn btn-default btn-circle icon" data-toggle="tooltip" title="<?=translate('edit')?>">
 									<i class="fas fa-pen-nib"></i>
 								</a>
-							<?php endif; if ($can_delete): ?>
+							<?php endif; if (get_permission('section', 'is_delete')): ?>
 								<!-- delete link -->
 								<?php echo btn_delete('sections/delete/' . $row['id']);?>
-							<?php endif; 
-							if (!$can_edit && !$can_delete && $is_board_item && !is_superadmin_loggedin()): ?>
-								<button class="btn btn-circle btn-default icon" disabled data-toggle="tooltip" title="Board items cannot be modified">
-									<i class="fas fa-lock text-muted"></i>
-								</button>
 							<?php endif; ?>
 							</td>
 											</tr>

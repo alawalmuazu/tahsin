@@ -1,4 +1,4 @@
-<?php if (is_superadmin_loggedin() ): ?>
+<?php if (is_multi_school() ): ?>
 	<section class="panel">
 		<header class="panel-heading">
 			<h4 class="panel-title"><?=translate('select_ground')?></h4>
@@ -29,7 +29,7 @@
 	</section>
 <?php endif; ?>
 <?php if (!empty($branch_id)): ?>
-<?php if (is_superadmin_loggedin()) { ?>
+<?php if (is_multi_school()) { ?>
 <div class="row appear-animation" data-appear-animation="<?=$global_config['animations'] ?>" data-appear-animation-delay="100">
 <?php } else { ?>
 <div class="row">
@@ -47,7 +47,7 @@
 						<thead>
 							<tr>
 								<th><?=translate('sl')?></th>
-							<?php if (is_superadmin_loggedin()) { ?>
+							<?php if (is_multi_school()) { ?>
 								<th><?=translate('branch')?></th>
 							<?php } ?>
 								<th><?=translate('guardian_name')?></th>
@@ -74,7 +74,7 @@
 							?>	
 							<tr>
 								<td><?php echo $count++; ?></td>
-							<?php if (is_superadmin_loggedin()) { ?>
+							<?php if (is_multi_school()) { ?>
 								<td><?php echo get_type_name_by_id('branch', $row->branch_id);?></td>
 							<?php } ?>
 								<td><?php echo $row->name;?></td>

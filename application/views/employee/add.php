@@ -19,7 +19,7 @@
 						<i class="fas fa-school"></i> <?=translate('academic_details')?>
 					</div>
 					<div class="row">
-<?php if (is_superadmin_loggedin()) { ?>
+<?php if (is_multi_school()) { ?>
 						<div class="col-md-4 mb-sm" id="branch_field_wrapper">
 							<div class="form-group">
 								<label class="control-label"><?=translate('branch')?> <span class="required" id="branch_required_star">*</span></label>
@@ -29,11 +29,6 @@
 									data-plugin-selectTwo data-width='100%' data-minimum-results-for-search='Infinity'");
 								?>
 								<span class="error"><?php echo form_error('branch_id'); ?></span>
-							</div>
-						</div>
-						<div class="col-md-4 mb-sm" id="statewide_notice" style="display:none;">
-							<div class="alert alert-info" style="padding:10px 14px; margin-top:22px;">
-								<i class="fas fa-globe"></i> <strong>Statewide Role</strong> — No school branch required.
 							</div>
 						</div>
 <?php } ?>
@@ -434,7 +429,7 @@
 						</div>
 					</div>
 				</div>
-<?php if (is_superadmin_loggedin()) { ?>
+<?php if (is_multi_school()) { ?>
 				<div class="form-group">
 					<label class="col-md-3 control-label"><?=translate('branch')?> <span class="required">*</span></label>
 					<div class="col-md-9">
@@ -503,52 +498,6 @@
 </div>
 
 <script>
-(function($) {
-    // Statewide role IDs — fetched async from DB (supports custom statewide roles)
-    var stateExecutiveRoles = [];
-
-    function toggleBranchFields(roleId) {
-        var isStateRole = stateExecutiveRoles.indexOf(parseInt(roleId)) !== -1;
-        if (isStateRole) {
-            $('#branch_field_wrapper').hide();
-            $('#statewide_notice').show();
-            $('#branch_dept_wrapper').hide();
-            // Disable so they don't get submitted/validated
-            $('#branch_id').prop('disabled', true).val('');
-            $('#designation_id').prop('disabled', true).val('');
-            $('#department_id').prop('disabled', true).val('');
-        } else {
-            $('#branch_field_wrapper').show();
-            $('#statewide_notice').hide();
-            $('#branch_dept_wrapper').show();
-            $('#branch_id').prop('disabled', false);
-            $('#designation_id').prop('disabled', false);
-            $('#department_id').prop('disabled', false);
-        }
-    }
-
-    // Load statewide role IDs from server asynchronously, then apply to current selection
-    $.getJSON('<?php echo base_url("ajax/getStatewideRoles"); ?>', function(data) {
-        if (data && Array.isArray(data.statewide_ids)) {
-            stateExecutiveRoles = data.statewide_ids;
-        }
-        // After loading, check pre-selected value (e.g. after validation failure)
-        var initialRole = $('select[name="user_role"]').val();
-        if (initialRole) {
-            toggleBranchFields(initialRole);
-        }
-    });
-
-    // On role change
-    $('select[name="user_role"]').on('change', function() {
-        toggleBranchFields($(this).val());
-    });
-
-    // Select2 fires a separate event
-    $('select[name="user_role"]').on('select2:select', function(e) {
-        toggleBranchFields(e.params.data.id);
-    });
-})(jQuery);
 	$('#send_setup_invitation').on('change', function() {
 		if($(this).is(':checked')) {
 			$('#login_credentials_wrap').slideUp();

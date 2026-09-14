@@ -16,7 +16,7 @@
 					<thead>
 						<tr>
 							<th><?=translate('sl')?></th>
-<?php if (is_superadmin_loggedin()): ?>
+<?php if (is_multi_school()): ?>
 							<th><?=translate('branch')?></th>
 <?php endif; ?>
 							<th><?=translate('grade_name')?></th>
@@ -35,7 +35,7 @@
 						?>
 						<tr>
 							<td><?php echo $count++;?></td>
-<?php if (is_superadmin_loggedin()): ?>
+<?php if (is_multi_school()): ?>
 							<td><?php echo $grade['branch_name'];?></td>
 <?php endif; ?>
 							<td><?php echo $grade['name']; ?></td>
@@ -44,24 +44,14 @@
 							<td><?php echo $grade['upper_mark']; ?>%</td>
 							<td><?php echo $grade['remark']; ?></td>
 							<td class="action">
-							<?php 
-							$is_board_item = isset($grade['board_id']) ? ($grade['board_id'] != null && $grade['branch_id'] == 0) : false;
-							$can_edit = get_permission('exam_grade', 'is_edit') && (is_superadmin_loggedin() || !$is_board_item);
-							$can_delete = get_permission('exam_grade', 'is_delete') && (is_superadmin_loggedin() || !$is_board_item);
-							if ($can_edit): 
-							?>
+							<?php if (get_permission('exam_grade', 'is_edit')): ?>
 								<!--update link-->
 								<a href="<?php echo base_url('exam/grade_edit/' . $grade['id']);?>" class="btn btn-default btn-circle icon" data-toggle="tooltip" title="<?=translate('edit')?>">
 									<i class="fas fa-pen-nib"></i>
 								</a>
-							<?php endif; if ($can_delete): ?>
+							<?php endif; if (get_permission('exam_grade', 'is_delete')): ?>
 								<!-- deletion link -->
 								<?php echo btn_delete('exam/grade_delete/' . $grade['id']);?>
-							<?php endif;
-							if (!$can_edit && !$can_delete && $is_board_item && !is_superadmin_loggedin()): ?>
-								<button class="btn btn-circle btn-default icon" disabled data-toggle="tooltip" title="Board items cannot be modified">
-									<i class="fas fa-lock text-muted"></i>
-								</button>
 							<?php endif;?>
 							</td>
 						</tr>
@@ -72,7 +62,7 @@
 <?php if (get_permission('exam_grade', 'is_add')): ?>
 			<div class="tab-pane" id="create">
 				<?php echo form_open($this->uri->uri_string(), array('class' => 'form-horizontal form-bordered frm-submit'));?>
-				<?php if (is_superadmin_loggedin()): ?>
+				<?php if (is_multi_school()): ?>
 				<div class="form-group">
 					<label class="col-md-3 control-label"><?=translate('branch')?> <span class="required">*</span></label>
 					<div class="col-md-6">

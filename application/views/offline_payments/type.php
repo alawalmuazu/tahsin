@@ -19,7 +19,7 @@
 						<thead>
 							<tr>
 								<th width="50"><?php echo translate('sl'); ?></th>
-							<?php if (is_superadmin_loggedin()): ?>
+							<?php if (is_multi_school()): ?>
 								<th><?=translate('branch')?></th>
 							<?php endif; ?>
 								<th><?=translate('name')?></th>
@@ -31,7 +31,7 @@
 							<?php $count = 1; foreach ($categorylist as $row): ?>
 							<tr>
 								<td><?php echo $count++; ?></td>
-							<?php if (is_superadmin_loggedin()): ?>
+							<?php if (is_multi_school()): ?>
 								<td><?php echo get_type_name_by_id('branch', $row['branch_id']);?></td>
 							<?php endif; ?>
 								<td><?php echo $row['name']; ?></td>
@@ -61,7 +61,7 @@
 			<div class="tab-pane" id="create">
 				<?php echo form_open($this->uri->uri_string(), array('class' => 'form-horizontal form-bordered frm-submit')); ?>
 				<input type="hidden" name="voucher_type" value="expense">
-					<?php if (is_superadmin_loggedin() ): ?>
+					<?php if (is_multi_school() ): ?>
 					<div class="form-group">
 						<label class="control-label col-md-3"><?=translate('branch')?> <span class="required">*</span></label>
 						<div class="col-md-6">

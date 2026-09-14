@@ -1,7 +1,7 @@
 <?php $currency_symbol = $global_config['currency_symbol']; ?>
 <div class="row">
 	<div class="col-md-12">
-	<?php if(is_superadmin_loggedin()): ?>
+	<?php if(is_multi_school()): ?>
 		<section class="panel">
 			<header class="panel-heading">
 				<h4 class="panel-title"> <?php echo translate('select_ground'); ?></h4>

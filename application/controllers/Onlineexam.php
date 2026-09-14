@@ -93,9 +93,6 @@ class Onlineexam extends Admin_Controller
 
     protected function exam_validation()
     {
-        // branch_id is optional for superadmin — empty means StateWide (NULL)
-        // No 'required' rule: superadmin can leave it blank to create a StateWide CBT exam
-
         $this->form_validation->set_rules('title', translate('title'), 'trim|required');
         $this->form_validation->set_rules('class_id', translate('class'), 'trim|required');
         $this->form_validation->set_rules('section[]', translate('section'), 'trim|required');
@@ -142,7 +139,6 @@ class Onlineexam extends Admin_Controller
             $this->exam_validation();
             if ($this->form_validation->run() == true) {
                 $post = $this->input->post();
-                // Use get_inventory_branch_id(): empty POST branch_id → NULL (StateWide)
                 $branchID = $this->application_model->get_inventory_branch_id();
                 //online exam save in DB
                 $this->onlineexam_model->saveExam($post, $branchID);
@@ -446,7 +442,6 @@ class Onlineexam extends Admin_Controller
             if (!get_permission('question_group', 'is_add')) {
                 access_denied();
             }
-            // branch_id is optional for superadmin — empty = NULL = StateWide
             $this->form_validation->set_rules('group_name', translate('group') . " " . translate('name'), 'trim|required|callback_unique_group');
             if ($this->form_validation->run() !== false) {
                 $arrayData = array(
@@ -470,7 +465,6 @@ class Onlineexam extends Admin_Controller
         if (!get_permission('question_group', 'is_edit')) {
             ajax_access_denied();
         }
-        // branch_id is optional for superadmin — empty = NULL = StateWide
         $this->form_validation->set_rules('group_name', translate('group') . " " . translate('name'), 'trim|required|callback_unique_group');
         if ($this->form_validation->run() !== false) {
             $category_id = $this->input->post('group_id');

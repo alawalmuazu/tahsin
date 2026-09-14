@@ -28,7 +28,7 @@ foreach ($years as $year){
 						<tbody>
 							<?php
 							$count = 1;
-							if (!is_superadmin_loggedin()) {
+							if (!is_multi_school()) {
 								$this->db->where('branch_id', get_loggedin_branch_id());
 							}
 							$this->db->order_by('id', 'asc');
@@ -113,7 +113,7 @@ foreach ($years as $year){
 			<input type="hidden" name="old_image" value="" id="eventOld_image">
 			<input type="hidden" name="selected_list" value="" id="selectedList">
 			<div class="row">
-<?php if (is_superadmin_loggedin()): ?>
+<?php if (is_multi_school()): ?>
 				<div class="col-md-6 mb-sm mt-md">
 					<div class="form-group">
 						<label class="control-label"><?=translate('branch')?> <span class="required">*</span></label>

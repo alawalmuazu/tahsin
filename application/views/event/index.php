@@ -21,7 +21,7 @@
 					<thead>
 						<tr>
 							<th>#</th>
-						<?php if (is_superadmin_loggedin()): ?>
+						<?php if (is_multi_school()): ?>
 							<th><?=translate('branch')?></th>
 						<?php endif; ?>
 							<th><?=translate('title')?></th>
@@ -41,7 +41,7 @@
 <?php if (get_permission('event', 'is_add')): ?>
 			<div class="tab-pane" id="add">
 					<?php echo form_open_multipart($this->uri->uri_string(), array('class' => 'form-bordered form-horizontal frm-submit-data'));?>
-					<?php if (is_superadmin_loggedin()): ?>
+					<?php if (is_multi_school()): ?>
 						<div class="form-group">
 							<label class="control-label col-md-3"><?=translate('branch')?> <span class="required">*</span></label>
 							<div class="col-md-6">

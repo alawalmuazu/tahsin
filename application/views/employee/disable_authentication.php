@@ -1,4 +1,4 @@
-<?php $widget = (is_superadmin_loggedin() ? 'col-md-6' : 'col-md-offset-3 col-md-6'); ?>
+<?php $widget = (is_multi_school() ? 'col-md-6' : 'col-md-offset-3 col-md-6'); ?>
 <div class="row">
 	<div class="col-md-12">
 		<section class="panel">
@@ -8,7 +8,7 @@
 			<?php echo form_open('employee/disable_authentication', array('class' => 'validate'));?>
 			<div class="panel-body">
 				<div class="row mb-sm">
-					<?php if (is_superadmin_loggedin()): ?>
+					<?php if (is_multi_school()): ?>
 	                <div class="col-md-6">
                         <div class="form-group">
                             <label class="control-label"><?=translate('branch')?> <span class="required">*</span></label>
@@ -58,7 +58,6 @@
 								</div>
 							</th>
 							<th width="80"><?php echo translate('photo');?></th>
-							<th><?=translate('branch')?></th>
 							<th><?=translate('name')?></th>
 							<th><?=translate('designation')?></th>
 							<th><?=translate('department')?></th>
@@ -78,7 +77,6 @@
 							<td class="center">
 								<img class="rounded" src="<?php echo get_image_url('staff', $row->photo); ?>" width="35" height="35" />
 							</td>
-							<td><?php echo html_escape(get_type_name_by_id('branch', $row->branch_id));?></td>
 							<td><?php echo html_escape($row->name);?></td>
 							<td><?php echo html_escape($row->designation_name);?></td>
 							<td><?php echo html_escape($row->department_name);?></td>

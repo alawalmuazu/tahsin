@@ -16,7 +16,6 @@
 					<thead>
 						<tr>
 							<th><?=translate('sl')?></th>
-							<th><?=translate('branch')?></th>
 							<th><?=translate('book_title')?></th>
 							<th width='80px;'><?=translate('cover')?></th>
 							<th><?=translate('role')?></th>
@@ -32,7 +31,6 @@
 						<?php $count = 1; foreach($booklist as $row){ ?>
 						<tr>
 							<td><?php echo $count++; ?></td>
-							<td><?php echo $row['branch_name']; ?></td>
 							<td><?php echo $row['title']; ?></td>
 							<td><img src="<?php echo $this->application_model->get_book_cover_image($row['cover']); ?>" alt="" width="70"></td>
 							<td><?php echo $row['role_name'];?></td>
@@ -94,7 +92,7 @@
 <?php if (get_permission('book_manage', 'is_add')): ?>
 			<div class="tab-pane" id="issue">
 				<?php echo form_open('library/bookIssued', array('class' => 'form-horizontal form-bordered frm-submit')); ?>
-					<?php if (is_superadmin_loggedin()): ?>
+					<?php if (is_multi_school()): ?>
 					<div class="form-group">
 						<label class="col-md-3 control-label"><?=translate('branch')?> <span class="required">*</span></label>
 						<div class="col-md-6">

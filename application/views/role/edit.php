@@ -20,23 +20,6 @@
 					</div>
 				</div>
 
-				<div class="form-group">
-					<label class="col-md-3 control-label">
-						<i class="fas fa-globe"></i> Statewide Role
-					</label>
-					<div class="col-md-6 mb-sm">
-						<div class="checkbox-replace">
-							<label class="i-checks">
-								<input type="hidden" name="is_statewide" value="0">
-								<input type="checkbox" name="is_statewide" id="is_statewide_edit" value="1"
-									<?php echo ($roles['is_statewide'] == 1 ? 'checked' : ''); ?>>
-								<i></i> Mark this role as <strong>Statewide</strong> (no school branch required)
-							</label>
-						</div>
-						<small class="text-muted"><i class="fas fa-info-circle"></i> Statewide roles (e.g. Commissioner, Permanent Secretary) operate across all branches and do not require a branch assignment.</small>
-					</div>
-				</div>
-				
 				<footer class="panel-footer mt-lg">
 					<div class="row">
 						<div class="col-md-2 col-md-offset-3">

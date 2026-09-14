@@ -16,7 +16,7 @@
 					<thead>
 						<tr>
 							<th><?php echo translate('sl'); ?></th>
-<?php if (is_superadmin_loggedin()): ?>
+<?php if (is_multi_school()): ?>
 							<th><?=translate('branch')?></th>
 <?php endif; ?>
 							<th><?php echo translate('page') . " " . translate('title'); ?></th>
@@ -33,7 +33,7 @@
 								?>
 						<tr>
 							<td><?php echo $count++; ?></td>
-<?php if (is_superadmin_loggedin()): ?>
+<?php if (is_multi_school()): ?>
 							<td><?php echo $row['branch_name'];?></td>
 <?php endif; ?>
 							<td><?php echo $row['page_title']; ?></td>
@@ -60,7 +60,7 @@
 	<?php if (get_permission('manage_page', 'is_add')) { ?>
 			<div class="tab-pane" id="create">
 				<?php echo form_open_multipart($this->uri->uri_string(), array('class' => 'form-horizontal form-bordered frm-submit-data')); ?>
-					<?php if (is_superadmin_loggedin()): ?>
+					<?php if (is_multi_school()): ?>
 						<div class="form-group">
 							<label class="col-md-3 control-label"><?=translate('branch')?> <span class="required">*</span></label>
 							<div class="col-md-8">
@@ -84,7 +84,7 @@
 						<label class="col-md-3 control-label"><?php echo translate('select') . " " . translate('menu'); ?> <span class="required">*</span></label>
 						<div class="col-md-8">
 							<?php
-								if (!is_superadmin_loggedin()) {
+								if (!is_multi_school()) {
 									$menuslist = array('' => translate('select'));
 								    $this->db->order_by('ordering', 'asc');
 								    $this->db->where('system', 0);

@@ -7,7 +7,7 @@
 			</header>
             <?php  echo form_open($this->uri->uri_string()); ?>
 				<div class="panel-body">
-				<?php if (is_superadmin_loggedin()): ?>
+				<?php if (is_multi_school()): ?>
 					<div class="form-group">
 						<label class="control-label"><?=translate('branch')?> <span class="required">*</span></label>
 						<?php
@@ -46,7 +46,6 @@
 					<table class="table table-bordered table-hover table-condensed mb-none">
 						<thead>
 							<tr>
-								<th><?=translate('branch')?></th>
 								<th><?php echo translate('reason'); ?></th>
 								<th><?php echo translate('action'); ?></th>
 							</tr>
@@ -57,7 +56,6 @@
 							foreach ($categorylist as $row): 
 								?>
 							<tr>
-								<td><?php echo $row['branch_name'];?></td>
 								<td><?php echo $row['name']; ?></td>
 								<td class="min-w-xs">
 								<?php if (get_permission('disable_reason', 'is_edit')): ?>
@@ -96,7 +94,7 @@
 		<?php echo form_open('student/disable_reason_edit', array('class' => 'frm-submit')); ?>
 			<div class="panel-body">
 				<input type="hidden" name="reason_id" id="ereason_id" value="">
-				<?php if (is_superadmin_loggedin()): ?>
+				<?php if (is_multi_school()): ?>
 					<div class="form-group">
 						<label class="control-label"><?=translate('branch')?> <span class="required">*</span></label>
 						<?php

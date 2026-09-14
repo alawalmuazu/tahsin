@@ -12,7 +12,7 @@
 			<div id="edit" class="tab-pane active">
 				<?php echo form_open_multipart('subject/save', array('class' => 'form-horizontal form-bordered frm-submit-data'));?>
 				<input type="hidden" name="subject_id" value="<?=$subject['id']?>">
-					<?php if (is_superadmin_loggedin()): ?>
+					<?php if (is_multi_school()): ?>
 						<div class="form-group">
 							<label class="control-label col-md-3"><?=translate('branch')?> <span class="required">*</span></label>
 							<div class="col-md-6">

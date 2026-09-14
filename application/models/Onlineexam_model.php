@@ -47,7 +47,7 @@ class Onlineexam_model extends MY_Model
 
     public function examList()
     {
-        $this->db->select('online_exam.*,class.name as class_name,COALESCE(branch.name,IF(online_exam.branch_id IS NULL,"StateWide",NULL)) as branchname');
+        $this->db->select('online_exam.*,class.name as class_name,branch.school_name as branchname');
         $this->db->from('online_exam');
         $this->db->join('branch', 'branch.id = online_exam.branch_id', 'left');
         $this->db->join('class', 'class.id = online_exam.class_id', 'left');
@@ -68,7 +68,7 @@ class Onlineexam_model extends MY_Model
     public function examListDT($currency_symbol = '')
     {
         $sessionID = get_session_id();
-        $this->datatables->select('online_exam.*,class.name as class_name,(SELECT COUNT(id) FROM questions_manage WHERE questions_manage.onlineexam_id=online_exam.id) as questions_qty,COALESCE(branch.name,IF(online_exam.branch_id IS NULL,"StateWide",NULL)) as branchname,staff.name as created_by_name');
+        $this->datatables->select('online_exam.*,class.name as class_name,(SELECT COUNT(id) FROM questions_manage WHERE questions_manage.onlineexam_id=online_exam.id) as questions_qty,branch.school_name as branchname,staff.name as created_by_name');
         $this->datatables->from('online_exam');
         $this->datatables->join('branch', 'branch.id = online_exam.branch_id', 'left');
         $this->datatables->join('class', 'class.id = online_exam.class_id', 'left');
@@ -265,28 +265,10 @@ class Onlineexam_model extends MY_Model
 
     public function question_group($branch_id = '')
     {
-        if (empty($branch_id) && !is_superadmin_loggedin()) {
-            $array = array('' => translate('select_branch_first'));
-        } else {
-            // Include branch-specific + statewide (NULL branch_id) groups
-            $this->db->group_start();
-            if (!empty($branch_id)) {
-                $this->db->where('branch_id', $branch_id);
-                $this->db->or_where('branch_id IS NULL', null, false);
-            } else {
-                // Superadmin statewide: show only NULL branch_id groups
-                $this->db->where('branch_id IS NULL', null, false);
-            }
-            $this->db->group_end();
-            $result = $this->db->get('question_group')->result();
-            $array = array('' => translate('select'));
-            foreach ($result as $row) {
-                $label = $row->name;
-                if (is_null($row->branch_id)) {
-                    $label .= ' [StateWide]';
-                }
-                $array[$row->id] = $label;
-            }
+        $result = $this->db->where('branch_id', SCHOOL_ID)->get('question_group')->result();
+        $array = array('' => translate('select'));
+        foreach ($result as $row) {
+            $array[$row->id] = $row->name;
         }
         return $array;
     }
@@ -439,7 +421,7 @@ class Onlineexam_model extends MY_Model
 
     public function questionListDT($postData)
     {
-        $this->datatables->select('questions.id,questions.question,questions.type,questions.level,COALESCE(branch.name,IF(questions.branch_id IS NULL,"StateWide",NULL)) as name,subject.name as subject_name,class.name as class_name,section.name as section_name,question_group.name as group_name');
+        $this->datatables->select('questions.id,questions.question,questions.type,questions.level,branch.school_name as name,subject.name as subject_name,class.name as class_name,section.name as section_name,question_group.name as group_name');
         $this->datatables->from('questions');
         $this->datatables->join('branch', 'branch.id = questions.branch_id', 'left');
         $this->datatables->join('class', 'class.id = questions.class_id', 'left');
@@ -536,7 +518,7 @@ class Onlineexam_model extends MY_Model
         $onlineexamID = $this->db->escape($onlineexamID);
         $sessionID = $this->db->escape(get_session_id());
         $branchID = $this->db->escape(get_loggedin_branch_id());
-        $sql = "SELECT `online_exam`.*, `class`.`name` as `class_name`,(SELECT COUNT(`id`) FROM `questions_manage` WHERE `questions_manage`.`onlineexam_id`=`online_exam`.`id`) as `questions_qty`, COALESCE(`branch`.`name`, IF(`online_exam`.`branch_id` IS NULL,'StateWide',NULL)) as `branchname` FROM `online_exam` LEFT JOIN `branch` ON `branch`.`id` = `online_exam`.`branch_id` LEFT JOIN `class` ON `class`.`id` = `online_exam`.`class_id` WHERE `online_exam`.`session_id` = $sessionID AND `online_exam`.`id` = " . $onlineexamID;
+        $sql = "SELECT `online_exam`.*, `class`.`name` as `class_name`,(SELECT COUNT(`id`) FROM `questions_manage` WHERE `questions_manage`.`onlineexam_id`=`online_exam`.`id`) as `questions_qty`, `branch`.`school_name` as `branchname` FROM `online_exam` LEFT JOIN `branch` ON `branch`.`id` = `online_exam`.`branch_id` LEFT JOIN `class` ON `class`.`id` = `online_exam`.`class_id` WHERE `online_exam`.`session_id` = $sessionID AND `online_exam`.`id` = " . $onlineexamID;
         if ($status == true) {
             $sql .= " AND `online_exam`.`publish_status` = '1'";
         }

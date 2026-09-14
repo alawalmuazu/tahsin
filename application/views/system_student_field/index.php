@@ -1,4 +1,4 @@
-<?php if (is_superadmin_loggedin() ): ?>
+<?php if (is_multi_school() ): ?>
 <section class="panel">
 	<header class="panel-heading">
 		<h4 class="panel-title"><?=translate('select_ground')?></h4>
@@ -30,7 +30,7 @@
 <?php 
 endif;
 	if (!empty($branch_id)): 
- 		if (is_superadmin_loggedin()) { ?>
+ 		if (is_multi_school()) { ?>
 <div class="row appear-animation" data-appear-animation="<?=$global_config['animations'] ?>" data-appear-animation-delay="100">
 <?php } else { ?>
 <div class="row">

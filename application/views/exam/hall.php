@@ -7,7 +7,7 @@
 					<h4 class="panel-title"><i class="far fa-edit"></i> <?=translate('add') . " " . translate('exam_hall')?></h4>
 				</header>
 				<div class="panel-body">
-					<?php if (is_superadmin_loggedin()): ?>
+					<?php if (is_multi_school()): ?>
 					<div class="form-group">
 						<label class="control-label"><?=translate('branch')?> <span class="required">*</span></label>
 						<?php
@@ -54,7 +54,6 @@
 						<thead>
 							<tr>
 								<th><?=translate('sl')?></th>
-								<th><?=translate('branch')?></th>
 								<th><?=translate('hall_no')?></th>
 								<th><?=translate('no_of_seats')?></th>
 								<th><?=translate('action')?></th>
@@ -68,7 +67,6 @@
 								?>
 							<tr>
 								<td><?php echo $count++;?></td>
-								<td><?php echo $row['branch_name'];?></td>
 								<td><?php echo $row['hall_no']; ?></td>
 								<td><?php echo $row['seats'];?></td>
 								<td>
@@ -109,7 +107,7 @@
 			</header>
 			<div class="panel-body">
 				<input type="hidden" name="hall_id" id="hall_id" value="">
-				<?php if (is_superadmin_loggedin()): ?>
+				<?php if (is_multi_school()): ?>
 				<div class="form-group">
 					<label class="control-label"><?=translate('branch')?> <span class="required">*</span></label>
 					<?php

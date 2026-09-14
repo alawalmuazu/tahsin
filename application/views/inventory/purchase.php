@@ -17,7 +17,7 @@
 				<table class="table table-bordered table-hover table-condensed nowrap" id="invPurchase-list" cellpadding="0" cellspacing="0" width="100%">
 					<thead>
 						<tr>
-<?php if (is_superadmin_loggedin()): ?>
+<?php if (is_multi_school()): ?>
 							<th><?=translate('branch')?></th>
 <?php endif; ?>
 							<th><?php echo translate('bill_no'); ?></th>
@@ -38,7 +38,7 @@
 			<div id="create" class="tab-pane">
 				<?php echo form_open('inventory/purchase_save', array('id' => 'frmSubmit')); ?>
 					<div class="form-horizontal form-bordered">
-					<?php if (is_superadmin_loggedin()): ?>
+					<?php if (is_multi_school()): ?>
 						<div class="form-group">
 							<label class="col-md-3 control-label"><?=translate('branch')?> <span class="required">*</span></label>
 							<div class="col-md-6">
@@ -110,8 +110,8 @@
 							</div>
 						</div>
 					</div>
-					<div id="purchaseItems" style="<?php echo (empty($branch_id) && !is_superadmin_loggedin() ? 'display: none;' : ''); ?>">
-						<?php if (!empty($branch_id) || is_superadmin_loggedin()) { ?>
+					<div id="purchaseItems" style="<?php echo (empty($branch_id) && !is_multi_school() ? 'display: none;' : ''); ?>">
+						<?php if (!empty($branch_id) || is_multi_school()) { ?>
 						<div class="table-responsive">
 							<table class="table table-bordered table-hover mt-md" id="tableID">
 								<thead>
@@ -192,7 +192,7 @@
 	</div>
 </section>
 
-<?php if (!empty($branch_id) || is_superadmin_loggedin()) { ?>
+<?php if (!empty($branch_id) || is_multi_school()) { ?>
 <script type="text/javascript">
 	function getDynamicInput(value) {
 		var html_row = "";
@@ -269,13 +269,6 @@
 			}
 		});
 	});
-
-	// On page load for Statewide (no branch selected): auto-load suppliers, stores and products
-	<?php if (is_superadmin_loggedin() && empty($branch_id)): ?>
-	$(document).ready(function() {
-		$('#branch_id').trigger('change');
-	});
-	<?php endif; ?>
 
 	var count = 1;
 	$(document).ready(function() {

@@ -40,18 +40,8 @@ class Dashboard extends Admin_Controller
             $this->data['school_id'] = $schoolID;
             $this->data['sub_page'] = 'userrole/dashboard';
         } else {
-            if (is_superadmin_loggedin()) {
-                if ($this->input->get('school_id')) {
-                    $schoolID = $this->input->get('school_id');
-                    $this->data['title'] = get_type_name_by_id('branch', $schoolID) . " " . translate('branch_dashboard');
-                } else {
-                    $this->data['title'] = translate('all_branch_dashboard');
-                    $schoolID = "";
-                }
-            } else {
-                $schoolID = get_loggedin_branch_id();
-                $this->data['title'] = get_type_name_by_id('branch', $schoolID) . " " . translate('branch_dashboard');
-            }
+            $schoolID = SCHOOL_ID;
+            $this->data['title'] = school_name() . " " . translate('dashboard');
             $getSQLMode = $this->application_model->getSQLMode();
             $this->data['school_id'] = $schoolID;
             $this->data['sqlMode'] = $getSQLMode;
@@ -93,40 +83,5 @@ class Dashboard extends Admin_Controller
         $this->data['language'] = $language;
         $this->data['main_menu'] = 'dashboard';
         $this->load->view('layout/index', $this->data);
-    }
-
-    /**
-     * AJAX: Live school search for sidebar — returns up to 10 matching branches.
-     * GET ?q=search_term
-     * Only superadmin / state executives may call this.
-     */
-    public function search_branch()
-    {
-        if (!is_superadmin_loggedin() && !is_state_executive_loggedin()) {
-            http_response_code(403);
-            echo json_encode([]);
-            exit;
-        }
-
-        $q = trim($this->input->get('q', TRUE));
-        if (strlen($q) < 2) {
-            header('Content-Type: application/json');
-            echo json_encode([]);
-            exit;
-        }
-
-        $this->db->select('id, name, lga');
-        $this->db->from('branch');
-        $this->db->group_start();
-        $this->db->like('name', $q);
-        $this->db->or_like('lga', $q);
-        $this->db->group_end();
-        $this->db->order_by('name', 'ASC');
-        $this->db->limit(10);
-        $results = $this->db->get()->result_array();
-
-        header('Content-Type: application/json');
-        echo json_encode($results);
-        exit;
     }
 }

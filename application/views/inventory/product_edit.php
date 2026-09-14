@@ -12,7 +12,7 @@
 			<div id="edit" class="tab-pane active">
 	            <?php echo form_open($this->uri->uri_string(), array('class' => 'form-horizontal form-bordered frm-submit')); ?>
 		            <input type="hidden" name="product_id" value="<?php echo html_escape($product['id']); ?>">
-				<?php if (is_superadmin_loggedin()): ?>
+				<?php if (is_multi_school()): ?>
 					<div class="form-group">
 						<label class="control-label col-md-3"><?=translate('branch')?> <span class="required">*</span></label>
 						<div class="col-md-6">

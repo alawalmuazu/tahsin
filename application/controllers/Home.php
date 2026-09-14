@@ -807,18 +807,4 @@ class Home extends Frontend_Controller
         }  
     }
 
-    /**
-     * AJAX endpoint for the school finder on the landing page.
-     * Returns JSON array of all branches with name, address, city, and url_alias.
-     */
-    public function getSchoolList()
-    {
-        $this->db->select('branch.id, branch.school_name AS name, branch.city, branch.address, fcs.url_alias');
-        $this->db->from('branch');
-        $this->db->join('front_cms_setting fcs', 'fcs.branch_id = branch.id', 'left');
-        $this->db->where('branch.active', 1);
-        $this->db->order_by('branch.school_name', 'ASC');
-        $results = $this->db->get()->result_array();
-        echo json_encode($results);
-    }
 }

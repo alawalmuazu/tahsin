@@ -54,7 +54,7 @@
 									<i class="fas fa-school"></i> <?=translate('academic_details')?>
 								</div>
 								<div class="row">
-<?php if (is_superadmin_loggedin()) { ?>
+<?php if (is_multi_school()) { ?>
 									<div class="col-md-4 mb-sm">
 										<div class="form-group">
 											<label class="control-label"><?=translate('branch')?> <span class="required">*</span></label>

@@ -74,26 +74,13 @@ if (is_dir($routes_path)) {
 	} 
 }
 
-$route['(:any)/authentication'] = 'authentication/index/$1';
-$route['(:any)/forgot'] = 'authentication/forgot/$1';
-$route['(:any)/teachers'] = 'home/teachers';
-$route['(:any)/events'] = 'home/events';
-$route['(:any)/news'] = 'home/news/';
-$route['(:any)/about'] = 'home/about';
-$route['(:any)/faq'] = 'home/faq';
-$route['(:any)/admission'] = 'home/admission';
-$route['(:any)/gallery'] = 'home/gallery';
-$route['(:any)/contact'] = 'home/contact';
-$route['(:any)/admit_card'] = 'home/admit_card';
-$route['(:any)/exam_results'] = 'home/exam_results';
-$route['(:any)/certificates'] = 'home/certificates';
-$route['(:any)/page/(:any)'] = 'home/page/$2';
-$route['(:any)/gallery_view/(:any)'] = 'home/gallery_view/$2';
-$route['(:any)/event_view/(:num)'] = 'home/event_view/$2';
-$route['(:any)/news_view/(:any)'] = 'home/news_view/$2';
+$route['page/(:any)'] = 'home/page/$1';
+$route['gallery_view/(:any)'] = 'home/gallery_view/$1';
+$route['event_view/(:num)'] = 'home/event_view/$1';
+$route['news_view/(:any)'] = 'home/news_view/$1';
+$route['forgot'] = 'authentication/forgot';
 
 $route['dashboard'] = 'dashboard/index';
-$route['branch'] = 'branch/index';
 $route['attachments'] = 'attachments/index';
 $route['homework'] = 'homework/index';
 $route['onlineexam'] = 'onlineexam/index';
@@ -121,13 +108,7 @@ $route['live_class'] = 'live_class/index';
 $route['exam'] = 'exam/index';
 $route['profile'] = 'profile/index';
 $route['sections'] = 'sections/index';
-$route['education_board'] = 'education_board/index';
-$route['state_analytics'] = 'state_analytics/index';
-$route['school_inspection'] = 'school_inspection/index';
-$route['teacher_transfer'] = 'teacher_transfer/index';
 $route['health'] = 'health/index';
-$route['nemis'] = 'nemis/index';
-$route['infrastructure'] = 'infrastructure/index';
 
 $route['authentication'] = 'authentication/index';
 $route['home'] = 'home/index';
@@ -148,5 +129,4 @@ if (!empty($saas_default) && $saas_default == true) {
 } else {
 	$route['default_controller'] = 'home';
 }
-$route['(:any)'] = 'home/index/$1';
 $route['translate_uri_dashes'] = FALSE;

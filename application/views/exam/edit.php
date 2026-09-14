@@ -55,21 +55,7 @@
 								<?php
 									$sel = json_decode($exam['mark_distribution'], true);
 									$arraySection = array();
-									// Load branch-specific + statewide (NULL branch_id) distributions
-									if (is_superadmin_loggedin()) {
-										// Superadmin: load statewide distributions only
-										$result = $this->db->where('branch_id IS NULL', null, false)->get('exam_mark_distribution')->result();
-									} elseif (!empty($exam['branch_id'])) {
-										// Branch admin: own branch + statewide
-										$this->db->group_start();
-										$this->db->where('branch_id', $exam['branch_id']);
-										$this->db->or_where('branch_id IS NULL', null, false);
-										$this->db->group_end();
-										$result = $this->db->get('exam_mark_distribution')->result();
-									} else {
-										// Statewide exam: only statewide distributions
-										$result = $this->db->where('branch_id IS NULL', null, false)->get('exam_mark_distribution')->result();
-									}
+									$result = $this->db->where('branch_id', SCHOOL_ID)->get('exam_mark_distribution')->result();
 									foreach ($result as $row) {
 										$arraySection[$row->id] = $row->name;
 									}

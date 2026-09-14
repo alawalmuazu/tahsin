@@ -18,7 +18,7 @@
 					<table class="table table-bordered table-hover " id="voucherDeposit" cellpadding="0" cellspacing="0" width="100%">
 						<thead>
 							<tr>
-<?php if (is_superadmin_loggedin()): ?>
+<?php if (is_multi_school()): ?>
 								<th><?=translate('branch')?></th>
 <?php endif; ?>
 								<th><?php echo translate('account') . " " . translate('name'); ?></th>
@@ -38,7 +38,7 @@
 			<div class="tab-pane" id="create">
 				<?php echo form_open_multipart('accounting/voucher_save', array('class' => 'form-horizontal form-bordered frm-submit-data')); ?>
 				<input type="hidden" name="voucher_type" value="deposit">
-					<?php if (is_superadmin_loggedin() ): ?>
+					<?php if (is_multi_school() ): ?>
 					<div class="form-group">
 						<label class="control-label col-md-3"><?=translate('branch')?> <span class="required">*</span></label>
 						<div class="col-md-6">

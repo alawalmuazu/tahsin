@@ -1,49 +1,3 @@
-<?php if (is_superadmin_loggedin() && empty($branchID)) { ?>
-<div class="row">
-    <div class="col-md-12">
-        <section class="panel">
-            <header class="panel-heading">
-                <h4 class="panel-title"><i class="fas fa-school"></i> <?=translate('school') . " " . translate('list')?></h4>
-            </header>
-            <div class="panel-body">
-                <table class="table table-bordered table-hover table-condensed mb-none table_default">
-                    <thead>
-                        <tr>
-                            <th width="50"><?=translate('sl')?></th>
-                            <th><?=translate('branch_name')?></th>
-                            <th><?=translate('school_name')?></th>
-                            <th><?=translate('email')?></th>
-                            <th><?=translate('address')?></th>
-                            <th><?=translate('action')?></th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <?php 
-                            $count = 1;
-                            $branchs = $this->db->get('branch')->result();
-                            foreach($branchs as $row):
-                        ?>
-                        <tr>
-                            <td><?php echo $count++; ?></td>
-                            <td><?php echo $row->name;?></td>
-                            <td><?php echo $row->school_name;?></td>
-                            <td><?php echo $row->email;?></td>
-                            <td><?php echo $row->address;?></td>
-                            <td class="min-w-c">
-                                <!--update link-->
-                                <a href="<?=base_url('school_settings?branch_id='.$row->id)?>" class="btn btn-default btn-circle">
-                                    <i class="fas fa-sliders-h"></i> Configuration
-                                </a>
-                            </td>
-                        </tr>
-                        <?php endforeach; ?>
-                    </tbody>
-                </table>
-            </div>
-        </section>
-    </div>
-</div>
-<?php } ?>
 <?php if (!empty($branchID)) {
     ?>
 <div class="row">
@@ -64,13 +18,6 @@
                             <h5 class="chart-title mb-xs"><?=translate('general_setting')?></h5>
                             <div class="mt-lg">
                                 <div class="form-group mt-md">
-                                    <label class="col-md-3 control-label"><?=translate('branch_name')?> <span class="required">*</span></label>
-                                    <div class="col-md-6">
-                                        <input type="text" class="form-control" name="branch_name" value="<?=$school['name']?>" />
-                                        <span class="error"></span>
-                                    </div>
-                                </div>
-                                <div class="form-group">
                                     <label class="col-md-3 control-label"><?=translate('school_name')?> <span class="required">*</span></label>
                                     <div class="col-md-6">
                                         <input type="text" class="form-control" name="school_name" value="<?=$school['school_name']?>" />
@@ -88,18 +35,6 @@
                                     <label class="col-md-3 control-label"><?=translate('mobile_no')?></label>
                                     <div class="col-md-6">
                                         <input type="text" class="form-control" name="mobileno" value="<?=$school['mobileno']?>" />
-                                    </div>
-                                </div>
-                                <div class="form-group">
-                                    <label class="col-md-3 control-label"><?=translate('lga')?></label>
-                                    <div class="col-md-6">
-                                        <input type="text" class="form-control" name="lga" value="<?=$school['lga']?>" />
-                                    </div>
-                                </div>
-                                <div class="form-group">
-                                    <label class="col-md-3 control-label"><?=translate('state')?></label>
-                                    <div class="col-md-6">
-                                        <input type="text" class="form-control" name="state" value="<?=$school['state']?>" />
                                     </div>
                                 </div>
                                 <div class="form-group">

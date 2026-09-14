@@ -18,7 +18,7 @@
 					<table class="table table-bordered table-hover table-condensed" id="transport-fine-list" cellpadding="0" cellspacing="0" width="100%">
 						<thead>
 							<tr>
-							<?php if (is_superadmin_loggedin()): ?>
+							<?php if (is_multi_school()): ?>
 								<th><?=translate('branch')?></th>
 							<?php endif; ?>
 								<th><?=translate('month')?></th>
@@ -35,7 +35,7 @@
 <?php if (get_permission('transport_fees_setup', 'is_add')){ ?>
 			<div class="tab-pane" id="create">
 				<?php echo form_open($this->uri->uri_string(), array('class' => 'form-horizontal form-bordered frm-submit')); ?>
-					<?php if (is_superadmin_loggedin() ): ?>
+					<?php if (is_multi_school() ): ?>
 					<div class="form-group">
 						<label class="control-label col-md-3"><?=translate('branch')?> <span class="required">*</span></label>
 						<div class="col-md-6">

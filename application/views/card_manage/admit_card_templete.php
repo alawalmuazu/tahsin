@@ -21,7 +21,7 @@
 					<thead>
 						<tr>
 							<th><?=translate('sl')?></th>
-<?php if (is_superadmin_loggedin()): ?>
+<?php if (is_multi_school()): ?>
 							<th><?=translate('branch')?></th>
 <?php endif; ?>
 							<th><?=translate('admit_card') . " " . translate('name')?></th>
@@ -38,7 +38,7 @@
 						?>
 						<tr>
 							<td><?php echo $count++; ?></td>
-<?php if (is_superadmin_loggedin()): ?>
+<?php if (is_multi_school()): ?>
 							<td><?php echo $row['branchname'];?></td>
 <?php endif; ?>
 							<td><?php echo $row['name']; ?></td>
@@ -79,7 +79,7 @@
 <?php if (get_permission('admit_card_templete', 'is_add')): ?>
 			<div class="tab-pane" id="add">
 					<?php echo form_open($this->uri->uri_string(), array('class' => 'form-bordered form-horizontal frm-submit-data'));?>
-					<?php if (is_superadmin_loggedin()): ?>
+					<?php if (is_multi_school()): ?>
 						<div class="form-group">
 							<label class="control-label col-md-3"><?=translate('branch')?> <span class="required">*</span></label>
 							<div class="col-md-8">

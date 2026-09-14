@@ -1,4 +1,4 @@
-<?php $widget = (is_superadmin_loggedin() ? 'col-md-6' : 'col-md-offset-3 col-md-6'); ?>
+<?php $widget = (is_multi_school() ? 'col-md-6' : 'col-md-offset-3 col-md-6'); ?>
 <div class="row">
 	<div class="col-md-12">
 		<section class="panel">
@@ -15,7 +15,7 @@
 			<?php echo form_open($this->uri->uri_string(), array('class' => 'validate')); ?>
 				<div class="panel-body">
 					<div class="row mb-sm">
-					<?php if (is_superadmin_loggedin()): ?>
+					<?php if (is_multi_school()): ?>
 						<div class="col-md-6 mb-sm">
 							<div class="form-group">
 								<label class="control-label"><?=translate('branch'); ?> <span class="required">*</span></label>
@@ -137,7 +137,7 @@
         </div>
 		<?php echo form_open_multipart('leave/save', array('class' => 'form-horizontal frm-submit-data')); ?>
 		<div class="panel-body">
-			<?php if (is_superadmin_loggedin()): ?>
+			<?php if (is_multi_school()): ?>
 			<div class="form-group mt-md">
 				<label class="col-md-3 control-label"><?=translate('branch')?> <span class="required">*</span></label>
 				<div class="col-md-9">

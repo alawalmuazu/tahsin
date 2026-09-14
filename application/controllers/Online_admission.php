@@ -435,7 +435,7 @@ class Online_admission extends Admin_Controller
     }
 
     /**
-     * NIN Uniqueness — statewide check for Online Admission approval
+     * NIN Uniqueness check for Online Admission approval
      */
     public function unique_nin_online($nin)
     {

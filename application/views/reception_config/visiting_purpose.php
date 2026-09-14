@@ -38,7 +38,7 @@
 							</div>
 							<?php echo form_open($this->uri->uri_string(), array('class' => 'frm-submit'));?>
 							<div class="panel-body panel-body-custom">
-								<?php if (is_superadmin_loggedin()): ?>
+								<?php if (is_multi_school()): ?>
 									<div class="form-group">
 										<label class="control-label"><?=translate('branch')?> <span class="required">*</span></label>
 										<?php
@@ -77,7 +77,7 @@
 										<thead>
 											<tr>
 												<th><?=translate('sl')?></th>
-											<?php if (is_superadmin_loggedin()): ?>
+											<?php if (is_multi_school()): ?>
 												<th><?=translate('branch')?></th>
 											<?php endif; ?>
 												<th><?=translate('name')?></th>
@@ -92,7 +92,7 @@
 													?>
 											<tr>
 												<td><?php echo $count++;?></td>
-											<?php if (is_superadmin_loggedin()): ?>
+											<?php if (is_multi_school()): ?>
 												<td><?php echo $row['branch_name'];?></td>
 											<?php endif; ?>
 												<td><?php echo $row['name'];?></td>
@@ -137,7 +137,7 @@
 		<?php echo form_open('reception_config/edit/visitor_purpose', array('class' => 'frm-submit')); ?>
 			<div class="panel-body">
 				<input type="hidden" name="id" id="eid" value="">
-				<?php if (is_superadmin_loggedin()): ?>
+				<?php if (is_multi_school()): ?>
 					<div class="form-group">
 						<label class="control-label"><?=translate('branch')?> <span class="required">*</span></label>
 						<?php

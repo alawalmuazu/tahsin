@@ -7,7 +7,7 @@
 			</header>
 			<?php echo form_open($this->uri->uri_string());?>
 				<div class="panel-body">
-					<?php if (is_superadmin_loggedin()): ?>
+					<?php if (is_multi_school()): ?>
 					<div class="form-group">
 						<label class="control-label"><?=translate('branch')?> <span class="required">*</span></label>
 						<?php
@@ -49,7 +49,6 @@
 						<thead>
 							<tr>
 								<th><?=translate('sl')?></th>
-								<th><?=translate('branch')?></th>
 								<th><?=translate('name')?></th>
 								<th><?=translate('action')?></th>
 							</tr>
@@ -62,15 +61,6 @@
 							?>
 							<tr>
 								<td><?php echo $count++;?></td>
-								<td>
-									<?php if (empty($row['branch_name']) || $row['branch_name'] === 'StateWide'): ?>
-										<span class="label label-success" title="Visible to all schools">
-											<i class="fas fa-globe"></i> StateWide
-										</span>
-									<?php else: ?>
-										<?php echo html_escape($row['branch_name']); ?>
-									<?php endif; ?>
-								</td>
 								<td><?php echo $row['name']; ?></td>
 								<td>
 								<?php if (get_permission('mark_distribution', 'is_edit')): ?>
@@ -108,7 +98,7 @@
 			</header>
 			<div class="panel-body">
 				<input type="hidden" name="distribution_id" id="ecategory_id" value="" />
-				<?php if (is_superadmin_loggedin()): ?>
+				<?php if (is_multi_school()): ?>
 				<div class="form-group">
 					<label class="control-label"><?=translate('branch')?> <span class="required">*</span></label>
 					<?php

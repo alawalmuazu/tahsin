@@ -204,23 +204,8 @@ class Exam_progress extends Admin_Controller
     public function getDistributionByBranch()
     {
         $html = "";
-        $branch_id = $this->application_model->get_branch_id();
-
         $this->db->select('id,name');
-        if (!empty($branch_id)) {
-            // Branch-specific + statewide (NULL branch_id) distributions
-            $this->db->group_start();
-            $this->db->where('branch_id', $branch_id);
-            $this->db->or_where('branch_id IS NULL', null, false);
-            $this->db->group_end();
-        } elseif (is_superadmin_loggedin()) {
-            // Superadmin with Statewide selected — show only statewide
-            $this->db->where('branch_id IS NULL', null, false);
-        } else {
-            echo $html;
-            return;
-        }
-
+        $this->db->where('branch_id', SCHOOL_ID);
         $result = $this->db->get('exam_mark_distribution')->result_array();
         foreach ($result as $row) {
             $html .= '<option value="' . $row['id'] . '">' . $row['name'] . '</option>';

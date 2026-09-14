@@ -148,7 +148,7 @@
 							<input type="hidden" name="old_user_photo" value="<?=html_escape($staff['photo'])?>">
 						</div>
 
-<?php if (!is_superadmin_loggedin()) { ?>
+<?php if (!is_multi_school()) { ?>
 						<!-- academic details-->
 						<div class="headers-line">
 							<i class="fas fa-school"></i> <?=translate('academic_details')?>

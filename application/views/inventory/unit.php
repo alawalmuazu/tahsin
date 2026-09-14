@@ -7,7 +7,7 @@
 			</header>
 			<?php echo form_open($this->uri->uri_string()); ?>
 				<div class="panel-body">
-				<?php if (is_superadmin_loggedin()): ?>
+				<?php if (is_multi_school()): ?>
 					<div class="form-group">
 						<label class="control-label"><?=translate('branch')?> <span class="required">*</span></label>
 						<?php
@@ -48,7 +48,6 @@
 						<thead>
 							<tr>
 								<th><?php echo translate('sl'); ?></th>
-								<th><?=translate('branch')?></th>
 								<th><?php echo translate('name'); ?></th>
 								<th><?php echo translate('action'); ?></th>
 							</tr>
@@ -57,15 +56,6 @@
 						<?php $count = 1; if (!empty($unitlist)){ foreach ($unitlist as $row): ?>
 							<tr>
 								<td><?php echo $count++; ?></td>
-								<td>
-									<?php 
-										if(empty($row['branch_id'])) {
-											echo '<span class="badge badge-success">Statewide</span>';
-										} else {
-											echo get_type_name_by_id('branch', $row['branch_id']);
-										}
-									?>
-								</td>
 								<td><?php echo html_escape($row['name']); ?></td>
 								<td class="min-w-xs">
 								<?php if (get_permission('product_unit', 'is_edit')): ?>
@@ -106,7 +96,7 @@
 		<?php echo form_open(base_url('inventory/unit_edit'), array('class' => 'validate', 'method' => 'post')); ?>
 			<div class="panel-body">
 				<input type="hidden" name="unit_id" id="eunit_id" value="">
-			<?php if (is_superadmin_loggedin()): ?>
+			<?php if (is_multi_school()): ?>
 				<div class="form-group">
 					<label class="control-label"><?=translate('branch')?> <span class="required">*</span></label>
 					<?php

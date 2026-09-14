@@ -13,7 +13,7 @@
 			<div id="create" class="tab-pane active">
 				<?php echo form_open($this->uri->uri_string(), array('class' => 'form-horizontal form-bordered frm-submit')); ?>
 				<input type="hidden" name="template_id" value="<?=$templete['id']?>" >
-				<?php if (is_superadmin_loggedin()): ?>
+				<?php if (is_multi_school()): ?>
 					<div class="form-group">
 						<label class="col-md-3 control-label"><?php echo translate('branch');?> <span class="required">*</span></label>
 						<div class="col-md-6">

@@ -1024,18 +1024,10 @@ if (is_superadmin_loggedin()) {
     {
         $category_id = $this->input->post('category_id');
         $selected_id = $this->input->post('selected_id');
-        $branchID    = $this->application_model->get_inventory_branch_id();
 
-        // Include statewide products (branch_id IS NULL) alongside branch-specific ones
         $this->db->select('id,name,code');
         $this->db->where('category_id', $category_id);
-        if (!empty($branchID)) {
-            $this->db->group_start();
-            $this->db->where('branch_id', $branchID);
-            $this->db->or_where('branch_id IS NULL', null, false);
-            $this->db->group_end();
-        }
-        // When Statewide (branchID is NULL): no branch filter — show all products in the category
+        $this->db->where('branch_id', SCHOOL_ID);
         $productlist = $this->db->get('product')->result_array();
 
         $html = "<option value=''>" . translate('select') . "</option>";
@@ -1431,46 +1423,15 @@ if (is_superadmin_loggedin()) {
     {
         $html = "";
         $table = $this->input->post('table');
-        $branch_id = $this->application_model->get_inventory_branch_id();
-
-        // Tables that support statewide (NULL branch_id) entries visible to all branches
-        $hybrid_statewide = array('product_category', 'product_store', 'product_supplier', 'product_unit', 'product', 'exam_mark_distribution');
-
-        if (!empty($branch_id)) {
-            if (in_array($table, $hybrid_statewide)) {
-                // Include branch-specific + statewide (NULL branch_id)
-                $this->db->group_start();
-                $this->db->where('branch_id', $branch_id);
-                $this->db->or_where('branch_id IS NULL', null, false);
-                $this->db->group_end();
-            } else {
-                $this->db->where('branch_id', $branch_id);
-            }
-            $result = $this->db->select('id,name')->get($table)->result_array();
-            if (count($result)) {
-                $html .= "<option value=''>" . translate('select') . "</option>";
-                $html .= "<option value='all'>" . translate('all_select') . "</option>";
-                foreach ($result as $row) {
-                    $html .= '<option value="' . $row['id'] . '">' . $row['name'] . '</option>';
-                }
-            } else {
-                $html .= '<option value="">' . translate('no_information_available') . '</option>';
-            }
-        } elseif (is_superadmin_loggedin() && in_array($table, $hybrid_statewide)) {
-            // Superadmin with Statewide — show only NULL branch_id entries
-            $this->db->where('branch_id IS NULL', null, false);
-            $result = $this->db->select('id,name')->get($table)->result_array();
-            if (count($result)) {
-                $html .= "<option value=''>" . translate('select') . "</option>";
-                $html .= "<option value='all'>" . translate('all_select') . "</option>";
-                foreach ($result as $row) {
-                    $html .= '<option value="' . $row['id'] . '">' . $row['name'] . '</option>';
-                }
-            } else {
-                $html .= '<option value="">' . translate('no_information_available') . '</option>';
+        $result = $this->db->select('id,name')->where('branch_id', SCHOOL_ID)->get($table)->result_array();
+        if (count($result)) {
+            $html .= "<option value=''>" . translate('select') . "</option>";
+            $html .= "<option value='all'>" . translate('all_select') . "</option>";
+            foreach ($result as $row) {
+                $html .= '<option value="' . $row['id'] . '">' . $row['name'] . '</option>';
             }
         } else {
-            $html .= '<option value="">' . translate('select_branch_first') . '</option>';
+            $html .= '<option value="">' . translate('no_information_available') . '</option>';
         }
         echo $html;
     }

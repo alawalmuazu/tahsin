@@ -5,7 +5,7 @@
 	$parent_id 		= 0;
 	$publish 		= true;
 	if ($menu['system']) {
-		if (is_superadmin_loggedin()) {
+		if (is_multi_school()) {
 			$branch_id = $this->uri->segment(5);
 		} else {
 			$branch_id = get_loggedin_branch_id();
@@ -34,7 +34,7 @@
 		$title 		= $menu['title'];
 		$publish 	= $menu['publish'];
 		$parent_id 	= $menu['parent_id'];
-		if (!is_superadmin_loggedin()) {
+		if (!is_multi_school()) {
 			if (get_loggedin_branch_id() !== $menu['branch_id']) {
 				redirect ('404_override');
 			}
@@ -63,7 +63,7 @@
 			<?php echo form_open($this->uri->uri_string(), array('class' => 'form-horizontal form-bordered frm-submit')); ?>
 				<input type="hidden" name="menu_id" value="<?php echo $menu['id']; ?>">
 				<input type="hidden" name="branch_id" value="<?php echo $branch_id; ?>">
-				<?php if (is_superadmin_loggedin()): ?>
+				<?php if (is_multi_school()): ?>
 					<div class="form-group">
 						<label class="col-md-3 control-label"><?=translate('branch')?> <span class="required">*</span></label>
 						<div class="col-md-6">

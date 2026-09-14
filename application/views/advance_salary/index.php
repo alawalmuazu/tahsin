@@ -1,4 +1,4 @@
-<?php $widget = (is_superadmin_loggedin() ? 'col-md-6' : 'col-md-offset-3 col-md-6'); ?>
+<?php $widget = (is_multi_school() ? 'col-md-6' : 'col-md-offset-3 col-md-6'); ?>
 <div class="row">
 	<div class="col-md-12">
 		<section class="panel">
@@ -15,7 +15,7 @@
 			<?php echo form_open($this->uri->uri_string(), array('class' => 'validate')); ?>
 				<div class="panel-body">
 					<div class="row mb-sm">
-					<?php if (is_superadmin_loggedin()): ?>
+					<?php if (is_multi_school()): ?>
 						<div class="col-md-6 mb-sm">
 							<div class="form-group">
 								<label class="control-label"><?=translate('branch'); ?> <span class="required">*</span></label>
@@ -54,7 +54,7 @@
 						<tr>
 							<th width="50">#</th>
 							<th><?=translate('photo')?></th>
-							<?php if (is_superadmin_loggedin()): ?>
+							<?php if (is_multi_school()): ?>
 							<th><?=translate('branch')?></th>
 							<?php endif; ?>
 							<th><?=translate('applicant')?></th>
@@ -73,7 +73,7 @@
 						<tr>
 							<td><?php echo $count++; ?></td>
 							<td class="center"><img class="rounded" src="<?php echo get_image_url('staff', $row['photo']);?>" width="40" height="40" /></td>
-							<?php if (is_superadmin_loggedin()): ?>
+							<?php if (is_multi_school()): ?>
 							<td><?php echo get_type_name_by_id('branch', $row['branch_id']);?></td>
 							<?php endif; ?>
 							<td><?php echo $row['name'];?><br><small><?php echo $row['uniqid'];?></small></td>
@@ -125,7 +125,7 @@
         </div>
 		<?php echo form_open('advance_salary/save', array('class' => 'form-horizontal frm-submit')); ?>
 			<div class="panel-body">
-			<?php if (is_superadmin_loggedin()): ?>
+			<?php if (is_multi_school()): ?>
 			<div class="form-group mt-md">
 				<label class="col-md-3 control-label"><?=translate('branch')?> <span class="required">*</span></label>
 				<div class="col-md-9">

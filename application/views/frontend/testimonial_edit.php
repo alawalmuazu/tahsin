@@ -12,7 +12,7 @@
 			<div class="tab-pane active" id="edit">
 			    <?php echo form_open_multipart($this->uri->uri_string(), array('class' => 'form-horizontal form-bordered frm-submit-data')); ?>
 					<input type="hidden" name="testimonial_id" value="<?php echo $testimonial['id']; ?>">
-					<?php if (is_superadmin_loggedin()): ?>
+					<?php if (is_multi_school()): ?>
 					<div class="form-group">
 						<label class="col-md-3 control-label"><?=translate('branch')?> <span class="required">*</span></label>
 						<div class="col-md-6">

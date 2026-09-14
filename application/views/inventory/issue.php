@@ -16,7 +16,7 @@
 				<table class="table table-bordered table-hover table-condensed nowrap" id="invIssuelist" cellpadding="0" cellspacing="0" width="100%">
 					<thead>
 						<tr>
-<?php if (is_superadmin_loggedin()): ?>
+<?php if (is_multi_school()): ?>
 							<th><?=translate('branch')?></th>
 <?php endif; ?>
 							<th><?php echo translate('role'); ?></th>
@@ -35,7 +35,7 @@
 			<div id="create" class="tab-pane">
 				<?php echo form_open('inventory/issue_save', array('id' => 'frmSubmit')); ?>
 					<div class="mt-lg form-horizontal form-bordered">
-					<?php if (is_superadmin_loggedin()): ?>
+					<?php if (is_multi_school()): ?>
 						<div class="form-group">
 							<label class="col-md-3 control-label"><?=translate('branch')?> <span class="required">*</span></label>
 							<div class="col-md-6">

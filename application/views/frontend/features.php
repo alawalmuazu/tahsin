@@ -16,7 +16,7 @@
 					<thead>
 						<tr>
 							<th><?php echo translate('sl'); ?></th>
-<?php if (is_superadmin_loggedin()): ?>
+<?php if (is_multi_school()): ?>
 							<th><?=translate('branch')?></th>
 <?php endif; ?>
 							<th><?php echo translate('icon'); ?></th>
@@ -36,7 +36,7 @@
 								?>
 						<tr>
 							<td><?php echo $count++; ?></td>
-<?php if (is_superadmin_loggedin()): ?>
+<?php if (is_multi_school()): ?>
 							<td><?php echo $row['branch_name'];?></td>
 <?php endif; ?>
 							<td class="widget-row-in"><i class="<?php echo $elements['icon']; ?>"></i></td>
@@ -62,7 +62,7 @@
 	<?php if (get_permission('frontend_features', 'is_add')) { ?>
 			<div class="tab-pane" id="create">
 				<?php echo form_open_multipart($this->uri->uri_string(), array('class' => 'form-horizontal form-bordered frm-submit')); ?>
-					<?php if (is_superadmin_loggedin()): ?>
+					<?php if (is_multi_school()): ?>
 					<div class="form-group">
 						<label class="col-md-3 control-label"><?=translate('branch')?> <span class="required">*</span></label>
 						<div class="col-md-6">

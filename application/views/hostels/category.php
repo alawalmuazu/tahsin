@@ -7,7 +7,7 @@
 					<h4 class="panel-title"><i class="far fa-edit"></i> <?=translate('add_category')?></h4>
 				</header>
 				<div class="panel-body">
-					<?php if (is_superadmin_loggedin()): ?>
+					<?php if (is_multi_school()): ?>
 						<div class="form-group">
 							<label class="control-label"><?=translate('branch')?> <span class="required">*</span></label>
 							<?php
@@ -66,7 +66,6 @@
 						<thead>
 							<tr>
 								<th><?=translate('sl')?></th>
-								<th><?=translate('branch')?></th>
 								<th><?=translate('name')?></th>
 								<th><?=translate('type')?></th>
 								<th><?=translate('remarks')?></th>
@@ -81,7 +80,6 @@
 						?>
 							<tr>
 								<td><?php echo $count++;?></td>
-								<td><?php echo $row['branch_name'];?></td>
 								<td><?php echo $row['name'];?></td>
 								<td><?php echo ucfirst($row['type']);?> </td>
 								<td><?php echo $row['description'];?></td>
@@ -121,7 +119,7 @@
 			</header>
 			<div class="panel-body">
 				<input type="hidden" name="category_id" id="ecategory_id" value="" >
-				<?php if (is_superadmin_loggedin()): ?>
+				<?php if (is_multi_school()): ?>
 					<div class="form-group">
 						<label class="control-label"><?=translate('branch')?> <span class="required">*</span></label>
 						<?php

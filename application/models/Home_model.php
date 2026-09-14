@@ -10,31 +10,7 @@ class Home_model extends MY_Model
 
     public function getDefaultBranch()
     {
-        $saasExisting = $this->app_lib->isExistingAddon('saas');
-        if ($saasExisting && $this->db->table_exists("custom_domain")) {
-            $getDomain = $this->getCurrentDomain();
-            if(!empty($getDomain)) {
-                return $getDomain->school_id; 
-            } else {
-                $school = "";
-                $school = $this->uri->segment(1);
-                $row = $this->db->select('branch_id')->get_where('front_cms_setting', array('url_alias' => $school))->row_array();
-                if (empty($row) || $row['branch_id'] == 0) {
-                    return $this->getCMSdefault();
-                } else {
-                    return $row['branch_id'];
-                }
-            }
-        } else {
-            $school = "";
-            $school = $this->uri->segment(1);
-            $row = $this->db->select('branch_id')->get_where('front_cms_setting', array('url_alias' => $school))->row_array();
-            if (empty($row) || $row['branch_id'] == 0) {
-                return $this->getCMSdefault();
-            } else {
-                return $row['branch_id'];
-            }
-        }
+        return SCHOOL_ID;
     }
 
     public function getCmsHome($item_type, $branch_id, $active = 1, $single = true)

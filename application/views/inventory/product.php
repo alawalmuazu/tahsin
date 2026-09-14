@@ -17,9 +17,6 @@
 					<thead>
 						<tr>
 							<th><?php echo translate('sl'); ?></th>
-<?php if (is_superadmin_loggedin()): ?>
-							<th><?=translate('branch')?></th>
-<?php endif; ?>
 							<th><?php echo translate('name'); ?></th>
 							<th><?php echo translate('code'); ?></th>
 							<th><?php echo translate('category'); ?></th>
@@ -40,17 +37,6 @@
 							?>	
 						<tr>
 							<td><?php echo $count++; ?></td>
-<?php if (is_superadmin_loggedin()): ?>
-							<td>
-								<?php 
-									if(empty($row['branch_id'])) {
-										echo '<span class="badge badge-success">Statewide</span>';
-									} else {
-										echo get_type_name_by_id('branch', $row['branch_id']);
-									}
-								?>
-							</td>
-<?php endif; ?>
 							<td><?php echo html_escape($row['name']); ?></td>
 							<td><?php echo html_escape($row['code']); ?></td>
 							<td><?php echo html_escape($row['category_name']); ?></td>
@@ -78,7 +64,7 @@
 			<div id="create" class="tab-pane">
 				<?php echo form_open($this->uri->uri_string(), array('class' => 'form-horizontal form-bordered frm-submit')); ?>
 					
-					<?php if (is_superadmin_loggedin()): ?>
+					<?php if (is_multi_school()): ?>
 						<div class="form-group">
 							<label class="control-label col-md-3"><?=translate('branch')?> <span class="required">*</span></label>
 							<div class="col-md-6">
@@ -181,7 +167,6 @@
 <script type="text/javascript">
 	$('#branch_id').on('change', function() {
 		var branchID = $(this).val();
-		// Reload category dropdown (works for both a specific branch and Statewide)
 		$.ajax({
 			url: "<?=base_url('ajax/getDataByBranch')?>",
 			type: 'POST',
@@ -194,7 +179,6 @@
 			}
 		});
 
-		// Reload unit dropdowns (works for both a specific branch and Statewide)
 		$.ajax({
 			url: "<?=base_url('ajax/getDataByBranch')?>",
 			type: 'POST',
@@ -207,11 +191,4 @@
 			}
 		});
 	});
-
-	// On page load: if Statewide is already selected (branch_id is empty), pre-load dropdowns
-	<?php if (is_superadmin_loggedin() && empty($branch_id)): ?>
-	$(document).ready(function() {
-		$('#branch_id').trigger('change');
-	});
-	<?php endif; ?>
 </script>

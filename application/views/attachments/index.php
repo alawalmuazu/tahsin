@@ -19,7 +19,7 @@
 								<thead>
 									<tr>
 										<th><?=translate('sl')?></th>
-									<?php if (is_superadmin_loggedin()) { ?>
+									<?php if (is_multi_school()) { ?>
 										<th><?=translate('branch')?></th>
 									<?php } ?>
 										<th><?=translate('title')?></th>
@@ -36,7 +36,7 @@
 									<?php  $count = 1; foreach($attachmentss as $row): ?>
 									<tr>
 										<td><?php echo $count++; ?></td>
-									<?php if (is_superadmin_loggedin()) { ?>
+									<?php if (is_multi_school()) { ?>
 										<td><?php echo $row['branch_name'];?></td>
 									<?php } ?>
 										<td><?php echo $row['title'];?></td>
@@ -79,7 +79,7 @@
 					</div>
 					<div class="tab-pane" id="create">
 						<?php echo form_open_multipart('attachments/save', array('class' => 'form-bordered form-horizontal frm-submit-data')); ?>
-							<?php if (is_superadmin_loggedin() ): ?>
+							<?php if (is_multi_school() ): ?>
 							<div class="form-group">
 								<label class="control-label col-md-3"><?=translate('branch')?> <span class="required">*</span></label>
 								<div class="col-md-6">

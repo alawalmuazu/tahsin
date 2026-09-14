@@ -21,7 +21,7 @@
 					<thead>
 						<tr>
 							<th class="no-sort"><?=translate('sl')?></th>
-<?php if (is_superadmin_loggedin()): ?>
+<?php if (is_multi_school()): ?>
 							<th><?=translate('branch')?></th>
 <?php endif; ?>
 							<th><?=translate('question')?></th>

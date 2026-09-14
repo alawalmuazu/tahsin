@@ -17,9 +17,6 @@
 					<thead>
 						<tr>
 							<th width="60"><?php echo translate('sl'); ?></th>
-<?php if (is_superadmin_loggedin()): ?>
-							<th><?=translate('branch')?></th>
-<?php endif; ?>
 							<th class="min-w-md"><?php echo translate('store') . " " . translate('name'); ?></th>
 							<th><?php echo translate('store_code'); ?></th>
 							<th class="min-w-md"><?php echo translate('mobile_no'); ?></th>
@@ -36,17 +33,6 @@
 						?>	
 						<tr>
 							<td><?php echo $count++; ?></td>
-<?php if (is_superadmin_loggedin()): ?>
-							<td>
-								<?php 
-									if(empty($row['branch_name'])) {
-										echo '<span class="badge badge-success">Statewide</span>';
-									} else {
-										echo $row['branch_name']; 
-									}
-								?>
-							</td>
-<?php endif; ?>
 							<td><?php echo html_escape($row['name']); ?></td>
 							<td><?php echo html_escape($row['code']); ?></td>
 							<td><?php echo html_escape($row['mobileno']); ?></td>
@@ -72,7 +58,7 @@
 <?php if (get_permission('product_store', 'is_add')){ ?>
 			<div id="create" class="tab-pane">
 				<?php echo form_open($this->uri->uri_string(), array('class' => 'form-horizontal form-bordered frm-submit')); ?>
-					<?php if (is_superadmin_loggedin()): ?>
+					<?php if (is_multi_school()): ?>
 					<div class="form-group">
 						<label class="col-md-3 control-label"><?=translate('branch')?> <span class="required">*</span></label>
 						<div class="col-md-6">

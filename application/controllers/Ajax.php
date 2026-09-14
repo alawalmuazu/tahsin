@@ -52,21 +52,9 @@ class Ajax extends MY_Controller
     {
         $classID = $this->input->post('class_id');
         $sectionID = $this->input->post('section_id');
-        $branchID = get_type_name_by_id('class', $classID, 'branch_id');
+        $branchID = SCHOOL_ID;
         $html = "";
-        // Use hybrid query: board subjects + branch custom subjects
-        $board_id = $this->app_lib->getBoardIdForBranch($branchID);
-        if (!empty($board_id)) {
-            $this->db->group_start();
-            $this->db->where('board_id', $board_id);
-            $this->db->or_group_start();
-            $this->db->where('branch_id', $branchID);
-            $this->db->where('board_id IS NULL', null, false);
-            $this->db->group_end();
-            $this->db->group_end();
-        } else {
-            $this->db->where('branch_id', $branchID);
-        }
+        $this->db->where('branch_id', SCHOOL_ID);
         $this->db->order_by('name', 'ASC');
         $subjects = $this->db->get('subject')->result_array();
         if (count($subjects)) {
@@ -110,54 +98,14 @@ class Ajax extends MY_Controller
     {
         $html = "";
         $table = $this->input->post('table');
-        $branch_id = $this->application_model->get_branch_id();
-
-        // Tables allowed to load statewide (NULL branch_id) when superadmin picks Statewide
-        $statewide_allowed = array('product_category', 'product_unit', 'exam_term', 'exam_mark_distribution');
-
-        if (!empty($branch_id)) {
-            // Use hybrid query for board-enabled tables
-            $board_tables = array('class', 'section', 'subject', 'grade', 'exam_term', 'student_category', 'staff_department', 'staff_designation');
-            if (in_array($table, $board_tables)) {
-                $items = $this->app_lib->getHybridItems($table, $branch_id);
-                $result = array();
-                foreach ($items as $item) {
-                    $result[] = array('id' => $item->id, 'name' => $item->name);
-                }
-            } else {
-                $custom_hybrid = array('product_category', 'product_store', 'product_supplier', 'product_unit', 'product');
-                if (in_array($table, $custom_hybrid)) {
-                    $this->db->group_start();
-                    $this->db->where('branch_id', $branch_id);
-                    $this->db->or_where('branch_id IS NULL', null, false);
-                    $this->db->group_end();
-                } else {
-                    $this->db->where('branch_id', $branch_id);
-                }
-                $result = $this->db->select('id,name')->get($table)->result_array();
-            }
-            if (count($result)) {
-                $html .= "<option value=''>" . translate('select') . "</option>";
-                foreach ($result as $row) {
-                    $html .= '<option value="' . $row['id'] . '">' . $row['name'] . '</option>';
-                }
-            } else {
-                $html .= '<option value="">' . translate('no_information_available') . '</option>';
-            }
-        } elseif (is_superadmin_loggedin() && in_array($table, $statewide_allowed)) {
-            // Superadmin selected Statewide — load records with NULL branch_id (statewide entries)
-            $this->db->where('branch_id IS NULL', null, false);
-            $result = $this->db->select('id,name')->get($table)->result_array();
-            if (count($result)) {
-                $html .= "<option value=''>" . translate('select') . "</option>";
-                foreach ($result as $row) {
-                    $html .= '<option value="' . $row['id'] . '">' . $row['name'] . '</option>';
-                }
-            } else {
-                $html .= '<option value="">' . translate('no_information_available') . '</option>';
+        $result = $this->db->select('id,name')->where('branch_id', SCHOOL_ID)->get($table)->result_array();
+        if (count($result)) {
+            $html .= "<option value=''>" . translate('select') . "</option>";
+            foreach ($result as $row) {
+                $html .= '<option value="' . $row['id'] . '">' . $row['name'] . '</option>';
             }
         } else {
-            $html .= '<option value="">' . translate('select_branch_first') . '</option>';
+            $html .= '<option value="">' . translate('no_information_available') . '</option>';
         }
         echo $html;
     }
@@ -428,16 +376,4 @@ class Ajax extends MY_Controller
         }
     }
 
-    /**
-     * Returns an array of role IDs marked as statewide (is_statewide = 1).
-     * Used by the employee add/edit form to dynamically toggle branch & dept fields.
-     */
-    public function getStatewideRoles()
-    {
-        $this->db->select('id');
-        $this->db->where('is_statewide', 1);
-        $result = $this->db->get('roles')->result_array();
-        $ids = array_map('intval', array_column($result, 'id'));
-        echo json_encode(array('statewide_ids' => $ids));
-    }
 }

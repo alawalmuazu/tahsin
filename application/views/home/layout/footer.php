@@ -7,18 +7,6 @@
                     <div class="footer-logo">
                         <img src="<?php echo base_url('uploads/app_image/logo-nav.png?v=' . APP_VERSION); ?>" alt="Tahsin Academy" class="tahsin-footer-logo">
                     </div>
-                    <?php if ($global_config['footer_branch_switcher']) {  ?>
-                    <div class="footer-select mb-3 mt-4">
-                        <div class="form-group">
-                            <?php
-                                $branch_list = $this->home_model->branch_list();
-                                $default_branch = $this->home_model->getDefaultBranch();
-                                echo form_dropdown("branch_id", $branch_list, $default_branch, "class='form-control' id='activateSchool'
-                                data-plugin-selectTwo");
-                            ?>
-                        </div>
-                    </div>
-                    <?php } ?>
                     <p class="footer-dec"><?php echo $cms_setting['footer_about_text']; ?></p>
                     <ul class="social">
                     <?php if (!empty($cms_setting['facebook_url'])) { ?>

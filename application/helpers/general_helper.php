@@ -207,16 +207,12 @@ function is_superadmin_loggedin()
     return false;
 }
 
-// is state executive logged in @return boolean
-function is_state_executive_loggedin()
+/*
+ * This build serves Tahsin Academy only. Views used to show a school picker to
+ * whoever could work across schools; that UI is gated on this and never renders.
+ */
+function is_multi_school()
 {
-    $CI = &get_instance();
-    $role_id = $CI->session->userdata('loggedin_role_id');
-    if (empty($role_id)) return false;
-    $role = $CI->db->select('is_statewide')->where('id', $role_id)->get('roles')->row();
-    if (!empty($role) && $role->is_statewide == 1) {
-        return true;
-    }
     return false;
 }
 
@@ -325,11 +321,18 @@ function get_loggedin_user_type()
     return $CI->session->userdata('loggedin_type');
 }
 
-// get logged in user type
+// this build serves a single school, so the branch key is always the same
 function get_loggedin_branch_id()
 {
+    return SCHOOL_ID;
+}
+
+// the school name shown wherever a branch used to be named
+function school_name()
+{
     $CI = &get_instance();
-    return $CI->session->userdata('loggedin_branch');
+    $name = $CI->db->select('school_name')->where('id', SCHOOL_ID)->get('branch')->row();
+    return (!empty($name) && !empty($name->school_name)) ? $name->school_name : SCHOOL_NAME;
 }
 
 // get parent selected active children Id

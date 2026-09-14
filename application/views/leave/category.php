@@ -7,7 +7,7 @@
 			</header>
             <?php echo form_open($this->uri->uri_string()); ?>
 				<div class="panel-body">
-				<?php if (is_superadmin_loggedin()): ?>
+				<?php if (is_multi_school()): ?>
 					<div class="form-group">
 						<label class="control-label"><?=translate('branch')?> <span class="required">*</span></label>
 						<?php
@@ -61,7 +61,6 @@
 						<thead>
 							<tr>
 								<th><?=translate('sl')?></th>
-								<th><?=translate('branch')?></th>
 								<th><?=translate('name')?></th>
 								<th><?=translate('role')?></th>
 								<th><?=translate('days')?></th>
@@ -76,7 +75,6 @@
 								?>
 							<tr>
 								<td><?php echo $i++; ?></td>
-								<td><?php echo get_type_name_by_id('branch', $row['branch_id']);?></td>
 								<td><?php echo $row['name']; ?></td>
 								<td><?php echo get_type_name_by_id('roles', $row['role_id']); ?></td>
 								<td><?php echo $row['days']; ?></td>
@@ -116,7 +114,7 @@
 		<?php echo form_open('leave/category_edit', array('class' => 'frm-submit')); ?>
 			<div class="panel-body">
 				<input type="hidden" name="category_id" id="ecategory_id" value="">
-				<?php if (is_superadmin_loggedin()): ?>
+				<?php if (is_multi_school()): ?>
 					<div class="form-group">
 						<label class="control-label"><?=translate('branch')?> <span class="required">*</span></label>
 						<?php

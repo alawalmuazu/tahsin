@@ -14,7 +14,7 @@
 				<?php echo form_open($this->uri->uri_string(), array('class' => 'frm-submit')); ?>
 					<div class="form-horizontal form-bordered mb-lg">
 						<input type="hidden" name="reminder_id" value="<?=$reminder['id']?>">
-					<?php if (is_superadmin_loggedin() ): ?>
+					<?php if (is_multi_school() ): ?>
 						<div class="form-group">
 							<label class="control-label col-md-3"><?=translate('branch')?> <span class="required">*</span></label>
 							<div class="col-md-6">

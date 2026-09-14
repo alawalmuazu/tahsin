@@ -218,10 +218,10 @@
             <li><a href="#lifecycle">2. Request lifecycle</a></li>
             <li><a href="#directories">3. Directory map</a></li>
             <li><a href="#controllers">4. Controller hierarchy</a></li>
-            <li><a href="#multitenancy">5. Branch &amp; board</a></li>
+            <li><a href="#multitenancy">5. Scoping: school &amp; session</a></li>
             <li><a href="#iam">6. Identity &amp; access</a></li>
             <li><a href="#modules">7. Core modules</a></li>
-            <li><a href="#kaduna">8. Academy reporting layer</a></li>
+            <li><a href="#single-school">8. Single-school conversion</a></li>
             <li><a href="#views">9. Views &amp; layout</a></li>
             <li><a href="#libraries">10. Shared libraries</a></li>
             <li><a href="#navigate">11. How to find a feature</a></li>
@@ -241,12 +241,12 @@
 
         <section id="overview" class="glass-panel">
             <h2>1. What the app is</h2>
-            <p>Tahsin Academy is a <strong>multi-tenant school ERP</strong> (CodeIgniter lineage). The public brand is Tahsin Academy; older Smart School strings are rewritten in <code>MY_Controller::brandName()</code>. Stack: PHP, MySQL/MariaDB, Apache with <code>.htaccess</code> rewriting. App version is <code>7.0.0</code>.</p>
-            <p>It adds two layers on top of a normal single-school product:</p>
+            <p>Tahsin Academy is a <strong>single-school ERP</strong> (CodeIgniter lineage). The public brand is Tahsin Academy; older Smart School strings are rewritten in <code>MY_Controller::brandName()</code>. Stack: PHP, MySQL/MariaDB, Apache with <code>.htaccess</code> rewriting. App version is <code>7.1.0</code>.</p>
+            <p>The app descends from a multi-school, state-government platform, and that lineage shapes the schema:</p>
             <ol>
-                <li><strong>School (branch)</strong> — one school’s students, staff, fees, attendance.</li>
-                <li><strong>Education board</strong> — shared curriculum, classes, subjects, and standards that cascade to every school on that board.</li>
-                <li><strong>State</strong> — Super Admin / statewide roles see all schools, NEMIS reports, inspections, transfers, and analytics.</li>
+                <li><strong>One school.</strong> Students, staff, fees, and attendance all belong to Tahsin Academy. There is no school picker anywhere in the UI.</li>
+                <li><strong>The <code>branch_id</code> column stays.</strong> It appears in nearly every table, so it was cheaper to pin it than to drop it. It only ever holds <code>SCHOOL_ID</code>, defined in <code>application/config/constants.php</code>.</li>
+                <li><strong>Read it through <code>get_loggedin_branch_id()</code>.</strong> That helper returns <code>SCHOOL_ID</code> unconditionally. Never take the value from a request parameter.</li>
             </ol>
             <div class="table-container">
                 <table>
@@ -256,7 +256,7 @@
                         <tr><td><strong>Language / DB</strong></td><td>PHP, MySQL / MariaDB</td></tr>
                         <tr><td><strong>Server</strong></td><td>Apache, <code>.htaccess</code> URL rewriting</td></tr>
                         <tr><td><strong>Entry point</strong></td><td><code>index.php</code> — environment from <code>CI_ENV</code> or <code>.env</code></td></tr>
-                        <tr><td><strong>Architecture</strong></td><td>Multi-tenant: branch + board + statewide roles</td></tr>
+                        <tr><td><strong>Architecture</strong></td><td>Single school; <code>branch_id</code> pinned to <code>SCHOOL_ID</code></td></tr>
                         <tr><td><strong>Controllers / models</strong></td><td>~75 controllers, ~70 models, ~69 view folders</td></tr>
                     </tbody>
                 </table>
@@ -362,43 +362,36 @@ classDiagram
                 <li>Write through a model.</li>
                 <li>Render <code>layout/index</code> and set <code>$this-&gt;data['sub_page']</code> to the inner view.</li>
             </ol>
-            <p>Super Admin can pick any <code>branch_id</code> (usually from a POST). Everyone else is locked to <code>get_loggedin_branch_id()</code>.</p>
+            <p>Every role is locked to <code>get_loggedin_branch_id()</code>, including Super Admin. No controller should read <code>branch_id</code> from a POST.</p>
         </section>
 
         <section id="multitenancy" class="glass-panel">
-            <h2>5. Multi-tenancy: branch + board</h2>
-            <p>This is the most important design in the repo.</p>
+            <h2>5. Scoping: <code>branch_id</code> and <code>session_id</code></h2>
+            <p>Two keys scope almost every query. One is fixed, one is not.</p>
             <ul>
-                <li><code>branch</code> = one school.</li>
-                <li><code>education_board</code> = a board that owns many schools.</li>
-                <li><code>branch.board_id</code> links a school to a board.</li>
+                <li><code>branch_id</code> — the school. Always <code>SCHOOL_ID</code> (1). Fixed for the life of the install.</li>
+                <li><code>session_id</code> — the academic year. Changes yearly; read it with <code>get_session_id()</code>.</li>
             </ul>
             <div class="mermaid-wrapper">
                 <div class="mermaid">
 graph TD
-    STATE["Super Admin"]
-    BOARD1["Basic Education"]
-    BOARD2["Secondary Education"]
-    SCHOOL1["Primary"]
-    SCHOOL2["Junior Secondary"]
-    SCHOOL3["Senior Secondary"]
-    STATE --> BOARD1
-    STATE --> BOARD2
-    BOARD1 --> SCHOOL1
-    BOARD1 --> SCHOOL2
-    BOARD2 --> SCHOOL3
+    SCHOOL["Tahsin Academy<br/>branch_id = 1"]
+    S1["2024/2025<br/>session_id"]
+    S2["2025/2026<br/>session_id"]
+    E1["enroll rows"]
+    E2["enroll rows"]
+    SCHOOL --> S1
+    SCHOOL --> S2
+    S1 --> E1
+    S2 --> E2
                 </div>
             </div>
-            <p>Shared catalogs (class, subject, section, staff department, designation, and similar) use a <strong>hybrid load</strong> in <code>App_lib::getHybridItems()</code>:</p>
-            <ul>
-                <li>rows owned by the school’s <code>board_id</code>, <strong>plus</strong></li>
-                <li>rows created only for that school (<code>branch_id</code> set, <code>board_id</code> null).</li>
-            </ul>
+            <p>Catalogs (class, subject, section, staff department, designation, and similar) are a single flat set of rows owned by the school. The old board-plus-branch hybrid load is gone, along with the <code>board_id</code> column; <code>App_lib::getHybridItems()</code> survives as a thin wrapper that filters on <code>SCHOOL_ID</code>.</p>
             <div class="alert alert-info">
-                <h4>Hybrid loading</h4>
-                <p>The board sets NERDC-style classes/subjects once; a school can still add local extras. Super Admin manages boards in <code>Education_board</code>. Academic years are a second axis: most student data is scoped by <code>session_id</code> via <code>get_session_id()</code>.</p>
+                <h4>Sessions matter more than schools</h4>
+                <p>Since the school key never varies, <code>session_id</code> is the scoping bug you are actually likely to hit. Most student data is per-session, so a query missing <code>session_id</code> silently returns every year at once.</p>
             </div>
-            <p>Enrollment is not “student lives in a class forever.” A student row is linked to a school/class/section <strong>per session</strong> via <code>enroll</code>.</p>
+            <p>Enrollment is not “student lives in a class forever.” A student row is linked to a class/section <strong>per session</strong> via <code>enroll</code>.</p>
         </section>
 
         <section id="iam" class="glass-panel">
@@ -408,14 +401,14 @@ graph TD
                 <table>
                     <thead><tr><th>Role</th><th>Entity table</th><th>Portal</th></tr></thead>
                     <tbody>
-                        <tr><td>1</td><td><code>staff</code></td><td>Super Admin — all branches</td></tr>
+                        <tr><td>1</td><td><code>staff</code></td><td>Super Admin — every module</td></tr>
                         <tr><td>2+ staff roles</td><td><code>staff</code></td><td>School back office</td></tr>
                         <tr><td>6</td><td><code>parent</code></td><td>Parent dashboard</td></tr>
                         <tr><td>7</td><td><code>student</code></td><td>Student dashboard</td></tr>
                     </tbody>
                 </table>
             </div>
-            <p>Super Admin always passes <code>get_permission()</code>. Other staff roles use <code>staff_privileges</code> + <code>permission</code>. Statewide roles are flagged with <code>roles.is_statewide</code> and checked via <code>is_state_executive_loggedin()</code>.</p>
+            <p>Super Admin always passes <code>get_permission()</code>. Other staff roles use <code>staff_privileges</code> + <code>permission</code>.</p>
             <h3>Credential lifecycle</h3>
             <p>There is a hybrid credential flow (not just “admin types the password”):</p>
             <div class="table-container">
@@ -432,7 +425,7 @@ graph TD
                 <li>Public signup is <code>Registration</code>.</li>
                 <li>Approvals are <code>Credential_approvals</code>.</li>
                 <li>CSV import can create students, staff, and parents without passwords, then send setup links.</li>
-                <li>Student NIN is validated statewide (<code>unique_nin</code> in <code>Student</code>).</li>
+                <li>Student NIN must be unique across the school (<code>unique_nin</code> in <code>Student</code>).</li>
             </ul>
             <p>Students and parents use a different sidebar (<code>userrole/sidebar</code>) and a lighter dashboard.</p>
             <div class="mermaid-wrapper">
@@ -466,25 +459,27 @@ flowchart TD
             <p>Paystack, Stripe, PayPal, Razorpay, Midtrans, Flutterwave, SSLCommerz; Twilio and other SMS; PHPMailer; mPDF; Zoom and BigBlueButton (<code>Live_class</code>).</p>
         </section>
 
-        <section id="kaduna" class="glass-panel">
-            <h2>8. Academy reporting layer</h2>
-            <p>Extra modules that sit above a single-school ERP — boards, analytics, inspections, and government-style exports.</p>
+        <section id="single-school" class="glass-panel">
+            <h2>8. Single-school conversion</h2>
+            <p>The multi-school and state-government layer was removed. These modules no longer exist: <code>Education_board</code>, <code>State_analytics</code>, <code>Nemis</code>, <code>School_inspection</code>, <code>Infrastructure</code>, <code>Teacher_transfer</code>, and the <code>Branch</code> CRUD screens, along with their models, views, routes, and permissions. <code>Health</code> (student health records) was kept.</p>
+            <h3>What to know when editing</h3>
             <div class="table-container">
                 <table>
-                    <thead><tr><th>Area</th><th>Controllers</th><th>Purpose</th></tr></thead>
+                    <thead><tr><th>Concern</th><th>Where</th><th>Behaviour</th></tr></thead>
                     <tbody>
-                        <tr><td>Boards</td><td><code>Education_board</code></td><td>Shared curriculum and catalogs</td></tr>
-                        <tr><td>State dashboard</td><td><code>State_analytics</code></td><td>Super Admin / statewide totals, gender, board breakdown</td></tr>
-                        <tr><td>NEMIS</td><td><code>Nemis</code></td><td>Census, enrolment, UBEC/WAEC-style government exports</td></tr>
-                        <tr><td>Inspections</td><td><code>School_inspection</code></td><td>School quality visits</td></tr>
-                        <tr><td>Infrastructure</td><td><code>Infrastructure</code></td><td>Facilities tracking</td></tr>
-                        <tr><td>Transfers</td><td><code>Teacher_transfer</code></td><td>Move staff between schools</td></tr>
-                        <tr><td>Health</td><td><code>Health</code></td><td>Student health records</td></tr>
-                        <tr><td>Seeds</td><td><code>application/migrations/kaduna_nerdc_seeds.sql</code></td><td>NERDC class/subject seed data</td></tr>
+                        <tr><td>School identity</td><td><code>SCHOOL_ID</code>, <code>SCHOOL_NAME</code>, <code>SCHOOL_MOTTO</code> in <code>constants.php</code></td><td>The only place these literals are defined</td></tr>
+                        <tr><td>Tenant key</td><td><code>get_loggedin_branch_id()</code>, <code>Application_model::get_branch_id()</code></td><td>Always return <code>SCHOOL_ID</code>; ignore request input</td></tr>
+                        <tr><td>School-picker UI</td><td><code>is_multi_school()</code></td><td>Always <code>false</code>. Legacy pickers are still gated on it rather than deleted from 246 views, so they never render.</td></tr>
+                        <tr><td>Display name</td><td><code>school_name()</code></td><td>Reads <code>branch.school_name</code>, falls back to <code>SCHOOL_NAME</code></td></tr>
+                        <tr><td>Student IDs</td><td><code>Student_model</code></td><td><code>TA-{YEAR}-{PADDED_ID}</code>; no LGA component</td></tr>
+                        <tr><td>Migration</td><td><code>application/migrations/single_school_tahsin_academy.sql</code></td><td>Collapses data onto branch 1, dedups catalogs, drops state tables and columns</td></tr>
                     </tbody>
                 </table>
             </div>
-            <p><code>State_analytics</code> is gated with <code>is_superadmin_loggedin() || is_state_executive_loggedin()</code>.</p>
+            <div class="alert alert-info">
+                <h4>Adding a feature</h4>
+                <p>Scope new queries with <code>get_loggedin_branch_id()</code> so they stay consistent with the rest of the app. Do not add a school selector, and do not reintroduce <code>board_id</code> — that column was dropped from every catalog table.</p>
+            </div>
         </section>
 
         <section id="views" class="glass-panel">
@@ -558,7 +553,7 @@ erDiagram
                             <td><strong>Students</strong></td>
                             <td><span class="tag">Existing</span></td>
                             <td><span class="tag tag-green">Added</span></td>
-                            <td>Exports guardian details. Scoped by branch and session. NIN unique statewide.</td>
+                            <td>Exports guardian details. Scoped by session. NIN unique across the school.</td>
                         </tr>
                         <tr>
                             <td><strong>Employees</strong></td>

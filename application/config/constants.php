@@ -5,8 +5,22 @@ define('UPDATE_INFO_URL', 'https://www.ramomcoder.com/purchase/api/update_info')
 define('UPDATE_INSTALL_URL', 'https://www.ramomcoder.com/purchase/api/update_install');
 define('UPDATE_ADDON_INFO_URL', 'https://www.ramomcoder.com/purchase/api/update_addon_info');
 define('UPDATE_INSTALL_ADDON_URL', 'https://www.ramomcoder.com/purchase/api/update_install_addon');
-define('APP_VERSION', '7.0.3'); // Footer text visible; Kaduna school names → Tahsin Academy
+define('APP_VERSION', '7.1.0'); // Single-school build for Tahsin Academy
 define('U2FA', 'r_2FA');
+
+/*
+|--------------------------------------------------------------------------
+| Single School Identity
+|--------------------------------------------------------------------------
+|
+| This build serves one school only. Every record in the database is still
+| keyed by `branch_id` for historical reasons, so SCHOOL_ID is the single
+| value that key is allowed to take.
+|
+*/
+define('SCHOOL_ID', 1);
+define('SCHOOL_NAME', 'Tahsin Academy');
+define('SCHOOL_MOTTO', 'Excellence In Deen & Duniya');
 
 /*
 |--------------------------------------------------------------------------

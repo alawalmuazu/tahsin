@@ -37,7 +37,6 @@ class School_settings extends Admin_Controller
                 exit();
             }
 
-            $this->form_validation->set_rules('branch_name', translate('branch_name'), 'trim|required|callback_unique_branchname');
             $this->form_validation->set_rules('school_name', translate('school_name'), 'trim|required');
             $this->form_validation->set_rules('email', translate('email'), 'trim|required|valid_email');
             $this->form_validation->set_rules('currency', translate('currency'), 'trim|required');
@@ -114,20 +113,6 @@ class School_settings extends Admin_Controller
         $this->data['sub_page'] = 'school_settings/school';
         $this->data['main_menu'] = 'school_m';
         $this->load->view('layout/index', $this->data);
-    }
-
-    public function unique_branchname($name)
-    {
-        $branchID = $this->school_model->getBranchID();
-        $this->db->where_not_in('id', $branchID);
-        $this->db->where('name', $name);
-        $name = $this->db->get('branch')->num_rows();
-        if ($name == 0) {
-            return true;
-        } else {
-            $this->form_validation->set_message("unique_branchname", translate('already_taken'));
-            return false;
-        }
     }
 
     public function payment()

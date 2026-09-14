@@ -17,7 +17,6 @@
 								<th><?php echo translate('sl'); ?></th>
 								<th><?php echo translate('role') . " " . translate('name'); ?></th>
 								<th><?php echo translate('system_role'); ?></th>
-								<th><i class="fas fa-globe"></i> Statewide</th>
 								<th><?php echo translate('action'); ?></th>
 							</tr>
 						</thead>
@@ -27,13 +26,6 @@
 								<td><?php echo $count++; ?></td>
 								<td><?php echo $row['name']; ?></td>
 								<td><?php echo $row['is_system'] ? translate('yes') :  translate('no'); ?></td>
-								<td>
-									<?php if($row['is_statewide']): ?>
-										<span class="label label-info"><i class="fas fa-globe"></i> Statewide</span>
-									<?php else: ?>
-										<span class="text-muted">—</span>
-									<?php endif; ?>
-								</td>
 								<td class="min-w-xs">
 									<a class="btn btn-default btn-circle icon" data-toggle="tooltip" data-original-title="<?php echo translate('edit'); ?>" href="<?php echo base_url('role/edit/' . $row['id']); ?>"><i class="fas fa-pen-nib"></i></a>
 									<a class="btn btn-default btn-circle" href="<?php echo base_url('role/permission/' . $row['id']); ?>"><i class="fab fa-buromobelexperte"></i> <?php echo translate('permission'); ?></a>
@@ -57,22 +49,6 @@
 						</div>
 					</div>
 
-					<div class="form-group">
-						<label class="col-md-3 control-label">
-							<i class="fas fa-globe"></i> Statewide Role
-						</label>
-						<div class="col-md-6 mb-sm">
-							<div class="checkbox-replace">
-								<label class="i-checks">
-									<input type="hidden" name="is_statewide" value="0">
-									<input type="checkbox" name="is_statewide" id="is_statewide_create" value="1" <?php echo (set_value('is_statewide') == 1 ? 'checked' : ''); ?>>
-									<i></i> Mark this role as <strong>Statewide</strong> (no school branch required)
-								</label>
-							</div>
-							<small class="text-muted"><i class="fas fa-info-circle"></i> Statewide roles (e.g. Commissioner, Permanent Secretary) operate across all branches and do not require a branch assignment.</small>
-						</div>
-					</div>
-					
 					<footer class="panel-footer mt-lg">
 						<div class="row">
 							<div class="col-md-2 col-md-offset-3">

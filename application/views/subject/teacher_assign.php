@@ -16,7 +16,7 @@
 					<thead>
 						<tr>
 							<th>#</th>
-						<?php if (is_superadmin_loggedin()) { ?>
+						<?php if (is_multi_school()) { ?>
 							<th><?=translate('branch')?></th>
 						<?php } ?>
 							<th><?=translate('teacher')?></th>
@@ -31,7 +31,7 @@
 						<?php $count = 1; foreach($assignlist as $row): ?>
 						<tr>
 							<td><?php echo $count++;?></td>
-						<?php if (is_superadmin_loggedin()) { ?>
+						<?php if (is_multi_school()) { ?>
 							<td><?php echo get_type_name_by_id('branch', $row->branch_id); ?></td>
 						<?php } ?>
 							<td><?php echo $row->teacher_name;?></td>
@@ -53,7 +53,7 @@
 <?php if (get_permission('subject_teacher_assign', 'is_add')): ?>
 			<div class="tab-pane" id="create">
 				<?php echo form_open($this->uri->uri_string(), array('class' => 'form-horizontal form-bordered frm-submit'));?>
-					<?php if (is_superadmin_loggedin()): ?>
+					<?php if (is_multi_school()): ?>
 						<div class="form-group">
 							<label class="control-label col-md-3"><?=translate('branch')?> <span class="required">*</span></label>
 							<div class="col-md-6">

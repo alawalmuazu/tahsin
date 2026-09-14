@@ -21,7 +21,6 @@
 						<tr>
 							<th><?php echo translate('sl'); ?></th>
 							<th class="no-sort"><?php echo translate('photo'); ?></th>
-							<th><?php echo translate('branch'); ?></th>
 							<th><?php echo translate('staff_id'); ?></th>
 							<th><?php echo translate('name'); ?></th>
 							<th><?php echo translate('designation'); ?></th>
@@ -29,7 +28,7 @@
 							<th><?php echo translate('email'); ?></th>
 							<th><?php echo translate('mobile_no'); ?></th>
 						<?php
-						if (!is_superadmin_loggedin()){
+						if (!is_multi_school()){
 							$show_custom_fields = custom_form_table('employee', get_loggedin_branch_id());
 							if (count($show_custom_fields)) {
 								foreach ($show_custom_fields as $fields) {
@@ -46,7 +45,6 @@
 							<td class="center">
 								<img src="<?php echo get_image_url('staff', $row->photo); ?>" height="50" />
 							</td>
-							<td><?php echo get_type_name_by_id('branch', $row->branch_id);?></td>
 							<td><?php echo $row->staff_id; ?></td>
 							<td><?php echo $row->name; ?></td>
 							<td><?php echo $row->designation_name; ?></td>

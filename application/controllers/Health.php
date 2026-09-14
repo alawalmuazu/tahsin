@@ -6,7 +6,6 @@ class Health extends Admin_Controller
     public function __construct()
     {
         parent::__construct();
-        // Accessible to superadmin or state executives; regular branch admins get access too
         if (!is_loggedin()) {
             redirect(base_url('authentication'), 'refresh');
         }
@@ -82,7 +81,6 @@ class Health extends Admin_Controller
         // 6. Upload directory writeable
         $upload_dirs = [
             'uploads/'                        => 'Main uploads folder',
-            'uploads/transfer_attachments/'   => 'Transfer attachments',
             'uploads/attachments/'            => 'General attachments',
             'uploads/images/'                 => 'Images',
         ];

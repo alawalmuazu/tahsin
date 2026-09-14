@@ -138,19 +138,6 @@ class Settings extends Admin_Controller
         }
     }
 
-    public function unique_branchname($name)
-    {
-        $this->db->where_not_in('id', get_loggedin_branch_id());
-        $this->db->where('name', $name);
-        $name = $this->db->get('branch')->num_rows();
-        if ($name == 0) {
-            return true;
-        } else {
-            $this->form_validation->set_message("unique_branchname", translate('already_taken'));
-            return false;
-        }
-    }
-
     public function payment()
     {
         if (!get_permission('payment_settings', 'is_view')) {

@@ -16,7 +16,7 @@
 					<thead>
 						<tr>
 							<th><?=translate('sl')?></th>
-						<?php if (is_superadmin_loggedin()): ?>
+						<?php if (is_multi_school()): ?>
 							<th><?=translate('branch')?></th>
 						<?php endif; ?>
 							<th><?=translate('name')?></th>
@@ -28,7 +28,7 @@
 						<?php $count = 1; foreach ($templetelist as $row): ?>	
 						<tr>
 							<td><?php echo $count++; ?></td>
-						<?php if (is_superadmin_loggedin()): ?>
+						<?php if (is_multi_school()): ?>
 							<td><?php echo $row['branch_name'];?></td>
 						<?php endif; ?>
 							<td><?php echo $row['name']; ?></td>
@@ -52,7 +52,7 @@
 		<?php if (get_permission('sendsmsmail_template', 'is_add')){ ?>
 			<div id="create" class="tab-pane">
 				<?php echo form_open($this->uri->uri_string(), array('class' => 'form-horizontal form-bordered frm-submit')); ?>
-				<?php if (is_superadmin_loggedin()): ?>
+				<?php if (is_multi_school()): ?>
 					<div class="form-group">
 						<label class="col-md-3 control-label"><?php echo translate('branch');?> <span class="required">*</span></label>
 						<div class="col-md-6">

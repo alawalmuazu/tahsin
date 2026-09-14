@@ -32,20 +32,11 @@ class Employee extends Admin_Controller
     /* staff form validation rules */
     protected function employee_validation()
     {
-        // Dynamically resolve statewide role IDs from DB (avoids hardcoding)
-        $selectedRole = $this->input->post('user_role');
-        $stateExecutiveRoles = $this->role_model->getStatewideRoleIds();
-        if (is_superadmin_loggedin() && !in_array((int)$selectedRole, $stateExecutiveRoles)) {
-            $this->form_validation->set_rules('branch_id', translate('branch'), 'trim|required');
-        }
         $this->form_validation->set_rules('name', translate('name'), 'trim|required');
         $this->form_validation->set_rules('mobile_no', translate('mobile_no'), 'trim|required');
         $this->form_validation->set_rules('present_address', translate('present_address'), 'trim|required');
-        // Designation & Department are branch-specific — not needed for statewide roles
-        if (!in_array((int)$selectedRole, $stateExecutiveRoles)) {
-            $this->form_validation->set_rules('designation_id', translate('designation'), 'trim|required');
-            $this->form_validation->set_rules('department_id', translate('department'), 'trim|required');
-        }
+        $this->form_validation->set_rules('designation_id', translate('designation'), 'trim|required');
+        $this->form_validation->set_rules('department_id', translate('department'), 'trim|required');
         $this->form_validation->set_rules('joining_date', translate('joining_date'), 'trim|required');
         $this->form_validation->set_rules('qualification', translate('qualification'), 'trim|required');
         $this->form_validation->set_rules('user_role', translate('role'), 'trim|required|callback_valid_role');
@@ -282,13 +273,6 @@ class Employee extends Admin_Controller
         } else {
             return true;
         }
-    }
-
-    // Returns true if the given role ID is a statewide role (loaded from DB)
-    protected function is_state_executive_role($role_id)
-    {
-        $stateExecutiveRoles = $this->role_model->getStatewideRoleIds();
-        return in_array((int) $role_id, $stateExecutiveRoles);
     }
 
     // employee login password change here by admin

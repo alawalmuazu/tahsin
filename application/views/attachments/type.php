@@ -7,7 +7,7 @@
 					<h4 class="panel-title"><i class="far fa-edit"></i> <?=translate('add') . " " . translate('attachment_type')?></h4>
 				</header>
 				<div class="panel-body">
-					<?php if (is_superadmin_loggedin() ): ?>
+					<?php if (is_multi_school() ): ?>
 					<div class="form-group">
 						<label class="control-label"><?=translate('branch')?> <span class="required">*</span></label>
 						<?php
@@ -49,7 +49,6 @@
 						<thead>
 							<tr>
 								<th>#</th>
-								<th><?=translate('branch')?></th>
 								<th><?=translate('type_name')?></th>
 								<th><?=translate('action')?></th>
 							</tr>
@@ -62,7 +61,6 @@
 								?>
 							<tr>
 								<td><?php echo $count++;?></td>
-								<td><?php echo $row['branch_name'];?></td>
 								<td><?php echo $row['name'];?></td>
 								<td>
 								<?php if (get_permission('attachment_type', 'is_edit')): ?>
@@ -100,7 +98,7 @@
 				<h4 class="panel-title"><i class="far fa-edit"></i> <?=translate('edit') . " " . translate('attachment_type')?></h4>
 			</header>
 			<div class="panel-body">
-				<?php if (is_superadmin_loggedin() ): ?>
+				<?php if (is_multi_school() ): ?>
 				<div class="form-group">
 					<label class="control-label"><?=translate('branch')?> <span class="required">*</span></label>
 					<?php

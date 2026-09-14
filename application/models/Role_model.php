@@ -16,13 +16,6 @@ class Role_model extends MY_Model
         return $r;  
     }
 
-    // Returns an array of role IDs that are marked as statewide in the DB
-    public function getStatewideRoleIds()
-    {
-        $result = $this->db->select('id')->where('is_statewide', 1)->get('roles')->result_array();
-        return array_column($result, 'id');
-    }
-
     function getModulesList()
     {
         $this->db->order_by('sorted', 'ASC');
@@ -33,9 +26,8 @@ class Role_model extends MY_Model
     public function save_roles($data)
     {
         $insertData = array(
-            'name'         => $data['role'],
-            'prefix'       => strtolower(str_replace(' ', '', $data['role'])),
-            'is_statewide' => (isset($data['is_statewide']) && $data['is_statewide'] == 1) ? 1 : 0,
+            'name'   => $data['role'],
+            'prefix' => strtolower(str_replace(' ', '', $data['role'])),
         );
 
         if (!isset($data['id']) && empty($data['id'])) {

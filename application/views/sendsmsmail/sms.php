@@ -1,4 +1,4 @@
-<?php $widget = (is_superadmin_loggedin() ? 4 : 6); ?>
+<?php $widget = (is_multi_school() ? 4 : 6); ?>
 <section class="panel">
 	<div class="tabs-custom">
 		<ul class="nav nav-tabs">
@@ -10,7 +10,7 @@
 				<?php echo form_open('sendsmsmail/save', array('class' => 'frm-submit')); ?>
 				<input type="hidden" name="message_type" value="<?=$this->uri->segment(2)?>">
 				<div class="row">
-					<?php if (is_superadmin_loggedin()): ?>
+					<?php if (is_multi_school()): ?>
 					<div class="col-md-4 mb-sm">
 						<div class="form-group">
 							<label class="control-label"><?=translate('branch')?> <span class="required">*</span></label>

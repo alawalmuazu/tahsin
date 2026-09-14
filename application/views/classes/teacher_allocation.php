@@ -7,7 +7,7 @@
 			</header>
 			<?php echo form_open('classes/teacher_allocation_save', array('class' => 'frm-submit'));?>
 				<div class="panel-body">
-					<?php if (is_superadmin_loggedin()): ?>
+					<?php if (is_multi_school()): ?>
 					<div class="form-group">
 						<label class="control-label"><?=translate('branch')?> <span class="required">*</span></label>
 						<?php
@@ -70,7 +70,6 @@
 						<thead>
 							<tr>
 							    <th>#</th>
-								<th><?=translate('branch')?></th>
 								<th><?=translate('class_teacher')?></th>
 								<th><?=translate('class')?></th>
 								<th><?=translate('section')?></th>
@@ -86,7 +85,6 @@
 							?>
 							<tr>
 							    <td><?php echo $count++;?></td>
-								<td><?php echo get_type_name_by_id('branch', $allocation->branch_id);?></td>
 								<td><?php echo $allocation->teacher_name;?></td>
 								<td><?php echo $allocation->class_name;?></td>
 								<td><?php echo $allocation->section_name;?></td>

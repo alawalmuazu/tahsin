@@ -1,5 +1,5 @@
 <?php
-$widget = (is_superadmin_loggedin() ? '' : 'col-md-offset-3');
+$widget = (is_multi_school() ? '' : 'col-md-offset-3');
 $currency_symbol = $global_config['currency_symbol'];
 ?>
 <section class="panel">
@@ -9,7 +9,7 @@ $currency_symbol = $global_config['currency_symbol'];
 	<?php echo form_open($this->uri->uri_string(), array('class' => 'validate')); ?>
 		<div class="panel-body">
 			<div class="row">
-			<?php if (is_superadmin_loggedin() ): ?>
+			<?php if (is_multi_school() ): ?>
 				<div class="col-md-6">
 					<div class="form-group">
 						<label class="control-label"><?=translate('branch')?> <span class="required">*</span></label>

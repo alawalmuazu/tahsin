@@ -1,5 +1,5 @@
 <?php
-$widget = (is_superadmin_loggedin() ? 3 : 4);
+$widget = (is_multi_school() ? 3 : 4);
 $branchID = $student['branch_id'];
 $getParent = $this->student_model->get('parent', array('id' => $student['parent_id']), true);
 if (empty($student['previous_details'])) {
@@ -171,9 +171,9 @@ $div = floatval(12 / $v);
 									<span class="error"></span>
 								</div>
 								<div class="col-md-3 mb-sm">
-									<label class="control-label">State Student ID</label>
+									<label class="control-label">Academy Student ID</label>
 									<input type="text" class="form-control" style="background:#f5f5f5" readonly value="<?=html_escape($student['state_student_id'] ?? '')?>"/>
-									<small class="text-muted">Auto-generated Tahsin Academy ID</small>
+									<small class="text-muted">Auto-generated <?=SCHOOL_NAME?> ID</small>
 								</div>
 								<div class="col-md-3" style="display:none">
 									<span class="error"><?=form_error('register_no')?></span>
@@ -203,7 +203,7 @@ $div = floatval(12 / $v);
 						</div>
 <?php
 	$category = $this->student_fields_model->getStatus('category', $branchID);
-	if (is_superadmin_loggedin()) {
+	if (is_multi_school()) {
 		$v = (3 + floatval($category['status']));
 	} else {
 		$v = (2 + floatval($category['status']));
@@ -211,7 +211,7 @@ $div = floatval(12 / $v);
 	$div = floatval(12 / $v);
 ?>
 						<div class="row mb-md">
-							<?php if (is_superadmin_loggedin()): ?>
+							<?php if (is_multi_school()): ?>
 							<div class="col-md-<?php echo $div; ?> mb-sm">
 								<div class="form-group">
 									<label class="control-label"><?=translate('branch')?> <span class="required">*</span></label>

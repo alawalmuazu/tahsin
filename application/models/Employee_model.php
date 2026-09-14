@@ -14,14 +14,8 @@ class Employee_model extends MY_Model
     // moderator employee all information
     public function save($data, $role = null, $id = null)
     {
-        // Dynamically resolve statewide role IDs from DB — no branch for these roles
-        $stateExecutiveRoles = $this->db->select('id')->where('is_statewide', 1)->get('roles')->result_array();
-        $stateExecutiveRoles = array_column($stateExecutiveRoles, 'id');
-        $userRole = isset($data['user_role']) ? (int) $data['user_role'] : 0;
-        $branchID = in_array($userRole, $stateExecutiveRoles) ? null : $this->application_model->get_branch_id();
-
         $inser_data1 = array(
-            'branch_id' => $branchID,
+            'branch_id' => SCHOOL_ID,
             'name' => $data['name'],
             'sex' => $data['sex'],
             'religion' => $data['religion'],

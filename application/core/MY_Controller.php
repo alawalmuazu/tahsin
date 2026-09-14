@@ -35,9 +35,6 @@ class MY_Controller extends CI_Controller
             }
         }
         $get_config['institute_name'] = $this->brandName($get_config['institute_name'] ?? '');
-        if (!empty($get_config['footer_text'])) {
-            $get_config['footer_text'] = $this->rebrandText($get_config['footer_text']);
-        }
         $this->data['global_config'] = $get_config;
         $this->data['theme_config'] = $this->db->get_where('theme_settings', array('id' => 1))->row_array();
         date_default_timezone_set($get_config['timezone']);
@@ -122,21 +119,7 @@ class MY_Controller extends CI_Controller
     protected function brandName($name = '')
     {
         $name = trim((string) $name);
-        if ($name === ''
-            || stripos($name, 'smartschool') !== false
-            || stripos($name, 'smart school') !== false
-            || stripos($name, 'school management system') !== false
-            || stripos($name, 'kaduna') !== false
-        ) {
-            return 'Tahsin Academy';
-        }
-        return $this->rebrandText($name);
-    }
-
-    protected function rebrandText($text = '')
-    {
-        $text = str_ireplace(array('Smart School', 'SmartSchool', 'Government College Kaduna'), 'Tahsin Academy', (string) $text);
-        return $text;
+        return ($name === '') ? SCHOOL_NAME : $name;
     }
 }
 
@@ -188,7 +171,7 @@ class Frontend_Controller extends MY_Controller
             'cms_active'              => 1,
             'branch_id'               => $branchID,
             'url_alias'               => '',
-            'application_title'       => 'Tahsin Academy',
+            'application_title'       => SCHOOL_NAME,
             'theme'                   => 'green',
             'fav_icon'                => '',
             'logo'                    => '',
@@ -207,7 +190,7 @@ class Frontend_Controller extends MY_Controller
             'footer_background_color' => '#383838',
             'footer_about_text'       => '',
             'footer_text_color'       => '#8d8d8d',
-            'copyright_text'          => '© ' . date('Y') . ' Tahsin Academy',
+            'copyright_text'          => '© ' . date('Y') . ' ' . SCHOOL_NAME,
             'copyright_bg_color'      => '#262626',
             'copyright_text_color'    => '#8d8d8d',
             'facebook_url'            => '',
@@ -224,7 +207,6 @@ class Frontend_Controller extends MY_Controller
             'border_radius'           => '5px',
         );
 
-        // Ensure CMS is always treated as active for the state-level landing page
         // Merge defaults with DB data — DB values win only when non-null
         if (is_array($cms_setting)) {
             // Remove null values from DB row so defaults fill in
@@ -235,16 +217,10 @@ class Frontend_Controller extends MY_Controller
         $cms_setting['cms_active'] = 1;
         $cms_setting['online_admission'] = 1;
         $cms_setting['application_title'] = $this->brandName($cms_setting['application_title'] ?? '');
-        if (!empty($cms_setting['copyright_text'])) {
-            $cms_setting['copyright_text'] = $this->rebrandText($cms_setting['copyright_text']);
-        }
-        if (!empty($cms_setting['footer_about_text'])) {
-            $cms_setting['footer_about_text'] = $this->rebrandText($cms_setting['footer_about_text']);
-        }
         $demoAddress = array('', 'your address', 'address');
         $address = trim((string) ($cms_setting['address'] ?? ''));
-        if ($address === '' || in_array(strtolower($address), $demoAddress, true) || stripos($address, 'kaduna') !== false) {
-            $cms_setting['address'] = 'Tahsin Academy';
+        if (in_array(strtolower($address), $demoAddress, true)) {
+            $cms_setting['address'] = '';
         }
         $phone = trim((string) ($cms_setting['mobile_no'] ?? ''));
         if ($phone === '' || strpos($phone, '123456') !== false || $phone === '08022332233' || $phone === '+12345678') {
@@ -267,7 +243,7 @@ class Frontend_Controller extends MY_Controller
         }
         $footer_about = trim((string) ($cms_setting['footer_about_text'] ?? ''));
         if ($footer_about === '' || stripos($footer_about, 'LorIsum') !== false || stripos($footer_about, 'Lorem Ipsum') !== false) {
-            $cms_setting['footer_about_text'] = 'Tahsin Academy — Excellence In Deen &amp; Duniya. Nurturing future leaders through authentic Islamic values and high academic standards.';
+            $cms_setting['footer_about_text'] = SCHOOL_NAME . ' — ' . SCHOOL_MOTTO . '. Nurturing future leaders through authentic Islamic values and high academic standards.';
         }
         if (empty($cms_setting['logo']) || !file_exists(FCPATH . 'uploads/frontend/images/' . $cms_setting['logo'])) {
             $cms_setting['logo'] = 'tahsin-logo.png';

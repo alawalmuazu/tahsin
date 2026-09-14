@@ -1,5 +1,4 @@
-<?php if (is_superadmin_loggedin() ): ?>
-	<?php $this->load->view('frontend/branch_select'); ?>
+<?php if (is_multi_school() ): ?>
 <?php endif; if (!empty($branch_id)): 
 
 $well_ele = json_decode($wellcome['elements'], true);

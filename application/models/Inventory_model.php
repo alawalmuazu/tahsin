@@ -268,12 +268,8 @@ class Inventory_model extends MY_Model
 
     public function getProductByBranch($branch_id = '')
     {
-        if (!empty($branch_id)) {
-            $this->db->where('branch_id', $branch_id);
-        }
-        // When branch_id is empty (Statewide), no WHERE clause — return all products
-        $result = $this->db->get('product')->result_array();
-        return $result;
+        $this->db->where('branch_id', SCHOOL_ID);
+        return $this->db->get('product')->result_array();
     }
 
     public function save_sales($data)

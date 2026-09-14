@@ -7,7 +7,7 @@
 			</header>
             <?php echo form_open($this->uri->uri_string()); ?>
 				<div class="panel-body">
-				<?php if (is_superadmin_loggedin()): ?>
+				<?php if (is_multi_school()): ?>
 					<div class="form-group">
 						<label class="control-label"><?=translate('branch')?> <span class="required">*</span></label>
 						<?php
@@ -47,7 +47,7 @@
 					<table class="table table-bordered table-hover table-condensed mb-none">
 						<thead>
 							<tr>
-<?php if (is_superadmin_loggedin()): ?>
+<?php if (is_multi_school()): ?>
 							<th><?=translate('branch')?></th>
 <?php endif; ?>
 								<th><?php echo translate('name'); ?></th>
@@ -60,7 +60,7 @@
 							foreach ($categorylist as $row): 
 								?>
 							<tr>
-<?php if (is_superadmin_loggedin()): ?>
+<?php if (is_multi_school()): ?>
 							<td><?php echo $row['branch_name'];?></td>
 <?php endif; ?>
 								<td><?php echo $row['name']; ?></td>
@@ -101,7 +101,7 @@
 		<?php echo form_open('frontend/gallery/category_edit', array('class' => 'frm-submit')); ?>
 			<div class="panel-body">
 				<input type="hidden" name="category_id" id="ecategory_id" value="">
-				<?php if (is_superadmin_loggedin()): ?>
+				<?php if (is_multi_school()): ?>
 					<div class="form-group">
 						<label class="control-label"><?=translate('branch')?> <span class="required">*</span></label>
 						<?php

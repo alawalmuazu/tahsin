@@ -2,7 +2,7 @@
 $this->db->select('homework.*,staff.name as creator_name');
 $this->db->from('homework');
 $this->db->join('staff', 'staff.id = homework.evaluated_by', 'left');
-if (!is_superadmin_loggedin()) {
+if (!is_multi_school()) {
 	$this->db->where('homework.branch_id', get_loggedin_branch_id());
 }
 $this->db->where('homework.id', $homeworkID);

@@ -7,8 +7,7 @@
 		color: #ddd;
 	}
 </style>
-<?php if (is_superadmin_loggedin() ): ?>
-	<?php $this->load->view('frontend/branch_select'); ?>
+<?php if (is_multi_school() ): ?>
 <?php endif; 
 if (!empty($branch_id)) {
 	?>
@@ -48,7 +47,7 @@ if (!empty($branch_id)) {
 									$publish = '';
 									$edit_branch_id = '';
 									if ($row['system']) {
-										if (is_superadmin_loggedin()) {
+										if (is_multi_school()) {
 											$edit_branch_id = "/" . $branch_id; 
 										}
 										if ($row['invisible'] == 0) {
@@ -103,7 +102,7 @@ if (!empty($branch_id)) {
 							$publish = '';
 							$edit_branch_id = '';
 							if ($value['system']) {
-								if (is_superadmin_loggedin()) {
+								if (is_multi_school()) {
 									$edit_branch_id = "/" . $branch_id; 
 								}
 								if ($value['invisible'] == 0) {
@@ -150,7 +149,7 @@ if (!empty($branch_id)) {
 	<?php if (get_permission('frontend_menu', 'is_add')) { ?>
 			<div class="tab-pane" id="create">
 				<?php echo form_open($this->uri->uri_string(), array('class' => 'form-horizontal form-bordered frm-submit')); ?>
-					<?php if (is_superadmin_loggedin()): ?>
+					<?php if (is_multi_school()): ?>
 						<div class="form-group">
 							<label class="col-md-3 control-label"><?=translate('branch')?> <span class="required">*</span></label>
 							<div class="col-md-6">

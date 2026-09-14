@@ -1,4 +1,4 @@
-<?php $widget = (is_superadmin_loggedin() ? 4 : 6); ?>
+<?php $widget = (is_multi_school() ? 4 : 6); ?>
 <div class="row">
     <div class="col-md-12">
         <section class="panel">
@@ -8,7 +8,7 @@
             <?php echo form_open($this->uri->uri_string(), array('class' => 'validate')); ?>
                 <div class="panel-body">
                     <div class="row mb-sm">
-                    <?php if (is_superadmin_loggedin()): ?>
+                    <?php if (is_multi_school()): ?>
                         <div class="col-md-4 mb-sm">
                             <div class="form-group">
                                 <label class="control-label"><?php echo translate('branch'); ?> <span class="required">*</span></label>

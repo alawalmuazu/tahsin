@@ -69,17 +69,6 @@
 					</div>
 				</div>
 				<div class="form-group">
-					<label class="col-md-3 control-label"><?php echo translate('cms_default_branch'); ?> <span class="required">*</span></label>
-					<div class="col-md-6">
-						<?php
-						$arrayBranch = $this->app_lib->getSelectList('branch');
-						echo form_dropdown("cms_default_branch", $arrayBranch, $global_config['cms_default_branch'], "class='form-control'
-						data-plugin-selectTwo data-width='100%' data-minimum-results-for-search='Infinity'");
-						?>
-						<span class="error"><?php echo form_error('cms_default_branch'); ?></span>
-					</div>
-				</div>
-				<div class="form-group">
 					<label class="col-md-3 control-label"><?php echo translate('cache_control'); ?> (<?php echo translate('store'); ?>) <span class="required">*</span></label>
 					<div class="col-md-6">
 						<?php
@@ -204,16 +193,6 @@
 						<?php
 						$getPreloaderlist = array('1' => translate('yes'), '2' => translate('no'));
 						echo form_dropdown("preloader_backend", $getPreloaderlist, set_value('preloader_backend', $global_config['preloader_backend']), "class='form-control' required
-						data-plugin-selectTwo data-width='100%' data-minimum-results-for-search='Infinity'");
-						?>
-					</div>
-				</div>
-				<div class="form-group">
-					<label class="col-md-3 control-label">Footer Branch Switcher</label>
-					<div class="col-md-6">
-						<?php
-						$getPreloaderlist = array('1' => translate('yes'), '0' => translate('no'));
-						echo form_dropdown("footer_branch_switcher", $getPreloaderlist, set_value('footer_branch_switcher', $global_config['footer_branch_switcher']), "class='form-control' required
 						data-plugin-selectTwo data-width='100%' data-minimum-results-for-search='Infinity'");
 						?>
 					</div>

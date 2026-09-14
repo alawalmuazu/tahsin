@@ -44,7 +44,6 @@
         </p>
 
         <div class="brand-badges" id="brandBadges">
-            <span class="brand-badge">NEMIS</span>
             <span class="brand-badge">WAEC / NECO</span>
             <span class="brand-badge">Academy</span>
         </div>
@@ -150,81 +149,6 @@
         $btn.html('<i class="fas fa-spinner fa-spin"></i> Signing in...').prop('disabled', true);
     });
 
-    // ── Branch Identity Cascade ──────────────────────────────────
-    (function() {
-        var _timer     = null;
-        var _lastQuery = '';
-        var _default   = {
-            title:    'Tahsin Academy',
-            subtitle: 'Excellence In Deen & Duniya',
-            tagline:  'School management for Tahsin Academy — students, staff, parents, and academic records in one place.',
-            logoSrc:  $('#brandLogo').attr('src')
-        };
-
-        function updateBrand(data) {
-            var $logo     = $('#brandLogoWrap');
-            var $title    = $('#brandTitle');
-            var $subtitle = $('#brandSubtitle');
-            var $tagline  = $('#brandTagline');
-            var $badges   = $('#brandBadges');
-
-            // Fade out
-            $logo.css('opacity', '0.3');
-            $title.css('opacity', '0');
-
-            setTimeout(function() {
-                if (data.found) {
-                    // School-specific branding
-                    $('#brandLogo').attr('src', data.logo_url);
-                    $title.html(data.branch_name);
-                    $subtitle.text('School Management System');
-                    $tagline.text('Welcome to your school portal. Sign in to access your dashboard, records, and resources.');
-                    $badges.fadeOut(200);
-                } else {
-                    // Reset to default academy branding
-                    $('#brandLogo').attr('src', _default.logoSrc);
-                    $title.html(_default.title);
-                    $subtitle.text(_default.subtitle);
-                    $tagline.text(_default.tagline);
-                    $badges.fadeIn(200);
-                }
-                // Fade in
-                $logo.css('opacity', '1');
-                $title.css('opacity', '1');
-            }, 350);
-        }
-
-        $('#login_email').on('blur', function() {
-            var val = $.trim($(this).val());
-            if (val === _lastQuery || val.length < 2) return;
-            _lastQuery = val;
-
-            // Build CSRF data from the cookie
-            var csrfCookie = (document.cookie.match(/school_cookie_name=([^;]+)/) || [])[1] || '';
-            var postData  = { username: val, school_csrf_name: csrfCookie };
-
-            clearTimeout(_timer);
-            _timer = setTimeout(function() {
-                $.ajax({
-                    url: '<?= base_url("authentication/branch_context") ?>',
-                    type: 'POST',
-                    dataType: 'json',
-                    data: postData,
-                    success: function(res) {
-                        updateBrand(res);
-                    }
-                });
-            }, 200);
-        });
-
-        // If the field is cleared, reset
-        $('#login_email').on('input', function() {
-            if ($.trim($(this).val()).length === 0 && _lastQuery !== '') {
-                _lastQuery = '';
-                updateBrand({ found: false });
-            }
-        });
-    })();
     </script>
 
     <?php

@@ -7,7 +7,7 @@
 			</header>
             <?php echo form_open($this->uri->uri_string()); ?>
 				<div class="panel-body">
-				<?php if (is_superadmin_loggedin()): ?>
+				<?php if (is_multi_school()): ?>
 					<div class="form-group">
 						<label class="control-label"><?=translate('branch')?> <span class="required">*</span></label>
 						<?php
@@ -47,9 +47,6 @@
 						<thead>
 							<tr>
 								<th><?php echo translate('sl'); ?></th>
-							<?php if (is_superadmin_loggedin()) { ?>
-								<th><?=translate('branch')?></th>
-							<?php } ?>
 								<th><?php echo translate('name'); ?></th>
 								<th><?php echo translate('action'); ?></th>
 							</tr>
@@ -62,17 +59,6 @@
 							?>
 							<tr>
 								<td><?php echo $count++; ?></td>
-							<?php if (is_superadmin_loggedin()) { ?>
-								<td>
-									<?php 
-										if(empty($row['branch_name'])) {
-											echo '<span class="badge badge-success">Statewide</span>';
-										} else {
-											echo $row['branch_name']; 
-										}
-									?>
-								</td>
-							<?php } ?>
 								<td><?php echo $row['name']; ?></td>
 								<td>
 								<?php if (get_permission('product_category', 'is_edit')): ?>
@@ -109,7 +95,7 @@
 		<?php echo form_open(base_url('inventory/category_edit'), array('class' => 'validate')); ?>
 			<div class="panel-body">
 				<input type="hidden" name="category_id" id="ecategory_id" value="" />
-				<?php if (is_superadmin_loggedin()): ?>
+				<?php if (is_multi_school()): ?>
 					<div class="form-group">
 						<label class="control-label"><?=translate('branch')?> <span class="required">*</span></label>
 						<?php

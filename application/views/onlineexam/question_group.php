@@ -7,7 +7,7 @@
 			</header>
             <?php echo form_open($this->uri->uri_string()); ?>
 				<div class="panel-body">
-				<?php if (is_superadmin_loggedin()): ?>
+				<?php if (is_multi_school()): ?>
 					<div class="form-group">
 						<label class="control-label"><?=translate('branch')?> <span class="required">*</span></label>
 						<?php
@@ -47,7 +47,6 @@
 					<table class="table table-bordered table-hover table-condensed mb-none">
 						<thead>
 							<tr>
-								<th><?=translate('branch')?></th>
 								<th><?php echo translate('name'); ?></th>
 								<th><?php echo translate('group') . " " . translate('id'); ?></th>
 								<th><?php echo translate('action'); ?></th>
@@ -55,7 +54,7 @@
 						</thead>
 						<tbody>
 						<?php
-						if (!is_superadmin_loggedin()) {
+						if (!is_multi_school()) {
 							$this->db->where('branch_id', get_loggedin_branch_id());
 						}
 						$categorylist = $this->db->get('question_group')->result();
@@ -63,7 +62,6 @@
 							foreach ($categorylist as $row): 
 								?>
 							<tr>
-								<td><?php echo get_type_name_by_id('branch', $row->branch_id);?></td>
 								<td><?php echo $row->name; ?></td>
 								<td><?php echo $row->id; ?></td>
 								<td class="action">
@@ -103,7 +101,7 @@
 		<?php echo form_open('onlineexam/group_edit', array('class' => 'frm-submit')); ?>
 			<div class="panel-body">
 				<input type="hidden" name="group_id" id="egroup_id" value="">
-				<?php if (is_superadmin_loggedin()): ?>
+				<?php if (is_multi_school()): ?>
 					<div class="form-group">
 						<label class="control-label"><?=translate('branch')?> <span class="required">*</span></label>
 						<?php

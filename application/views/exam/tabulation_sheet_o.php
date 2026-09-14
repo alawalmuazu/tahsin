@@ -1,5 +1,5 @@
 <?php
-$widget = (is_superadmin_loggedin() ? 2 : 3);
+$widget = (is_multi_school() ? 2 : 3);
 $branch = $this->db->where('id',$branch_id)->get('branch')->row_array();
 ?>
 <div class="row">
@@ -11,7 +11,7 @@ $branch = $this->db->where('id',$branch_id)->get('branch')->row_array();
 			</header>
 			<div class="panel-body">
 				<div class="row mb-sm">
-				<?php if (is_superadmin_loggedin() ): ?>
+				<?php if (is_multi_school() ): ?>
 					<div class="col-md-3 mb-sm">
 						<div class="form-group">
 							<label class="control-label"><?=translate('branch')?> <span class="required">*</span></label>

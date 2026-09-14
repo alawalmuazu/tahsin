@@ -7,7 +7,7 @@
 			</header>
 			<?php echo form_open($this->uri->uri_string());?>
 				<div class="panel-body">
-					<?php if (is_superadmin_loggedin()): ?>
+					<?php if (is_multi_school()): ?>
 					<div class="form-group">
 						<label class="control-label"><?=translate('branch')?> <span class="required">*</span></label>
 						<?php
@@ -93,7 +93,6 @@
 						<thead>
 							<tr>
 								<th><?=translate('sl')?></th>
-								<th><?=translate('branch')?></th>
 								<th><?=translate('icon')?></th>
 								<th><?=translate('term_name')?></th>
 								<th><?=translate('action')?></th>
@@ -107,7 +106,6 @@
 							?>
 							<tr>
 								<td><?php echo $count++;?></td>
-								<td><?php echo $row['branch_name']; ?></td>
 								<td><i class="text-xl fas fa-<?=html_escape($row['icon'])?>"></i></td>
 								<td><?php echo $row['name']; ?></td>
 								<td>
@@ -146,7 +144,7 @@
 			</header>
 			<div class="panel-body">
 				<input type="hidden" name="type_id" id="etype_id" value="" />
-				<?php if (is_superadmin_loggedin()): ?>
+				<?php if (is_multi_school()): ?>
 				<div class="form-group">
 					<label class="control-label"><?=translate('branch')?> <span class="required">*</span></label>
 					<?php

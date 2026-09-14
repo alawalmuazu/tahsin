@@ -7,7 +7,7 @@
 			</header>
 			<?php echo form_open($this->uri->uri_string()); ?>
 				<div class="panel-body">
-				<?php if (is_superadmin_loggedin()): ?>
+				<?php if (is_multi_school()): ?>
 					<div class="form-group">
 						<label class="control-label"><?=translate('branch')?> <span class="required">*</span></label>
 						<?php
@@ -47,7 +47,6 @@
 						<thead>
 							<tr>
 								<th><?php echo translate('sl'); ?></th>
-								<th><?=translate('branch')?></th>
 								<th><?php echo translate('name'); ?></th>
 								<th><?php echo translate('action'); ?></th>
 							</tr>
@@ -60,7 +59,6 @@
 						?>
 							<tr>
 								<td><?php echo $count++; ?></td>
-								<td><?php echo $row['branch_name']; ?></td>
 								<td><?php echo $row['name']; ?></td>
 								<td class="min-w-xs">
 								<?php if (get_permission('department', 'is_edit')): ?>
@@ -95,7 +93,7 @@
 		<?php echo form_open('employee/department_edit', array('class' => 'frm-submit')); ?>
 			<div class="panel-body">
 				<input type="hidden" name="department_id" id="edepartment_id" value="" />
-			<?php if (is_superadmin_loggedin()): ?>
+			<?php if (is_multi_school()): ?>
 				<div class="form-group mb-md">
 					<label class="control-label"><?=translate('branch')?> <span class="required">*</span></label>
 					<?php

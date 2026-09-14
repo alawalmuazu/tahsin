@@ -1,4 +1,4 @@
-<?php $widget = (is_superadmin_loggedin() ? 2 : 3); ?>
+<?php $widget = (is_multi_school() ? 2 : 3); ?>
 <div class="row">
 	<div class="col-md-12">
 		<section class="panel">
@@ -8,7 +8,7 @@
 			</header>
 			<div class="panel-body">
 				<div class="row mb-sm">
-				<?php if (is_superadmin_loggedin() ): ?>
+				<?php if (is_multi_school() ): ?>
 					<div class="col-md-3 mb-sm">
 						<div class="form-group">
 							<label class="control-label"><?=translate('branch')?> <span class="required">*</span></label>

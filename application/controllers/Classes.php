@@ -23,11 +23,6 @@ class Classes extends Admin_Controller
     /* class form validation rules */
     protected function class_validation()
     {
-        // branch_id is NOT required for superadmin — empty string means Statewide (NULL in DB)
-        // Only validate branch_id as required for non-superadmin so their branch is always set
-        if (!is_superadmin_loggedin()) {
-            $this->form_validation->set_rules('branch_id', translate('branch'), 'required');
-        }
         $this->form_validation->set_rules('name', translate('name'), 'trim|required');
         $this->form_validation->set_rules('name_numeric', translate('name_numeric'), 'trim|numeric');
         $this->form_validation->set_rules('sections[]', translate('section'), 'trim|required');

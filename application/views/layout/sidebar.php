@@ -10,137 +10,19 @@
             <nav id="menu" class="nav-main" role="navigation">
                 <ul class="nav nav-main">
                     <!-- dashboard -->
-                    <?php if (is_superadmin_loggedin() || is_state_executive_loggedin()) { ?>
-                    <li class="nav-parent <?php if ($main_menu == 'dashboard' || $main_menu == 'state_analytics') echo 'nav-active nav-expanded';?>">
-                        <a>
+                    <li class="<?php if ($main_menu == 'dashboard') echo 'nav-active'; ?>">
+                        <a href="<?=base_url('dashboard')?>">
                             <i class="icons icon-grid"></i><span><?=translate('dashboard')?></span>
                         </a>
-                        <ul class="nav nav-children">
-                            <li class="<?php if ($main_menu == 'state_analytics') echo 'nav-active';?>">
-                                <a href="<?=base_url('state_analytics')?>">
-                                    <span><i class="fas fa-chart-line" aria-hidden="true"></i> State Analytics</span>
-                                </a>
-                            </li>
-                            <?php if (is_superadmin_loggedin()): ?>
-                            <li class="<?php if ($main_menu == 'state_analytics_lga') echo 'nav-active';?>">
-                                <a href="<?=base_url('state_analytics/lga_report')?>">
-                                    <span><i class="fas fa-map-marker-alt" aria-hidden="true"></i> LGA Report</span>
-                                </a>
-                            </li>
-                            <li class="<?php if ($main_menu == 'health') echo 'nav-active';?>">
-                                <a href="<?=base_url('health')?>">
-                                    <span><i class="fas fa-heartbeat" aria-hidden="true"></i> System Health</span>
-                                </a>
-                            </li>
-                            <?php endif; ?>
-                        <?php $school_id = $this->input->get('school_id'); ?>
-                            <!-- All Branches: summary link -->
-                            <li class="<?php if ($main_menu == 'dashboard' && empty($school_id)) echo 'nav-active';?>">
-                                <a href="<?=base_url('dashboard')?>">
-                                    <span><i class="fas fa-layer-group" aria-hidden="true"></i> <?=translate('all_branches')?></span>
-                                </a>
-                            </li>
-
-                            <!-- Live School Search (replaces the 2000+ branch list) -->
-                            <li class="nav-school-search" style="padding:6px 10px 8px;">
-                                <?php
-                                // Show current school label if one is active
-                                if (!empty($school_id)) {
-                                    $active_school = $this->db->select('name')->where('id', $school_id)->get('branch')->row();
-                                    if ($active_school): ?>
-                                <div style="font-size:11px;color:#aaa;margin-bottom:4px;padding-left:2px;">
-                                    <i class="fas fa-map-marker-alt" style="color:#4caf50"></i>
-                                    <strong style="color:#ddd"><?=html_escape($active_school->name)?></strong>
-                                    <a href="<?=base_url('dashboard')?>" title="Clear" style="color:#e57373;margin-left:4px;font-size:10px">✕</a>
-                                </div>
-                                <?php endif; } ?>
-                                <div style="position:relative">
-                                    <input type="text"
-                                           id="school-sidebar-search"
-                                           placeholder="🔍 Search school…"
-                                           autocomplete="off"
-                                           style="width:100%;padding:5px 8px;font-size:12px;border-radius:5px;
-                                                  border:1px solid #444;background:#2a2a3a;color:#ddd;outline:none;">
-                                    <ul id="school-sidebar-results"
-                                        style="display:none;position:absolute;left:0;right:0;top:100%;
-                                               background:#1e1e2e;border:1px solid #444;border-top:none;
-                                               border-radius:0 0 6px 6px;max-height:220px;overflow-y:auto;
-                                               list-style:none;padding:0;margin:0;z-index:9999;
-                                               box-shadow:0 6px 20px rgba(0,0,0,.5)">
-                                    </ul>
-                                </div>
-                            </li>
-                        </ul>
                     </li>
-                    <script>
-                    (function(){
-                        var inp = document.getElementById('school-sidebar-search');
-                        var res = document.getElementById('school-sidebar-results');
-                        if (!inp) return;
-                        var timer;
-
-                        inp.addEventListener('input', function(){
-                            clearTimeout(timer);
-                            var q = this.value.trim();
-                            if (q.length < 2) { res.style.display = 'none'; res.innerHTML = ''; return; }
-
-                            timer = setTimeout(function(){
-                                res.innerHTML = '<li style="padding:8px 12px;color:#888;font-size:12px">Searching…</li>';
-                                res.style.display = 'block';
-
-                                fetch('<?=base_url('dashboard/search_branch')?>?q=' + encodeURIComponent(q))
-                                    .then(function(r){ return r.json(); })
-                                    .then(function(data){
-                                        if (!data.length) {
-                                            res.innerHTML = '<li style="padding:8px 12px;color:#888;font-size:12px">No schools found</li>';
-                                            return;
-                                        }
-                                        res.innerHTML = data.map(function(s){
-                                            return '<li data-id="'+s.id+'" style="padding:7px 12px;font-size:12px;cursor:pointer;'
-                                                + 'border-bottom:1px solid #333;color:#ccc;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"'
-                                                + ' onmouseover="this.style.background=\'#2d4a3e\'" onmouseout="this.style.background=\'\'">'+
-                                                '<i class="fas fa-school" style="color:#4caf50;margin-right:6px;font-size:10px"></i>'
-                                                + s.name + (s.lga ? ' <small style="color:#888">· '+s.lga+'</small>' : '')
-                                                + '</li>';
-                                        }).join('');
-
-                                        res.querySelectorAll('li[data-id]').forEach(function(li){
-                                            li.addEventListener('click', function(){
-                                                window.location.href = '<?=base_url('dashboard/index')?>?school_id=' + this.dataset.id;
-                                            });
-                                        });
-                                    })
-                                    .catch(function(){
-                                        res.innerHTML = '<li style="padding:8px 12px;color:#e57373;font-size:12px">Error loading results</li>';
-                                    });
-                            }, 250);
-                        });
-
-                        // Close on click outside
-                        document.addEventListener('click', function(e){
-                            if (!inp.contains(e.target) && !res.contains(e.target)) {
-                                res.style.display = 'none';
-                            }
-                        });
-                    })();
-                    </script>
-
-                    <?php } else { ?>
-                            <li class="<?php if ($main_menu == 'dashboard') echo 'nav-active'; ?>">
-                                <a href="<?=base_url('dashboard')?>">
-                                    <i class="icons icon-grid"></i><span><?=translate('dashboard')?></span>
-                                </a>
-                            </li>
-                    <?php } ?>
-
-                    <?php if (!get_permission('teacher_transfer', 'is_view') && loggedin_role_id() != 6 && loggedin_role_id() != 7) : ?>
-                    <!-- Self-Service Staff Transfer -->
-                    <li class="<?php if ($main_menu == 'teacher_transfer') echo 'nav-active';?>">
-                        <a href="<?=base_url('teacher_transfer')?>">
-                            <i class="fas fa-exchange-alt"></i><span>Transfer Request</span>
+                    <?php if (is_superadmin_loggedin()): ?>
+                    <li class="<?php if ($main_menu == 'health') echo 'nav-active';?>">
+                        <a href="<?=base_url('health')?>">
+                            <i class="fas fa-heartbeat"></i><span>System Health</span>
                         </a>
                     </li>
                     <?php endif; ?>
+
                     <?php if (moduleIsEnabled('inventory')) { 
                         if (get_permission('product', 'is_view') ||
                             get_permission('product_category', 'is_view') ||
@@ -152,7 +34,7 @@
                             get_permission('product_issue', 'is_view')) {
                         ?>
                     <!-- School Assets (formerly Inventory) -->
-                    <li class="nav-parent <?php if ($main_menu == 'inventory' || $main_menu == 'inventory_report' || $main_menu == 'infrastructure') echo 'nav-expanded nav-active'; ?>">
+                    <li class="nav-parent <?php if ($main_menu == 'inventory' || $main_menu == 'inventory_report') echo 'nav-expanded nav-active'; ?>">
                         <a><i class="fas fa-dolly"></i><span>School Assets</span></a>
                         <ul class="nav nav-children">
                         <?php if(get_permission('product', 'is_view')){ ?>
@@ -204,55 +86,9 @@
                                 </a>
                             </li>
                         <?php } ?>
-                        <?php if (is_superadmin_loggedin() || is_state_executive_loggedin() || is_admin_loggedin()): ?>
-                            <li class="<?php if ($main_menu == 'infrastructure') echo 'nav-active'; ?>">
-                                <a href="<?=base_url('infrastructure')?>">
-                                    <span><i class="fas fa-caret-right" aria-hidden="true"></i> Infrastructure</span>
-                                </a>
-                            </li>
-                        <?php endif; ?>
                         </ul>
                     </li>
                     <?php } } ?>
-                    <?php
-                    if (is_superadmin_loggedin()) : ?>
-                    <!-- Administration (Branch + Education Board) -->
-                    <li class="nav-parent <?php if ($main_menu == 'branch' || $main_menu == 'education_board') echo 'nav-expanded nav-active'; ?>">
-                        <a><i class="fas fa-landmark"></i><span>Administration</span></a>
-                        <ul class="nav nav-children">
-                            <li class="<?php if ($main_menu == 'branch') echo 'nav-active';?>">
-                                <a href="<?=base_url('branch')?>">
-                                    <span><i class="fas fa-caret-right" aria-hidden="true"></i><?=translate('branch')?></span>
-                                </a>
-                            </li>
-                            <li class="<?php if ($main_menu == 'education_board') echo 'nav-active';?>">
-                                <a href="<?=base_url('education_board')?>">
-                                    <span><i class="fas fa-caret-right" aria-hidden="true"></i>Education Board</span>
-                                </a>
-                            </li>
-                        </ul>
-                    </li>
-                    <?php endif;
-                    if (is_superadmin_loggedin() || is_state_executive_loggedin()) : ?>
-                    <!-- State Quality Assurance -->
-                    <li class="nav-parent <?php if ($main_menu == 'teacher_transfer' || $main_menu == 'school_inspection') echo 'nav-expanded nav-active'; ?>">
-                        <a><i class="fas fa-check-double"></i><span>State Quality Assurance</span></a>
-                        <ul class="nav nav-children">
-                            <li class="<?php if ($main_menu == 'teacher_transfer') echo 'nav-active'; ?>">
-                                <a href="<?php echo base_url('teacher_transfer'); ?>">
-                                    <span><i class="fas fa-caret-right" aria-hidden="true"></i>Teacher Transfers</span>
-                                </a>
-                            </li>
-                            <li class="<?php if ($main_menu == 'school_inspection') echo 'nav-active'; ?>">
-                                <a href="<?php echo base_url('school_inspection'); ?>">
-                                    <span><i class="fas fa-caret-right" aria-hidden="true"></i>School Inspections</span>
-                                </a>
-                            </li>
-                        </ul>
-                    </li>
-                    <?php endif;
-                    /* NEMIS Reports moved into Reports menu — see below */
-                    ?>
                     <?php $saasExisting = $this->app_lib->isExistingAddon('saas');
                     if ($saasExisting): ?>
                     <!-- School Subscription (SaaS)  -->
@@ -1590,8 +1426,7 @@
                                                                     $main_menu == 'payroll_reports' ||
                                                                         $main_menu == 'leave_reports' ||
                                                                         $main_menu == 'inventory_report' ||
-                                                                            $main_menu == 'exam_reports' ||
-                                                                            $main_menu == 'nemis') echo 'nav-expanded nav-active';?>">
+                                                                            $main_menu == 'exam_reports') echo 'nav-expanded nav-active';?>">
                         <a>
                             <i class="icons icon-pie-chart icons"></i><span><?=translate('reports')?></span>
                         </a>
@@ -1798,24 +1633,6 @@
                                 </ul>
                             </li>
                         <?php } ?>
-
-                            <!-- 🏗 NEMIS Reports (moved from top-level) -->
-                            <?php if (is_superadmin_loggedin() || is_state_executive_loggedin() || is_admin_loggedin()): ?>
-                            <li class="nav-parent <?php if ($main_menu == 'nemis') echo 'nav-expanded nav-active'; ?>">
-                                <a><i class="fas fa-landmark"></i><span>NEMIS Reports</span></a>
-                                <ul class="nav nav-children">
-                                    <li class="<?php if ($sub_page == 'nemis/index') echo 'nav-active'; ?>">
-                                        <a href="<?=base_url('nemis')?>"><span><i class="fas fa-caret-right"></i> Overview</span></a>
-                                    </li>
-                                    <li class="<?php if ($sub_page == 'nemis/waec_candidates') echo 'nav-active'; ?>">
-                                        <a href="<?=base_url('nemis/waec_candidates')?>"><span><i class="fas fa-caret-right"></i> WAEC / BECE Candidates</span></a>
-                                    </li>
-                                    <li class="<?php if ($sub_page == 'nemis/asc_report') echo 'nav-active'; ?>">
-                                        <a href="<?=base_url('nemis/asc_report')?>"><span><i class="fas fa-caret-right"></i> ASC Report</span></a>
-                                    </li>
-                                </ul>
-                            </li>
-                            <?php endif; ?>
 
                         </ul>
                     </li>

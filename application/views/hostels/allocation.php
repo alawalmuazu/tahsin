@@ -1,4 +1,4 @@
-<?php $widget = (is_superadmin_loggedin() ? 4 : 6); ?>
+<?php $widget = (is_multi_school() ? 4 : 6); ?>
 <div class="row">
 	<div class="col-md-12">
 		<section class="panel">
@@ -8,7 +8,7 @@
 			<?php echo form_open($this->uri->uri_string(), array('class' => 'validate'));?>
 			<div class="panel-body">
 				<div class="row mb-sm">
-				<?php if (is_superadmin_loggedin() ): ?>
+				<?php if (is_multi_school() ): ?>
 					<div class="col-md-4">
 						<div class="form-group">
 							<label class="control-label"><?=translate('branch')?> <span class="required">*</span></label>
@@ -62,7 +62,7 @@
 					<thead>
 						<tr>
 							<th width="50px">#</th>
-							<?php if (is_superadmin_loggedin()): ?>
+							<?php if (is_multi_school()): ?>
 							<th><?=translate('branch')?></th>
 							<?php endif; ?>
 							<th><?=translate('student') . ' ' . translate('name')?></th>
@@ -81,7 +81,7 @@
 						?>
 						<tr>
 							<td><?php echo $count++;?></td>
-							<?php if (is_superadmin_loggedin()): ?>
+							<?php if (is_multi_school()): ?>
 							<td><?php echo get_type_name_by_id('branch', $row['branch_id']);?></td>
 							<?php endif; ?>
 							<td><?php echo $row['first_name'] . ' ' . $row['last_name'];?></td>

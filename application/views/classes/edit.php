@@ -21,7 +21,7 @@
                 } else {
                 echo form_open($this->uri->uri_string(), array('class' => 'form-horizontal form-bordered frm-submit'));?>
 					<input type="hidden" name="class_id" value="<?=$class['id']?>">
-					<?php if (is_superadmin_loggedin()): ?>
+					<?php if (is_multi_school()): ?>
 						<div class="form-group">
 							<label class="col-md-3 control-label"><?=translate('branch')?> <span class="required">*</span></label>
 							<div class="col-md-6">
@@ -55,20 +55,12 @@
 								$query = $this->db->get_where("sections_allocation", array('class_id' => $class['id']))->result_array();
 								$sel = array_column($query,'section_id');
 								$arraySection = array();
-								if (!empty($class['board_id'])) {
-									$result = $this->db->where('board_id', $class['board_id'])->get('section')->result();
-								} elseif (!empty($class['branch_id'])) {
-									$result = $this->db->where('branch_id', $class['branch_id'])->get('section')->result();
-								} elseif (!is_superadmin_loggedin()) {
-									$result = $this->app_lib->getHybridItems('section', get_loggedin_branch_id());
-								} else {
-									$result = array();
-								}
+								$result = $this->db->where('branch_id', SCHOOL_ID)->get('section')->result();
 								foreach ($result as $row) {
 									$arraySection[$row->id] = $row->name;
 								}
 								echo form_dropdown("sections[]", $arraySection, $sel, "class='form-control mb-sm' id='section_id'
-								data-plugin-selectTwo data-width='100%' multiple data-plugin-options='{" . '"placeholder" : "' . translate('select_branch_first') . '" ' ."}'");
+								data-plugin-selectTwo data-width='100%' multiple data-plugin-options='{" . '"placeholder" : "' . translate('select') . '" ' ."}'");
 							?>
 							<span class="error"></span>
 						</div>

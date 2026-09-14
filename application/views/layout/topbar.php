@@ -6,12 +6,6 @@
 
 		<?php
 		// ── Contextual Command Strip ──────────────────────────────────
-		$_ctx_branch_id = get_loggedin_branch_id();
-		$_ctx_branch_name = '';
-		if (!empty($_ctx_branch_id)) {
-			$_ctx_b = $this->db->select('name')->where('id', $_ctx_branch_id)->get('branch')->row();
-			$_ctx_branch_name = isset($_ctx_b->name) ? $_ctx_b->name : '';
-		}
 		// Academic session
 		$_ctx_session    = $this->db->select('school_year')->where('id', get_session_id())->get('schoolyear')->row();
 		$_ctx_session_label = isset($_ctx_session->school_year) ? $_ctx_session->school_year : '';

@@ -45,7 +45,7 @@ class Student extends Admin_Controller
         $this->form_validation->set_rules('class_id', translate('class'), 'trim|required');
         $this->form_validation->set_rules('section_id', translate('section'), 'trim|required');
         $this->form_validation->set_rules('register_no', translate('register_no'), 'trim|required|callback_unique_registerid');
-        // NIN deduplication — statewide check (only if NIN is provided)
+        // NIN deduplication (only if NIN is provided)
         $this->form_validation->set_rules('nin', 'NIN', 'trim|callback_unique_nin');
         // checking profile photo format
         $this->form_validation->set_rules('user_photo', translate('profile_picture'), 'callback_photoHandleUpload[user_photo]');
@@ -1006,7 +1006,7 @@ class Student extends Admin_Controller
     }
 
     /**
-     * NIN Uniqueness — statewide deduplication check
+     * NIN Uniqueness — deduplication check
      * Skips validation if NIN is empty or all-zeros (not provided)
      */
     public function unique_nin($nin)

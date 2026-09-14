@@ -31,7 +31,7 @@ $fieldTypeOptions = array(
 								<thead>
 									<tr>
 										<th><?=translate('sl')?></th>
-									<?php if (is_superadmin_loggedin()) { ?>
+									<?php if (is_multi_school()) { ?>
 										<th><?=translate('branch')?></th>
 									<?php } ?>
 										<th><?=translate('custom_field_for')?></th>
@@ -49,7 +49,7 @@ $fieldTypeOptions = array(
 										?>
 									<tr>
 										<td><?php echo $count++; ?></td>
-									<?php if (is_superadmin_loggedin()) { ?>
+									<?php if (is_multi_school()) { ?>
 										<td><?php echo get_type_name_by_id('branch', $row['branch_id']);?></td>
 									<?php } ?>
 										<td><?php echo translate($row['form_to']);?></td>
@@ -82,7 +82,7 @@ $fieldTypeOptions = array(
 					</div>
 					<div class="tab-pane" id="create">
 						<?php echo form_open('custom_field/save', array('class' => 'form-bordered form-horizontal frm-submit')); ?>
-							<?php if (is_superadmin_loggedin() ): ?>
+							<?php if (is_multi_school() ): ?>
 							<div class="form-group">
 								<label class="control-label col-md-3"><?=translate('branch')?> <span class="required">*</span></label>
 								<div class="col-md-6">

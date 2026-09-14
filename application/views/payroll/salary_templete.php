@@ -17,7 +17,6 @@
 					<thead>
 						<tr>
 							<th><?=translate('sl')?></th>
-							<th><?=translate('branch')?></th>
 							<th><?=translate('salary_grades')?></th>
 							<th><?=translate('basic_salary')?></th>
 							<th><?=translate('overtime')?></th>
@@ -27,7 +26,7 @@
 					<tbody>
 						<?php
 						$count = 1;
-						if (!is_superadmin_loggedin()) {
+						if (!is_multi_school()) {
 							$this->db->where('branch_id', get_loggedin_branch_id());
 						}
 						$templatelist = $this->db->get('salary_template')->result_array();
@@ -35,7 +34,6 @@
 						?>	
 						<tr>
 							<td><?php echo $count++; ?></td>
-							<td><?php echo get_type_name_by_id('branch', html_escape($row['branch_id']));?></td>
 							<td><?php echo $row['name']; ?></td>
 							<td><?php echo $global_config['currency_symbol'] . $row['basic_salary']; ?></td>
 							<td><?php echo $row['overtime_salary']; ?></td>
@@ -62,7 +60,7 @@
 		<?php if (get_permission('salary_template', 'is_add')){ ?>
 			<div id="create" class="tab-pane">
 				<?php echo form_open($this->uri->uri_string(), array('class' => 'form-horizontal form-bordered frm-submit')); ?>
-				<?php if (is_superadmin_loggedin()): ?>
+				<?php if (is_multi_school()): ?>
 					<div class="form-group">
 						<label class="col-md-3 control-label"><?php echo translate('branch');?> <span class="required">*</span></label>
 						<div class="col-md-6">

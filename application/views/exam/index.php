@@ -16,7 +16,7 @@
 					<thead>
 						<tr>
 							<th width="50"><?=translate('sl')?></th>
-						<?php if (is_superadmin_loggedin()): ?>
+						<?php if (is_multi_school()): ?>
 							<th><?=translate('branch')?></th>
 						<?php endif; ?>
 							<th><?=translate('exam_name')?></th>
@@ -33,7 +33,7 @@
 						<?php $count = 1; foreach($examlist as $row): ?>
 						<tr>
 							<td><?php echo $count++; ?></td>
-						<?php if (is_superadmin_loggedin()): ?>
+						<?php if (is_multi_school()): ?>
 							<td><?php echo $row['branch_name']; ?></td>
 						<?php endif; ?>
 							<td><?php echo $row['name']; ?></td>
@@ -92,7 +92,7 @@
 			<div class="tab-pane" id="create">
 				<?php echo form_open($this->uri->uri_string(), array('class' => 'frm-submit'));?>
 					<div class="form-horizontal form-bordered mb-lg">
-						<?php if (is_superadmin_loggedin()): ?>
+						<?php if (is_multi_school()): ?>
 						<div class="form-group">
 							<label class="col-md-3 control-label"><?=translate('branch')?> <span class="required">*</span></label>
 							<div class="col-md-6">
@@ -144,17 +144,7 @@
 							<div class="col-md-6">
 								<?php
 									$arraySection = array();
-								if (is_superadmin_loggedin()) {
-									// Superadmin: load statewide (NULL branch_id) distributions
-									$result = $this->db->where('branch_id IS NULL', null, false)->get('exam_mark_distribution')->result();
-								} else {
-									// Branch admin: branch-specific + statewide distributions
-									$this->db->group_start();
-									$this->db->where('branch_id', get_loggedin_branch_id());
-									$this->db->or_where('branch_id IS NULL', null, false);
-									$this->db->group_end();
-									$result = $this->db->get('exam_mark_distribution')->result();
-								}
+								$result = $this->db->where('branch_id', SCHOOL_ID)->get('exam_mark_distribution')->result();
 								foreach ($result as $row) {
 									$arraySection[$row->id] = $row->name;
 								}

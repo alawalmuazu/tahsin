@@ -1,5 +1,5 @@
-<?php $widget = (is_superadmin_loggedin() ? 3 : 4); ?>
-<?php if (is_superadmin_loggedin() ): ?>
+<?php $widget = (is_multi_school() ? 3 : 4); ?>
+<?php if (is_multi_school() ): ?>
 <section class="panel">
 	<header class="panel-heading">
 		<h4 class="panel-title"><?=translate('select_ground')?></h4>
@@ -31,7 +31,7 @@
 <?php 
 endif;
 	if (!empty($branch_id)): 
- 		if (is_superadmin_loggedin()) { ?>
+ 		if (is_multi_school()) { ?>
 <div class="row appear-animation" data-appear-animation="<?=$global_config['animations'] ?>" data-appear-animation-delay="100">
 <?php } else { ?>
 <div class="row">
@@ -115,7 +115,7 @@ endif;
                 $div = floatval(12 / $v);
 				?>
 				<div class="row mb-md">
-					<?php if (is_superadmin_loggedin()): ?>
+					<?php if (is_multi_school()): ?>
 						<input type="hidden" name="branch_id" value="<?php echo $branch_id ?>">
 					<?php endif; ?>
 					<div class="col-md-<?php echo $div; ?> mb-sm">

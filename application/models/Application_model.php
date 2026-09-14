@@ -11,17 +11,12 @@ class Application_model extends CI_Model
 
     public function get_branch_id()
     {
-        if (is_superadmin_loggedin()) {
-            return $this->input->post('branch_id');
-        } else {
-            return get_loggedin_branch_id();
-        }
+        return SCHOOL_ID;
     }
 
     public function get_inventory_branch_id()
     {
-        $branch_id = $this->get_branch_id();
-        return ($branch_id === '') ? NULL : $branch_id;
+        return SCHOOL_ID;
     }
 
     public function getSectionsPaymentMethod()

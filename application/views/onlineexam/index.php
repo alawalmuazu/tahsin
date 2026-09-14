@@ -21,7 +21,7 @@
 					<thead>
 						<tr>
 							<th class="no-sort"><?=translate('sl')?></th>
-<?php if (is_superadmin_loggedin()): ?>
+<?php if (is_multi_school()): ?>
 							<th><?=translate('branch')?></th>
 <?php endif; ?>
 							<th><?=translate('title')?></th>
@@ -41,7 +41,7 @@
 <?php if (get_permission('online_exam', 'is_add')): ?>
 			<div class="tab-pane" id="add">
 					<?php echo form_open('onlineexam/exam_save', array('class' => 'form-bordered form-horizontal frm-submit'));?>
-					<?php if (is_superadmin_loggedin()): ?>
+					<?php if (is_multi_school()): ?>
 						<div class="form-group">
 							<label class="control-label col-md-3"><?=translate('branch')?> <span class="required">*</span></label>
 							<div class="col-md-6">

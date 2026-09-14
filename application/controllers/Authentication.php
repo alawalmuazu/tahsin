@@ -99,7 +99,7 @@ class Authentication extends Authentication_Controller
                         $sessionData = array(
                             'name' => $getUser['name'],
                             'logger_photo' => $getUser['photo'],
-                            'loggedin_branch' => $getUser['branch_id'],
+                            'loggedin_branch' => SCHOOL_ID,
                             'loggedin_email' => $getUser['email'],
                             'loggedin_id' => $login_credential->id,
                             'loggedin_userid' => $login_credential->user_id,
@@ -154,89 +154,6 @@ class Authentication extends Authentication_Controller
         $this->load->view('authentication/login', $this->data);
     }
 
-    /**
-     * AJAX: Login Branch Identity Cascade
-     * Returns branch context for the brand panel animation.
-     * Security: always returns a valid response (default for unknown users).
-     */
-    public function branch_context()
-    {
-        $this->output->set_content_type('application/json');
-        $this->db->db_debug = false; // Prevent CI from crashing on DB errors
-        
-        $default = json_encode(array(
-            'found'       => false,
-            'branch_name' => '',
-            'logo_url'    => base_url('uploads/app_image/logo.png') . '?src=' . time(),
-        ));
-
-        try {
-            $username = $this->input->post('username');
-            if (empty($username)) {
-                $this->output->set_output($default);
-                return;
-            }
-            $username = trim($username);
-
-            // Look up the user's branch
-            $cred = $this->db->select('role, user_id')
-                             ->where('username', $username)
-                             ->limit(1)
-                             ->get('login_credential')
-                             ->row();
-
-            if (!$cred) {
-                $this->output->set_output($default);
-                return;
-            }
-
-            // Super admin — show default ministry branding
-            if ($cred->role == 1) {
-                $this->output->set_output($default);
-                return;
-            }
-
-            // Get branch_id from the appropriate table
-            $branch_id = 0;
-            if ($cred->role == 6) {
-                $u = $this->db->select('branch_id')->where('id', $cred->user_id)->get('parent')->row();
-                if ($u) $branch_id = $u->branch_id;
-            } elseif ($cred->role == 7) {
-                $u = $this->db->select('branch_id')->where('student_id', $cred->user_id)->limit(1)->get('enroll')->row();
-                if ($u) $branch_id = $u->branch_id;
-            } else {
-                $u = $this->db->select('branch_id')->where('id', $cred->user_id)->get('staff')->row();
-                if ($u) $branch_id = $u->branch_id;
-            }
-
-            if (empty($branch_id)) {
-                $this->output->set_output($default);
-                return;
-            }
-
-            // Get branch name
-            $branch = $this->db->select('name, school_name')
-                               ->where('id', $branch_id)
-                               ->get('branch')
-                               ->row();
-
-            if (!$branch) {
-                $this->output->set_output($default);
-                return;
-            }
-
-            $logo_url = $this->application_model->getBranchImage($branch_id, 'logo');
-            $branch_name = !empty($branch->school_name) ? $branch->school_name : $branch->name;
-
-            $this->output->set_output(json_encode(array(
-                'found'       => true,
-                'branch_name' => $branch_name,
-                'logo_url'    => $logo_url,
-            )));
-        } catch (Exception $e) {
-            $this->output->set_output($default);
-        }
-    }
 
     // hybrid IAM deferred setup
     public function setup_account($token = '')

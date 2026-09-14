@@ -39,23 +39,9 @@ class App_lib
         return false;
     }
 
-    /**
-     * Get hybrid items: board shared + branch custom for board-enabled tables
-     */
     public function getHybridItems($table, $branch_id)
     {
-        $board_id = $this->getBoardIdForBranch($branch_id);
-        if (!empty($board_id)) {
-            $this->CI->db->group_start();
-            $this->CI->db->where('board_id', $board_id);
-            $this->CI->db->or_group_start();
-            $this->CI->db->where('branch_id', $branch_id);
-            $this->CI->db->where('board_id IS NULL', null, false);
-            $this->CI->db->group_end();
-            $this->CI->db->group_end();
-        } else {
-            $this->CI->db->where('branch_id', $branch_id);
-        }
+        $this->CI->db->where('branch_id', SCHOOL_ID);
         if ($table == 'subject' || $table == 'section' || $table == 'staff_department' || $table == 'staff_designation') {
             $this->CI->db->order_by('name', 'ASC');
         } elseif ($table == 'class') {
@@ -65,15 +51,6 @@ class App_lib
             $this->CI->db->order_by('id', 'ASC');
         }
         return $this->CI->db->get($table)->result();
-    }
-
-    /**
-     * Get the board_id for a given branch
-     */
-    public function getBoardIdForBranch($branch_id)
-    {
-        $row = $this->CI->db->select('board_id')->where('id', $branch_id)->get('branch')->row();
-        return (!empty($row) && !empty($row->board_id)) ? $row->board_id : null;
     }
 
     function studentLastRegID($branch_id ='')
@@ -90,9 +67,7 @@ class App_lib
 
     function get_bill_no($table)
     {
-        if (!is_superadmin_loggedin()) {
-            $this->CI->db->where("branch_id", get_loggedin_branch_id());
-        }
+        $this->CI->db->where("branch_id", SCHOOL_ID);
         $result = $this->CI->db->select("max(bill_no) as id")->get($table)->row_array();
         $id = $result["id"];
         if (!empty($id)) {
@@ -120,50 +95,11 @@ class App_lib
 
     function getTable($table, $where = "", $single = FALSE)
     {
-        // Board-enabled tables: show board items + branch custom items
-        $board_tables = array('class', 'section', 'subject', 'grade', 'exam_term', 'student_category', 'staff_department', 'staff_designation');
-        $is_board_table = in_array($table, $board_tables);
-        
-        $branch_id = null;
-        $board_id = null;
-        if (!is_superadmin_loggedin()) {
-            $branch_id = get_loggedin_branch_id();
-            // Fetch board ID first to avoid corrupting Query Builder state when $where is applied
-            if ($is_board_table) {
-                $board_id = $this->getBoardIdForBranch($branch_id);
-            }
-        }
-
         if ($where != NULL) {
             $this->CI->db->where($where);
         }
+        $this->CI->db->where("t.branch_id", SCHOOL_ID);
 
-        if (!is_superadmin_loggedin()) {
-            if ($is_board_table) {
-                if (!empty($board_id)) {
-                    $this->CI->db->group_start();
-                    $this->CI->db->where('t.board_id', $board_id);
-                    $this->CI->db->or_group_start();
-                    $this->CI->db->where('t.branch_id', $branch_id);
-                    $this->CI->db->where('t.board_id IS NULL', null, false);
-                    $this->CI->db->group_end();
-                    $this->CI->db->group_end();
-                } else {
-                    $this->CI->db->where("t.branch_id", $branch_id);
-                }
-            } else {
-                // Hybrid tables: branch-specific + statewide (NULL branch_id) records visible to all
-                $hybrid_statewide = array('product_category', 'product_store', 'product_supplier', 'product_unit', 'product', 'exam_mark_distribution');
-                if (in_array($table, $hybrid_statewide)) {
-                    $this->CI->db->group_start();
-                    $this->CI->db->where("t.branch_id", $branch_id);
-                    $this->CI->db->or_where("t.branch_id IS NULL", null, false);
-                    $this->CI->db->group_end();
-                } else {
-                    $this->CI->db->where("t.branch_id", $branch_id);
-                }
-            }
-        }
         if ($single == TRUE) {
             $method = "row_array";
         } else {
@@ -178,52 +114,19 @@ class App_lib
             }
             $method = "result_array";
         }
-        // For board-enabled tables: show board name for board items, branch name for custom items
-        if ($is_board_table) {
-            $this->CI->db->select("t.*, IFNULL(b.name, CONCAT(eb.name, ' (Board)')) as branch_name, t.board_id");
-            $this->CI->db->from("$table as t");
-            $this->CI->db->join("branch as b", "b.id = t.branch_id", "left");
-            $this->CI->db->join("education_board as eb", "eb.id = t.board_id", "left");
-        } else {
-            // COALESCE: show 'StateWide' when branch_id IS NULL (statewide entries)
-            $this->CI->db->select("t.*, COALESCE(b.name, IF(t.branch_id IS NULL, 'StateWide', NULL)) as branch_name");
-            $this->CI->db->from("$table as t");
-            $this->CI->db->join("branch as b", "b.id = t.branch_id", "left");
-        }
-        $query = $this->CI->db->get();
-        log_message('error', "GET TABLE QUERY: " . $this->CI->db->last_query());
-        return $query->$method();
+        $this->CI->db->select("t.*, b.school_name as branch_name");
+        $this->CI->db->from("$table as t");
+        $this->CI->db->join("branch as b", "b.id = t.branch_id", "left");
+        return $this->CI->db->get()->$method();
     }
 
     public function check_branch_restrictions($table, $id = '') {
         if (empty($id)) {
              access_denied();
         }
-        if (!is_superadmin_loggedin()) {
-            // Check if this table has board_id column
-            $board_tables = array('class', 'section', 'subject', 'grade', 'exam_term', 'student_category', 'staff_department', 'staff_designation', 'book_category', 'complaint_type', 'event_types', 'fees_type', 'hostel_category', 'leave_category');
-            $has_board = in_array($table, $board_tables);
-            
-            if ($has_board) {
-                $query = $this->CI->db->select('id,branch_id,board_id')->from($table)->where('id', $id)->limit(1)->get();
-            } else {
-                $query = $this->CI->db->select('id,branch_id')->from($table)->where('id', $id)->limit(1)->get();
-            }
-            if ($query->num_rows() != 0) {
-                $row = $query->row();
-                // Board items: allow access if school belongs to same board
-                if ($has_board && !empty($row->board_id)) {
-                    $school_board_id = $this->getBoardIdForBranch($this->CI->session->userdata('loggedin_branch'));
-                    if ($row->board_id != $school_board_id) {
-                        access_denied();
-                    }
-                } else {
-                    // Branch-specific items: must match branch
-                    if ($row->branch_id != $this->CI->session->userdata('loggedin_branch')) {
-                        access_denied();
-                    }
-                }
-            }
+        $query = $this->CI->db->select('id,branch_id')->from($table)->where('id', $id)->limit(1)->get();
+        if ($query->num_rows() != 0 && $query->row()->branch_id != SCHOOL_ID) {
+            access_denied();
         }
     }
 
@@ -449,45 +352,18 @@ class App_lib
 
     public function getSelectByBranch($table, $branch_id = '', $all = false, $where = '')
     {
-        // Inventory tables that work statewide — load all records when branch_id is empty
-        $statewide_inventory = array('product_category', 'product_unit');
-        $is_statewide_mode = (empty($branch_id) && is_superadmin_loggedin() && in_array($table, $statewide_inventory));
+        if (is_array($where)) {
+            $this->CI->db->where($where);
+        }
+        $this->CI->db->where('branch_id', SCHOOL_ID);
+        $result = $this->CI->db->get($table)->result();
 
-        if (empty($branch_id) && !$is_statewide_mode) {
-            $array = array('' => translate('select_branch_first'));
-        } else {
-            // Check if this table supports board-level items
-            $board_tables = array('class','section','subject','grade','exam_term','fees_type','student_category','staff_department','staff_designation','event_types','leave_category','hostel_category','book_category','complaint_type');
-            if (in_array($table, $board_tables)) {
-                if (is_array($where)) {
-                    $this->CI->db->where($where);
-                }
-                $result = $this->getHybridItems($table, $branch_id);
-            } else {
-                if (is_array($where)) {
-                    $this->CI->db->where($where);
-                }
-                $custom_hybrid = array('product_category', 'product_store', 'product_supplier', 'product_unit', 'product');
-                if ($is_statewide_mode) {
-                    // Superadmin + Statewide: load ALL categories/units across every branch
-                    // No WHERE clause applied — intentional
-                } elseif (in_array($table, $custom_hybrid)) {
-                    $this->CI->db->group_start();
-                    $this->CI->db->where("branch_id", $branch_id);
-                    $this->CI->db->or_where("branch_id IS NULL", null, false);
-                    $this->CI->db->group_end();
-                } else {
-                    $this->CI->db->where('branch_id', $branch_id);
-                }
-                $result = $this->CI->db->get($table)->result();
-            }
-            $array = array('' => translate('select'));
-            if ($all == true) {
-                $array['all'] = translate('all_select');
-            }
-            foreach ($result as $row) {
-                $array[$row->id] = $row->name;
-            }
+        $array = array('' => translate('select'));
+        if ($all == true) {
+            $array['all'] = translate('all_select');
+        }
+        foreach ($result as $row) {
+            $array[$row->id] = $row->name;
         }
         return $array;
     }
@@ -498,13 +374,9 @@ class App_lib
         if ($all == 'all') {
             $arrayData['all'] = translate('all_select');
         }
-        
-        // Let superadmins assign "Statewide" (NULL branch) to specific tables
-        if ($table == 'branch' && is_superadmin_loggedin()) {
-            $arrayData[''] = translate('select_or_statewide'); 
-            // In the front-end, a submitted empty string for branch_id will be mapped to NULL
+        if ($table == 'branch') {
+            $this->CI->db->where('id', SCHOOL_ID);
         }
-
         $result = $this->CI->db->get($table)->result();
         foreach ($result as $row) {
             $arrayData[$row->id] = $row->name;
