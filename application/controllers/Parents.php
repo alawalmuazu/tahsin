@@ -44,12 +44,11 @@ class Parents extends Admin_Controller
         $this->form_validation->set_rules('facebook', 'Facebook', 'valid_url');
         $this->form_validation->set_rules('twitter', 'Twitter', 'valid_url');
         $this->form_validation->set_rules('linkedin', 'Linkedin', 'valid_url');
-        if ($getBranch['grd_generate'] == 0 || isset($_POST['parent_id'])) {
+        if (isset($_POST['parent_id'])) {
             $this->form_validation->set_rules('username', translate('username'), 'trim|required|callback_unique_username');
-            if (!isset($_POST['parent_id'])) {
-                $this->form_validation->set_rules('password', translate('password'), 'trim|required|min_length[4]');
-                $this->form_validation->set_rules('retype_password', translate('retype_password'), 'trim|required|matches[password]');
-            }
+        }
+        if (!empty($this->input->post('enable_login')) && !isset($_POST['parent_id'])) {
+            $this->form_validation->set_rules('email', translate('email'), 'trim|required|valid_email');
         }
         // custom fields validation rules
         $class_slug = $this->router->fetch_class();
@@ -141,8 +140,7 @@ class Parents extends Admin_Controller
             $stafflist = $this->input->post('views_bulk_operations');
             if (isset($stafflist)) {
                 foreach ($stafflist as $id) {
-                    $this->db->where(array('role' => 6, 'user_id' => $id));
-                    $this->db->update('login_credential', array('active' => 1));
+                    $this->app_lib->activatePortalLogin(6, $id);
                 }
                 set_alert('success', translate('information_has_been_updated_successfully'));
             } else {
@@ -257,7 +255,7 @@ class Parents extends Admin_Controller
             if (!isset($_POST['authentication'])) {
                 $this->db->where('role', 6);
                 $this->db->where('user_id', $parentID);
-                $this->db->update('login_credential', array('password' => $this->app_lib->pass_hashed($password)));
+                $this->db->update('login_credential', array('password' => $this->app_lib->pass_hashed($password), 'must_change_password' => 1, 'active' => 1));
             } else {
                 $this->db->where('role', 6);
                 $this->db->where('user_id', $parentID);

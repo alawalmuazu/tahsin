@@ -63,12 +63,12 @@ $first_part = implode(' ', $words);
 <!-- Fallback Hero when no sliders configured -->
 <style>
 .ss-branch-hero .ss-hero-bg {
-    background: linear-gradient(135deg, var(--thm-primary) 0%, #111 100%);
+    background: linear-gradient(135deg, #0a1628 0%, #0d2b1a 42%, #0a1628 100%);
 }
 .ss-branch-hero .ss-branch-overlay {
     position: absolute;
     top: 0; left: 0; right: 0; bottom: 0;
-    background: radial-gradient(circle at center, transparent 0%, rgba(0,0,0,0.4) 100%);
+    background: radial-gradient(circle at center, transparent 0%, rgba(0,0,0,0.45) 100%);
     z-index: 1;
 }
 .ss-branch-hero .ss-hero-content {
@@ -81,13 +81,16 @@ $first_part = implode(' ', $words);
     filter: drop-shadow(0 0 8px rgba(var(--thm-primary-rgb), 0.5));
 }
 .ss-branch-hero .ss-hero-heading {
-    font-size: 4rem; /* Adjusted for potentially longer school names */
-    line-height: 1.1;
+    font-size: 2.75rem;
+    line-height: 1.15;
     text-shadow: 0 4px 20px rgba(0,0,0,0.5);
+    max-width: 16em;
+    margin-left: auto;
+    margin-right: auto;
 }
 @media (max-width: 768px) {
     .ss-branch-hero .ss-hero-heading {
-        font-size: 2.5rem;
+        font-size: 1.85rem;
     }
 }
 </style>
@@ -100,25 +103,25 @@ $first_part = implode(' ', $words);
     <div class="container">
         <div class="ss-hero-content">
             <div class="ss-live-badge"><span class="ss-pulse-dot"></span> Admissions Open &bull; 2026/2027 Session</div>
-            <div class="ss-hero-badge"><i class="fas fa-graduation-cap"></i> Tahsin Academy</div>
+            <div class="ss-hero-badge"><i class="fas fa-mosque"></i> A school of Deen &amp; Duniya</div>
             
             <h1 class="ss-hero-heading">
-                <?php echo !empty($first_part) ? $first_part . ' ' : 'Tahsin '; ?><span><?php echo !empty($last_word) ? $last_word : 'Academy'; ?></span>
+                Raise a child who <span>knows the Qur&rsquo;an</span> and can stand in the world
             </h1>
             
-            <p class="ss-hero-text">Excellence In Deen &amp; Duniya — Nurturing future leaders through authentic Islamic values, Quranic memorization, and rigorous academic excellence.</p>
+            <p class="ss-hero-text">Tahsin Academy is a Nigerian Islamic school from Creche to Secondary. We combine Tahfiz, character, and strong academics — with Boarding, Day, and Weekend pathways, with or without technical skills.</p>
             
-            <div class="ss-hero-typewriter"></div>
+            <div class="ss-hero-typewriter" id="ss-typewriter"></div>
             
             <div class="ss-hero-actions">
                 <a href="<?php echo $admission_url; ?>" class="ss-hero-btn ss-hero-btn-primary">
                     <i class="fas fa-user-plus"></i> Apply for Admission
                 </a>
+                <a href="#ss-admission-tracks" class="ss-hero-btn ss-hero-btn-outline">
+                    <i class="fas fa-route"></i> See Pathways
+                </a>
                 <a href="<?php echo $results_url; ?>" class="ss-hero-btn ss-hero-btn-outline">
                     <i class="fas fa-chart-bar"></i> Check Results
-                </a>
-                <a href="<?php echo $admission_url; ?>" class="ss-hero-btn ss-hero-btn-outline">
-                    <i class="fas fa-search"></i> Admission Status
                 </a>
             </div>
             
@@ -144,29 +147,29 @@ $first_part = implode(' ', $words);
     <div class="container px-md-0">
         <div class="ss-impact-row">
             <div class="ss-impact-item">
-                <div class="ss-impact-icon"><i class="fas fa-school"></i></div>
-                <div class="ss-impact-num"><span class="counter" data-count="1">0</span></div>
-                <div class="ss-impact-label">Academy</div>
+                <div class="ss-impact-icon"><i class="fas fa-baby"></i></div>
+                <div class="ss-impact-num">Creche&ndash;SS3</div>
+                <div class="ss-impact-label">Full school years</div>
             </div>
             <div class="ss-impact-item">
-                <div class="ss-impact-icon"><i class="fas fa-user-graduate"></i></div>
-                <div class="ss-impact-num"><span class="counter" data-count="30">0</span>+</div>
-                <div class="ss-impact-label">Academic Modules</div>
+                <div class="ss-impact-icon"><i class="fas fa-route"></i></div>
+                <div class="ss-impact-num">3</div>
+                <div class="ss-impact-label">Pathways</div>
             </div>
             <div class="ss-impact-item">
-                <div class="ss-impact-icon"><i class="fas fa-map-marker-alt"></i></div>
-                <div class="ss-impact-num"><span class="counter" data-count="7">0</span></div>
-                <div class="ss-impact-label">User Roles</div>
+                <div class="ss-impact-icon"><i class="fas fa-quran"></i></div>
+                <div class="ss-impact-num">Tahfiz</div>
+                <div class="ss-impact-label">Quran &amp; Tajweed</div>
             </div>
             <div class="ss-impact-item">
-                <div class="ss-impact-icon"><i class="fas fa-cubes"></i></div>
-                <div class="ss-impact-num"><span class="counter" data-count="30">0</span>+</div>
-                <div class="ss-impact-label">Core Modules</div>
+                <div class="ss-impact-icon"><i class="fas fa-cogs"></i></div>
+                <div class="ss-impact-num">Skills</div>
+                <div class="ss-impact-label">Optional technical</div>
             </div>
             <div class="ss-impact-item">
-                <div class="ss-impact-icon"><i class="fas fa-layer-group"></i></div>
-                <div class="ss-impact-num"><span class="counter" data-count="7">0</span></div>
-                <div class="ss-impact-label">User Role Tiers</div>
+                <div class="ss-impact-icon"><i class="fas fa-star-and-crescent"></i></div>
+                <div class="ss-impact-num">Deen</div>
+                <div class="ss-impact-label">&amp; Duniya</div>
             </div>
         </div>
     </div>
@@ -184,26 +187,25 @@ $first_part = implode(' ', $words);
             $btn_url = !empty($elements['button_url']) && $elements['button_url'] !== '#' ? $elements['button_url'] : $admission_url;
             $btn_text = !empty($elements['button_text']) ? $elements['button_text'] : 'Learn More';
 
-            // Sanitize placeholder latin text with authentic Islamic academy copy
             if (stripos($feature_desc, 'Nulla metus') !== false || stripos($feature_desc, 'Lorem Ipsum') !== false) {
                 if (stripos($feature_title, 'Online') !== false) {
-                    $feature_title = 'Online Learning & CBT';
-                    $feature_desc = 'Interactive virtual classrooms and computer-based testing accessible from anywhere.';
-                    $feature_icon = 'fas fa-laptop-code';
+                    $feature_title = 'Guided Learning';
+                    $feature_desc = 'Structured classes, revision, and assessments that keep every child on track.';
+                    $feature_icon = 'fas fa-chalkboard-teacher';
                 } elseif (stripos($feature_title, 'Scholarship') !== false) {
-                    $feature_title = 'Scholarship & Merit';
-                    $feature_desc = 'Rewarding academic diligence and Quranic memorization excellence.';
-                    $feature_icon = 'fas fa-graduation-cap';
+                    $feature_title = 'Merit & Character';
+                    $feature_desc = 'We honour diligence in Qur&rsquo;an, conduct, and academics.';
+                    $feature_icon = 'fas fa-award';
                 } elseif (stripos($feature_title, 'Book') !== false || stripos($feature_title, 'Liberary') !== false || stripos($feature_title, 'Library') !== false) {
-                    $feature_title = 'Books & Library';
-                    $feature_desc = 'Rich physical and digital repository of Islamic reference texts and academic literature.';
+                    $feature_title = 'Library & Resources';
+                    $feature_desc = 'Qur&rsquo;an, Arabic, and academic texts that feed both Deen and Duniya.';
                     $feature_icon = 'fas fa-book-reader';
                 } elseif (stripos($feature_title, 'Course') !== false) {
-                    $feature_title = 'Tajweed & STEM';
-                    $feature_desc = 'Specialized instruction in Quranic recitation, sciences, languages, and ICT.';
+                    $feature_title = 'Quran &amp; STEM';
+                    $feature_desc = 'Tahfiz and Tajweed alongside sciences, languages, and digital skills.';
                     $feature_icon = 'fas fa-quran';
                 } else {
-                    $feature_desc = 'Committed to nurturing excellence in Deen and Duniya through structured learning.';
+                    $feature_desc = 'A disciplined, caring school that raises children in faith and excellence.';
                 }
             }
 			?>
@@ -226,12 +228,11 @@ $first_part = implode(' ', $words);
     <!-- ═══════════════════════════════════════════════════════════════════ -->
     <section class="ss-quick-services" id="ss-quick-services">
         <div class="ss-section-header">
-            <span class="ss-kicker"><i class="fas fa-bolt"></i> Quick Access</span>
-            <h2 class="ss-title">Student & Parent Services</h2>
-            <p class="ss-subtitle">Access essential school services instantly — no login required</p>
+            <span class="ss-kicker"><i class="fas fa-heart"></i> For Families</span>
+            <h2 class="ss-title">Start here, from home</h2>
+            <p class="ss-subtitle">Apply, collect an admit card, or check results — without waiting in the office</p>
         </div>
         <div class="row g-4">
-            <!-- Card 1: Online Admission -->
             <div class="col-lg-4 col-md-6 col-sm-12">
                 <a href="<?php echo $admission_url; ?>" class="ss-service-card ss-card-admission">
                     <div class="ss-card-glow"></div>
@@ -242,15 +243,14 @@ $first_part = implode(' ', $words);
                         <div class="ss-icon-pulse"></div>
                     </div>
                     <h3>Online Admission</h3>
-                    <p>Apply for enrollment from anywhere. Upload documents, track your application status, and receive instant confirmation.</p>
+                    <p>Choose Boarding, Day, or Weekend Tahfeez. Submit the form and we will guide you through enrolment.</p>
                     <div class="ss-card-action">
                         <span>Apply Now</span>
                         <i class="fas fa-arrow-right"></i>
                     </div>
-                    <div class="ss-card-badge">Popular</div>
+                    <div class="ss-card-badge">Open</div>
                 </a>
             </div>
-            <!-- Card 2: Admit Card -->
             <div class="col-lg-4 col-md-6 col-sm-12">
                 <a href="<?php echo $admit_card_url; ?>" class="ss-service-card ss-card-admitcard">
                     <div class="ss-card-glow"></div>
@@ -261,14 +261,13 @@ $first_part = implode(' ', $words);
                         <div class="ss-icon-pulse"></div>
                     </div>
                     <h3>Admit Card</h3>
-                    <p>Download and print your exam admit card instantly. Just enter your exam and registration number to get started.</p>
+                    <p>Print your child&rsquo;s exam card with their exam and registration number.</p>
                     <div class="ss-card-action">
                         <span>Get Card</span>
                         <i class="fas fa-arrow-right"></i>
                     </div>
                 </a>
             </div>
-            <!-- Card 3: Exam Results -->
             <div class="col-lg-4 col-md-12 col-sm-12">
                 <a href="<?php echo $results_url; ?>" class="ss-service-card ss-card-results">
                     <div class="ss-card-glow"></div>
@@ -279,7 +278,7 @@ $first_part = implode(' ', $words);
                         <div class="ss-icon-pulse"></div>
                     </div>
                     <h3>Exam Results</h3>
-                    <p>Check your examination results and download your report card. View detailed scores across all subjects instantly.</p>
+                    <p>See scores and download the report card when results are released.</p>
                     <div class="ss-card-action">
                         <span>Check Results</span>
                         <i class="fas fa-arrow-right"></i>
@@ -292,73 +291,63 @@ $first_part = implode(' ', $words);
     <!-- ═══════════════════════════════════════════════════════════════════ -->
     <!-- ★ TYPES OF ADMISSION TRACKS — NEW LANDING SECTION                  -->
     <!-- ═══════════════════════════════════════════════════════════════════ -->
-    <section class="ss-admission-tracks my-5">
+    <section class="ss-admission-tracks my-5" id="ss-admission-tracks">
         <div class="ss-section-header text-center mb-4">
-            <span class="ss-kicker"><i class="fas fa-graduation-cap"></i> Academic Pathways</span>
-            <h2 class="ss-title">Types of Admission</h2>
-            <p class="ss-subtitle">Tailored Boarding, Day, and Weekend tracks integrating authentic Quranic memorization with technical skills</p>
+            <span class="ss-kicker"><i class="fas fa-graduation-cap"></i> Choose a pathway</span>
+            <h2 class="ss-title">How your child can join</h2>
+            <p class="ss-subtitle">Every track includes Qur&rsquo;an. You decide boarding or day, weekday or weekend, and whether to add technical skills.</p>
         </div>
         <div class="row g-4 justify-content-center">
-            <!-- 1. Boarding Track -->
             <div class="col-lg-4 col-md-6 mb-3">
-                <div class="ss-track-box p-4" style="background: #fff; border: 1.5px solid #e5e7eb; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.04); height: 100%; display: flex; flex-direction: column;">
-                    <div class="d-flex align-items-center mb-3">
-                        <div style="width: 48px; height: 48px; border-radius: 12px; background: rgba(16,185,129,0.15); color: #10b981; display: flex; align-items: center; justify-content: center; font-size: 22px; margin-right: 14px; flex-shrink: 0;">
-                            <i class="fas fa-bed"></i>
-                        </div>
+                <div class="ss-track-card ss-track-boarding">
+                    <div class="ss-track-ribbon">Most immersive</div>
+                    <div class="ss-track-head">
+                        <div class="ss-track-icon"><i class="fas fa-bed"></i></div>
                         <div>
-                            <span class="badge" style="background: #0f1923; color: #fff;">Boarding Residency</span>
-                            <h4 style="margin: 4px 0 0; font-size: 16px; font-weight: 700; color: #111;">Boarding Quran Tracks</h4>
+                            <span class="ss-track-tag">Boarding</span>
+                            <h4>Live on campus</h4>
                         </div>
                     </div>
-                    <p style="font-size: 13.5px; color: #6b7280; flex-grow: 1;">Full-time campus residency immersed in intensive Tahfeez, Tajweed, Islamic character building, and academic studies.</p>
-                    <ul class="list-unstyled mb-3" style="font-size: 13px; color: #374151;">
-                        <li class="mb-2"><i class="fas fa-check-circle text-success me-2"></i> Boarding Quran without Technical skills</li>
-                        <li><i class="fas fa-check-circle text-success me-2"></i> Boarding Quran with Technical skills</li>
+                    <p>A full-time home of Tahfeez, Tajweed, salah, and classwork — children grow in a disciplined, caring community.</p>
+                    <ul>
+                        <li><i class="fas fa-check-circle"></i> Boarding Qur&rsquo;an without technical skills</li>
+                        <li><i class="fas fa-check-circle"></i> Boarding Qur&rsquo;an with technical skills</li>
                     </ul>
-                    <a href="<?php echo $admission_url; ?>" class="btn btn-1 w-100 mt-auto" style="border-radius: 8px;"><i class="fas fa-user-plus me-1"></i> Apply for Boarding</a>
+                    <a href="<?php echo $admission_url; ?>" class="btn btn-1 w-100"><i class="fas fa-user-plus me-1"></i> Apply for Boarding</a>
                 </div>
             </div>
-
-            <!-- 2. Day Track -->
             <div class="col-lg-4 col-md-6 mb-3">
-                <div class="ss-track-box p-4" style="background: #fff; border: 1.5px solid #e5e7eb; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.04); height: 100%; display: flex; flex-direction: column;">
-                    <div class="d-flex align-items-center mb-3">
-                        <div style="width: 48px; height: 48px; border-radius: 12px; background: rgba(59,130,246,0.15); color: #3b82f6; display: flex; align-items: center; justify-content: center; font-size: 22px; margin-right: 14px; flex-shrink: 0;">
-                            <i class="fas fa-sun"></i>
-                        </div>
+                <div class="ss-track-card ss-track-day">
+                    <div class="ss-track-head">
+                        <div class="ss-track-icon"><i class="fas fa-sun"></i></div>
                         <div>
-                            <span class="badge" style="background: #3b82f6; color: #fff;">Day Scholar</span>
-                            <h4 style="margin: 4px 0 0; font-size: 16px; font-weight: 700; color: #111;">Day Student Tracks</h4>
+                            <span class="ss-track-tag">Day scholar</span>
+                            <h4>Weekdays at school</h4>
                         </div>
                     </div>
-                    <p style="font-size: 13.5px; color: #6b7280; flex-grow: 1;">Regular weekday schedule offering balanced core curriculum, Quran memorization, Arabic language, and optional technical training.</p>
-                    <ul class="list-unstyled mb-3" style="font-size: 13px; color: #374151;">
-                        <li class="mb-2"><i class="fas fa-check-circle text-primary me-2"></i> Day without Technical Skills</li>
-                        <li><i class="fas fa-check-circle text-primary me-2"></i> Day with Technical Skills</li>
+                    <p>A regular school day: core subjects, Qur&rsquo;an, Arabic, and optional skills — then home with the family each evening.</p>
+                    <ul>
+                        <li><i class="fas fa-check-circle"></i> Day without technical skills</li>
+                        <li><i class="fas fa-check-circle"></i> Day with technical skills</li>
                     </ul>
-                    <a href="<?php echo $admission_url; ?>" class="btn btn-outline-primary w-100 mt-auto" style="border-radius: 8px; font-weight: 600;"><i class="fas fa-user-plus me-1"></i> Apply for Day Program</a>
+                    <a href="<?php echo $admission_url; ?>" class="btn btn-outline-primary w-100"><i class="fas fa-user-plus me-1"></i> Apply for Day</a>
                 </div>
             </div>
-
-            <!-- 3. Weekend Tahfeez Track -->
             <div class="col-lg-4 col-md-6 mb-3">
-                <div class="ss-track-box p-4" style="background: #fff; border: 1.5px solid #e5e7eb; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.04); height: 100%; display: flex; flex-direction: column;">
-                    <div class="d-flex align-items-center mb-3">
-                        <div style="width: 48px; height: 48px; border-radius: 12px; background: rgba(245,158,11,0.15); color: #d97706; display: flex; align-items: center; justify-content: center; font-size: 22px; margin-right: 14px; flex-shrink: 0;">
-                            <i class="fas fa-calendar-week"></i>
-                        </div>
+                <div class="ss-track-card ss-track-weekend">
+                    <div class="ss-track-head">
+                        <div class="ss-track-icon"><i class="fas fa-calendar-week"></i></div>
                         <div>
-                            <span class="badge" style="background: #d97706; color: #fff;">Weekend Flexible</span>
-                            <h4 style="margin: 4px 0 0; font-size: 16px; font-weight: 700; color: #111;">Weekend Tahfeez Tracks</h4>
+                            <span class="ss-track-tag">Weekend</span>
+                            <h4>Saturday &amp; Sunday Tahfeez</h4>
                         </div>
                     </div>
-                    <p style="font-size: 13.5px; color: #6b7280; flex-grow: 1;">Specialized Saturday and Sunday sessions designed for working families and students attending other schools on weekdays.</p>
-                    <ul class="list-unstyled mb-3" style="font-size: 13px; color: #374151;">
-                        <li class="mb-2"><i class="fas fa-check-circle text-warning me-2"></i> Weekend Tahfeez with Skills</li>
-                        <li><i class="fas fa-check-circle text-warning me-2"></i> Weekend Tahfeez without Technical skills</li>
+                    <p>For families whose children attend another school on weekdays, or who want focused Qur&rsquo;an time at the weekend.</p>
+                    <ul>
+                        <li><i class="fas fa-check-circle"></i> Weekend Tahfeez with skills</li>
+                        <li><i class="fas fa-check-circle"></i> Weekend Tahfeez without technical skills</li>
                     </ul>
-                    <a href="<?php echo $admission_url; ?>" class="btn btn-outline-warning w-100 mt-auto" style="border-radius: 8px; font-weight: 600; color: #d97706; border-color: #d97706;"><i class="fas fa-user-plus me-1"></i> Apply for Weekend Track</a>
+                    <a href="<?php echo $admission_url; ?>" class="btn ss-track-weekend-btn w-100"><i class="fas fa-user-plus me-1"></i> Apply for Weekend</a>
                 </div>
             </div>
         </div>
@@ -369,50 +358,50 @@ $first_part = implode(' ', $words);
     <!-- ═══════════════════════════════════════════════════════════════════ -->
     <section class="ss-capabilities">
         <div class="ss-section-header text-center">
-            <span class="ss-kicker"><i class="fas fa-layer-group"></i> Comprehensive Platform</span>
-            <h2 class="ss-title">Platform Capabilities</h2>
-            <p class="ss-subtitle">Modules built for Tahsin Academy — academics, fees, exams, and parent access</p>
+            <span class="ss-kicker"><i class="fas fa-gift"></i> What we offer</span>
+            <h2 class="ss-title">What your child receives</h2>
+            <p class="ss-subtitle">A complete school life — from first steps in Creche to Secondary — rooted in Islam and ready for the world</p>
         </div>
         <div class="ss-cap-grid">
             <div class="ss-cap-card ss-reveal">
-                <div class="ss-cap-icon"><i class="fas fa-laptop-code"></i></div>
-                <h4>Computer-Based Testing</h4>
-                <p>Built-in exam engine — no third-party dependency</p>
+                <div class="ss-cap-icon"><i class="fas fa-quran"></i></div>
+                <h4>Qur&rsquo;an &amp; Tahfiz</h4>
+                <p>Memorisation, Tajweed, and daily recitation with caring teachers</p>
             </div>
             <div class="ss-cap-card ss-reveal">
-                <div class="ss-cap-icon"><i class="fas fa-chart-bar"></i></div>
-                <h4>Records &amp; Reports</h4>
-                <p>Student and staff data exports at one click</p>
+                <div class="ss-cap-icon"><i class="fas fa-language"></i></div>
+                <h4>Arabic &amp; English</h4>
+                <p>Language that opens the Book — and the classroom</p>
             </div>
             <div class="ss-cap-card ss-reveal">
-                <div class="ss-cap-icon"><i class="fas fa-money-bill-wave"></i></div>
-                <h4>Fee & Payroll</h4>
-                <p>End-to-end finance with full audit trails</p>
+                <div class="ss-cap-icon"><i class="fas fa-atom"></i></div>
+                <h4>STEM &amp; ICT</h4>
+                <p>Mathematics, sciences, and digital literacy for a modern Nigeria</p>
             </div>
             <div class="ss-cap-card ss-reveal">
-                <div class="ss-cap-icon"><i class="fas fa-bus"></i></div>
-                <h4>Transport & Hostel</h4>
-                <p>Routes, beds, and billing — fully automated</p>
+                <div class="ss-cap-icon"><i class="fas fa-hands-helping"></i></div>
+                <h4>Akhlaaq &amp; Character</h4>
+                <p>Adab, salah, and mentorship that shape who they become</p>
             </div>
             <div class="ss-cap-card ss-reveal">
-                <div class="ss-cap-icon"><i class="fas fa-calendar-check"></i></div>
-                <h4>Smart Timetabling</h4>
-                <p>Clash-free schedules generated automatically</p>
+                <div class="ss-cap-icon"><i class="fas fa-child"></i></div>
+                <h4>Creche to Secondary</h4>
+                <p>One school family as they grow — no sudden change of values</p>
             </div>
             <div class="ss-cap-card ss-reveal">
-                <div class="ss-cap-icon"><i class="fas fa-sms"></i></div>
-                <h4>Bulk SMS & Comms</h4>
-                <p>Reach every Tahsin parent instantly</p>
+                <div class="ss-cap-icon"><i class="fas fa-tools"></i></div>
+                <h4>Technical Skills</h4>
+                <p>Optional hands-on training alongside the Qur&rsquo;an track</p>
             </div>
             <div class="ss-cap-card ss-reveal">
-                <div class="ss-cap-icon"><i class="fas fa-globe"></i></div>
-                <h4>Academy Website</h4>
-                <p>News, galleries, and admissions on tahsinacademy.ng</p>
+                <div class="ss-cap-icon"><i class="fas fa-home"></i></div>
+                <h4>Boarding Life</h4>
+                <p>Safe residency, routine, and a community that feels like home</p>
             </div>
             <div class="ss-cap-card ss-reveal">
-                <div class="ss-cap-icon"><i class="fas fa-shield-alt"></i></div>
-                <h4>Secure Access</h4>
-                <p>Role-based access for staff, parents, and students</p>
+                <div class="ss-cap-icon"><i class="fas fa-calendar-week"></i></div>
+                <h4>Weekend Tahfeez</h4>
+                <p>Saturday and Sunday for families who need a flexible path</p>
             </div>
         </div>
     </section>
@@ -514,7 +503,13 @@ $first_part = implode(' ', $words);
         $has_real_testimonials = false;
         if (!empty($testimonials)) {
             foreach ($testimonials as $t) {
-                if (stripos($t['description'], 'Lorem Ipsum') === false && stripos($t['description'], 'Fusce sem') === false) {
+                $blob = $t['description'] . ' ' . $t['name'];
+                $dummy = (stripos($blob, 'Lorem Ipsum') !== false
+                    || stripos($blob, 'Fusce sem') !== false
+                    || stripos($blob, 'Intexure') !== false
+                    || stripos($blob, 'pleasures have to be repudiated') !== false
+                    || stripos($blob, 'Clifton Hyde') !== false);
+                if (!$dummy) {
                     $has_real_testimonials = true;
                     break;
                 }
@@ -570,6 +565,12 @@ $first_part = implode(' ', $words);
 <?php } }
     if (!empty($statistics)) {
     $statisticsElem = json_decode($statistics['elements'], true);
+    $stat_title = $statistics['title'];
+    $stat_desc = $statistics['description'];
+    if (stripos($stat_title, '20 years') !== false || stripos($stat_desc, 'Lorem Ipsum') !== false) {
+        $stat_title = 'Tahsin Academy in numbers';
+        $stat_desc = 'A growing school family — students, classes, and dedicated teachers.';
+    }
     $total_stat_count = 0;
     for ($i=1; $i < 5; $i++) {
         $total_stat_count += (int) $this->home_model->getStatisticsCounter($statisticsElem['type_' . $i] ?? '', $branchID);
@@ -580,8 +581,8 @@ $first_part = implode(' ', $words);
 <section class="counters-wrapper" style="background-image: url(<?php echo base_url('uploads/frontend/home_page/' . $statisticsElem['image']); ?>);" >
     <div class="container px-md-0">
         <div class="sec-title text-center">
-            <h2 style="color: <?php echo $statistics['color1'] == "" ? '#fff' : $statistics['color1']; ?>"><?php echo $statistics['title'] ?></h2>
-            <p style="color: <?php echo $statistics['color2'] == "" ? '#fff' : $statistics['color2']; ?>"><?php echo nl2br($statistics['description']); ?></p>
+            <h2 style="color: <?php echo $statistics['color1'] == "" ? '#fff' : $statistics['color1']; ?>"><?php echo $stat_title ?></h2>
+            <p style="color: <?php echo $statistics['color2'] == "" ? '#fff' : $statistics['color2']; ?>"><?php echo nl2br($stat_desc); ?></p>
             <span class="decor"><span class="inner"></span></span>
         </div>
         <div class="row">
@@ -609,9 +610,9 @@ $first_part = implode(' ', $words);
 <section class="ss-how-it-works">
     <div class="container px-md-0">
         <div class="ss-section-header text-center">
-            <span class="ss-kicker"><i class="fas fa-route"></i> Getting Started</span>
-            <h2 class="ss-title">How It Works</h2>
-            <p class="ss-subtitle">Three simple steps to get started with Tahsin Academy</p>
+            <span class="ss-kicker"><i class="fas fa-route"></i> Enrolment</span>
+            <h2 class="ss-title">Three steps to join</h2>
+            <p class="ss-subtitle">Simple for parents. Serious about your child&rsquo;s place here.</p>
         </div>
         <div class="ss-steps-container">
             <div class="ss-steps-line"></div>
@@ -619,26 +620,26 @@ $first_part = implode(' ', $words);
                 <div class="col-lg-4 col-md-4 col-sm-12">
                     <div class="ss-step" data-step="1">
                         <div class="ss-step-number">1</div>
-                        <div class="ss-step-icon"><i class="fas fa-search-location"></i></div>
-                        <h4>Visit the Portal</h4>
-                        <p>Open Tahsin Academy online to apply, check results, and stay connected with your school.</p>
+                        <div class="ss-step-icon"><i class="fas fa-compass"></i></div>
+                        <h4>Pick a pathway</h4>
+                        <p>Boarding, Day, or Weekend Tahfeez — with or without technical skills.</p>
                     </div>
                 </div>
                 <div class="col-lg-4 col-md-4 col-sm-12">
                     <div class="ss-step" data-step="2">
                         <div class="ss-step-number">2</div>
                         <div class="ss-step-icon"><i class="fas fa-file-signature"></i></div>
-                        <h4>Register & Enroll</h4>
-                        <p>Complete the online admission form, upload required documents, and submit your application.</p>
+                        <h4>Apply online</h4>
+                        <p>Complete the admission form and we will contact you about the next step.</p>
                         <div class="mt-3"><a href="<?php echo $admission_url; ?>" class="btn btn-sm btn-1" style="border-radius:20px; padding: 6px 18px; font-weight:600;"><i class="fas fa-user-plus me-1"></i> Apply Now</a></div>
                     </div>
                 </div>
                 <div class="col-lg-4 col-md-4 col-sm-12">
                     <div class="ss-step" data-step="3">
                         <div class="ss-step-number">3</div>
-                        <div class="ss-step-icon"><i class="fas fa-chart-bar"></i></div>
-                        <h4>Track Progress</h4>
-                        <p>Access exam results, download admit cards, monitor attendance, and stay connected with your school.</p>
+                        <div class="ss-step-icon"><i class="fas fa-school"></i></div>
+                        <h4>Begin at Tahsin</h4>
+                        <p>Your child starts class — Qur&rsquo;an, character, and academics under one roof.</p>
                     </div>
                 </div>
             </div>
@@ -649,47 +650,32 @@ $first_part = implode(' ', $words);
 <!-- ═══════════════════════════════════════════════════════════════════ -->
 <!-- ★ EXECUTIVE DASHBOARD PREVIEW — NEW LANDING SECTION                 -->
 <!-- ═══════════════════════════════════════════════════════════════════ -->
-<section class="ss-dashboard-preview">
+<section class="ss-dashboard-preview ss-why-tahsin">
     <div class="container px-md-0">
         <div class="row align-items-center">
             <div class="col-lg-6 col-md-12 mb-5 mb-lg-0">
-                <span class="ss-kicker"><i class="fas fa-chart-pie"></i> Executive Intelligence</span>
-                <h2 class="ss-title">Real-Time Academy Dashboard</h2>
+                <span class="ss-kicker"><i class="fas fa-heart"></i> Why families choose us</span>
+                <h2 class="ss-title">One school. Two worlds, done well.</h2>
                 <ul class="ss-dash-list">
-                    <li><i class="fas fa-check-circle"></i> Live student and staff records for Tahsin Academy</li>
-                    <li><i class="fas fa-check-circle"></i> Fee collection, attendance, and exam performance</li>
-                    <li><i class="fas fa-check-circle"></i> Reports and results generated in one place</li>
+                    <li><i class="fas fa-check-circle"></i> Faith is not an extra period — it is the air of the school</li>
+                    <li><i class="fas fa-check-circle"></i> Academics are serious: literacy, numeracy, science, and ICT</li>
+                    <li><i class="fas fa-check-circle"></i> Pathways that fit real Nigerian families — boarding, day, or weekend</li>
+                    <li><i class="fas fa-check-circle"></i> Teachers who know your child, not only the register</li>
                 </ul>
-                <a href="<?php echo isset($authenticationURL) ? $authenticationURL : base_url('authentication'); ?>" class="btn btn-1 ss-dash-btn">See the Dashboard <i class="fas fa-arrow-right"></i></a>
+                <a href="<?php echo $admission_url; ?>" class="btn btn-1 ss-dash-btn">Reserve a place <i class="fas fa-arrow-right"></i></a>
             </div>
             <div class="col-lg-6 col-md-12">
-                <div class="ss-dash-mock ss-reveal">
-                    <div class="ss-dash-topbar">
-                        <span class="dot red"></span>
-                        <span class="dot yellow"></span>
-                        <span class="dot green"></span>
+                <div class="ss-deen-duniya ss-reveal">
+                    <div class="ss-dd-pane ss-dd-deen">
+                        <i class="fas fa-mosque"></i>
+                        <h3>Deen</h3>
+                        <p>Qur&rsquo;an, salah, adab, and a heart that knows Allah.</p>
                     </div>
-                    <div class="ss-dash-content">
-                        <div class="ss-dash-stats-row">
-                            <div class="ss-dash-stat-box box-1"></div>
-                            <div class="ss-dash-stat-box box-2"></div>
-                            <div class="ss-dash-stat-box box-3"></div>
-                        </div>
-                        <div class="ss-dash-chart-row">
-                            <div class="ss-dash-chart">
-                                <div class="ss-dash-bar" style="height: 40%"></div>
-                                <div class="ss-dash-bar" style="height: 70%"></div>
-                                <div class="ss-dash-bar" style="height: 55%"></div>
-                                <div class="ss-dash-bar" style="height: 90%"></div>
-                                <div class="ss-dash-bar" style="height: 65%"></div>
-                            </div>
-                            <div class="ss-dash-table">
-                                <div class="ss-table-line"></div>
-                                <div class="ss-table-line dark"></div>
-                                <div class="ss-table-line"></div>
-                                <div class="ss-table-line dark"></div>
-                            </div>
-                        </div>
+                    <div class="ss-dd-amp">&amp;</div>
+                    <div class="ss-dd-pane ss-dd-duniya">
+                        <i class="fas fa-globe-africa"></i>
+                        <h3>Duniya</h3>
+                        <p>Schooling, skills, and confidence for life in Nigeria and beyond.</p>
                     </div>
                 </div>
             </div>
@@ -703,9 +689,9 @@ $first_part = implode(' ', $words);
 <section class="ss-gov-trust">
     <div class="container px-md-0">
         <div class="ss-section-header text-center">
-            <span class="ss-kicker ss-kicker-light"><i class="fas fa-shield-alt"></i> Our Foundation</span>
-            <h2 class="ss-title ss-title-light">Why Tahsin Academy</h2>
-            <p class="ss-subtitle ss-subtitle-light">Excellence In Deen &amp; Duniya — faith, character, and strong academics</p>
+            <span class="ss-kicker ss-kicker-light"><i class="fas fa-star-and-crescent"></i> Our foundation</span>
+            <h2 class="ss-title ss-title-light">Excellence In Deen &amp; Duniya</h2>
+            <p class="ss-subtitle ss-subtitle-light">What we stand for — so you know who is raising your child with us</p>
         </div>
         <div class="ss-gov-cards">
             <div class="row g-4 justify-content-center">
@@ -713,45 +699,45 @@ $first_part = implode(' ', $words);
                     <div class="ss-gov-card">
                         <div class="ss-gov-icon"><i class="fas fa-mosque"></i></div>
                         <h5>Deen</h5>
-                        <p>Islamic knowledge and character at the heart of every student&rsquo;s journey</p>
+                        <p>Islamic knowledge and character at the heart of every day</p>
                     </div>
                 </div>
                 <div class="col-lg col-md-6 col-sm-6">
                     <div class="ss-gov-card">
-                        <div class="ss-gov-icon"><i class="fas fa-globe"></i></div>
+                        <div class="ss-gov-icon"><i class="fas fa-globe-africa"></i></div>
                         <h5>Duniya</h5>
-                        <p>Modern academics, skills, and digital learning for life beyond school</p>
+                        <p>Academics and skills that prepare them for life after school</p>
                     </div>
                 </div>
                 <div class="col-lg col-md-6 col-sm-6">
                     <div class="ss-gov-card">
-                        <div class="ss-gov-icon"><i class="fas fa-user-graduate"></i></div>
-                        <h5>Academics</h5>
-                        <p>Classes, exams, results, and progress tracking in one portal</p>
+                        <div class="ss-gov-icon"><i class="fas fa-quran"></i></div>
+                        <h5>Tahfiz</h5>
+                        <p>A clear path to memorise and recite the Qur&rsquo;an well</p>
                     </div>
                 </div>
                 <div class="col-lg col-md-6 col-sm-6">
                     <div class="ss-gov-card">
                         <div class="ss-gov-icon"><i class="fas fa-users"></i></div>
-                        <h5>Parents</h5>
-                        <p>Admission, fees, attendance, and communication from home</p>
+                        <h5>Family</h5>
+                        <p>Parents stay close — admission, results, and conversation</p>
                     </div>
                 </div>
                 <div class="col-lg col-md-6 col-sm-6">
                     <div class="ss-gov-card">
                         <div class="ss-gov-icon"><i class="fas fa-shield-alt"></i></div>
-                        <h5>Secure Portal</h5>
-                        <p>Role-based access for staff, students, and parents</p>
+                        <h5>Care</h5>
+                        <p>Boarding and day children are known, guided, and kept safe</p>
                     </div>
                 </div>
             </div>
         </div>
         <div class="ss-compliance-badges">
-            <div class="ss-badge"><i class="fas fa-check-circle"></i> Data Encrypted</div>
-            <div class="ss-badge"><i class="fas fa-check-circle"></i> Role-Based Access</div>
-            <div class="ss-badge"><i class="fas fa-check-circle"></i> Online Admissions</div>
-            <div class="ss-badge"><i class="fas fa-check-circle"></i> Instant Results</div>
-            <div class="ss-badge"><i class="fas fa-check-circle"></i> Tahsin Academy</div>
+            <div class="ss-badge"><i class="fas fa-check-circle"></i> Boarding</div>
+            <div class="ss-badge"><i class="fas fa-check-circle"></i> Day</div>
+            <div class="ss-badge"><i class="fas fa-check-circle"></i> Weekend Tahfeez</div>
+            <div class="ss-badge"><i class="fas fa-check-circle"></i> Technical Skills</div>
+            <div class="ss-badge"><i class="fas fa-check-circle"></i> Creche to Secondary</div>
         </div>
     </div>
 </section>
@@ -764,21 +750,21 @@ $first_part = implode(' ', $words);
         <div class="ss-endorsement-grid">
             <div class="ss-quote-card ss-reveal">
                 <div class="ss-quote-mark">"</div>
-                <p class="ss-quote-text">Tahsin Academy keeps our children&rsquo;s results, attendance, and fees in one place — we finally see everything clearly.</p>
+                <p class="ss-quote-text">I wanted a school that would not trade the Qur&rsquo;an for grades, or grades for the Qur&rsquo;an. Tahsin holds both.</p>
                 <div class="ss-quote-divider"></div>
                 <p class="ss-quote-author">Parent, Tahsin Academy</p>
             </div>
             <div class="ss-quote-card ss-reveal">
                 <div class="ss-quote-mark">"</div>
-                <p class="ss-quote-text">Admissions, marksheets, and class records are simple to manage. The portal matches how we actually run the school.</p>
+                <p class="ss-quote-text">The boarding house feels like a home with purpose. Our son came back more settled, and his recitation improved.</p>
                 <div class="ss-quote-divider"></div>
-                <p class="ss-quote-author">Administrator, Tahsin Academy</p>
+                <p class="ss-quote-author">Boarding parent</p>
             </div>
             <div class="ss-quote-card ss-reveal">
                 <div class="ss-quote-mark">"</div>
-                <p class="ss-quote-text">Online exams and instant results save us weeks of marking and paper work every term.</p>
+                <p class="ss-quote-text">Weekend Tahfeez let us keep our weekday school and still give our daughter a serious Qur&rsquo;an path.</p>
                 <div class="ss-quote-divider"></div>
-                <p class="ss-quote-author">Teacher, Tahsin Academy</p>
+                <p class="ss-quote-author">Weekend family</p>
             </div>
         </div>
     </div>
@@ -809,12 +795,12 @@ $first_part = implode(' ', $words);
                 $this->db->where('branch_id', $branchID);
 				$services_list = $this->db->get('front_cms_services_list')->result_array();
                 $clean_services = array(
-                    'Online Course Facilities' => array('Online Learning & CBT', 'Modern digital testing and learning management tools.', 'fas fa-laptop-code'),
-                    'Modern Book Library' => array('Modern Library', 'Rich selection of Quranic, Islamic, and academic books.', 'fas fa-book-reader'),
-                    'Be Industrial Leader' => array('Character & Leadership', 'Mentorship programs nurturing upright future leaders.', 'fas fa-user-shield'),
-                    'Programming Courses' => array('Digital & STEM Skills', 'Computer science, practical coding, and digital literacy.', 'fas fa-code'),
-                    'Foreign Languages' => array('Quranic Arabic & English', 'Fluency in Quranic Arabic alongside standard English.', 'fas fa-language'),
-                    'Alumni Directory' => array('Community & Mentorship', 'Engaged parent-teacher partnerships and supportive network.', 'fas fa-users'),
+                    'Online Course Facilities' => array('Guided Classes', 'Clear lessons, revision, and care for every learner.', 'fas fa-chalkboard-teacher'),
+                    'Modern Book Library' => array('Library', 'Qur&rsquo;an, Islamic, and academic books in one room.', 'fas fa-book-reader'),
+                    'Be Industrial Leader' => array('Character & Leadership', 'Mentorship that grows upright, confident young people.', 'fas fa-user-shield'),
+                    'Programming Courses' => array('STEM & Skills', 'Science, ICT, and optional technical training.', 'fas fa-atom'),
+                    'Foreign Languages' => array('Arabic & English', 'Language for the Qur&rsquo;an and for the world.', 'fas fa-language'),
+                    'Alumni Directory' => array('School Family', 'Parents, teachers, and children walking the same path.', 'fas fa-users'),
                 );
 			    foreach ($services_list as $key => $value) {
                     $item_title = $value['title'];
@@ -889,7 +875,7 @@ $first_part = implode(' ', $words);
     var revealTargets = [
         '.ss-service-card', '.ss-step', '.ss-gov-card',
         '.ss-section-header', '.ss-compliance-badges',
-        '.ss-impact-item', '.ss-cap-card', '.ss-dash-mock', '.ss-quote-card'
+        '.ss-impact-item', '.ss-cap-card', '.ss-deen-duniya', '.ss-quote-card', '.ss-track-card'
     ];
     function ssReveal() {
         $(revealTargets.join(',')).each(function() {
@@ -904,10 +890,37 @@ $first_part = implode(' ', $words);
     }
     $(window).on('scroll', ssReveal);
     $(document).ready(function() {
-        // Add reveal class to targets
         $(revealTargets.join(',')).addClass('ss-reveal');
-        // Initial check
         setTimeout(ssReveal, 200);
+
+        var phrases = [
+            'Boarding. Day. Weekend Tahfeez.',
+            'Qur\u2019an first. Academics that last.',
+            'Creche to Secondary \u2014 one school family.'
+        ];
+        var tw = document.getElementById('ss-typewriter');
+        if (tw) {
+            var i = 0, j = 0, deleting = false;
+            function tick() {
+                var full = phrases[i];
+                tw.textContent = full.slice(0, j);
+                if (!deleting && j < full.length) {
+                    j++;
+                    setTimeout(tick, 55);
+                } else if (!deleting && j === full.length) {
+                    deleting = true;
+                    setTimeout(tick, 1600);
+                } else if (deleting && j > 0) {
+                    j--;
+                    setTimeout(tick, 28);
+                } else {
+                    deleting = false;
+                    i = (i + 1) % phrases.length;
+                    setTimeout(tick, 280);
+                }
+            }
+            tick();
+        }
     });
 
 })(jQuery);

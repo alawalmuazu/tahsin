@@ -494,35 +494,7 @@ if (moduleIsEnabled('transport')) {
 								<label class="col-md-3 control-label"><?=translate('payment_method')?> <span class="required">*</span></label>
 								<div class="col-md-6">
 		    						<?php
-										$payvia_list = array('' => translate('select_payment_method'));
-										if ($config['paypal_status'] == 1)
-											$payvia_list['paypal'] = 'Paypal';
-										if ($config['stripe_status'] == 1)
-											$payvia_list['stripe'] = 'Stripe';
-										if ($config['payumoney_status'] == 1)
-											$payvia_list['payumoney'] = 'PayUmoney';
-										if ($config['paystack_status'] == 1)
-											$payvia_list['paystack'] = 'Paystack';
-										if ($config['razorpay_status'] == 1)
-											$payvia_list['razorpay'] = 'Razorpay';
-										if ($config['sslcommerz_status'] == 1)
-											$payvia_list['sslcommerz'] = 'SSLcommerz';
-										if ($config['jazzcash_status'] == 1)
-											$payvia_list['jazzcash'] = 'Jazzcash';
-										if ($config['midtrans_status'] == 1)
-											$payvia_list['midtrans'] = 'Midtrans';
-										if ($config['flutterwave_status'] == 1)
-											$payvia_list['flutterwave'] = 'Flutter Wave';
-	                                    if ($config['paytm_status'] == 1)
-	                                        $payvia_list['paytm'] = 'Paytm';
-	                                    if ($config['toyyibpay_status'] == 1)
-	                                        $payvia_list['toyyibpay'] = 'toyyibPay';
-	                                    if ($config['payhere_status'] == 1)
-	                                        $payvia_list['payhere'] = 'Payhere';
-	                                    if ($config['nepalste_status'] == 1)
-	                                        $payvia_list['nepalste'] = 'Nepalste';
-	                                    if ($config['bkash_status'] == 1)
-	                                        $payvia_list['bkash'] = 'bKash';
+										$payvia_list = $this->app_lib->getNigeriaOnlineGateways($config);
 		    							echo form_dropdown("pay_via", $payvia_list, set_value('pay_via'), "class='form-control' data-plugin-selectTwo data-width='100%' id='pay_via'
 		    							data-minimum-results-for-search='Infinity' ");
 		    						?>

@@ -98,7 +98,7 @@
 						<div class="col-md-6">
     						<?php
     							$payvia_list = $this->app_lib->getSelectList('payment_types');
-    							echo form_dropdown("pay_via", $payvia_list, set_value('pay_via'), "class='form-control' data-plugin-selectTwo data-width='100%'
+    							echo form_dropdown("pay_via", $payvia_list, set_value('pay_via', DEFAULT_PAY_VIA), "class='form-control' data-plugin-selectTwo data-width='100%'
     							data-minimum-results-for-search='Infinity' ");
     						?>
 						</div>

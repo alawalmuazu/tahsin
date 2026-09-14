@@ -184,7 +184,7 @@
         					<div class="form-group">
         						<label class="control-label"><?=translate('pay_via')?> <span class="required">*</span></label>
         						<?php
-        							echo form_dropdown("pay_via", $payvia_list, set_value('pay_via'), "class='form-control' required
+        							echo form_dropdown("pay_via", $payvia_list, set_value('pay_via', DEFAULT_PAY_VIA), "class='form-control' required
         							data-plugin-selectTwo data-width='100%' data-minimum-results-for-search='Infinity' ");
         						?>
         					</div>

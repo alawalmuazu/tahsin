@@ -69,7 +69,7 @@
                         id="login_email"
                         name="email"
                         value="<?php echo set_value('email'); ?>"
-                        placeholder="Enter your username"
+                        placeholder="Email, or student admission number"
                         autocomplete="username"
                         autofocus
                     >

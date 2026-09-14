@@ -695,7 +695,7 @@ if ($previous_school_details['status']) {
 								<div class="col-md-6">
 									<?php
 										$payvia_list = $this->app_lib->getSelectList('payment_types');
-										echo form_dropdown("tuition_pay_via", $payvia_list, 1, "class='form-control' data-plugin-selectTwo data-width='100%' data-minimum-results-for-search='Infinity'");
+										echo form_dropdown("tuition_pay_via", $payvia_list, DEFAULT_PAY_VIA, "class='form-control' data-plugin-selectTwo data-width='100%' data-minimum-results-for-search='Infinity'");
 									?>
 									<span class="error"></span>
 								</div>

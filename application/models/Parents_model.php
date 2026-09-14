@@ -39,33 +39,24 @@ class Parents_model extends MY_Model
             // save employee information in the database
             $this->db->insert('parent', $inser_data1);
             $parent_id = $this->db->insert_id();
-            // save guardian login credential information in the database
-            if ($getBranch['grd_generate'] == 1) {
-                $username = $getBranch['grd_username_prefix'] . $parent_id;
-                $password = $getBranch['grd_default_password'];
-            } else {
-                $username = $data['username'];
-                $password = $data['password'];
-            }
-
-            $inser_data2 = array(
-                'username' => $username,
-                'role' => 6,
-                'active' => 1,
-                'user_id' => $parent_id,
-                'password' => $this->app_lib->pass_hashed($password),
-            );
+            $enable_login = !empty($data['enable_login']);
+            $email = trim((string) $data['email']);
+            $username = $email !== '' ? $email : ('parent' . $parent_id);
+            $inser_data2 = $this->app_lib->buildPortalCredential(6, $parent_id, $username, $enable_login);
             $this->db->insert('login_credential', $inser_data2);
-            
-            // send account activate email
-            $emailData = array(
-                'name' => $data['name'],
-                'username' => $username,
-                'password' => $password,
-                'user_role' => 6,
-                'email' => $data['email'],
-            );
-            $this->email_model->sentStaffRegisteredAccount($emailData);
+            $username = $inser_data2['username'];
+            $password = $enable_login ? $this->app_lib->defaultPasswordForRole(6) : '';
+
+            if ($enable_login && $email !== '') {
+                $emailData = array(
+                    'name' => $data['name'],
+                    'username' => $username,
+                    'password' => $password,
+                    'user_role' => 6,
+                    'email' => $data['email'],
+                );
+                $this->email_model->sentStaffRegisteredAccount($emailData);
+            }
             return $parent_id;
         } else {
             $this->db->where('id', $data['parent_id']);
@@ -152,26 +143,8 @@ class Parents_model extends MY_Model
         $this->db->insert('parent', $arrayParent);
         $parentID = $this->db->insert_id();
 
-        // determine username and password
-        $getSettings = $this->db->select('*')->where('id', $branchID)->from('branch')->get()->row_array();
-        
-        $parent_credential = array(
-            'role' => 6,
-            'user_id' => $parentID,
-        );
-
-        if (!empty($getSettings) && $getSettings['grd_generate'] == 1) {
-            $parent_credential['username'] = $getSettings['grd_username_prefix'] . $parentID;
-            $parent_credential['password'] = $this->app_lib->pass_hashed($getSettings['grd_default_password']);
-            $parent_credential['active'] = 1;
-        } else {
-            // Hybrid IAM: Deferred activation via setup token
-            $parent_credential['username'] = NULL;
-            $parent_credential['password'] = NULL;
-            $parent_credential['active'] = 2; // Pending Setup
-            $parent_credential['setup_token'] = bin2hex(random_bytes(32));
-        }
-
+        $email = trim((string) $row['Email']);
+        $parent_credential = $this->app_lib->buildPortalCredential(6, $parentID, $email !== '' ? $email : ('parent' . $parentID), false);
         $this->db->insert('login_credential', $parent_credential);
         return $parentID;
     }

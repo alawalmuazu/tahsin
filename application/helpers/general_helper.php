@@ -276,6 +276,12 @@ function is_student_loggedin()
     return false;
 }
 
+function is_force_password_change()
+{
+    $CI = &get_instance();
+    return (int) $CI->session->userdata('force_password_change') === 1;
+}
+
 // get logged in user id - login credential DB id
 function get_loggedin_id()
 {

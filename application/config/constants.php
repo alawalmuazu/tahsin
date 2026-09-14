@@ -21,6 +21,10 @@ define('U2FA', 'r_2FA');
 define('SCHOOL_ID', 1);
 define('SCHOOL_NAME', 'Tahsin Academy');
 define('SCHOOL_MOTTO', 'Excellence In Deen & Duniya');
+define('DEFAULT_PAY_VIA', 4); // Commercial Bank Account — see payment_types.id
+define('DEFAULT_PASSWORD_STAFF', 'TahsinStaff@1');
+define('DEFAULT_PASSWORD_PARENT', 'TahsinParent@1');
+define('DEFAULT_PASSWORD_STUDENT', 'TahsinStudent@1');
 
 /*
 |--------------------------------------------------------------------------

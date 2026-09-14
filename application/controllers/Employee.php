@@ -40,13 +40,11 @@ class Employee extends Admin_Controller
         $this->form_validation->set_rules('joining_date', translate('joining_date'), 'trim|required');
         $this->form_validation->set_rules('qualification', translate('qualification'), 'trim|required');
         $this->form_validation->set_rules('user_role', translate('role'), 'trim|required|callback_valid_role');
-        $send_setup_invitation = $this->input->post('send_setup_invitation');
-        if (!$send_setup_invitation) {
+        if (isset($_POST['staff_id']) && !empty($_POST['username'])) {
             $this->form_validation->set_rules('username', translate('username'), 'trim|required|callback_unique_username');
-            if (!isset($_POST['staff_id'])) {
-                $this->form_validation->set_rules('password', translate('password'), 'trim|required|min_length[4]');
-                $this->form_validation->set_rules('retype_password', translate('retype_password'), 'trim|required|matches[password]');
-            }
+        }
+        if (!empty($this->input->post('enable_login')) && !isset($_POST['staff_id'])) {
+            $this->form_validation->set_rules('email', translate('email'), 'trim|required|valid_email');
         }
         if ($this->input->post('staff_id')) {
             $this->form_validation->set_rules('staff_id_no', translate('staff_id'), 'trim|required|callback_unique_staffID');
@@ -135,13 +133,10 @@ class Employee extends Admin_Controller
                     saveCustomFields($customField, $empID);
                 }
                 
-                if (is_array($empResult) && isset($empResult['setup_token'])) {
-                    $setup_link = base_url('authentication/setup_credentials/' . $empResult['setup_token']);
-                    // TODO: email the link to the user here
-                    set_alert('success', translate('information_has_been_saved_successfully') . " <br><br><b>Setup Link:</b> <a href='$setup_link'>$setup_link</a> <br><button type='button' class='btn btn-xs btn-default mt-xs' onclick=\"navigator.clipboard.writeText('$setup_link'); alert('Link Copied to Clipboard!');\">Copy Link for WhatsApp</button>");
-                } else {
-                    set_alert('success', translate('information_has_been_saved_successfully'));
-                    //send account activate email
+                set_alert('success', translate('information_has_been_saved_successfully'));
+                if (!empty($post['enable_login'])) {
+                    $post['username'] = $post['email'];
+                    $post['password'] = $this->app_lib->defaultPasswordForRole($post['user_role']);
                     $this->email_model->sentStaffRegisteredAccount($post);
                 }
                 
@@ -292,7 +287,7 @@ class Employee extends Admin_Controller
             if (!isset($_POST['authentication'])) {
                 $this->db->where_not_in('role', array(1, 6, 7));
                 $this->db->where('user_id', $studentID);
-                $this->db->update('login_credential', array('password' => $this->app_lib->pass_hashed($password)));
+                $this->db->update('login_credential', array('password' => $this->app_lib->pass_hashed($password), 'must_change_password' => 1, 'active' => 1));
             }else{
                 $this->db->where_not_in('role', array(1, 6, 7));
                 $this->db->where('user_id', $studentID);
@@ -689,9 +684,10 @@ class Employee extends Admin_Controller
             $stafflist = $this->input->post('views_bulk_operations');
             if (isset($stafflist)) {
                 foreach ($stafflist as $id) {
-                    $this->db->where('user_id', $id);
-                    $this->db->where_not_in('role', array(1, 6, 7));
-                    $this->db->update('login_credential', array('active' => 1));
+                    $cred = $this->db->select('role')->where('user_id', $id)->where_not_in('role', array(1, 6, 7))->get('login_credential')->row();
+                    if ($cred) {
+                        $this->app_lib->activatePortalLogin($cred->role, $id);
+                    }
                 }
                 set_alert('success', translate('information_has_been_updated_successfully'));
             } else {

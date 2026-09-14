@@ -377,11 +377,153 @@ class App_lib
         if ($table == 'branch') {
             $this->CI->db->where('id', SCHOOL_ID);
         }
+        if ($table == 'payment_types') {
+            $this->CI->db->where_in('id', array(1, 2, 3, 4, 5));
+        }
         $result = $this->CI->db->get($table)->result();
+        if ($table == 'payment_types') {
+            $byId = array();
+            foreach ($result as $row) {
+                $byId[(int) $row->id] = $row;
+            }
+            $ordered = array();
+            foreach (array(4, 1, 2, 3, 5) as $id) {
+                if (isset($byId[$id])) {
+                    $ordered[] = $byId[$id];
+                }
+            }
+            $result = $ordered;
+            $labels = array(
+                4 => 'Commercial Bank Account',
+                1 => 'Cash',
+                2 => 'POS',
+                3 => 'Cheque',
+                5 => 'Other',
+            );
+            foreach ($result as $row) {
+                $arrayData[$row->id] = isset($labels[$row->id]) ? $labels[$row->id] : $row->name;
+            }
+            return $arrayData;
+        }
         foreach ($result as $row) {
             $arrayData[$row->id] = $row->name;
         }
         return $arrayData;
+    }
+
+    public function getNigeriaOnlineGateways($config)
+    {
+        $list = array('' => translate('select_payment_method'));
+        if (!empty($config['paystack_status'])) {
+            $list['paystack'] = 'Paystack';
+        }
+        if (!empty($config['flutterwave_status'])) {
+            $list['flutterwave'] = 'Flutter Wave';
+        }
+        return $list;
+    }
+
+    public function defaultPasswordForRole($role)
+    {
+        $role = (int) $role;
+        if ($role === 7) {
+            return DEFAULT_PASSWORD_STUDENT;
+        }
+        if ($role === 6) {
+            return DEFAULT_PASSWORD_PARENT;
+        }
+        return DEFAULT_PASSWORD_STAFF;
+    }
+
+    public function uniqueLoginUsername($username, $ignore_id = 0)
+    {
+        $username = trim((string) $username);
+        if ($username === '') {
+            return '';
+        }
+        $base = $username;
+        $n = 0;
+        while (true) {
+            $this->CI->db->from('login_credential');
+            $this->CI->db->where('username', $username);
+            if ($ignore_id) {
+                $this->CI->db->where('id !=', (int) $ignore_id);
+            }
+            if ($this->CI->db->count_all_results() === 0) {
+                return $username;
+            }
+            $n++;
+            $username = $base . $n;
+        }
+    }
+
+    public function studentPortalUsername($register_no, $student_id = 0)
+    {
+        $register_no = trim((string) $register_no);
+        if ($register_no !== '') {
+            return $this->uniqueLoginUsername($register_no);
+        }
+        $fallback = 'TA-' . date('Y') . '-' . str_pad((int) $student_id, 5, '0', STR_PAD_LEFT);
+        return $this->uniqueLoginUsername($fallback);
+    }
+
+    public function buildPortalCredential($role, $user_id, $username, $enabled)
+    {
+        $username = $this->uniqueLoginUsername($username);
+        if ($username === '') {
+            $username = $this->uniqueLoginUsername('user' . (int) $user_id);
+        }
+        return array(
+            'user_id' => $user_id,
+            'role' => $role,
+            'username' => $username,
+            'password' => $this->pass_hashed($this->defaultPasswordForRole($role)),
+            'active' => $enabled ? 1 : 0,
+            'must_change_password' => 1,
+        );
+    }
+
+    public function activatePortalLogin($role, $user_id)
+    {
+        $row = $this->CI->db->get_where('login_credential', array('role' => $role, 'user_id' => $user_id))->row();
+        $update = array(
+            'active' => 1,
+            'must_change_password' => 1,
+        );
+        if (empty($row) || empty($row->username) || empty($row->password)) {
+            $username = $this->resolvePortalUsername($role, $user_id, $row ? $row->username : '');
+            $update['username'] = $username;
+            $update['password'] = $this->pass_hashed($this->defaultPasswordForRole($role));
+        }
+        $this->CI->db->where(array('role' => $role, 'user_id' => $user_id));
+        $this->CI->db->update('login_credential', $update);
+    }
+
+    public function resolvePortalUsername($role, $user_id, $existing = '')
+    {
+        $existing = trim((string) $existing);
+        if ($existing !== '') {
+            return $this->uniqueLoginUsername($existing);
+        }
+        if ((int) $role === 7) {
+            $stu = $this->CI->db->select('register_no,state_student_id')->where('id', $user_id)->get('student')->row();
+            $candidate = '';
+            if ($stu) {
+                $candidate = trim((string) $stu->register_no);
+                if ($candidate === '') {
+                    $candidate = trim((string) $stu->state_student_id);
+                }
+            }
+            return $this->studentPortalUsername($candidate, $user_id);
+        }
+        if ((int) $role === 6) {
+            $parent = $this->CI->db->select('email')->where('id', $user_id)->get('parent')->row();
+            $email = $parent ? trim((string) $parent->email) : '';
+            return $this->uniqueLoginUsername($email !== '' ? $email : ('parent' . $user_id));
+        }
+        $staff = $this->CI->db->select('email')->where('id', $user_id)->get('staff')->row();
+        $email = $staff ? trim((string) $staff->email) : '';
+        return $this->uniqueLoginUsername($email !== '' ? $email : ('staff' . $user_id));
     }
 
     public function getRoles($arra_id = [1, 6, 7])

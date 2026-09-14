@@ -132,6 +132,23 @@ class Admin_Controller extends MY_Controller
             $this->session->set_userdata('redirect_url', current_url());
             redirect(base_url('authentication'), 'refresh');
         }
+        $this->enforcePasswordChange();
+    }
+
+    protected function enforcePasswordChange()
+    {
+        if (!is_force_password_change()) {
+            return;
+        }
+        $class = $this->router->fetch_class();
+        $method = $this->router->fetch_method();
+        if ($class === 'profile' && $method === 'password') {
+            return;
+        }
+        if ($class === 'authentication' && $method === 'logout') {
+            return;
+        }
+        redirect(base_url('profile/password'));
     }
 }
 
@@ -143,6 +160,13 @@ class User_Controller extends MY_Controller
         if (!is_student_loggedin() && !is_parent_loggedin()) {
             $this->session->set_userdata('redirect_url', current_url());
             redirect(base_url('authentication'), 'refresh');
+        }
+        if (is_force_password_change()) {
+            $class = $this->router->fetch_class();
+            $method = $this->router->fetch_method();
+            if (!($class === 'profile' && $method === 'password')) {
+                redirect(base_url('profile/password'));
+            }
         }
     }
 }

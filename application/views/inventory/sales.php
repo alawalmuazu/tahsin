@@ -223,7 +223,7 @@
 												<td>
 													<div class="form-group">
 														<?php
-														echo form_dropdown("pay_via", $payvia_list, set_value('pay_via'), "class='form-control' id='pay_via' data-plugin-selectTwo data-width='100%'");
+														echo form_dropdown("pay_via", $payvia_list, set_value('pay_via', DEFAULT_PAY_VIA), "class='form-control' id='pay_via' data-plugin-selectTwo data-width='100%'");
 														?>
 														<span class="error"></span>
 													</div>

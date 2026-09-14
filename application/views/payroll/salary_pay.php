@@ -182,12 +182,8 @@
 					<div class="form-group">
 						<label class="control-label"><?=translate('payment_type')?> <span class="required">*</span></label>
 						<?php
-							$array = array("" => translate('select_payment_method'));
-							$types = $this->db->get_where('payment_types', array('branch_id' => $employee->branch_id))->result();
-							foreach ($types as $row){
-								$array[$row->id] = $row->name;
-							}
-							echo form_dropdown("payment_types", $array, set_value('payment_types'), "class='form-control' required
+							$array = $this->app_lib->getSelectList('payment_types');
+							echo form_dropdown("payment_types", $array, set_value('payment_types', DEFAULT_PAY_VIA), "class='form-control' required
 							data-plugin-selectTwo data-width='100%' data-minimum-results-for-search='Infinity' ");
 						?>
 					</div>

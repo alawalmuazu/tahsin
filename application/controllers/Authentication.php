@@ -109,6 +109,7 @@ class Authentication extends Authentication_Controller
                             'is_rtl' => $isRTL,
                             'set_session_id' => $sessionID,
                             'loggedin' => true,
+                            'force_password_change' => (!empty($login_credential->must_change_password) && (int) $login_credential->role !== 1) ? 1 : 0,
                         );
 
                         // two factor authentication
@@ -124,8 +125,14 @@ class Authentication extends Authentication_Controller
                         } else {
                             $this->authentication_model->sessionSet($sessionData);
                         }
+
+                        $mustChange = !empty($login_credential->must_change_password);
+                        if ($mustChange && (int) $login_credential->role !== 1) {
+                            $this->session->set_userdata('force_password_change', 1);
+                            $this->session->unset_userdata('redirect_url');
+                            redirect(base_url('profile/password'));
+                        }
                         
-                        // is logged in
                         if ($this->session->has_userdata('redirect_url')) {
                             redirect($this->session->userdata('redirect_url'));
                         } else {

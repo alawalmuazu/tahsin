@@ -372,43 +372,15 @@ endif;
 					<?php } ?>
 				</div>
 
-				<div class="<?=$getBranch['stu_generate'] == 1 || $getBranch['stu_generate'] == "" ? 'hidden-div' : '' ?>" id="stuLogin">
-					<!-- login details -->
-					<div class="headers-line mt-md">
-						<i class="fas fa-user-lock"></i> <?=translate('login_details')?>
-					</div>
-					<div class="row mb-md">
-						<div class="col-md-6 mb-sm">
-							<div class="form-group">
-								<label class="control-label"><?=translate('username')?> <span class="required">*</span></label>
-								<div class="input-group">
-									<span class="input-group-addon"><i class="far fa-user"></i></span>
-									<input type="text" class="form-control" name="username" id="username" value="<?=set_value('username')?>" />
-								</div>
-								<span class="error"><?=form_error('username')?></span>
-							</div>
-						</div>
-						<div class="col-md-3 mb-sm">
-							<div class="form-group">
-								<label class="control-label"><?=translate('password')?> <span class="required">*</span></label>
-								<div class="input-group">
-									<span class="input-group-addon"><i class="fas fa-unlock-alt"></i></span>
-									<input type="password" class="form-control" name="password" value="<?=set_value('password')?>" />
-								</div>
-								<span class="error"><?=form_error('password')?></span>
-							</div>
-						</div>
-						<div class="col-md-3 mb-sm">
-							<div class="form-group">
-								<label class="control-label"><?=translate('retype_password')?> <span class="required">*</span></label>
-								<div class="input-group">
-									<span class="input-group-addon"><i class="fas fa-unlock-alt"></i></span>
-									<input type="password" class="form-control" name="retype_password" value="<?=set_value('retype_password')?>" />
-								</div>
-								<span class="error"><?=form_error('retype_password')?></span>
-							</div>
-						</div>
-					</div>
+				<div class="headers-line mt-md">
+					<i class="fas fa-user-lock"></i> <?=translate('login_details')?>
+				</div>
+				<div class="mb-md checkbox-replace">
+					<label class="i-checks">
+						<input type="checkbox" name="enable_login" value="1" <?php echo set_checkbox('enable_login', '1'); ?>>
+						<i></i> Enable student portal login
+					</label>
+					<p class="text-muted mt-sm mb-none">Off by default. If enabled, username is the admission / register number. Temporary password: <code><?php echo DEFAULT_PASSWORD_STUDENT; ?></code>. They must change it on first login.</p>
 				</div>
 
 				<?php 
@@ -599,39 +571,12 @@ endif;
 						<?php } ?>
 					</div>
 
-					<div class="<?=$getBranch['grd_generate'] == 1 || $getBranch['grd_generate'] == "" ? 'hidden-div' : ''?>" id="grdLogin">
-						<div class="row mb-lg">
-							<div class="col-md-6 mb-sm">
-								<div class="form-group">
-									<label class="control-label"><?=translate('usename')?> <span class="required">*</span></label>
-									<div class="input-group">
-										<span class="input-group-addon"><i class="far fa-user"></i></span>
-										<input type="text" class="form-control" name="grd_username" id="grd_username" value="<?=set_value('grd_username')?>" />
-									</div>
-									<span class="error"><?=form_error('grd_username')?></span>
-								</div>
-							</div>
-							<div class="col-md-3 mb-sm">
-								<div class="form-group">
-									<label class="control-label"><?=translate('password')?> <span class="required">*</span></label>
-									<div class="input-group">
-										<span class="input-group-addon"><i class="fas fa-unlock-alt"></i></span>
-										<input type="password" class="form-control" name="grd_password" value="<?=set_value('grd_password')?>" />
-									</div>
-									<span class="error"><?=form_error('grd_password')?></span>
-								</div>
-							</div>
-							<div class="col-md-3 mb-sm">
-								<div class="form-group">
-									<label class="control-label"><?=translate('retype_password')?> <span class="required">*</span></label>
-									<div class="input-group">
-										<span class="input-group-addon"><i class="fas fa-unlock-alt"></i></span>
-										<input type="password" class="form-control" name="grd_retype_password" value="<?=set_value('grd_retype_password')?>" />
-									</div>
-									<span class="error"><?=form_error('grd_retype_password')?></span>
-								</div>
-							</div>
-						</div>
+					<div class="mb-md checkbox-replace">
+						<label class="i-checks">
+							<input type="checkbox" name="enable_grd_login" value="1" <?php echo set_checkbox('enable_grd_login', '1'); ?>>
+							<i></i> Enable parent / guardian portal login
+						</label>
+						<p class="text-muted mt-sm mb-none">Off by default. If enabled, username is the guardian email. Temporary password: <code><?php echo DEFAULT_PASSWORD_PARENT; ?></code>. They must change it on first login.</p>
 					</div>
 				</div>
 				<?php } ?>
@@ -743,7 +688,7 @@ endif;
 							<label class="control-label"><?=translate('payment_method')?> <span class="required">*</span></label>
 							<?php
 								$payvia_list = $this->app_lib->getSelectList('payment_types');
-								echo form_dropdown("tuition_pay_via", $payvia_list, set_value('tuition_pay_via', 1), "class='form-control' data-plugin-selectTwo data-width='100%' data-minimum-results-for-search='Infinity'");
+								echo form_dropdown("tuition_pay_via", $payvia_list, set_value('tuition_pay_via', DEFAULT_PAY_VIA), "class='form-control' data-plugin-selectTwo data-width='100%' data-minimum-results-for-search='Infinity'");
 							?>
 							<span class="error"></span>
 						</div>

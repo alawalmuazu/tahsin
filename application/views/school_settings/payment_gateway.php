@@ -83,6 +83,7 @@
 			<header class="panel-heading">
 				<h4 class="panel-title"><i class="far fa-credit-card"></i> Active Gateway</h4>
 			</header>
+			<p class="text-muted" style="padding: 0 15px; font-size: 12px;">School collections default to Commercial Bank Account. Leave these off unless you need an online channel.</p>
 			<?php echo form_open('settings/payment_active', array('class' => 'form-horizontal frm-submit-msg')); ?>
 			<input type="hidden" name="branch_id" value="<?=$branch_id?>">
 			<div class="panel-body mt-sm">

@@ -43,52 +43,32 @@ class Employee_model extends MY_Model
         $inser_data2 = array(
             'role' => $data["user_role"],
         );
-        $send_setup_invitation = isset($data['send_setup_invitation']) ? 1 : 0;
 
         if (!isset($data['staff_id']) && empty($data['staff_id'])) {
-            // RANDOM STAFF ID GENERATE
             $inser_data1['staff_id'] = substr(app_generate_hash(), 3, 7);
-            // SAVE EMPLOYEE INFORMATION IN THE DATABASE
             $this->db->insert('staff', $inser_data1);
             $employeeID = $this->db->insert_id();
 
-            // SAVE EMPLOYEE LOGIN CREDENTIAL INFORMATION IN THE DATABASE
-            $inser_data2['user_id'] = $employeeID;
-            if ($send_setup_invitation) {
-                $inser_data2['active'] = 2; // Pending Setup
-                $inser_data2['setup_token'] = bin2hex(random_bytes(32));
-                $inser_data2['username'] = NULL;
-                $inser_data2['password'] = NULL;
-            } else {
-                $inser_data2['active'] = 1;
-                $inser_data2['username'] = $data["username"];
-                $inser_data2['password'] = $this->app_lib->pass_hashed($data["password"]);
-            }
+            $enable_login = !empty($data['enable_login']);
+            $email = trim((string) $data['email']);
+            $username = $email !== '' ? $email : ('staff' . $employeeID);
+            $inser_data2 = $this->app_lib->buildPortalCredential($data['user_role'], $employeeID, $username, $enable_login);
             $this->db->insert('login_credential', $inser_data2);
 
-            // SAVE USER BANK INFORMATION IN THE DATABASE
             if (!isset($data['chkskipped'])) {
                 $data['staff_id'] = $employeeID;
                 $this->bankSave($data);
             }
-            
-            if ($send_setup_invitation) {
-                return array('id' => $employeeID, 'setup_token' => $inser_data2['setup_token']);
-            }
             return $employeeID;
         } else {
             $inser_data1['staff_id'] = $data['staff_id_no'];
-            // UPDATE ALL INFORMATION IN THE DATABASE
             if (!is_superadmin_loggedin()) {
                 $this->db->where('branch_id', get_loggedin_branch_id());
             }
             $this->db->where('id', $data['staff_id']);
             $this->db->update('staff', $inser_data1);
-            // UPDATE LOGIN CREDENTIAL INFORMATION IN THE DATABASE
-            if (!$send_setup_invitation) {
-                if (!empty($data['username'])) {
-                    $inser_data2['username'] = $data["username"];
-                }
+            if (!empty($data['username'])) {
+                $inser_data2['username'] = $data['username'];
             }
             $this->db->where('user_id', $data['staff_id']);
             $this->db->where_not_in('role', array(6,7));
@@ -189,22 +169,11 @@ class Employee_model extends MY_Model
             'next_of_kin_relation' => isset($row['NextOfKinRelation']) ? $row['NextOfKinRelation'] : null,
         );
 
-        $inser_data2 = array(
-            'role' => $userRole,
-            'active' => 2,
-            'setup_token' => bin2hex(random_bytes(32)),
-            'username' => NULL,
-            'password' => NULL,
-        );
-
-        // RANDOM STAFF ID GENERATE
         $inser_data1['staff_id'] = substr(app_generate_hash(), 3, 7);
-        // SAVE EMPLOYEE INFORMATION IN THE DATABASE
         $this->db->insert('staff', $inser_data1);
         $employeeID = $this->db->insert_id();
-
-        // SAVE EMPLOYEE LOGIN CREDENTIAL INFORMATION IN THE DATABASE
-        $inser_data2['user_id'] = $employeeID;
+        $email = trim((string) $row['Email']);
+        $inser_data2 = $this->app_lib->buildPortalCredential($userRole, $employeeID, $email !== '' ? $email : ('staff' . $employeeID), false);
         $this->db->insert('login_credential', $inser_data2);
         return true;
     }

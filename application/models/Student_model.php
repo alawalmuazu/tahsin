@@ -82,21 +82,13 @@ class Student_model extends MY_Model
                     $this->db->insert('parent', $arrayParent);
                     $parentID = $this->db->insert_id();
 
-                    // save guardian login credential information in the database
-                    if ($getBranch['grd_generate'] == 1) {
-                        $grd_username = $getBranch['grd_username_prefix'] . $parentID;
-                        $grd_password = $getBranch['grd_default_password'];
-                    } else {
-                        $grd_username = $data['grd_username'];
-                        $grd_password = $data['grd_password'];
-                    }
-                    $parent_credential = array(
-                        'username' => $grd_username,
-                        'role' => 6,
-                        'user_id' => $parentID,
-                        'password' => $this->app_lib->pass_hashed($grd_password),
-                    );
+                    $enable_grd = !empty($data['enable_grd_login']);
+                    $grd_email = trim((string) $this->input->post('grd_email'));
+                    $grd_username = $grd_email !== '' ? $grd_email : ('parent' . $parentID);
+                    $parent_credential = $this->app_lib->buildPortalCredential(6, $parentID, $grd_username, $enable_grd);
                     $this->db->insert('login_credential', $parent_credential);
+                    $grd_username = $parent_credential['username'];
+                    $grd_password = $enable_grd ? $this->app_lib->defaultPasswordForRole(6) : '';
                 } else {
                     $parentID = 0;
                 }
@@ -113,22 +105,12 @@ class Student_model extends MY_Model
             $academy_student_id = 'TA-' . date('Y') . '-' . str_pad($student_id, 5, '0', STR_PAD_LEFT);
             $this->db->where('id', $student_id)->update('student', ['state_student_id' => $academy_student_id]);
 
-            // save student login credential information in the database
-            if ($getBranch['stu_generate'] == 1) {
-                $stu_username = $getBranch['stu_username_prefix'] . $student_id;
-                $stu_password = $getBranch['stu_default_password'];
-            } else {
-                $stu_username = $data['username'];
-                $stu_password = $data['password'];
-
-            }
-            $inser_data2 = array(
-                'user_id' => $student_id,
-                'username' => $stu_username,
-                'role' => 7,
-                'password' => $this->app_lib->pass_hashed($stu_password),
-            );
+            $enable_login = !empty($data['enable_login']);
+            $stu_username = $this->app_lib->studentPortalUsername($inser_data1['register_no'], $student_id);
+            $inser_data2 = $this->app_lib->buildPortalCredential(7, $student_id, $stu_username, $enable_login);
             $this->db->insert('login_credential', $inser_data2);
+            $stu_username = $inser_data2['username'];
+            $stu_password = $enable_login ? $this->app_lib->defaultPasswordForRole(7) : '';
 
             // return student information
             $studentData = array(
@@ -138,8 +120,7 @@ class Student_model extends MY_Model
                 'password' => $stu_password,
             );
 
-            if (!empty($data['grd_name']) || !empty($data['father_name'])) {
-                // send parent account activate email
+            if (!empty($data['enable_grd_login']) && !empty($grd_username) && !empty($this->input->post('grd_email'))) {
                 $emailData = array(
                     'name' => $this->input->post('grd_name'),
                     'username' => $grd_username,
@@ -205,21 +186,8 @@ class Student_model extends MY_Model
             $this->db->insert('parent', $arrayParent);
             $parentID = $this->db->insert_id();
 
-            // save guardian login credential information in the database
-            $parent_credential = array(
-                'role' => 6,
-                'user_id' => $parentID,
-            );
-            if ($getSettings['grd_generate'] == 1) {
-                $parent_credential['username'] = $getSettings['grd_username_prefix'] . $parentID;
-                $parent_credential['password'] = $this->app_lib->pass_hashed($getSettings['grd_default_password']);
-                $parent_credential['active'] = 1;
-            } else {
-                $parent_credential['username'] = NULL;
-                $parent_credential['password'] = NULL;
-                $parent_credential['active'] = 2; // Pending Setup
-                $parent_credential['setup_token'] = bin2hex(random_bytes(32));
-            }
+            $grd_email = trim((string) $row['GuardianEmail']);
+            $parent_credential = $this->app_lib->buildPortalCredential(6, $parentID, $grd_email !== '' ? $grd_email : ('parent' . $parentID), false);
             $this->db->insert('login_credential', $parent_credential);
         }
 
@@ -249,23 +217,8 @@ class Student_model extends MY_Model
         $this->db->insert('student', $inser_data1);
         $studentID = $this->db->insert_id();
 
-        // save student login credential information in the database
-        $inser_data2 = array(
-            'role' => 7,
-            'user_id' => $studentID,
-        );
-
-        if ($getSettings['stu_generate'] == 1) {
-            $inser_data2['username'] = $getSettings['stu_username_prefix'] . $studentID;
-            $inser_data2['password'] = $this->app_lib->pass_hashed($getSettings['stu_default_password']);
-            $inser_data2['active'] = 1;
-        } else {
-            $inser_data2['username'] = NULL;
-            $inser_data2['password'] = NULL;
-            $inser_data2['active'] = 2; // Pending Setup
-            $inser_data2['setup_token'] = bin2hex(random_bytes(32));
-        }
-
+        $stu_username = $this->app_lib->studentPortalUsername($row['RegisterNo'], $studentID);
+        $inser_data2 = $this->app_lib->buildPortalCredential(7, $studentID, $stu_username, false);
         $this->db->insert('login_credential', $inser_data2);
 
         //save student enroll information in the database file

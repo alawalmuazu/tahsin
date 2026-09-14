@@ -1,4 +1,9 @@
 <section class="panel">
+	<?php if (is_force_password_change()) { ?>
+	<div class="alert alert-warning" style="margin: 15px 15px 0;">
+		<strong>Password update required.</strong> You must set a new password before using the portal. Use the temporary password you were given as the current password.
+	</div>
+	<?php } ?>
 	<div class="tabs-custom">
 		<ul class="nav nav-tabs">
 			<li class="active">
@@ -6,11 +11,13 @@
                     <i class="fas fa-unlock-alt"></i> <?php echo translate('change') . " " . translate('password'); ?>
                 </a>
 			</li>
+			<?php if (!is_force_password_change()) { ?>
 			<li>
                 <a href="#login" data-toggle="tab">
                     <i class="fas fa-user-lock"></i> <?php echo translate('login') . " " . translate('username'); ?>
                 </a>
 			</li>
+			<?php } ?>
 		</ul>
 		<div class="tab-content">
 			<div class="tab-pane box active" id="list">
@@ -45,6 +52,7 @@
 					</footer>
 				<?php echo form_close(); ?>
 			</div>
+			<?php if (!is_force_password_change()) { ?>
 			<div class="tab-pane box" id="login">
 				<?php 
 				$username = $this->db->select('username')->where('id', get_loggedin_id())->get('login_credential')->row()->username;
@@ -68,6 +76,7 @@
 					</footer>
 				<?php echo form_close(); ?>
 			</div>
+			<?php } ?>
 		</div>
 	</div>
 </section>

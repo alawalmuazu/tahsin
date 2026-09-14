@@ -338,7 +338,7 @@ $active_tab = $this->session->flashdata('active_tab');
 						<label class="col-md-3 control-label"><?php echo translate('pay_via'); ?> <span class="required">*</span></label>
 						<div class="col-md-6">
 							<?php
-							echo form_dropdown("pay_via", $payvia_list, set_value('pay_via'), "class='form-control' data-plugin-selectTwo data-width='100%'");
+							echo form_dropdown("pay_via", $payvia_list, set_value('pay_via', DEFAULT_PAY_VIA), "class='form-control' data-plugin-selectTwo data-width='100%'");
 							?>
 							<span class="error"></span>
 						</div>

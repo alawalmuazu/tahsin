@@ -254,48 +254,12 @@
 						<i class="fas fa-user-lock"></i> <?=translate('login_details')?>
 					</div>
 					
-					<div class="row mb-md">
-						<div class="col-md-12">
-							<div class="checkbox-replace">
-								<label class="i-checks">
-									<input type="checkbox" name="send_setup_invitation" id="send_setup_invitation" value="1" <?php echo set_checkbox('send_setup_invitation', '1'); ?>>
-									<i></i> Send Setup Invitation Link (User creates own username and password)
-								</label>
-							</div>
-						</div>
-					</div>
-
-					<div class="row mb-lg" id="login_credentials_wrap">
-						<div class="col-md-6 mb-sm">
-							<div class="form-group">
-								<label class="control-label"><?=translate('username')?> <span class="required">*</span></label>
-								<div class="input-group">
-									<span class="input-group-addon"><i class="far fa-user"></i></span>
-									<input type="text" class="form-control" name="username" id="username" value="<?=set_value('username')?>" autocomplete="off" />
-								</div>
-								<span class="error"><?php echo form_error('username'); ?></span>
-							</div>
-						</div>
-						<div class="col-md-3 mb-sm">
-							<div class="form-group">
-								<label class="control-label"><?=translate('password')?> <span class="required">*</span></label>
-								<div class="input-group">
-									<span class="input-group-addon"><i class="fas fa-unlock-alt"></i></span>
-									<input type="password" class="form-control" name="password" id="password" value="<?=set_value('password')?>" />
-								</div>
-								<span class="error"><?php echo form_error('password'); ?></span>
-							</div>
-						</div>
-						<div class="col-md-3 mb-sm">
-							<div class="form-group">
-								<label class="control-label"><?=translate('retype_password')?> <span class="required">*</span></label>
-								<div class="input-group">
-									<span class="input-group-addon"><i class="fas fa-unlock-alt"></i></span>
-									<input type="password" class="form-control" name="retype_password" id="retype_password" value="<?=set_value('retype_password')?>" />
-								</div>
-								<span class="error"><?php echo form_error('retype_password'); ?></span>
-							</div>
-						</div>
+					<div class="mb-lg checkbox-replace">
+						<label class="i-checks">
+							<input type="checkbox" name="enable_login" value="1" <?php echo set_checkbox('enable_login', '1'); ?>>
+							<i></i> Enable staff portal login
+						</label>
+						<p class="text-muted mt-sm mb-none">Off by default. If enabled, username is their email. Temporary password: <code><?php echo DEFAULT_PASSWORD_STAFF; ?></code>. They must change it on first login.</p>
 					</div>
 
 					<!-- social links -->
@@ -496,26 +460,3 @@
         <?php echo form_close(); ?>
     </section>
 </div>
-
-<script>
-	$('#send_setup_invitation').on('change', function() {
-		if($(this).is(':checked')) {
-			$('#login_credentials_wrap').slideUp();
-			$('#username').prop('disabled', true);
-			$('#password').prop('disabled', true);
-			$('#retype_password').prop('disabled', true);
-		} else {
-			$('#login_credentials_wrap').slideDown();
-			$('#username').prop('disabled', false);
-			$('#password').prop('disabled', false);
-			$('#retype_password').prop('disabled', false);
-		}
-	});
-	// Initial check
-	if($('#send_setup_invitation').is(':checked')) {
-		$('#login_credentials_wrap').hide();
-		$('#username').prop('disabled', true);
-		$('#password').prop('disabled', true);
-		$('#retype_password').prop('disabled', true);
-	}
-</script>

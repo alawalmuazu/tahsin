@@ -164,44 +164,15 @@
 						</div>
 					</div>
 				</div>
-				<div class="<?=$getBranch['grd_generate'] == 1 || $getBranch['grd_generate'] == "" ? 'hidden-div' : ''?>" id="grdLogin">
-					<!-- login details -->
-					<div class="headers-line mt-md">
-						<i class="fas fa-user-lock"></i> <?=translate('login_details')?>
-					</div>
-
-					<div class="row mb-lg">
-						<div class="col-md-6 mb-sm">
-							<div class="form-group">
-								<label class="control-label"><?=translate('username')?> <span class="required">*</span></label>
-								<div class="input-group">
-									<span class="input-group-addon"><i class="far fa-user"></i></span>
-									<input type="text" class="form-control" name="username" value="<?=set_value('username')?>" autocomplete="off" />
-								</div>
-								<span class="error"><?php echo form_error('username'); ?></span>
-							</div>
-						</div>
-						<div class="col-md-3 mb-sm">
-							<div class="form-group">
-								<label class="control-label"><?=translate('password')?> <span class="required">*</span></label>
-								<div class="input-group">
-									<span class="input-group-addon"><i class="fas fa-unlock-alt"></i></span>
-									<input type="password" class="form-control" name="password" value="<?=set_value('password')?>" />
-								</div>
-								<span class="error"><?php echo form_error('password'); ?></span>
-							</div>
-						</div>
-						<div class="col-md-3 mb-sm">
-							<div class="form-group">
-								<label class="control-label"><?=translate('retype_password')?> <span class="required">*</span></label>
-								<div class="input-group">
-									<span class="input-group-addon"><i class="fas fa-unlock-alt"></i></span>
-									<input type="password" class="form-control" name="retype_password" value="<?=set_value('retype_password')?>" />
-								</div>
-								<span class="error"><?php echo form_error('retype_password'); ?></span>
-							</div>
-						</div>
-					</div>
+				<div class="headers-line mt-md">
+					<i class="fas fa-user-lock"></i> <?=translate('login_details')?>
+				</div>
+				<div class="mb-lg checkbox-replace">
+					<label class="i-checks">
+						<input type="checkbox" name="enable_login" value="1" <?php echo set_checkbox('enable_login', '1'); ?>>
+						<i></i> Enable parent portal login
+					</label>
+					<p class="text-muted mt-sm mb-none">Off by default. If enabled, username is their email. Temporary password: <code><?php echo DEFAULT_PASSWORD_PARENT; ?></code>. They must change it on first login.</p>
 				</div>
 				
 				<!-- social links -->

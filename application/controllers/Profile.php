@@ -205,16 +205,26 @@ class Profile extends Admin_Controller
             $this->form_validation->set_rules('confirm_password', 'Confirm Password', 'trim|required|min_length[4]|matches[new_password]');
             if ($this->form_validation->run() == true) {
                 $new_password = $this->input->post('new_password');
+                $current_password = $this->input->post('current_password');
+                $defaultPassword = $this->app_lib->defaultPasswordForRole(loggedin_role_id());
+                if ($new_password === $current_password || $new_password === $defaultPassword) {
+                    $array = array('status' => 'fail', 'error' => array('new_password' => 'Choose a new password that is not the temporary default.'));
+                    echo json_encode($array);
+                    exit();
+                }
                 $this->db->where('id', get_loggedin_id());
-                $this->db->update('login_credential', array('password' => $this->app_lib->pass_hashed($new_password)));
-                // password change email alert
+                $this->db->update('login_credential', array(
+                    'password' => $this->app_lib->pass_hashed($new_password),
+                    'must_change_password' => 0,
+                ));
+                $this->session->unset_userdata('force_password_change');
                 $emailData = array(
                     'branch_id' => get_loggedin_branch_id(),
                     'password' => $new_password,
                 );
                 $this->email_model->changePassword($emailData);
                 set_alert('success', translate('password_has_been_changed'));
-                $array = array('status' => 'success');
+                $array = array('status' => 'success', 'url' => base_url('dashboard'));
             } else {
                 $error = $this->form_validation->error_array();
                 $array = array('status' => 'fail', 'error' => $error);

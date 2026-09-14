@@ -118,12 +118,8 @@ class Student extends Admin_Controller
             $this->form_validation->set_rules('qualification', translate('qualification'), 'trim|required');
         }
 
-        if ($getBranch['stu_generate'] == 0 || isset($_POST['student_id'])) {
+        if (isset($_POST['student_id'])) {
             $this->form_validation->set_rules('username', translate('username'), 'trim|required|callback_unique_username');
-            if (!isset($_POST['student_id'])) {
-                $this->form_validation->set_rules('password', translate('password'), 'trim|required|min_length[4]');
-                $this->form_validation->set_rules('retype_password', translate('retype_password'), 'trim|required|matches[password]');
-            }
         }
         
         // custom fields validation rules
@@ -247,14 +243,8 @@ class Student extends Admin_Controller
                     $this->form_validation->set_rules('grd_state', translate('state'), 'trim|required');
                 }
 
-                if ($getBranch['grd_generate'] == 0) {
-                    if (isset($validArr['grd_username'])) {
-                        $this->form_validation->set_rules('grd_username', translate('username'), 'trim|required|callback_get_valid_guardian_username');
-                    }
-                    if (isset($validArr['grd_password'])) {
-                        $this->form_validation->set_rules('grd_password', translate('password'), 'trim|required');
-                        $this->form_validation->set_rules('grd_retype_password', translate('retype_password'), 'trim|required|matches[grd_password]');
-                    }
+                if (!empty($this->input->post('enable_grd_login'))) {
+                    $this->form_validation->set_rules('grd_email', translate('email'), 'trim|required|valid_email');
                 }
             } else {
                 $this->form_validation->set_rules('parent_id', translate('guardian'), 'required');
@@ -505,8 +495,7 @@ class Student extends Admin_Controller
             $stafflist = $this->input->post('views_bulk_operations');
             if (isset($stafflist)) {
                 foreach ($stafflist as $id) {
-                    $this->db->where(array('role' => 7, 'user_id' => $id));
-                    $this->db->update('login_credential', array('active' => 1));
+                    $this->app_lib->activatePortalLogin(7, $id);
 
                     $this->db->where('id', $id);
                     $this->db->update('student', array('active' => 1));
@@ -1147,7 +1136,7 @@ class Student extends Admin_Controller
                 if (!isset($_POST['authentication'])) {
                     $this->db->where('role', 7);
                     $this->db->where('user_id', $studentID);
-                    $this->db->update('login_credential', array('password' => $this->app_lib->pass_hashed($password)));
+                    $this->db->update('login_credential', array('password' => $this->app_lib->pass_hashed($password), 'must_change_password' => 1, 'active' => 1));
                 }else{
                     $this->db->where('role', 7);
                     $this->db->where('user_id', $studentID);
