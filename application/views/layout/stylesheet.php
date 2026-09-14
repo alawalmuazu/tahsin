@@ -14,7 +14,7 @@
 <link rel="stylesheet" href="<?php echo base_url('assets/vendor/bootstrap-datepicker/css/bootstrap-datepicker3.min.css');?>">
 <link rel="stylesheet" href="<?php echo base_url('assets/vendor/simple-line-icons/css/simple-line-icons.css');?>">
 <link rel="stylesheet" href="<?php echo base_url('assets/vendor/magnific-popup/magnific-popup.css');?>">
-<link rel="stylesheet" href="<?php echo base_url('assets/css/custom-style.css?v=' . version_combine());?>">
+<link rel="stylesheet" href="<?php echo base_url('assets/css/custom-style.css?v=' . (is_file(FCPATH . 'assets/css/custom-style.css') ? filemtime(FCPATH . 'assets/css/custom-style.css') : version_combine()));?>">
 <link rel="stylesheet" href="<?php echo base_url('assets/css/skins/default.css?v=' . version_combine());?>">
 <link rel="stylesheet" href="<?php echo base_url('assets/vendor/sweetalert/sweetalert-custom.css?v=' . version_combine());?>">
 <?php if ($this->app_lib->isRTLenabled()) { ?>

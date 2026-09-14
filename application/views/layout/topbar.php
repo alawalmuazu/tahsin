@@ -1,7 +1,11 @@
 <header class="header">
 	<div class="logo-env">
-		<a href="<?php echo base_url('dashboard');?>" class="logo">
-			<img src="<?=$this->application_model->getBranchImage(get_loggedin_branch_id(), 'logo-small')?>" height="40" alt="<?php echo html_escape($global_config['institute_name'] ?? 'School Logo'); ?>">
+		<a href="<?php echo base_url('dashboard');?>" class="logo logo-brand">
+			<img src="<?=$this->application_model->getBranchImage(get_loggedin_branch_id(), 'logo')?>" alt="<?php echo html_escape(defined('SCHOOL_NAME') ? SCHOOL_NAME : 'Tahsin Academy'); ?>">
+			<span class="logo-wordmark">
+				<strong>TĀHSIN</strong>
+				<span>Academy</span>
+			</span>
 		</a>
 
 		<?php
