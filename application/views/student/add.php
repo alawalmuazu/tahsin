@@ -727,6 +727,43 @@ endif;
 					</div>
 				</div>
 				<?php } ?>
+				<div class="headers-line mt-md">
+					<i class="fas fa-money-check-alt"></i> <?=translate('tuition')?> <?=translate('payment')?>
+				</div>
+				<div class="row">
+					<div class="col-md-4 mb-sm">
+						<div class="form-group">
+							<label class="control-label"><?=translate('amount')?> <span class="required">*</span></label>
+							<input type="number" step="0.01" min="0" class="form-control" name="tuition_amount" value="<?=set_value('tuition_amount')?>" placeholder="0.00" />
+							<span class="error"></span>
+						</div>
+					</div>
+					<div class="col-md-4 mb-sm">
+						<div class="form-group">
+							<label class="control-label"><?=translate('payment_method')?> <span class="required">*</span></label>
+							<?php
+								$payvia_list = $this->app_lib->getSelectList('payment_types');
+								echo form_dropdown("tuition_pay_via", $payvia_list, set_value('tuition_pay_via', 1), "class='form-control' data-plugin-selectTwo data-width='100%' data-minimum-results-for-search='Infinity'");
+							?>
+							<span class="error"></span>
+						</div>
+					</div>
+					<div class="col-md-4 mb-sm">
+						<div class="form-group">
+							<label class="control-label"><?=translate('date')?> <span class="required">*</span></label>
+							<input type="text" class="form-control" name="tuition_date" value="<?=set_value('tuition_date', date('Y-m-d'))?>" data-plugin-datepicker data-plugin-options='{"todayHighlight": true}' />
+							<span class="error"></span>
+						</div>
+					</div>
+				</div>
+				<div class="row mb-md">
+					<div class="col-md-12">
+						<div class="form-group">
+							<label class="control-label"><?=translate('remarks')?></label>
+							<textarea name="tuition_remarks" rows="2" class="form-control" placeholder="<?=translate('write_your_remarks')?>"><?=set_value('tuition_remarks')?></textarea>
+						</div>
+					</div>
+				</div>
 				<!-- previous school details -->
 				<?php
 				$previous_school_details = $this->student_fields_model->getStatus('previous_school_details', $branch_id);

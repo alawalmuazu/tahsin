@@ -567,6 +567,9 @@ class Student_model extends MY_Model
 
             // actions btn
             $actions = '<button class="btn btn-circle icon btn-default" data-toggle="tooltip" data-original-title="' . translate('quick_view') . '" data-loading-text="<i class=\'fas fa-spinner fa-spin\'></i>" onclick="studentQuickView(' . "'" . $record->id . "'" . ', this)"><i class="fas fa-qrcode"></i></button>';
+            if (get_permission('student', 'is_view') || get_permission('student', 'is_edit')) {
+                $actions .= '<a href="' . base_url('student/admission_slip/') . $record->id . '" class="btn btn-circle btn-default icon" data-toggle="tooltip" data-original-title="' . translate('admission_slip') . '" target="_blank"><i class="fas fa-print"></i></a>';
+            }
             if (get_permission('student', 'is_edit')) {
                 $actions .= '<a href="' . base_url('student/profile/') . $record->id . '" class="btn btn-circle btn-default icon" data-toggle="tooltip" data-original-title="' . translate('details') . '"> <i class="far fa-arrow-alt-circle-right"></i></a>';
             }
@@ -622,5 +625,169 @@ if ($validArr['roll']) {
             "data"                => $data,
         );
         return json_encode($json_data);
+    }
+
+    public function ensureTuitionSetup($branch_id, $session_id, $amount = 0)
+    {
+        $type = $this->db->get_where('fees_type', array('branch_id' => $branch_id, 'name' => 'Tuition'))->row();
+        if (empty($type)) {
+            $this->db->insert('fees_type', array(
+                'name' => 'Tuition',
+                'fee_code' => 'tuition',
+                'description' => 'Termly tuition fee',
+                'branch_id' => $branch_id,
+                'system' => 0,
+            ));
+            $type_id = $this->db->insert_id();
+        } else {
+            $type_id = $type->id;
+        }
+
+        $group = $this->db->get_where('fee_groups', array(
+            'branch_id' => $branch_id,
+            'session_id' => $session_id,
+            'name' => 'Tuition',
+        ))->row();
+        if (empty($group)) {
+            $this->db->insert('fee_groups', array(
+                'name' => 'Tuition',
+                'description' => 'Tuition fee for the academic session',
+                'session_id' => $session_id,
+                'system' => 0,
+                'branch_id' => $branch_id,
+            ));
+            $group_id = $this->db->insert_id();
+        } else {
+            $group_id = $group->id;
+        }
+
+        $detail = $this->db->get_where('fee_groups_details', array(
+            'fee_groups_id' => $group_id,
+            'fee_type_id' => $type_id,
+        ))->row();
+        if (empty($detail)) {
+            $this->db->insert('fee_groups_details', array(
+                'fee_groups_id' => $group_id,
+                'fee_type_id' => $type_id,
+                'amount' => ($amount > 0 ? $amount : 0),
+                'due_date' => date('Y-m-d', strtotime('+30 days')),
+            ));
+        } elseif ($detail->amount == 0 && $amount > 0) {
+            $this->db->where('id', $detail->id)->update('fee_groups_details', array('amount' => $amount));
+        }
+
+        return array('type_id' => $type_id, 'group_id' => $group_id);
+    }
+
+    public function recordTuitionPayment($enroll_id, $amount, $pay_via, $date, $remarks = '')
+    {
+        $enroll = $this->db->get_where('enroll', array('id' => $enroll_id))->row_array();
+        if (empty($enroll)) {
+            return false;
+        }
+        $setup = $this->ensureTuitionSetup($enroll['branch_id'], $enroll['session_id'], $amount);
+
+        $existing = $this->db->get_where('fee_allocation', array(
+            'student_id' => $enroll_id,
+            'group_id' => $setup['group_id'],
+            'session_id' => $enroll['session_id'],
+        ))->row();
+        if (!empty($existing)) {
+            $allocation_id = $existing->id;
+        } else {
+            $this->db->insert('fee_allocation', array(
+                'student_id' => $enroll_id,
+                'group_id' => $setup['group_id'],
+                'session_id' => $enroll['session_id'],
+                'branch_id' => $enroll['branch_id'],
+            ));
+            $allocation_id = $this->db->insert_id();
+        }
+
+        $this->db->insert('fee_payment_history', array(
+            'allocation_id' => $allocation_id,
+            'type_id' => $setup['type_id'],
+            'collect_by' => get_loggedin_user_id(),
+            'amount' => $amount,
+            'discount' => 0,
+            'fine' => 0,
+            'pay_via' => $pay_via,
+            'remarks' => ($remarks === '' || $remarks === null) ? 'Tuition collected at admission' : $remarks,
+            'date' => $date,
+        ));
+        return $this->db->insert_id();
+    }
+
+    public function getTuitionPayment($enroll_id)
+    {
+        $this->db->select('h.id, h.amount, h.discount, h.fine, h.date, h.remarks, h.pay_via, t.name as fee_name, pt.name as pay_via_name');
+        $this->db->from('fee_allocation as a');
+        $this->db->join('fee_payment_history as h', 'h.allocation_id = a.id', 'inner');
+        $this->db->join('fees_type as t', 't.id = h.type_id', 'left');
+        $this->db->join('payment_types as pt', 'pt.id = h.pay_via', 'left');
+        $this->db->where('a.student_id', $enroll_id);
+        $this->db->group_start();
+        $this->db->where('t.fee_code', 'tuition');
+        $this->db->or_where('t.name', 'Tuition');
+        $this->db->group_end();
+        $this->db->order_by('h.id', 'desc');
+        return $this->db->get()->row_array();
+    }
+
+    public function getAdmissionSlip($enroll_id)
+    {
+        $this->db->select('s.*, e.id as enrollid, e.roll, e.class_id, e.section_id, e.session_id, e.branch_id,
+            c.name as class_name, se.name as section_name, sc.name as category_name,
+            p.name as guardian_name, p.relation as guardian_relation, p.mobileno as guardian_mobile,
+            p.father_name, p.mother_name, p.email as guardian_email,
+            b.school_name, b.email as school_email, b.mobileno as school_mobile, b.address as school_address,
+            sy.school_year');
+        $this->db->from('enroll as e');
+        $this->db->join('student as s', 'e.student_id = s.id', 'inner');
+        $this->db->join('class as c', 'e.class_id = c.id', 'left');
+        $this->db->join('section as se', 'e.section_id = se.id', 'left');
+        $this->db->join('student_category as sc', 's.category_id = sc.id', 'left');
+        $this->db->join('parent as p', 'p.id = s.parent_id', 'left');
+        $this->db->join('branch as b', 'b.id = e.branch_id', 'left');
+        $this->db->join('schoolyear as sy', 'sy.id = e.session_id', 'left');
+        $this->db->where('e.id', $enroll_id);
+        if (!is_superadmin_loggedin()) {
+            $this->db->where('e.branch_id', get_loggedin_branch_id());
+        }
+        $row = $this->db->get()->row_array();
+        if (empty($row)) {
+            show_404();
+        }
+        $row['fullname'] = trim($row['first_name'] . ' ' . $row['last_name']);
+        $row['gender'] = !empty($row['gender']) ? ucfirst($row['gender']) : $row['gender'];
+        if (empty($row['state_student_id'])) {
+            $row['state_student_id'] = 'TA-' . date('Y') . '-' . str_pad($row['id'], 5, '0', STR_PAD_LEFT);
+        }
+        $row['barcode_value'] = $row['state_student_id'];
+        return $row;
+    }
+
+    public function getStudentQrFile($student)
+    {
+        $dir = FCPATH . 'uploads/temp/qr_code/';
+        if (!is_dir($dir)) {
+            @mkdir($dir, 0777, true);
+        }
+        @chmod($dir, 0777);
+        $relative = 'uploads/temp/qr_code/stu_' . $student['id'] . '.png';
+        $full = FCPATH . $relative;
+        $this->load->library('ciqrcode', array(
+            'cacheable' => false,
+            'cachedir' => $dir,
+            'errorlog' => sys_get_temp_dir() . '/',
+        ));
+        $this->ciqrcode->generate(array(
+            'savename' => $full,
+            'level' => 'M',
+            'size' => 4,
+            'data' => $student['barcode_value'],
+        ));
+        @chmod($full, 0666);
+        return $relative;
     }
 }

@@ -270,6 +270,10 @@ class Student extends Admin_Controller
                 $this->form_validation->set_rules('stoppage_point_id', translate('pickup_point'), 'required');
             }
 
+            $this->form_validation->set_rules('tuition_amount', translate('tuition') . ' ' . translate('amount'), 'trim|required|numeric|greater_than[0]');
+            $this->form_validation->set_rules('tuition_pay_via', translate('payment_method'), 'trim|required');
+            $this->form_validation->set_rules('tuition_date', translate('date'), 'trim|required');
+
             if ($this->form_validation->run() == true) {
                 $post = $this->input->post();
                 //save all student information in the database file
@@ -286,6 +290,14 @@ class Student extends Admin_Controller
                 );
                 $this->db->insert('enroll', $arrayEnroll);
                 $enrollID = $this->db->insert_id();
+
+                $this->student_model->recordTuitionPayment(
+                    $enrollID,
+                    $post['tuition_amount'],
+                    $post['tuition_pay_via'],
+                    $post['tuition_date'],
+                    isset($post['tuition_remarks']) ? $post['tuition_remarks'] : ''
+                );
 
                 // transport data save in the database file 
                 if (!empty($transport_fees_month)) {
@@ -317,7 +329,7 @@ class Student extends Admin_Controller
                 $this->sms_model->send_sms($arrayEnroll, 1);
 
                 set_alert('success', translate('information_has_been_saved_successfully'));
-                $url = base_url('student/add');
+                $url = base_url('student/admission_slip/' . $enrollID);
                 $array = array('status' => 'success', 'url' => $url);
             } else {
                 $error = $this->form_validation->error_array();
@@ -751,6 +763,70 @@ class Student extends Admin_Controller
             ),
         );
         $this->load->view('layout/index', $this->data);
+    }
+
+    public function admission_slip($id = '')
+    {
+        if (!get_permission('student', 'is_view') && !get_permission('student', 'is_edit')) {
+            access_denied();
+        }
+        if (empty($id) || !is_numeric($id)) {
+            show_404();
+        }
+        $slip = $this->student_model->getAdmissionSlip($id);
+        $qr_file = $this->student_model->getStudentQrFile($slip);
+        $is_pdf = ($this->input->get('pdf') == '1');
+        $this->data['slip'] = $slip;
+        $this->data['tuition'] = $this->student_model->getTuitionPayment($id);
+        $this->data['is_pdf'] = $is_pdf;
+        $this->data['barcode_html'] = html_barcode($slip['barcode_value']);
+        $this->data['barcode_value'] = $slip['barcode_value'];
+        $this->data['photo_src'] = $is_pdf ? local_image_path('student', $slip['photo']) : get_image_url('student', $slip['photo']);
+        $logo_file = FCPATH . 'uploads/app_image/printing-logo.png';
+        $this->data['logo_src'] = ($is_pdf && file_exists($logo_file)) ? $logo_file : base_url('uploads/app_image/printing-logo.png');
+        $this->data['qr_src'] = ($is_pdf && file_exists(FCPATH . $qr_file)) ? (FCPATH . $qr_file) : base_url($qr_file);
+
+        if ($is_pdf) {
+            $html = $this->load->view('student/admission_slip', $this->data, true);
+            $this->load->library('html2pdf');
+            $this->html2pdf->mpdf->SetTitle('Admission Slip - ' . $slip['fullname']);
+            $this->html2pdf->mpdf->WriteHTML($html);
+            $filename = 'admission-slip-' . preg_replace('/[^A-Za-z0-9\-]/', '-', $slip['barcode_value']) . '.pdf';
+            $this->html2pdf->mpdf->Output($filename, 'D');
+            exit;
+        }
+        $this->load->view('student/admission_slip', $this->data);
+    }
+
+    public function record_tuition()
+    {
+        if (!get_permission('collect_fees', 'is_add') && !get_permission('student', 'is_edit')) {
+            ajax_access_denied();
+        }
+        $this->form_validation->set_rules('enroll_id', translate('student'), 'trim|required|numeric');
+        $this->form_validation->set_rules('tuition_amount', translate('tuition') . ' ' . translate('amount'), 'trim|required|numeric|greater_than[0]');
+        $this->form_validation->set_rules('tuition_pay_via', translate('payment_method'), 'trim|required');
+        $this->form_validation->set_rules('tuition_date', translate('date'), 'trim|required');
+        if ($this->form_validation->run() == true) {
+            $enroll_id = $this->input->post('enroll_id');
+            $existing = $this->student_model->getTuitionPayment($enroll_id);
+            if (!empty($existing)) {
+                $array = array('status' => 'fail', 'error' => array('tuition_amount' => 'Tuition payment is already recorded for this student.'));
+            } else {
+                $this->student_model->recordTuitionPayment(
+                    $enroll_id,
+                    $this->input->post('tuition_amount'),
+                    $this->input->post('tuition_pay_via'),
+                    $this->input->post('tuition_date'),
+                    $this->input->post('tuition_remarks')
+                );
+                set_alert('success', translate('information_has_been_saved_successfully'));
+                $array = array('status' => 'success', 'url' => base_url('student/profile/' . $enroll_id));
+            }
+        } else {
+            $array = array('status' => 'fail', 'error' => $this->form_validation->error_array());
+        }
+        echo json_encode($array);
     }
 
     // student document details are create here / ajax

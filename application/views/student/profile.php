@@ -32,6 +32,14 @@ if (empty($student['previous_details'])) {
 					<li><div class="icon-holder" data-toggle="tooltip" data-original-title="<?=translate('present_address')?>"><i class="fas fa-home"></i></div> <?=(!empty($student['current_address']) ? $student['current_address'] : 'N/A'); ?></li>
 				</ul>
 			</div>
+			<div class="col-md-12 col-lg-3 col-xl-4 text-right mt-md">
+				<a href="<?=base_url('student/admission_slip/' . $student['enrollid'])?>" class="btn btn-default btn-circle" target="_blank">
+					<i class="fas fa-print"></i> <?=translate('admission_slip')?>
+				</a>
+				<a href="<?=base_url('student/admission_slip/' . $student['enrollid'] . '?pdf=1')?>" class="btn btn-default btn-circle">
+					<i class="fas fa-file-pdf"></i> PDF
+				</a>
+			</div>
 		</div>
 	</div>
 
@@ -668,6 +676,58 @@ if ($previous_school_details['status']) {
 				</div>
 				<div id="fees" class="accordion-body collapse">
 					<div class="panel-body">
+						<?php $tuitionPaid = $this->student_model->getTuitionPayment($student['enrollid']); ?>
+						<?php if (empty($tuitionPaid) && (get_permission('collect_fees', 'is_add') || get_permission('student', 'is_edit'))): ?>
+						<div class="alert alert-warning">
+							<strong><?=translate('tuition')?> <?=translate('payment')?></strong> has not been recorded for this student.
+						</div>
+						<?php echo form_open('student/record_tuition', array('class' => 'form-horizontal frm-submit mb-lg')); ?>
+							<input type="hidden" name="enroll_id" value="<?=$student['enrollid']?>">
+							<div class="form-group">
+								<label class="col-md-3 control-label"><?=translate('amount')?> <span class="required">*</span></label>
+								<div class="col-md-6">
+									<input type="number" step="0.01" min="0" class="form-control" name="tuition_amount" placeholder="0.00">
+									<span class="error"></span>
+								</div>
+							</div>
+							<div class="form-group">
+								<label class="col-md-3 control-label"><?=translate('payment_method')?> <span class="required">*</span></label>
+								<div class="col-md-6">
+									<?php
+										$payvia_list = $this->app_lib->getSelectList('payment_types');
+										echo form_dropdown("tuition_pay_via", $payvia_list, 1, "class='form-control' data-plugin-selectTwo data-width='100%' data-minimum-results-for-search='Infinity'");
+									?>
+									<span class="error"></span>
+								</div>
+							</div>
+							<div class="form-group">
+								<label class="col-md-3 control-label"><?=translate('date')?> <span class="required">*</span></label>
+								<div class="col-md-6">
+									<input type="text" class="form-control" name="tuition_date" value="<?=date('Y-m-d')?>" data-plugin-datepicker data-plugin-options='{"todayHighlight": true}'>
+									<span class="error"></span>
+								</div>
+							</div>
+							<div class="form-group">
+								<label class="col-md-3 control-label"><?=translate('remarks')?></label>
+								<div class="col-md-6">
+									<textarea name="tuition_remarks" rows="2" class="form-control"></textarea>
+								</div>
+							</div>
+							<div class="form-group">
+								<div class="col-md-offset-3 col-md-3">
+									<button type="submit" class="btn btn-default" data-loading-text="<i class='fas fa-spinner fa-spin'></i> Processing">
+										<i class="fas fa-save"></i> <?=translate('tuition')?> <?=translate('payment')?>
+									</button>
+								</div>
+							</div>
+						<?php echo form_close(); ?>
+						<?php elseif (!empty($tuitionPaid)): ?>
+						<div class="alert alert-success">
+							<?=translate('tuition')?>: <strong><?=currencyFormat($tuitionPaid['amount'])?></strong>
+							via <strong><?=html_escape($tuitionPaid['pay_via_name'])?></strong>
+							on <?=html_escape(_d($tuitionPaid['date']))?>
+						</div>
+						<?php endif; ?>
 						<div class="table-responsive mt-md mb-md">
 							<table class="table table-bordered table-condensed table-hover mb-none tbr-top">
 								<thead>

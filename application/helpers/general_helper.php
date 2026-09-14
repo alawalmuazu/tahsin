@@ -676,3 +676,41 @@ function img_reload()
 {
     return "?src=" . time();
 }
+
+function local_image_path($role = '', $file_name = '')
+{
+    $fallback = FCPATH . 'uploads/app_image/defualt.png';
+    if ($file_name == 'defualt.png' || empty($file_name)) {
+        return $fallback;
+    }
+    $path = FCPATH . 'uploads/images/' . $role . '/' . $file_name;
+    return file_exists($path) ? $path : $fallback;
+}
+
+function html_barcode($code, $height = 42)
+{
+    $code = preg_replace('/[^A-Za-z0-9\-\.]/', '', (string) $code);
+    if ($code === '') {
+        return '';
+    }
+    if (!class_exists('\Mpdf\Barcode')) {
+        require_once APPPATH . 'third_party/mpdf/autoload.php';
+    }
+    try {
+        $barcode = new \Mpdf\Barcode();
+        $data = $barcode->getBarcodeArray($code, 'C128B');
+    } catch (Exception $e) {
+        return '';
+    }
+    if (empty($data['bcode'])) {
+        return '';
+    }
+    $html = '<div class="barcode-wrap" style="font-size:0;line-height:0;white-space:nowrap;text-align:center">';
+    foreach ($data['bcode'] as $bar) {
+        $w = max(1, (int) $bar['w']);
+        $bg = !empty($bar['t']) ? '#111111' : 'transparent';
+        $html .= '<span style="display:inline-block;width:' . $w . 'px;height:' . (int) $height . 'px;background:' . $bg . '"></span>';
+    }
+    $html .= '</div>';
+    return $html;
+}

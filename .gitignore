@@ -14,10 +14,9 @@ application/logs/log-*.php
 application/cache/*
 !application/cache/index.html
 
-# User uploads (large files, not source code)
-uploads/student_image/*
-uploads/staff_image/*
-uploads/uploads/*
+# Generated admission-slip QR / mPDF scratch files
+uploads/temp/qr_code/*.png
+uploads/temp/mpdf/*
 
 # System directories
 system/

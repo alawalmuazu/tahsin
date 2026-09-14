@@ -428,5 +428,32 @@ ALTER TABLE `staff`
     ADD COLUMN `next_of_kin_phone`    VARCHAR(50)  NULL DEFAULT NULL,
     ADD COLUMN `next_of_kin_relation` VARCHAR(100) NULL DEFAULT NULL;
 
+-- ---------------------------------------------------------------------
+-- 10. Tuition fee type + session group so admission can record payment
+--     including mode of payment (Cash, Bank Transfer, etc.).
+-- ---------------------------------------------------------------------
+INSERT INTO `fees_type` (`name`, `fee_code`, `description`, `branch_id`, `system`)
+SELECT 'Tuition', 'tuition', 'Termly tuition fee', 1, 0
+FROM DUAL
+WHERE NOT EXISTS (SELECT 1 FROM `fees_type` WHERE `name` = 'Tuition' AND `branch_id` = 1);
+
+INSERT INTO `fee_groups` (`name`, `description`, `session_id`, `system`, `branch_id`)
+SELECT 'Tuition', 'Tuition fee for the academic session', gs.session_id, 0, 1
+FROM `global_settings` gs
+WHERE NOT EXISTS (
+    SELECT 1 FROM `fee_groups` g
+    WHERE g.name = 'Tuition' AND g.branch_id = 1 AND g.session_id = gs.session_id
+);
+
+INSERT INTO `fee_groups_details` (`fee_groups_id`, `fee_type_id`, `amount`, `due_date`)
+SELECT g.id, t.id, 0, DATE_ADD(CURDATE(), INTERVAL 30 DAY)
+FROM `fee_groups` g
+INNER JOIN `fees_type` t ON t.name = 'Tuition' AND t.branch_id = 1
+WHERE g.name = 'Tuition' AND g.branch_id = 1
+  AND NOT EXISTS (
+      SELECT 1 FROM `fee_groups_details` d
+      WHERE d.fee_groups_id = g.id AND d.fee_type_id = t.id
+  );
+
 SET FOREIGN_KEY_CHECKS = 1;
 
