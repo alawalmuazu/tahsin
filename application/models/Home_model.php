@@ -33,12 +33,8 @@ class Home_model extends MY_Model
     public function getAdmissionTypes($branch_id = '')
     {
         $official = array(
-            'Boarding Quran without Technical skills',
-            'Boarding Quran with Technical skills',
-            'Day without Technical Skills',
-            'Day with Technical Skills',
-            'Weekend Tahfeez with Skills',
-            'Weekend Tahfeez without Technical skills',
+            'Without Technical Skills',
+            'With Technical Skills',
         );
 
         if (empty($branch_id)) {

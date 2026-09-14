@@ -554,10 +554,10 @@ if (moduleIsEnabled('transport')) {
 							<label class="col-md-3 control-label"><?=translate('payment_method')?> <span class="required">*</span></label>
 							<div class="col-md-6">
 	    						<?php
-	    							$payvia_list = $this->app_lib->getSelectList('payment_types');
-	    							echo form_dropdown("pay_via", $payvia_list, set_value('pay_via', DEFAULT_PAY_VIA), "class='form-control' data-plugin-selectTwo data-width='100%' data-minimum-results-for-search='Infinity' ");
+	    							echo payment_method_dropdown("pay_via", set_value('pay_via', DEFAULT_PAY_VIA), "class='form-control' data-plugin-selectTwo data-width='100%' data-minimum-results-for-search='Infinity'");
 	    						?>
 								<span class="error"></span>
+								<small class="help-block"><?=collection_account_hint()?></small>
 							</div>
 						</div>
                         <?php
@@ -571,6 +571,7 @@ if (moduleIsEnabled('transport')) {
                                     $accounts_list = $this->app_lib->getSelectByBranch('accounts', $basic['branch_id']);
                                     echo form_dropdown("account_id", $accounts_list, $links['deposit'], "class='form-control' id='account_id' required data-plugin-selectTwo data-width='100%'");
                                 ?>
+                            	<span class="help-block">Office Accounting ledger this payment is posted to. Payment method above is how the parent paid.</span>
                             	</div>
                             </div>
                         <?php } ?>
@@ -629,10 +630,10 @@ if (moduleIsEnabled('transport')) {
 							<label class="col-md-3 control-label"><?=translate('payment_method')?> <span class="required">*</span></label>
 							<div class="col-md-6">
 	    						<?php
-	    							$payvia_list = $this->app_lib->getSelectList('payment_types');
-	    							echo form_dropdown("pay_via", $payvia_list, set_value('pay_via', DEFAULT_PAY_VIA), "class='form-control' data-plugin-selectTwo data-width='100%' data-minimum-results-for-search='Infinity' ");
+	    							echo payment_method_dropdown("pay_via", set_value('pay_via', DEFAULT_PAY_VIA), "class='form-control' data-plugin-selectTwo data-width='100%' data-minimum-results-for-search='Infinity'");
 	    						?>
 								<span class="error"></span>
+								<small class="help-block"><?=collection_account_hint()?></small>
 							</div>
 						</div>
                         <?php
@@ -646,6 +647,7 @@ if (moduleIsEnabled('transport')) {
                                     $accounts_list = $this->app_lib->getSelectByBranch('accounts', $basic['branch_id']);
                                     echo form_dropdown("account_id", $accounts_list, $links['deposit'], "class='form-control' id='account_id' required data-plugin-selectTwo data-width='100%'");
                                 ?>
+                            	<span class="help-block">Office Accounting ledger this payment is posted to. Payment method above is how the parent paid.</span>
                             	</div>
                             </div>
                         <?php } ?>

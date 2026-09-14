@@ -123,9 +123,22 @@
 					<span class="error"><?=form_error('branch_id')?></span>
 				</div>
 				<?php endif; ?>
-				<div class="form-group mb-md">
+				<div class="form-group">
 					<label class="control-label"><?php echo translate('name'); ?> <span class="required">*</span></label>
 					<input type="text" class="form-control" value="" name="voucher_head" id="ename" />
+					<span class="error"></span>
+				</div>
+				<div class="form-group mb-md">
+					<label class="control-label"><?php echo translate('type'); ?> <span class="required">*</span></label>
+					<?php
+						$arrayType = array(
+							'' => translate('select'),
+							'expense' => 'Expense',
+							'income' => 'Income'
+						);
+						echo form_dropdown("type", $arrayType, "", "class='form-control' id='etype'
+						data-plugin-selectTwo data-width='100%' data-minimum-results-for-search='Infinity'");
+					?>
 					<span class="error"></span>
 				</div>
 			</div>
@@ -159,6 +172,7 @@
 	                $('#ebranch_id').val(data.branch_id).trigger('change');
 	            }
 				$('#ename').val(data.name);
+				$('#etype').val(data.type).trigger('change');
 				mfp_modal('#modal');
 	        }
 	    });

@@ -71,9 +71,7 @@ foreach ($record_array as $key => $value) {
 		<td class="fee-modal">
 			<div class="form-group">
 				<?php
-				$payvia_list = $this->app_lib->getSelectList('payment_types');
-				echo form_dropdown("collect_fees[$key][pay_via]", $payvia_list, DEFAULT_PAY_VIA, "class='form-control selectTwo' data-width='100%'
-					data-minimum-results-for-search='Infinity' ");
+				echo payment_method_dropdown("collect_fees[$key][pay_via]", DEFAULT_PAY_VIA, "class='form-control selectTwo' data-width='100%' data-minimum-results-for-search='Infinity'");
 				?>
 				<span class="error"></span>
 			</div>
@@ -142,8 +140,7 @@ foreach ($record_array as $key => $value) {
 		<td class="fee-modal">
 			<div class="form-group">
 				<?php
-				$payvia_list = $this->app_lib->getSelectList('payment_types');
-				echo form_dropdown("collect_fees[$key][pay_via]", $payvia_list, DEFAULT_PAY_VIA, "class='form-control selectTwo' data-width='100%' data-minimum-results-for-search='Infinity' ");
+				echo payment_method_dropdown("collect_fees[$key][pay_via]", DEFAULT_PAY_VIA, "class='form-control selectTwo' data-width='100%' data-minimum-results-for-search='Infinity'");
 				?>
 				<span class="error"></span>
 			</div>

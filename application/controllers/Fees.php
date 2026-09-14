@@ -791,10 +791,13 @@ class Fees extends Admin_Controller
             $this->db->insert('fee_payment_history', $arrayFees);
             $payment_historyID = $this->db->insert_id();
 
-            // transaction voucher save function
-            if (isset($_POST['account_id'])) {
+            $accountID = $this->input->post('account_id');
+            if (empty($accountID)) {
+                $accountID = $this->app_lib->getCollectionDepositAccountId();
+            }
+            if (!empty($accountID)) {
                 $arrayTransaction = array(
-                    'account_id' => $this->input->post('account_id'),
+                    'account_id' => $accountID,
                     'amount' => ($amount + $fineAmount) - $discountAmount,
                     'date' => $date,
                 );
@@ -1181,6 +1184,7 @@ class Fees extends Admin_Controller
         if ($this->form_validation->run() !== false) {
             $date = $this->input->post('date');
             $payVia = $this->input->post('pay_via');
+            $accountID = $this->input->post('account_id');
             $invoiceID = $this->input->post('invoice_id');
             $basic = $this->fees_model->getInvoiceBasic($invoiceID);
             if (empty($basic))
@@ -1241,9 +1245,12 @@ class Fees extends Admin_Controller
             }
 
             // transaction voucher save function
-            if (isset($_POST['account_id'])) {
+            if (empty($accountID)) {
+                $accountID = $this->app_lib->getCollectionDepositAccountId();
+            }
+            if (!empty($accountID)) {
                 $arrayTransaction = array(
-                    'account_id' => $this->input->post('account_id'),
+                    'account_id' => $accountID,
                     'amount' => ($totalBalance + $totalFine),
                     'date' => $date,
                 );
@@ -1412,10 +1419,10 @@ class Fees extends Admin_Controller
                 }
                 $this->db->insert('fee_payment_history', $arrayFees);
 
-                // transaction voucher save function
-                if (isset($value['account_id'])) {
+                $accountID = !empty($value['account_id']) ? $value['account_id'] : $this->app_lib->getCollectionDepositAccountId();
+                if (!empty($accountID)) {
                     $arrayTransaction = array(
-                        'account_id' => $value['account_id'],
+                        'account_id' => $accountID,
                         'amount' => ($amount + $fineAmount) - $discountAmount,
                         'date' => $date,
                     );

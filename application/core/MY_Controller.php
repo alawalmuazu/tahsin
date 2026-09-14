@@ -6,6 +6,7 @@ class MY_Controller extends CI_Controller
     public function __construct()
     {
         parent::__construct();
+        apply_single_school_post();
 
         if ($this->config->item('installed') == false) {
             redirect(site_url('install'));

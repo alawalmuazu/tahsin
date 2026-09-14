@@ -48,55 +48,19 @@ endif;
 				<div class="headers-line">
 					<i class="fas fa-school"></i> <?=translate('academic_details')?>
 				</div>
-				
 				<?php
-				$academic_year = get_session_id(); 
-				$roll = $this->student_fields_model->getStatus('roll', $branch_id);
+				$academic_year = get_session_id();
 				$admission_date = $this->student_fields_model->getStatus('admission_date', $branch_id);
-                $v = (2 + floatval($roll['status']) + floatval($admission_date['status']));
-                $div = floatval(12 / $v);
+				$category = $this->student_fields_model->getStatus('category', $branch_id);
+				$selected_section = set_value('section_id');
 				?>
-				<div class="row">
-					<div class="col-md-<?php echo $div ?> mb-sm">
-						<div class="form-group">
-							<label class="control-label"><?=translate('academic_year')?> <span class="required">*</span></label>
-							<?php
-								$arrayYear = array("" => translate('select'));
-								$years = $this->db->get('schoolyear')->result();
-								foreach ($years as $year){
-									$arrayYear[$year->id] = $year->school_year;
-								}
-								echo form_dropdown("year_id", $arrayYear, set_value('year_id', $academic_year), "class='form-control' id='academic_year_id'
-								data-plugin-selectTwo data-width='100%'");
-							?>
-							<span class="error"></span>
-						</div>
-					</div>
-					
-					<div class="col-md-<?php echo $div ?> mb-sm">
-						<div class="form-group">
-							<label class="control-label"><?=translate('register_no')?> <span class="required">*</span></label>
-							<input type="text" class="form-control" name="register_no" value="<?=set_value('register_no', $register_id)?>" />
-							<span class="error"></span>
-						</div>
-					</div>
-					<div class="col-md-<?php echo $div ?> mb-sm">
-						<div class="form-group">
-							<label class="control-label">NIN <small class="text-muted">(National Identification Number)</small></label>
-							<input type="text" class="form-control" name="nin" maxlength="11" pattern="[0-9]{0,11}" placeholder="11-digit NIN (optional)" value="<?=set_value('nin')?>" required />
-							<span class="error"></span>
-						</div>
-					</div>
-					<?php if ($roll['status']) { ?>
-					<div class="col-md-<?php echo $div ?> mb-sm">
-						<div class="form-group">
-							<label class="control-label"><?=translate('roll')?><?php echo $roll['required'] == 1 ? ' <span class="required">*</span>' : ''; ?></label>
-							<input type="text" class="form-control" name="roll" value="<?=set_value('roll')?>" />
-							<span class="error"></span>
-						</div>
-					</div>
-					<?php } if ($admission_date['status']) { ?>
-					<div class="col-md-<?php echo $div ?> mb-sm">
+				<input type="hidden" name="year_id" id="academic_year_id" value="<?=html_escape($academic_year)?>">
+				<div class="row mb-md">
+					<?php if (is_multi_school()): ?>
+						<input type="hidden" name="branch_id" value="<?php echo $branch_id ?>">
+					<?php endif; ?>
+					<?php if ($admission_date['status']) { ?>
+					<div class="col-md-3 mb-sm">
 						<div class="form-group">
 							<label class="control-label"><?=translate('admission_date')?><?php echo $admission_date['required'] == 1 ? ' <span class="required">*</span>' : ''; ?></label>
 							<div class="input-group">
@@ -108,40 +72,30 @@ endif;
 						</div>
 					</div>
 					<?php } ?>
-				</div>
-				<?php
-				$category = $this->student_fields_model->getStatus('category', $branch_id);
-                $v = (2 + floatval($category['status']));
-                $div = floatval(12 / $v);
-				?>
-				<div class="row mb-md">
-					<?php if (is_multi_school()): ?>
-						<input type="hidden" name="branch_id" value="<?php echo $branch_id ?>">
-					<?php endif; ?>
-					<div class="col-md-<?php echo $div; ?> mb-sm">
-						<div class="form-group">
-							<label class="control-label"><?=translate('class')?> <span class="required">*</span></label>
-							<?php
-								$arrayClass = $this->app_lib->getClass($branch_id);
-								echo form_dropdown("class_id", $arrayClass, set_value('class_id'), "class='form-control' id='class_id' onchange='getSectionByClass(this.value,0)'
-								data-plugin-selectTwo data-width='100%'");
-							?>
-							<span class="error"></span>
-						</div>
-					</div>
-					<div class="col-md-<?php echo $div; ?> mb-sm">
+					<div class="col-md-3 mb-sm">
 						<div class="form-group">
 							<label class="control-label"><?=translate('section')?> <span class="required">*</span></label>
 							<?php
-								$arraySection = $this->app_lib->getSections(set_value('class_id'), false);
-								echo form_dropdown("section_id", $arraySection, set_value('section_id'), "class='form-control' id='section_id' 
+								$arraySection = $this->app_lib->getBranchSections($branch_id);
+								echo form_dropdown("section_id", $arraySection, $selected_section, "class='form-control' id='section_id' data-class-target='#class_id'
 								data-plugin-selectTwo data-width='100%' ");
 							?>
 							<span class="error"></span>
 						</div>
 					</div>
+					<div class="col-md-3 mb-sm">
+						<div class="form-group">
+							<label class="control-label"><?=translate('class')?> <span class="required">*</span></label>
+							<?php
+								$arrayClass = $this->app_lib->getClassesBySection($selected_section);
+								echo form_dropdown("class_id", $arrayClass, set_value('class_id'), "class='form-control' id='class_id'
+								data-plugin-selectTwo data-width='100%'");
+							?>
+							<span class="error"></span>
+						</div>
+					</div>
 					<?php if ($category['status']) { ?>
-					<div class="col-md-<?php echo $div; ?> mb-sm">
+					<div class="col-md-3 mb-sm">
 						<div class="form-group">
 							<label class="control-label"><?=translate('category')?><?php echo $category['required'] == 1 ? ' <span class="required">*</span>' : ''; ?></label>
 							<?php
@@ -160,15 +114,12 @@ endif;
 					<i class="fas fa-user-check"></i> <?=translate('student_details')?>
 				</div>
 				<?php
-				$last_name = $this->student_fields_model->getStatus('last_name', $branch_id);
 				$gender = $this->student_fields_model->getStatus('gender', $branch_id);
-                $v = (1 + floatval($last_name['status']) + floatval($gender['status']));
-                $div = floatval(12 / $v);
 				?>
 				<div class="row">
-					<div class="col-md-<?php echo $div ?> mb-sm">
+					<div class="col-md-3 mb-sm">
 						<div class="form-group">
-							<label class="control-label"> <?=translate('first_name')?> <span class="required">*</span></label>
+							<label class="control-label"><?=translate('first_name')?> <span class="required">*</span></label>
 							<div class="input-group">
 								<span class="input-group-addon"><i class="fas fa-user-graduate"></i></span>
 								<input type="text" class="form-control" name="first_name" value="<?=set_value('first_name')?>"/>
@@ -176,10 +127,9 @@ endif;
 							<span class="error"></span>
 						</div>
 					</div>
-					<?php if ($last_name['status']) { ?>
-					<div class="col-md-<?php echo $div ?> mb-sm">
+					<div class="col-md-3 mb-sm">
 						<div class="form-group">
-							<label class="control-label"> <?=translate('last_name')?><?php echo $last_name['required'] == 1 ? ' <span class="required">*</span>' : ''; ?></label>
+							<label class="control-label"><?=translate('surname')?> <span class="required">*</span></label>
 							<div class="input-group">
 								<span class="input-group-addon"><i class="fas fa-user-graduate"></i></span>
 								<input type="text" class="form-control" name="last_name" value="<?=set_value('last_name')?>" />
@@ -187,10 +137,20 @@ endif;
 							<span class="error"></span>
 						</div>
 					</div>
-					<?php } if ($gender['status']) { ?>
-					<div class="col-md-<?php echo $div ?> mb-sm">
+					<div class="col-md-3 mb-sm">
 						<div class="form-group">
-							<label class="control-label"> <?=translate('gender')?><?php echo $gender['required'] == 1 ? ' <span class="required">*</span>' : ''; ?></label>
+							<label class="control-label"><?=translate('other_name')?></label>
+							<div class="input-group">
+								<span class="input-group-addon"><i class="fas fa-user-graduate"></i></span>
+								<input type="text" class="form-control" name="other_name" value="<?=set_value('other_name')?>" placeholder="Other name(s)" />
+							</div>
+							<span class="error"></span>
+						</div>
+					</div>
+					<?php if ($gender['status']) { ?>
+					<div class="col-md-3 mb-sm">
+						<div class="form-group">
+							<label class="control-label"><?=translate('gender')?><?php echo $gender['required'] == 1 ? ' <span class="required">*</span>' : ''; ?></label>
 							<?php
 								$arrayGender = array(
 									'male' => translate('male'),
@@ -208,11 +168,17 @@ endif;
 					<?php 
 					$blood_group = $this->student_fields_model->getStatus('blood_group', $branch_id);
 					$birthday = $this->student_fields_model->getStatus('birthday', $branch_id);
-					$v = floatval($blood_group['status']) + floatval($birthday['status']);
-					$div = ($v == 0) ? 12 : floatval(12 / $v);
-
-					if ($blood_group['status']) {
+					$v = 1 + floatval($blood_group['status']) + floatval($birthday['status']);
+					$div = floatval(12 / $v);
 					?>
+					<div class="col-md-<?php echo $div ?> mb-sm">
+						<div class="form-group">
+							<label class="control-label">NIN <small class="text-muted">(National Identification Number)</small></label>
+							<input type="text" class="form-control" name="nin" maxlength="11" pattern="[0-9]{0,11}" inputmode="numeric" placeholder="11-digit NIN (optional)" value="<?=set_value('nin')?>" />
+							<span class="error"></span>
+						</div>
+					</div>
+					<?php if ($blood_group['status']) { ?>
 					<div class="col-md-<?php echo $div ?> mb-sm">
 						<div class="form-group">
 							<label class="control-label"><?=translate('blood_group')?><?php echo $blood_group['required'] == 1 ? ' <span class="required">*</span>' : ''; ?></label>
@@ -243,8 +209,7 @@ endif;
 					<?php 
 					$mother_tongue = $this->student_fields_model->getStatus('mother_tongue', $branch_id);
 					$religion = $this->student_fields_model->getStatus('religion', $branch_id);
-					$caste = $this->student_fields_model->getStatus('caste', $branch_id);
-					$v = floatval($mother_tongue['status']) + floatval($religion['status']) + floatval($caste['status']);
+					$v = floatval($mother_tongue['status']) + floatval($religion['status']);
 					$div = ($v == 0) ? 12 : floatval(12 / $v);
 					if ($mother_tongue['status']) {
 					?>
@@ -259,15 +224,9 @@ endif;
 					<div class="col-md-<?php echo $div ?> mb-sm">
 						<div class="form-group">
 							<label class="control-label"><?=translate('religion')?><?php echo $religion['required'] == 1 ? ' <span class="required">*</span>' : ''; ?></label>
-							<input type="text" class="form-control" name="religion" value="<?=set_value('religion')?>" />
-							<span class="error"></span>
-						</div>
-					</div>
-					<?php } if ($caste['status']) { ?>
-					<div class="col-md-<?php echo $div ?> mb-sm">
-						<div class="form-group">
-							<label class="control-label"><?=translate('caste')?><?php echo $caste['required'] == 1 ? ' <span class="required">*</span>' : ''; ?></label>
-							<input type="text" class="form-control" name="caste" value="<?=set_value('caste')?>" />
+							<?php
+								echo form_dropdown("religion", nigeria_religions(), set_value('religion'), "class='form-control' data-plugin-selectTwo data-width='100%' data-minimum-results-for-search='Infinity'");
+							?>
 							<span class="error"></span>
 						</div>
 					</div>
@@ -306,19 +265,23 @@ endif;
 							<span class="error"></span>
 						</div>
 					</div>
-					<?php } if ($city['status']) { ?>
-					<div class="col-md-<?php echo $div ?> mb-sm">
-						<div class="form-group">
-							<label class="control-label"><?=translate('city')?><?php echo $city['required'] == 1 ? ' <span class="required">*</span>' : ''; ?></label>
-							<input type="text" class="form-control" name="city" value="<?=set_value('city')?>" />
-							<span class="error"></span>
-						</div>
-					</div>
 					<?php } if ($state['status']) { ?>
 					<div class="col-md-<?php echo $div ?> mb-sm">
 						<div class="form-group">
 							<label class="control-label"><?=translate('state')?><?php echo $state['required'] == 1 ? ' <span class="required">*</span>' : ''; ?></label>
-							<input type="text" class="form-control" name="state" value="<?=set_value('state')?>" />
+							<?php
+								echo form_dropdown("state", nigeria_states(), set_value('state'), "class='form-control' id='state' data-lga-target='#lga' data-plugin-selectTwo data-width='100%'");
+							?>
+							<span class="error"></span>
+						</div>
+					</div>
+					<?php } if ($city['status']) { ?>
+					<div class="col-md-<?php echo $div ?> mb-sm">
+						<div class="form-group">
+							<label class="control-label"><?=translate('lga')?><?php echo $city['required'] == 1 ? ' <span class="required">*</span>' : ''; ?></label>
+							<?php
+								echo form_dropdown("lga", nigeria_lgas_for_state(set_value('state')), set_value('lga'), "class='form-control' id='lga' data-plugin-selectTwo data-width='100%'");
+							?>
 							<span class="error"></span>
 						</div>
 					</div>
@@ -375,13 +338,57 @@ endif;
 				<div class="headers-line mt-md">
 					<i class="fas fa-user-lock"></i> <?=translate('login_details')?>
 				</div>
-				<div class="mb-md checkbox-replace">
-					<label class="i-checks">
-						<input type="checkbox" name="enable_login" value="1" <?php echo set_checkbox('enable_login', '1'); ?>>
-						<i></i> Enable student portal login
-					</label>
-					<p class="text-muted mt-sm mb-none">Off by default. If enabled, username is the admission / register number. Temporary password: <code><?php echo DEFAULT_PASSWORD_STUDENT; ?></code>. They must change it on first login.</p>
+				<?php $stu_auto = !empty($getBranch['stu_generate']); ?>
+				<?php if ($stu_auto): ?>
+				<div class="row mb-md">
+					<div class="col-md-6 mb-sm">
+						<div class="form-group">
+							<label class="control-label"><?=translate('username')?> <?=translate('prefix')?></label>
+							<input type="text" class="form-control" value="<?=html_escape($getBranch['stu_username_prefix'])?>" readonly />
+						</div>
+					</div>
+					<div class="col-md-6 mb-sm">
+						<div class="form-group">
+							<label class="control-label"><?=translate('default')?> <?=translate('password')?></label>
+							<input type="text" class="form-control" value="<?=html_escape($getBranch['stu_default_password'])?>" readonly />
+						</div>
+					</div>
 				</div>
+				<p class="text-muted mb-md">Student portal login is created automatically from School Settings. Username will be <code><?=html_escape($getBranch['stu_username_prefix'])?></code> followed by the student ID. They must change the password on first login.</p>
+				<?php else: ?>
+				<div class="row mb-md" id="stuLogin">
+					<div class="col-md-6 mb-sm">
+						<div class="form-group">
+							<label class="control-label"><?=translate('username')?> <span class="required">*</span></label>
+							<div class="input-group">
+								<span class="input-group-addon"><i class="far fa-user"></i></span>
+								<input type="text" class="form-control" name="username" id="username" value="<?=set_value('username')?>" />
+							</div>
+							<span class="error"></span>
+						</div>
+					</div>
+					<div class="col-md-3 mb-sm">
+						<div class="form-group">
+							<label class="control-label"><?=translate('password')?> <span class="required">*</span></label>
+							<div class="input-group">
+								<span class="input-group-addon"><i class="fas fa-unlock-alt"></i></span>
+								<input type="password" class="form-control" name="password" value="<?=set_value('password')?>" />
+							</div>
+							<span class="error"></span>
+						</div>
+					</div>
+					<div class="col-md-3 mb-sm">
+						<div class="form-group">
+							<label class="control-label"><?=translate('retype_password')?> <span class="required">*</span></label>
+							<div class="input-group">
+								<span class="input-group-addon"><i class="fas fa-unlock-alt"></i></span>
+								<input type="password" class="form-control" name="retype_password" value="<?=set_value('retype_password')?>" />
+							</div>
+							<span class="error"></span>
+						</div>
+					</div>
+				</div>
+				<?php endif; ?>
 
 				<?php 
 				$guardian_name = $this->student_fields_model->getStatus('guardian_name', $branch_id);
@@ -506,19 +513,23 @@ endif;
 						<?php 
                         $v = floatval($guardian_city['status']) + floatval($guardian_state['status']) + floatval($guardian_mobile_no['status']) + floatval($guardian_email['status']);
                         $div = ($v == 0) ? 12 : floatval(12 / $v);
-						if ($guardian_city['status']) { ?>
-						<div class="col-md-<?php echo $div ?> mb-sm">
-							<div class="form-group">
-								<label class="control-label"><?=translate('city')?><?php echo $guardian_city['required'] == 1 ? ' <span class="required">*</span>' : ''; ?></label>
-								<input class="form-control" name="grd_city" value="<?=set_value('grd_city')?>" type="text">
-								<span class="error"></span>
-							</div>
-						</div>
-						<?php } if ($guardian_state['status']) { ?>
+						if ($guardian_state['status']) { ?>
 						<div class="col-md-<?php echo $div ?> mb-sm">
 							<div class="form-group">
 								<label class="control-label"><?=translate('state')?><?php echo $guardian_state['required'] == 1 ? ' <span class="required">*</span>' : ''; ?></label>
-								<input class="form-control" name="grd_state" value="<?=set_value('grd_state')?>" type="text">
+								<?php
+									echo form_dropdown("grd_state", nigeria_states(), set_value('grd_state'), "class='form-control' id='grd_state' data-lga-target='#grd_lga' data-plugin-selectTwo data-width='100%'");
+								?>
+								<span class="error"></span>
+							</div>
+						</div>
+						<?php } if ($guardian_city['status']) { ?>
+						<div class="col-md-<?php echo $div ?> mb-sm">
+							<div class="form-group">
+								<label class="control-label"><?=translate('lga')?><?php echo $guardian_city['required'] == 1 ? ' <span class="required">*</span>' : ''; ?></label>
+								<?php
+									echo form_dropdown("grd_lga", nigeria_lgas_for_state(set_value('grd_state')), set_value('grd_lga'), "class='form-control' id='grd_lga' data-plugin-selectTwo data-width='100%'");
+								?>
 								<span class="error"></span>
 							</div>
 						</div>
@@ -571,13 +582,57 @@ endif;
 						<?php } ?>
 					</div>
 
-					<div class="mb-md checkbox-replace">
-						<label class="i-checks">
-							<input type="checkbox" name="enable_grd_login" value="1" <?php echo set_checkbox('enable_grd_login', '1'); ?>>
-							<i></i> Enable parent / guardian portal login
-						</label>
-						<p class="text-muted mt-sm mb-none">Off by default. If enabled, username is the guardian email. Temporary password: <code><?php echo DEFAULT_PASSWORD_PARENT; ?></code>. They must change it on first login.</p>
+					<?php $grd_auto = !empty($getBranch['grd_generate']); ?>
+					<?php if ($grd_auto): ?>
+					<div class="row mb-md">
+						<div class="col-md-6 mb-sm">
+							<div class="form-group">
+								<label class="control-label"><?=translate('username')?> <?=translate('prefix')?></label>
+								<input type="text" class="form-control" value="<?=html_escape($getBranch['grd_username_prefix'])?>" readonly />
+							</div>
+						</div>
+						<div class="col-md-6 mb-sm">
+							<div class="form-group">
+								<label class="control-label"><?=translate('default')?> <?=translate('password')?></label>
+								<input type="text" class="form-control" value="<?=html_escape($getBranch['grd_default_password'])?>" readonly />
+							</div>
+						</div>
 					</div>
+					<p class="text-muted mb-md">Guardian portal login is created automatically from School Settings. Username will be <code><?=html_escape($getBranch['grd_username_prefix'])?></code> followed by the guardian ID.</p>
+					<?php else: ?>
+					<div class="row mb-md" id="grdLogin">
+						<div class="col-md-6 mb-sm">
+							<div class="form-group">
+								<label class="control-label"><?=translate('username')?> <span class="required">*</span></label>
+								<div class="input-group">
+									<span class="input-group-addon"><i class="far fa-user"></i></span>
+									<input type="text" class="form-control" name="grd_username" id="grd_username" value="<?=set_value('grd_username')?>" />
+								</div>
+								<span class="error"></span>
+							</div>
+						</div>
+						<div class="col-md-3 mb-sm">
+							<div class="form-group">
+								<label class="control-label"><?=translate('password')?> <span class="required">*</span></label>
+								<div class="input-group">
+									<span class="input-group-addon"><i class="fas fa-unlock-alt"></i></span>
+									<input type="password" class="form-control" name="grd_password" value="<?=set_value('grd_password')?>" />
+								</div>
+								<span class="error"></span>
+							</div>
+						</div>
+						<div class="col-md-3 mb-sm">
+							<div class="form-group">
+								<label class="control-label"><?=translate('retype_password')?> <span class="required">*</span></label>
+								<div class="input-group">
+									<span class="input-group-addon"><i class="fas fa-unlock-alt"></i></span>
+									<input type="password" class="form-control" name="grd_retype_password" value="<?=set_value('grd_retype_password')?>" />
+								</div>
+								<span class="error"></span>
+							</div>
+						</div>
+					</div>
+					<?php endif; ?>
 				</div>
 				<?php } ?>
 				
@@ -675,22 +730,48 @@ endif;
 				<div class="headers-line mt-md">
 					<i class="fas fa-money-check-alt"></i> <?=translate('tuition')?> <?=translate('payment')?>
 				</div>
+				<?php
+					$school_fee = SCHOOL_FEE_AMOUNT;
+					$tuition_plan = set_value('tuition_plan', 'full');
+				?>
 				<div class="row">
 					<div class="col-md-4 mb-sm">
 						<div class="form-group">
-							<label class="control-label"><?=translate('amount')?> <span class="required">*</span></label>
-							<input type="number" step="0.01" min="0" class="form-control" name="tuition_amount" value="<?=set_value('tuition_amount')?>" placeholder="0.00" />
+							<label class="control-label">School Fees</label>
+							<input type="text" class="form-control" value="<?=currencyFormat($school_fee)?>" readonly />
+						</div>
+					</div>
+					<div class="col-md-4 mb-sm">
+						<div class="form-group">
+							<label class="control-label">Payment Type <span class="required">*</span></label>
+							<?php
+								$plan_list = array(
+									'full' => 'Pay in full',
+									'installment' => 'Pay in installments',
+								);
+								echo form_dropdown("tuition_plan", $plan_list, $tuition_plan, "class='form-control' id='tuition_plan' data-plugin-selectTwo data-width='100%' data-minimum-results-for-search='Infinity'");
+							?>
 							<span class="error"></span>
 						</div>
 					</div>
 					<div class="col-md-4 mb-sm">
 						<div class="form-group">
+							<label class="control-label">Amount Paying Now <span class="required">*</span></label>
+							<input type="number" step="0.01" min="0" max="<?=$school_fee?>" class="form-control" name="tuition_amount" id="tuition_amount" data-school-fee="<?=$school_fee?>" data-already-paid="0" value="<?=set_value('tuition_amount', $school_fee)?>"<?=$tuition_plan === 'full' ? ' readonly' : ''?> />
+							<span class="error"></span>
+							<small class="text-muted" id="tuition_balance_hint">Balance: <?=currencyFormat(0)?></small>
+						</div>
+					</div>
+				</div>
+				<div class="row">
+					<div class="col-md-4 mb-sm">
+						<div class="form-group">
 							<label class="control-label"><?=translate('payment_method')?> <span class="required">*</span></label>
 							<?php
-								$payvia_list = $this->app_lib->getSelectList('payment_types');
-								echo form_dropdown("tuition_pay_via", $payvia_list, set_value('tuition_pay_via', DEFAULT_PAY_VIA), "class='form-control' data-plugin-selectTwo data-width='100%' data-minimum-results-for-search='Infinity'");
+								echo payment_method_dropdown("tuition_pay_via", set_value('tuition_pay_via', DEFAULT_PAY_VIA), "class='form-control' data-plugin-selectTwo data-width='100%' data-minimum-results-for-search='Infinity'");
 							?>
 							<span class="error"></span>
+							<small class="help-block"><?=collection_account_hint()?></small>
 						</div>
 					</div>
 					<div class="col-md-4 mb-sm">
@@ -700,12 +781,10 @@ endif;
 							<span class="error"></span>
 						</div>
 					</div>
-				</div>
-				<div class="row mb-md">
-					<div class="col-md-12">
+					<div class="col-md-4 mb-sm">
 						<div class="form-group">
 							<label class="control-label"><?=translate('remarks')?></label>
-							<textarea name="tuition_remarks" rows="2" class="form-control" placeholder="<?=translate('write_your_remarks')?>"><?=set_value('tuition_remarks')?></textarea>
+							<textarea name="tuition_remarks" rows="1" class="form-control" placeholder="<?=translate('write_your_remarks')?>"><?=set_value('tuition_remarks')?></textarea>
 						</div>
 					</div>
 				</div>

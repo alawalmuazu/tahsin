@@ -77,21 +77,18 @@ UPDATE `front_cms_menu`
 SET `publish` = 1
 WHERE `alias` = 'admission';
 
--- Tahsin Academy Types of Admission
+-- Tahsin Academy: skills track is the student category; the six programmes are classes.
 INSERT INTO `student_category` (`name`, `branch_id`)
-SELECT 'Boarding Quran without Technical skills', 1 FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM `student_category` WHERE `name` = 'Boarding Quran without Technical skills');
+SELECT 'Without Technical Skills', 1 FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM `student_category` WHERE `name` = 'Without Technical Skills');
 INSERT INTO `student_category` (`name`, `branch_id`)
-SELECT 'Boarding Quran with Technical skills', 1 FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM `student_category` WHERE `name` = 'Boarding Quran with Technical skills');
-INSERT INTO `student_category` (`name`, `branch_id`)
-SELECT 'Day without Technical Skills', 1 FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM `student_category` WHERE `name` = 'Day without Technical Skills');
-INSERT INTO `student_category` (`name`, `branch_id`)
-SELECT 'Day with Technical Skills', 1 FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM `student_category` WHERE `name` = 'Day with Technical Skills');
-INSERT INTO `student_category` (`name`, `branch_id`)
-SELECT 'Weekend Tahfeez with Skills', 1 FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM `student_category` WHERE `name` = 'Weekend Tahfeez with Skills');
-INSERT INTO `student_category` (`name`, `branch_id`)
-SELECT 'Weekend Tahfeez without Technical skills', 1 FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM `student_category` WHERE `name` = 'Weekend Tahfeez without Technical skills');
+SELECT 'With Technical Skills', 1 FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM `student_category` WHERE `name` = 'With Technical Skills');
 
 DELETE FROM `student_category`
-WHERE `name` IN ('General Science', 'Commerce', 'Art', 'Technical', 'Day Student');
+WHERE `name` IN (
+    'General Science', 'Commerce', 'Art', 'Technical', 'Day Student', 'General', 'Science',
+    'Boarding Quran without Technical skills', 'Boarding Quran with Technical skills',
+    'Day without Technical Skills', 'Day with Technical Skills',
+    'Weekend Tahfeez with Skills', 'Weekend Tahfeez without Technical skills'
+);
 
 

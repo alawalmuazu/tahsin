@@ -1,4 +1,7 @@
-<?php $status = ($transactions['status'] == 1 ? '' : 'disabled'); ?>
+<?php
+$transactions = empty($transactions) ? array('status' => 0, 'deposit' => '', 'expense' => '') : $transactions;
+$status = ($transactions['status'] == 1 ? '' : 'disabled');
+?>
 <div class="row">
     <div class="col-md-3">
         <?php include 'sidebar.php'; ?>
@@ -10,6 +13,10 @@
             </header>
             <?php echo form_open('school_settings/accountingLinksSave' . $url, array('class' => 'form-horizontal form-bordered frm-submit-msg')); ?>
                 <div class="panel-body">
+                    <div class="alert alert-info">
+                        <strong>Deposit account</strong> is where staff collections (tuition, levies) are posted. This is the same destination set under Payment Settings → Offline collections.<br>
+                        <strong>Expense account</strong> is used for office spending only. Payment method (cash, bank transfer, Paystack) is chosen at collection time; it is not an account.
+                    </div>
                     <div class="form-group mt-md">
                         <label class="col-md-3 control-label"><?=translate('deposit') . " " . translate('acccount')?> <span class="required">*</span></label>
                         <div class="col-md-6">

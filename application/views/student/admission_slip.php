@@ -146,30 +146,60 @@ $na = function ($v) {
     </table>
 
     <div class="section-h">Tuition Payment</div>
-    <?php if (!empty($tuition)): ?>
+    <?php if (!empty($tuition) && $tuition['paid'] > 0): ?>
     <table class="pay-box">
         <tr>
-            <th>Fee</th>
-            <td><?=html_escape($tuition['fee_name'] ?: 'Tuition')?></td>
+            <th>School Fees</th>
+            <td><?=currencyFormat($tuition['fee'])?></td>
+            <th>Payment Type</th>
+            <td><?=html_escape($tuition['plan_label'] ?: '—')?></td>
+        </tr>
+        <tr>
             <th>Amount Paid</th>
-            <td><?=currencyFormat($tuition['amount'])?></td>
+            <td><?=currencyFormat($tuition['paid'])?></td>
+            <th>Balance</th>
+            <td><?=currencyFormat($tuition['balance'])?></td>
         </tr>
         <tr>
             <th>Mode of Payment</th>
-            <td><?=html_escape($tuition['pay_via_name'] ?: '—')?></td>
+            <td><?=html_escape($tuition['last']['pay_via_name'] ?: '—')?></td>
             <th>Payment Date</th>
-            <td><?=html_escape(_d($tuition['date']))?></td>
+            <td><?=html_escape(_d($tuition['last']['date']))?></td>
         </tr>
-        <?php if (!empty($tuition['remarks'])): ?>
+        <?php $received_into = $this->app_lib->collectionAccountLabel(); if ($received_into !== ''): ?>
+        <tr>
+            <th>Received Into</th>
+            <td colspan="3"><?=html_escape($received_into)?></td>
+        </tr>
+        <?php endif; ?>
+        <?php if (!empty($tuition['last']['remarks'])): ?>
         <tr>
             <th>Remarks</th>
-            <td colspan="3"><?=html_escape($tuition['remarks'])?></td>
+            <td colspan="3"><?=html_escape($tuition['last']['remarks'])?></td>
         </tr>
         <?php endif; ?>
     </table>
+    <?php if (count($tuition['payments']) > 1): ?>
+    <table class="pay-box" style="margin-top:8px">
+        <tr>
+            <th>#</th>
+            <th>Date</th>
+            <th>Amount</th>
+            <th>Mode</th>
+        </tr>
+        <?php foreach ($tuition['payments'] as $i => $pay): ?>
+        <tr>
+            <td><?=($i + 1)?></td>
+            <td><?=html_escape(_d($pay['date']))?></td>
+            <td><?=currencyFormat($pay['amount'])?></td>
+            <td><?=html_escape($pay['pay_via_name'] ?: '—')?></td>
+        </tr>
+        <?php endforeach; ?>
+    </table>
+    <?php endif; ?>
     <?php else: ?>
     <table class="pay-box">
-        <tr><td class="unpaid">Tuition payment has not been recorded for this student.</td></tr>
+        <tr><td class="unpaid">Tuition payment has not been recorded for this student. School fees: <?=currencyFormat(SCHOOL_FEE_AMOUNT)?></td></tr>
     </table>
     <?php endif; ?>
 

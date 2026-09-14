@@ -124,10 +124,47 @@ class School_settings extends Admin_Controller
         $branchID = $this->school_model->getBranchID();
         $this->data['branch_id'] = $branchID;
         $this->data['config'] = $this->school_model->get('payment_config', array('branch_id' => $branchID), true);
+        $this->data['accounts'] = $this->app_lib->getSelectByBranch('accounts', $branchID);
+        $links = $this->school_model->get('transactions_links', array('branch_id' => $branchID), true);
+        $this->data['collection_account_id'] = !empty($links['deposit']) ? $links['deposit'] : $this->app_lib->getCollectionDepositAccountId();
         $this->data['sub_page'] = 'school_settings/payment_gateway';
         $this->data['main_menu'] = 'school_m';
         $this->data['title'] = translate('payment_control');
         $this->load->view('layout/index', $this->data);
+    }
+
+    public function offline_account_save()
+    {
+        if (!get_permission('payment_settings', 'is_add') && !get_permission('accounting_links', 'is_edit')) {
+            ajax_access_denied();
+        }
+        $this->form_validation->set_rules('deposit_account_id', 'Collection account', 'trim|required|numeric');
+        if ($this->form_validation->run() !== false) {
+            $branchID = $this->school_model->getBranchID();
+            $deposit = (int) $this->input->post('deposit_account_id');
+            $exists = $this->db->where(array('id' => $deposit, 'branch_id' => $branchID))->get('accounts')->row();
+            if (empty($exists)) {
+                $array = array('status' => 'fail', 'error' => array('deposit_account_id' => 'Choose an Office Accounting account.'));
+                echo json_encode($array);
+                return;
+            }
+            $row = $this->db->where('branch_id', $branchID)->get('transactions_links')->row_array();
+            $array = array(
+                'status' => 1,
+                'deposit' => $deposit,
+                'expense' => (!empty($row['expense']) ? $row['expense'] : $deposit),
+                'branch_id' => $branchID,
+            );
+            if (!empty($row['id'])) {
+                $this->db->where('id', $row['id'])->update('transactions_links', $array);
+            } else {
+                $this->db->insert('transactions_links', $array);
+            }
+            $message = translate('information_has_been_saved_successfully');
+            echo json_encode(array('status' => 'success', 'message' => $message));
+        } else {
+            echo json_encode(array('status' => 'fail', 'error' => $this->form_validation->error_array()));
+        }
     }
 
     public function smsconfig()

@@ -52,9 +52,7 @@
                     console.log(data.error);
                     $('.error').html("");
                     if (data.status == "fail") {
-                        $.each(data.error, function (index, value) {
-                            $this.find("[name='" + index + "']").parents('.form-group').find('.error').html(value);
-                        });
+                        applyFormErrors($this, data.error);
                         btn.button('reset');
                     } else if (data.status == "access_denied") {
                         window.location.href = base_url + "dashboard";
@@ -91,9 +89,7 @@
                     console.log(data.error);
                     $('.error').html("");
                     if (data.status == "fail") {
-                        $.each(data.error, function (index, value) {
-                            $this.find("[name='" + index + "']").parents('.form-group').find('.error').html(value);
-                        });
+                        applyFormErrors($this, data.error);
                         btn.button('reset');
                     } else if (data.status == "access_denied") {
                         window.location.href = base_url + "dashboard";
@@ -140,9 +136,7 @@
                     console.log(data.error);
                     $('.error').html("");
                     if (data.status == "fail") {
-                        $.each(data.error, function (index, value) {
-                            $this.find("[name='" + index + "']").parents('.form-group').find('.error').html(value);
-                        });
+                        applyFormErrors($this, data.error);
                         btn.button('reset');
                     } else {
                         if (data.url) {
@@ -182,9 +176,7 @@
                     console.log(data.error);
                     $('.error').html("");
                     if (data.status == "fail") {
-                        $.each(data.error, function (index, value) {
-                            $this.find("[name='" + index + "']").parents('.form-group').find('.error').html(value);
-                        });
+                        applyFormErrors($this, data.error);
                         btn.button('reset');
                     } else if (data.status == "access_denied") {
                         window.location.href = base_url + "dashboard";
@@ -354,6 +346,21 @@ function initDatatable(selector,url, params={}, pageLength=25, bStateSave = true
         },
     });
     return cusDataTable;
+}
+
+function applyFormErrors($form, errors) {
+    var firstUnbound = '';
+    $.each(errors || {}, function (index, value) {
+        var $field = $form.find("[name='" + index + "']");
+        if ($field.length) {
+            $field.parents('.form-group').find('.error').html(value);
+        } else if (!firstUnbound) {
+            firstUnbound = value;
+        }
+    });
+    if (firstUnbound) {
+        popupMsg(firstUnbound, 'error');
+    }
 }
 
 // swal alert message
@@ -571,6 +578,31 @@ function getSectionByClass(class_id, all=0, multi=0) {
             }
         });
     }
+}
+
+function getClassBySection(section_id) {
+    var $class = $('#class_id');
+    if (section_id === "" || section_id === null) {
+        $class.html('<option value="">Select</option>');
+        return;
+    }
+    $.ajax({
+        url: base_url + 'ajax/getClassBySection',
+        type: 'POST',
+        data: { section_id: section_id },
+        beforeSend: function () {
+            $('#select2-class_id-container').parent().addClass('select2loading');
+        },
+        success: function (response) {
+            $class.html(response);
+            if ($class.data('select2')) {
+                $class.trigger('change.select2');
+            }
+        },
+        complete: function () {
+            $('#select2-class_id-container').parent().removeClass('select2loading');
+        }
+    });
 }
 
 function getStaffListRole(branchID = '', roleID = '') {

@@ -28,10 +28,12 @@ class Student_model extends MY_Model
             $previous_details = json_encode($previous_details);
         }
 
+        $register_no = isset($data['register_no']) ? trim((string) $data['register_no']) : trim((string) $this->input->post('register_no'));
         $inser_data1 = array(
-            'register_no' => $this->input->post('register_no'),
+            'register_no' => $register_no,
             'admission_date' => (!empty($data['admission_date']) ? date("Y-m-d", strtotime($data['admission_date'])) : ""),
             'first_name' => $this->input->post('first_name'),
+            'other_name' => trim((string) $this->input->post('other_name')),
             'last_name' => $this->input->post('last_name'),
             'gender' => $this->input->post('gender'),
             'birthday' => (!empty($data['birthday']) ? date("Y-m-d", strtotime($data['birthday'])) : ""),
@@ -41,7 +43,7 @@ class Student_model extends MY_Model
             'mother_tongue' => $this->input->post('mother_tongue'),
             'current_address' => $this->input->post('current_address'),
             'permanent_address' => $this->input->post('permanent_address'),
-            'city' => $this->input->post('city'),
+            'city' => $this->input->post('lga') !== null && $this->input->post('lga') !== '' ? $this->input->post('lga') : $this->input->post('city'),
             'state' => $this->input->post('state'),
             'mobileno' => $this->input->post('mobileno'),
             'category_id' => (isset($data['category_id']) ? $data['category_id'] : 0),
@@ -60,6 +62,8 @@ class Student_model extends MY_Model
 
         // moderator guardian all information
         if (!isset($data['student_id']) && empty($data['student_id'])) {
+            $grd_username = '';
+            $grd_password = '';
             if (!isset($data['guardian_chk'])) {
                 // add new guardian all information in db
                 if (!empty($data['grd_name']) || !empty($data['father_name'])) {
@@ -74,7 +78,7 @@ class Student_model extends MY_Model
                         'email' => $this->input->post('grd_email'),
                         'mobileno' => $this->input->post('grd_mobileno'),
                         'address' => $this->input->post('grd_address'),
-                        'city' => $this->input->post('grd_city'),
+                        'city' => $this->input->post('grd_lga') !== null && $this->input->post('grd_lga') !== '' ? $this->input->post('grd_lga') : $this->input->post('grd_city'),
                         'state' => $this->input->post('grd_state'),
                         'branch_id' => $this->application_model->get_branch_id(),
                         'photo' => $this->uploadImage('parent', 'guardian_photo'),
@@ -82,13 +86,23 @@ class Student_model extends MY_Model
                     $this->db->insert('parent', $arrayParent);
                     $parentID = $this->db->insert_id();
 
-                    $enable_grd = !empty($data['enable_grd_login']);
-                    $grd_email = trim((string) $this->input->post('grd_email'));
-                    $grd_username = $grd_email !== '' ? $grd_email : ('parent' . $parentID);
-                    $parent_credential = $this->app_lib->buildPortalCredential(6, $parentID, $grd_username, $enable_grd);
+                    if (!empty($getBranch['grd_generate'])) {
+                        $grd_username = $this->app_lib->uniqueLoginUsername(($getBranch['grd_username_prefix'] ?: 'parent_') . $parentID);
+                        $grd_password = !empty($getBranch['grd_default_password']) ? $getBranch['grd_default_password'] : $this->app_lib->defaultPasswordForRole(6);
+                    } else {
+                        $grd_username = trim((string) $this->input->post('grd_username'));
+                        $grd_password = (string) $this->input->post('grd_password');
+                    }
+                    $parent_credential = array(
+                        'user_id' => $parentID,
+                        'role' => 6,
+                        'username' => $this->app_lib->uniqueLoginUsername($grd_username),
+                        'password' => $this->app_lib->pass_hashed($grd_password),
+                        'active' => 1,
+                        'must_change_password' => 1,
+                    );
                     $this->db->insert('login_credential', $parent_credential);
                     $grd_username = $parent_credential['username'];
-                    $grd_password = $enable_grd ? $this->app_lib->defaultPasswordForRole(6) : '';
                 } else {
                     $parentID = 0;
                 }
@@ -105,12 +119,22 @@ class Student_model extends MY_Model
             $academy_student_id = 'TA-' . date('Y') . '-' . str_pad($student_id, 5, '0', STR_PAD_LEFT);
             $this->db->where('id', $student_id)->update('student', ['state_student_id' => $academy_student_id]);
 
-            $enable_login = !empty($data['enable_login']);
-            $stu_username = $this->app_lib->studentPortalUsername($inser_data1['register_no'], $student_id);
-            $inser_data2 = $this->app_lib->buildPortalCredential(7, $student_id, $stu_username, $enable_login);
+            if (!empty($getBranch['stu_generate'])) {
+                $stu_username = $this->app_lib->uniqueLoginUsername(($getBranch['stu_username_prefix'] ?: 'student_') . $student_id);
+                $stu_password = !empty($getBranch['stu_default_password']) ? $getBranch['stu_default_password'] : $this->app_lib->defaultPasswordForRole(7);
+            } else {
+                $stu_username = $this->app_lib->uniqueLoginUsername(trim((string) $this->input->post('username')));
+                $stu_password = (string) $this->input->post('password');
+            }
+            $inser_data2 = array(
+                'user_id' => $student_id,
+                'role' => 7,
+                'username' => $stu_username,
+                'password' => $this->app_lib->pass_hashed($stu_password),
+                'active' => 1,
+                'must_change_password' => 1,
+            );
             $this->db->insert('login_credential', $inser_data2);
-            $stu_username = $inser_data2['username'];
-            $stu_password = $enable_login ? $this->app_lib->defaultPasswordForRole(7) : '';
 
             // return student information
             $studentData = array(
@@ -120,7 +144,7 @@ class Student_model extends MY_Model
                 'password' => $stu_password,
             );
 
-            if (!empty($data['enable_grd_login']) && !empty($grd_username) && !empty($this->input->post('grd_email'))) {
+            if (!empty($grd_username) && !empty($grd_password) && !empty($this->input->post('grd_email'))) {
                 $emailData = array(
                     'name' => $this->input->post('grd_name'),
                     'username' => $grd_username,
@@ -134,6 +158,10 @@ class Student_model extends MY_Model
         } else {
             // update student all information in the database
             $inser_data1['parent_id'] = $data['parent_id'];
+            $existing = $this->db->select('register_no')->where('id', $data['student_id'])->get('student')->row();
+            if ($existing && !empty($existing->register_no)) {
+                $inser_data1['register_no'] = $existing->register_no;
+            }
             // preserve state_student_id and update nin only
             $nin_val = preg_replace('/[^0-9]/', '', $this->input->post('nin'));
             if ($nin_val !== false && strlen($nin_val) <= 11) {
@@ -254,7 +282,7 @@ class Student_model extends MY_Model
 
     public function getStudentList($classID = '', $sectionID = '', $branchID = '', $deactivate = false, $start = '', $end = '')
     {
-        $this->db->select('e.*,s.photo, CONCAT_WS(" ", s.first_name, s.last_name) as fullname,s.register_no,s.gender,s.admission_date,s.parent_id,s.email,s.blood_group,s.birthday,l.active,c.name as class_name,se.name as section_name');
+        $this->db->select('e.*,s.photo, TRIM(CONCAT_WS(" ", s.first_name, NULLIF(s.other_name,""), s.last_name)) as fullname,s.register_no,s.gender,s.admission_date,s.parent_id,s.email,s.blood_group,s.birthday,l.active,c.name as class_name,se.name as section_name');
         $this->db->from('enroll as e');
         $this->db->join('student as s', 'e.student_id = s.id', 'inner');
         $this->db->join('login_credential as l', 'l.user_id = s.id and l.role = 7', 'inner');
@@ -366,6 +394,48 @@ class Student_model extends MY_Model
         }
     }
 
+    public function allocateRegisterNo($school_id = '')
+    {
+        $candidate = trim((string) $this->regSerNumber($school_id));
+        if ($candidate === '') {
+            $next = (int) $this->db->select('MAX(id) as id')->get('student')->row()->id + 1;
+            $candidate = 'TA-' . date('Y') . '-' . str_pad($next, 5, '0', STR_PAD_LEFT);
+        }
+        $i = 0;
+        $original = $candidate;
+        while ($this->db->where('register_no', $candidate)->count_all_results('student') > 0) {
+            $i++;
+            if (preg_match('/^(.*?)(\d+)$/', $original, $m)) {
+                $candidate = $m[1] . str_pad((int) $m[2] + $i, strlen($m[2]), '0', STR_PAD_LEFT);
+            } else {
+                $candidate = $original . '-' . $i;
+            }
+            if ($i > 9999) {
+                $candidate = 'TA-' . date('Y') . '-' . str_pad(mt_rand(1, 99999), 5, '0', STR_PAD_LEFT);
+            }
+        }
+        return $candidate;
+    }
+
+    public function allocateRoll($class_id, $section_id, $branch_id, $session_id)
+    {
+        $unique_roll = 1;
+        $settings = $this->db->select('unique_roll')->where('id', (int) $branch_id)->get('branch')->row();
+        if ($settings) {
+            $unique_roll = (int) $settings->unique_roll;
+        }
+        $this->db->select('MAX(CAST(roll AS UNSIGNED)) AS max_roll', false);
+        $this->db->from('enroll');
+        $this->db->where('class_id', (int) $class_id);
+        $this->db->where('branch_id', (int) $branch_id);
+        $this->db->where('session_id', (int) $session_id);
+        if ($unique_roll === 2) {
+            $this->db->where('section_id', (int) $section_id);
+        }
+        $row = $this->db->get()->row();
+        return ((int) ($row ? $row->max_roll : 0)) + 1;
+    }
+
     public function getDisableReason($student_id = '')
     {
         $this->db->select("rd.*,disable_reason.name as reason");
@@ -380,7 +450,7 @@ class Student_model extends MY_Model
 
     public function getSiblingList($parent_id = '', $student_id = '')
     {
-        $this->db->select('s.photo, s.register_no, CONCAT_WS(" ",s.first_name, s.last_name) as fullname,s.gender,s.mobileno,e.roll,e.branch_id,c.name as class_name,se.name as section_name');
+        $this->db->select('s.photo, s.register_no, TRIM(CONCAT_WS(" ",s.first_name, NULLIF(s.other_name,""), s.last_name)) as fullname,s.gender,s.mobileno,e.roll,e.branch_id,c.name as class_name,se.name as section_name');
         $this->db->from('enroll as e');
         $this->db->join('student as s', 'e.student_id = s.id', 'inner');
         $this->db->join('class as c', 'e.class_id = c.id', 'left');
@@ -412,7 +482,7 @@ class Student_model extends MY_Model
 
     public function getSiblingListByClass($parent_id = '', $class_id = '', $section_id = '')
     {
-        $this->db->select('s.register_no,e.id as enroll_id,CONCAT_WS(" ",s.first_name, s.last_name) as fullname,s.gender,c.name as class_name,se.name as section_name');
+        $this->db->select('s.register_no,e.id as enroll_id,TRIM(CONCAT_WS(" ",s.first_name, NULLIF(s.other_name,""), s.last_name)) as fullname,s.gender,c.name as class_name,se.name as section_name');
         $this->db->from('enroll as e');
         $this->db->join('student as s', 'e.student_id = s.id', 'inner');
         $this->db->join('class as c', 'e.class_id = c.id', 'left');
@@ -463,7 +533,7 @@ class Student_model extends MY_Model
         $custom_fields_column_order = (empty($field_val_array)) ? "" : "," . implode(',', $field_val_array);
 
         // Database query
-        $this->datatables->select('enroll.*,CONCAT_WS(" ",student.first_name, student.last_name) as fullname,student.photo,student.mobileno,student.admission_date,student.gender,student.register_no,student.birthday,enroll.roll,class.name as class_name,student.parent_id,section.name as section_name,student_category.name as category,parent.name as guardian_name,parent.mobileno as guardian_mobileno' . $field_select);
+        $this->datatables->select('enroll.*,TRIM(CONCAT_WS(" ",student.first_name, NULLIF(student.other_name,""), student.last_name)) as fullname,student.photo,student.mobileno,student.admission_date,student.gender,student.register_no,student.birthday,enroll.roll,class.name as class_name,student.parent_id,section.name as section_name,student_category.name as category,parent.name as guardian_name,parent.mobileno as guardian_mobileno' . $field_select);
         $this->datatables->from('enroll');
         $this->datatables->join('student', 'student.id = enroll.student_id', 'inner');
         $this->datatables->join('class', 'class.id = enroll.class_id', 'left');
@@ -580,8 +650,30 @@ if ($validArr['roll']) {
         return json_encode($json_data);
     }
 
+    public function schoolFeeAmount()
+    {
+        return defined('SCHOOL_FEE_AMOUNT') ? (float) SCHOOL_FEE_AMOUNT : 2500000;
+    }
+
+    public function tuitionPlanLabel($plan)
+    {
+        if ($plan === 'full') {
+            return 'Pay in full';
+        }
+        if ($plan === 'installment') {
+            return 'Pay in installments';
+        }
+        return '';
+    }
+
+    public function stripTuitionPlanTag($remarks)
+    {
+        return trim(preg_replace('/^\[plan:(full|installment)\]\s*/i', '', (string) $remarks));
+    }
+
     public function ensureTuitionSetup($branch_id, $session_id, $amount = 0)
     {
+        $fee = $this->schoolFeeAmount();
         $type = $this->db->get_where('fees_type', array('branch_id' => $branch_id, 'name' => 'Tuition'))->row();
         if (empty($type)) {
             $this->db->insert('fees_type', array(
@@ -622,23 +714,28 @@ if ($validArr['roll']) {
             $this->db->insert('fee_groups_details', array(
                 'fee_groups_id' => $group_id,
                 'fee_type_id' => $type_id,
-                'amount' => ($amount > 0 ? $amount : 0),
+                'amount' => $fee,
                 'due_date' => date('Y-m-d', strtotime('+30 days')),
             ));
-        } elseif ($detail->amount == 0 && $amount > 0) {
-            $this->db->where('id', $detail->id)->update('fee_groups_details', array('amount' => $amount));
+        } elseif ((float) $detail->amount != $fee) {
+            $this->db->where('id', $detail->id)->update('fee_groups_details', array('amount' => $fee));
         }
 
         return array('type_id' => $type_id, 'group_id' => $group_id);
     }
 
-    public function recordTuitionPayment($enroll_id, $amount, $pay_via, $date, $remarks = '')
+    public function recordTuitionPayment($enroll_id, $amount, $pay_via, $date, $remarks = '', $plan = 'installment')
     {
         $enroll = $this->db->get_where('enroll', array('id' => $enroll_id))->row_array();
         if (empty($enroll)) {
             return false;
         }
-        $setup = $this->ensureTuitionSetup($enroll['branch_id'], $enroll['session_id'], $amount);
+        $setup = $this->ensureTuitionSetup($enroll['branch_id'], $enroll['session_id']);
+        $plan = ($plan === 'full') ? 'full' : 'installment';
+        $note = $this->stripTuitionPlanTag($remarks);
+        if ($note === '') {
+            $note = ($plan === 'full') ? 'Tuition paid in full' : 'Tuition installment';
+        }
 
         $existing = $this->db->get_where('fee_allocation', array(
             'student_id' => $enroll_id,
@@ -665,13 +762,23 @@ if ($validArr['roll']) {
             'discount' => 0,
             'fine' => 0,
             'pay_via' => $pay_via,
-            'remarks' => ($remarks === '' || $remarks === null) ? 'Tuition collected at admission' : $remarks,
+            'remarks' => '[plan:' . $plan . '] ' . $note,
             'date' => $date,
         ));
-        return $this->db->insert_id();
+        $history_id = $this->db->insert_id();
+        $account_id = $this->app_lib->getCollectionDepositAccountId();
+        if ($account_id && $amount > 0) {
+            $this->load->model('fees_model');
+            $this->fees_model->saveTransaction(array(
+                'account_id' => $account_id,
+                'amount' => $amount,
+                'date' => $date,
+            ), $history_id);
+        }
+        return $history_id;
     }
 
-    public function getTuitionPayment($enroll_id)
+    public function getTuitionPayments($enroll_id)
     {
         $this->db->select('h.id, h.amount, h.discount, h.fine, h.date, h.remarks, h.pay_via, t.name as fee_name, pt.name as pay_via_name');
         $this->db->from('fee_allocation as a');
@@ -683,8 +790,49 @@ if ($validArr['roll']) {
         $this->db->where('t.fee_code', 'tuition');
         $this->db->or_where('t.name', 'Tuition');
         $this->db->group_end();
-        $this->db->order_by('h.id', 'desc');
-        return $this->db->get()->row_array();
+        $this->db->order_by('h.id', 'asc');
+        return $this->db->get()->result_array();
+    }
+
+    public function getTuitionSummary($enroll_id)
+    {
+        $fee = $this->schoolFeeAmount();
+        $payments = $this->getTuitionPayments($enroll_id);
+        $paid = 0;
+        $plan = '';
+        foreach ($payments as $i => $row) {
+            $paid += (float) $row['amount'];
+            if (preg_match('/^\[plan:(full|installment)\]/i', (string) $row['remarks'], $m)) {
+                if ($plan === '') {
+                    $plan = strtolower($m[1]);
+                }
+            }
+            $payments[$i]['remarks'] = $this->stripTuitionPlanTag($row['remarks']);
+        }
+        if ($plan === '' && !empty($payments)) {
+            $plan = ((float) $payments[0]['amount'] >= $fee) ? 'full' : 'installment';
+        }
+        $balance = round($fee - $paid, 2);
+        if ($balance < 0.01) {
+            $balance = 0;
+        }
+        $last = empty($payments) ? null : $payments[count($payments) - 1];
+        return array(
+            'fee' => $fee,
+            'paid' => $paid,
+            'balance' => $balance,
+            'plan' => $plan,
+            'plan_label' => $this->tuitionPlanLabel($plan),
+            'payments' => $payments,
+            'last' => $last,
+            'complete' => ($paid > 0 && $balance <= 0),
+        );
+    }
+
+    public function getTuitionPayment($enroll_id)
+    {
+        $summary = $this->getTuitionSummary($enroll_id);
+        return empty($summary['last']) ? null : $summary['last'];
     }
 
     public function getAdmissionSlip($enroll_id)
@@ -711,7 +859,7 @@ if ($validArr['roll']) {
         if (empty($row)) {
             show_404();
         }
-        $row['fullname'] = trim($row['first_name'] . ' ' . $row['last_name']);
+        $row['fullname'] = student_fullname($row);
         $row['gender'] = !empty($row['gender']) ? ucfirst($row['gender']) : $row['gender'];
         if (empty($row['state_student_id'])) {
             $row['state_student_id'] = 'TA-' . date('Y') . '-' . str_pad($row['id'], 5, '0', STR_PAD_LEFT);

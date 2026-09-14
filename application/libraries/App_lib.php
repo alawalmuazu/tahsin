@@ -273,6 +273,40 @@ class App_lib
         return $array;
     }
 
+    public function getBranchSections($branch_id = '', $sel = true)
+    {
+        $array = $sel ? array('' => translate('select')) : array();
+        if (empty($branch_id)) {
+            return $array;
+        }
+        $this->CI->db->where('branch_id', $branch_id);
+        $this->CI->db->order_by('id', 'ASC');
+        $rows = $this->CI->db->get('section')->result();
+        foreach ($rows as $row) {
+            $array[$row->id] = $row->name;
+        }
+        return $array;
+    }
+
+    public function getClassesBySection($section_id = '', $sel = true)
+    {
+        if (empty($section_id)) {
+            return array('' => translate('select_section_first'));
+        }
+        $array = $sel ? array('' => translate('select')) : array();
+        $this->CI->db->select('class.id, class.name');
+        $this->CI->db->from('sections_allocation');
+        $this->CI->db->join('class', 'class.id = sections_allocation.class_id', 'inner');
+        $this->CI->db->where('sections_allocation.section_id', (int) $section_id);
+        $this->CI->db->order_by('CAST(class.name_numeric AS UNSIGNED)', 'ASC');
+        $this->CI->db->order_by('class.name', 'ASC');
+        $rows = $this->CI->db->get()->result();
+        foreach ($rows as $row) {
+            $array[$row->id] = $row->name;
+        }
+        return $array;
+    }
+
     public function getDepartment($branch_id = '')
     {
         if (empty($branch_id)) {
@@ -394,7 +428,7 @@ class App_lib
             }
             $result = $ordered;
             $labels = array(
-                4 => 'Commercial Bank Account',
+                4 => 'Bank Transfer',
                 1 => 'Cash',
                 2 => 'POS',
                 3 => 'Cheque',
@@ -423,9 +457,116 @@ class App_lib
         return $list;
     }
 
+    public function getPaymentConfig()
+    {
+        $branchID = isset($this->CI->application_model) ? $this->CI->application_model->get_branch_id() : SCHOOL_ID;
+        $config = $this->CI->db->where('branch_id', $branchID)->get('payment_config')->row_array();
+        return empty($config) ? array() : $config;
+    }
+
+    public function getCollectionDepositAccount()
+    {
+        $branchID = isset($this->CI->application_model) ? $this->CI->application_model->get_branch_id() : SCHOOL_ID;
+        $link = $this->CI->db->where('branch_id', $branchID)->get('transactions_links')->row_array();
+        $accountId = 0;
+        if (!empty($link['deposit'])) {
+            $accountId = (int) $link['deposit'];
+        }
+        if ($accountId > 0) {
+            $account = $this->CI->db->where(array('id' => $accountId, 'branch_id' => $branchID))->get('accounts')->row_array();
+            if (!empty($account)) {
+                return $account;
+            }
+        }
+        $account = $this->CI->db->where('branch_id', $branchID)->order_by('id', 'asc')->get('accounts')->row_array();
+        return empty($account) ? null : $account;
+    }
+
+    public function getCollectionDepositAccountId()
+    {
+        $account = $this->getCollectionDepositAccount();
+        return empty($account) ? 0 : (int) $account['id'];
+    }
+
+    public function collectionAccountLabel($account = null)
+    {
+        if ($account === null) {
+            $account = $this->getCollectionDepositAccount();
+        }
+        if (empty($account)) {
+            return '';
+        }
+        $label = $account['name'];
+        if (!empty($account['number']) && strpos($label, (string) $account['number']) === false) {
+            $label .= ' (' . $account['number'] . ')';
+        }
+        return $label;
+    }
+
+    public function getOfflinePaymentTypes()
+    {
+        return array(
+            4 => 'Bank Transfer',
+            1 => 'Cash',
+            2 => 'POS',
+            3 => 'Cheque',
+        );
+    }
+
+    public function getEnabledPaymentTypesGrouped($config = null)
+    {
+        if (empty($config)) {
+            $config = $this->getPaymentConfig();
+        }
+        $groups = array(
+            'Offline' => $this->getOfflinePaymentTypes(),
+            'Online' => array(),
+        );
+        if (!empty($config['paystack_status'])) {
+            $groups['Online'][9] = 'Paystack';
+        }
+        if (!empty($config['flutterwave_status'])) {
+            $groups['Online'][14] = 'Flutter Wave';
+        }
+        if (empty($groups['Online'])) {
+            unset($groups['Online']);
+        }
+        return $groups;
+    }
+
+    /**
+     * Staff collection methods: always-on offline means, plus gateways enabled
+     * in School Settings → Payment Settings. Values are payment_types.id.
+     */
+    public function getEnabledPaymentTypes($config = null)
+    {
+        $list = array('' => translate('select'));
+        foreach ($this->getEnabledPaymentTypesGrouped($config) as $options) {
+            foreach ($options as $id => $name) {
+                $list[$id] = $name;
+            }
+        }
+        return $list;
+    }
+
     public function defaultPasswordForRole($role)
     {
         $role = (int) $role;
+        $branch_id = function_exists('get_loggedin_branch_id') ? get_loggedin_branch_id() : 0;
+        if (defined('SCHOOL_ID') && (empty($branch_id) || $branch_id == 'all')) {
+            $branch_id = SCHOOL_ID;
+        }
+        if (!empty($branch_id) && $branch_id != 'all') {
+            $branch = $this->CI->db->select('stu_default_password, grd_default_password')->where('id', $branch_id)->get('branch')->row();
+            if ($branch) {
+                if ($role === 7 && !empty($branch->stu_default_password)) {
+                    return $branch->stu_default_password;
+                }
+                if ($role === 6 && !empty($branch->grd_default_password)) {
+                    return $branch->grd_default_password;
+                }
+            }
+        }
         if ($role === 7) {
             return DEFAULT_PASSWORD_STUDENT;
         }

@@ -131,6 +131,36 @@ class Ajax extends MY_Controller
         echo $html;
     }
 
+    public function getClassBySection()
+    {
+        $html = "";
+        $sectionID = $this->input->post('section_id');
+        $selected = $this->input->post('selected');
+        if (empty($sectionID)) {
+            echo '<option value="">' . translate('select_section_first') . '</option>';
+            return;
+        }
+        $classes = $this->app_lib->getClassesBySection($sectionID);
+        foreach ($classes as $id => $name) {
+            $sel = ((string) $id === (string) $selected) ? ' selected' : '';
+            $html .= '<option value="' . html_escape($id) . '"' . $sel . '>' . html_escape($name) . '</option>';
+        }
+        echo $html;
+    }
+
+    public function getLgaByState()
+    {
+        $state = trim((string) $this->input->post('state'));
+        $selected = trim((string) $this->input->post('selected'));
+        $lgas = nigeria_lgas_for_state($state);
+        $html = '';
+        foreach ($lgas as $id => $name) {
+            $sel = ((string) $id !== '' && (string) $id === $selected) ? ' selected' : '';
+            $html .= '<option value="' . html_escape($id) . '"' . $sel . '>' . html_escape($name) . '</option>';
+        }
+        echo $html;
+    }
+
     public function getStudentByClass($enroll = 0)
     {
         $html = "";

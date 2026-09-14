@@ -7,6 +7,9 @@
 			<div class="tabs-custom">
 				<ul class="nav nav-tabs">
 					<li class="active">
+						<a href="#offline" data-toggle="tab">Offline collections</a>
+					</li>
+					<li>
 						<a href="#paystack" data-toggle="tab">Paystack</a>
 					</li>
 					<li>
@@ -14,7 +17,43 @@
 					</li>
 				</ul>
 				<div class="tab-content">
-					<div class="tab-pane box active" id="paystack">
+					<div class="tab-pane box active" id="offline">
+						<div class="alert alert-info">
+							<strong>Payment method</strong> is how the parent paid (bank transfer, cash, POS, cheque, or an online gateway).<br>
+							<strong>Account</strong> is the Office Accounting ledger that money is posted into (for example Access Bank).
+						</div>
+						<p class="mb-md">These offline methods are always available when staff record a collection. They are not online gateways.</p>
+						<ul class="mb-md">
+							<li><strong>Bank Transfer</strong> — paid into the school bank account</li>
+							<li><strong>Cash</strong> — cash received at the office</li>
+							<li><strong>POS</strong> — card terminal at the office</li>
+							<li><strong>Cheque</strong> — cheque received at the office</li>
+						</ul>
+						<?php echo form_open('school_settings/offline_account_save', array('class' => 'form-horizontal frm-submit-msg'));?>
+							<input type="hidden" name="branch_id" value="<?=$branch_id?>">
+							<div class="form-group">
+								<label class="col-sm-4 control-label">Post offline collections to <span class="required">*</span></label>
+								<div class="col-md-7">
+									<?php
+										echo form_dropdown("deposit_account_id", $accounts, set_value('deposit_account_id', $collection_account_id), "class='form-control' data-plugin-selectTwo data-width='100%' data-minimum-results-for-search='Infinity'");
+									?>
+									<span class="error"></span>
+									<span class="help-block">Choose the Office Accounting account. Create or edit accounts under Office Accounting → Account.</span>
+								</div>
+							</div>
+							<footer class="panel-footer">
+								<div class="row">
+									<div class="col-md-3 col-sm-offset-4">
+										<button type="submit" class="btn btn-default btn-block" data-loading-text="<i class='fas fa-spinner fa-spin'></i> Processing">
+											<i class="fas fa-plus-circle"></i> <?=translate('save');?>
+										</button>
+									</div>
+								</div>
+							</footer>
+						<?php echo form_close();?>
+					</div>
+
+					<div class="tab-pane box" id="paystack">
 						<?php echo form_open('settings/paystack_save', array('class' => 'form-horizontal frm-submit-msg'));?>
 							<input type="hidden" name="branch_id" value="<?=$branch_id?>">
 							<div class="form-group">
@@ -81,9 +120,9 @@
 	<div class="col-md-2">
 		<section class="panel">
 			<header class="panel-heading">
-				<h4 class="panel-title"><i class="far fa-credit-card"></i> Active Gateway</h4>
+				<h4 class="panel-title"><i class="far fa-credit-card"></i> Online gateways</h4>
 			</header>
-			<p class="text-muted" style="padding: 0 15px; font-size: 12px;">School collections default to Commercial Bank Account. Leave these off unless you need an online channel.</p>
+			<p class="text-muted" style="padding: 0 15px; font-size: 12px;">Optional. Leave these off if parents pay by bank transfer, cash, POS or cheque. Offline methods stay available either way.</p>
 			<?php echo form_open('settings/payment_active', array('class' => 'form-horizontal frm-submit-msg')); ?>
 			<input type="hidden" name="branch_id" value="<?=$branch_id?>">
 			<div class="panel-body mt-sm">

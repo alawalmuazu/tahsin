@@ -20,7 +20,9 @@
 			} elseif($type == 'js') {
 				if(count($element)) {
 					foreach ($element as $keyjs => $js) {
-						echo '<script defer src="' . base_url('assets/' . $js). '"></script>' . "\n";
+						$jsFile = FCPATH . 'assets/' . $js;
+						$ver = is_file($jsFile) ? filemtime($jsFile) : version_combine();
+						echo '<script defer src="' . base_url('assets/' . $js) . '?v=' . $ver . '"></script>' . "\n";
 					}
 				}
 			}

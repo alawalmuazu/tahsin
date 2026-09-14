@@ -24,11 +24,15 @@
 			});
 
 			$.ajax({
-				url: base_url + "ajax/getClassByBranch",
+				url: base_url + "ajax/getDataByBranch",
 				type: 'POST',
-				data: { branch_id: branchID },
+				data: {
+					branch_id: branchID,
+					table: 'section'
+				},
 				success: function (data) {
-					$('#class_id').html(data);
+					$('#section_id').html(data);
+					$('#class_id').html('<option value="">Select Section First</option>');
 				}
 			});
 
@@ -79,9 +83,6 @@
 					$('#parent_id').html(data);
 				}
 			});
-
-			$("#section_id").empty();
-			$('#section_id').append(new Option("Select Class First", ""));
 
 			$.ajax({
 				url: base_url + "custom_field/getFieldsByBranch",
@@ -154,6 +155,135 @@
 				}
 			});
 		});
+
+		function refreshSelect2($el) {
+			if ($el && $el.length && $el.data('select2')) {
+				$el.trigger('change.select2');
+			}
+		}
+
+		var lgaRequests = {};
+
+		function loadLgasForState(state, $target, selected) {
+			if (!$target || !$target.length) {
+				return;
+			}
+			var key = $target.attr('id') || $target.attr('name') || 'lga';
+			if (lgaRequests[key] && lgaRequests[key].abort) {
+				lgaRequests[key].abort();
+			}
+			lgaRequests[key] = $.ajax({
+				url: base_url + 'ajax/getLgaByState',
+				type: 'POST',
+				data: {
+					state: state || '',
+					selected: selected || ''
+				},
+				success: function (html) {
+					$target.html(html);
+					if (!selected) {
+						$target.val('');
+					}
+					refreshSelect2($target);
+				}
+			});
+		}
+
+		$(document).on('change', '[data-lga-target]', function () {
+			var $target = $($(this).attr('data-lga-target'));
+			loadLgasForState($(this).val(), $target, '');
+		});
+
+		$(document).on('change', '[data-class-target]', function () {
+			var sectionId = $(this).val();
+			var $class = $($(this).attr('data-class-target'));
+			if (!$class.length) {
+				return;
+			}
+			if (!sectionId) {
+				$class.html('<option value="">Select Section First</option>');
+				refreshSelect2($class);
+				return;
+			}
+			$.ajax({
+				url: base_url + 'ajax/getClassBySection',
+				type: 'POST',
+				data: { section_id: sectionId },
+				beforeSend: function () {
+					$('#select2-class_id-container').parent().addClass('select2loading');
+				},
+				success: function (html) {
+					$class.html(html);
+					refreshSelect2($class);
+				},
+				complete: function () {
+					$('#select2-class_id-container').parent().removeClass('select2loading');
+				}
+			});
+		});
+
+		function tuitionFeeAmount() {
+			var $amt = $('#tuition_amount');
+			if (!$amt.length) {
+				return 2500000;
+			}
+			return parseFloat($amt.data('school-fee')) || parseFloat($amt.attr('max')) || 2500000;
+		}
+
+		function tuitionAlreadyPaid() {
+			var $amt = $('#tuition_amount');
+			if (!$amt.length) {
+				return 0;
+			}
+			return parseFloat($amt.data('already-paid')) || 0;
+		}
+
+		function formatTuitionMoney(n) {
+			var value = Number(n) || 0;
+			return value.toLocaleString('en-NG', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+		}
+
+		function updateTuitionUI() {
+			var $amt = $('#tuition_amount');
+			if (!$amt.length) {
+				return;
+			}
+			var fee = tuitionFeeAmount();
+			var paid = tuitionAlreadyPaid();
+			var remainingCap = Math.max(0, fee - paid);
+			var plan = $('#tuition_plan').length ? $('#tuition_plan').val() : 'installment';
+			if (paid > 0) {
+				plan = 'installment';
+				$amt.prop('readonly', false).attr('max', remainingCap);
+			} else if (plan === 'full') {
+				$amt.val(fee).prop('readonly', true).attr('max', fee);
+			} else {
+				$amt.prop('readonly', false).attr('max', fee);
+				if (parseFloat($amt.val()) >= fee) {
+					$amt.val('');
+				}
+			}
+			var now = parseFloat($amt.val()) || 0;
+			if (plan !== 'full' && now > remainingCap) {
+				now = remainingCap;
+				$amt.val(now > 0 ? now : '');
+			}
+			var balance = Math.max(0, remainingCap - (plan === 'full' ? remainingCap : now));
+			if (plan === 'full' && paid <= 0) {
+				balance = 0;
+			}
+			$('#tuition_balance_hint').text('Balance: \u20A6' + formatTuitionMoney(balance));
+		}
+
+		$(document).on('change', '#tuition_plan', updateTuitionUI);
+		$(document).on('input change', '#tuition_amount', function () {
+			if (!$('#tuition_plan').length || $('#tuition_plan').val() === 'installment' || tuitionAlreadyPaid() > 0) {
+				updateTuitionUI();
+			}
+		});
+		if ($('#tuition_amount').length) {
+			updateTuitionUI();
+		}
 	});
 })(jQuery);
 

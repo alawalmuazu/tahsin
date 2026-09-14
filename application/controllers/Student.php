@@ -42,9 +42,13 @@ class Student extends Admin_Controller
         }
         $this->form_validation->set_rules('year_id', translate('academic_year'), 'trim|required');
         $this->form_validation->set_rules('first_name', translate('first_name'), 'trim|required');
+        $this->form_validation->set_rules('last_name', translate('surname'), 'trim|required');
+        $this->form_validation->set_rules('other_name', translate('other_name'), 'trim');
         $this->form_validation->set_rules('class_id', translate('class'), 'trim|required');
         $this->form_validation->set_rules('section_id', translate('section'), 'trim|required');
-        $this->form_validation->set_rules('register_no', translate('register_no'), 'trim|required|callback_unique_registerid');
+        if (isset($_POST['student_id'])) {
+            $this->form_validation->set_rules('register_no', translate('register_no'), 'trim|required|callback_unique_registerid');
+        }
         // NIN deduplication (only if NIN is provided)
         $this->form_validation->set_rules('nin', 'NIN', 'trim|callback_unique_nin');
         // checking profile photo format
@@ -66,13 +70,8 @@ class Student extends Admin_Controller
                 $this->form_validation->set_rules('user_photo', translate('profile_picture'), 'required');
             }
         }
-        if (isset($validArr['roll'])) {
-            $this->form_validation->set_rules('roll', translate('roll'), 'trim|numeric|required|callback_unique_roll');
-        } else {
+        if (isset($_POST['student_id'])) {
             $this->form_validation->set_rules('roll', translate('roll'), 'trim|numeric|callback_unique_roll');
-        }
-        if (isset($validArr['last_name'])) {
-            $this->form_validation->set_rules('last_name', translate('last_name'), 'trim|required');
         }
         if (isset($validArr['gender'])) {
             $this->form_validation->set_rules('gender', translate('gender'), 'trim|required');
@@ -86,8 +85,8 @@ class Student extends Admin_Controller
         if (isset($validArr['religion'])) {
             $this->form_validation->set_rules('religion', translate('religion'), 'trim|required');
         }
-        if (isset($validArr['caste'])) {
-            $this->form_validation->set_rules('caste', translate('caste'), 'trim|required');
+        if (isset($validArr['city'])) {
+            $this->form_validation->set_rules('lga', translate('lga'), 'trim|required');
         }
         if (isset($validArr['blood_group'])) {
             $this->form_validation->set_rules('blood_group', translate('blood_group'), 'trim|required');
@@ -120,6 +119,10 @@ class Student extends Admin_Controller
 
         if (isset($_POST['student_id'])) {
             $this->form_validation->set_rules('username', translate('username'), 'trim|required|callback_unique_username');
+        } elseif (empty($getBranch['stu_generate'])) {
+            $this->form_validation->set_rules('username', translate('username'), 'trim|required|callback_unique_username');
+            $this->form_validation->set_rules('password', translate('password'), 'trim|required|min_length[4]');
+            $this->form_validation->set_rules('retype_password', translate('retype_password'), 'trim|required|matches[password]');
         }
         
         // custom fields validation rules
@@ -243,8 +246,10 @@ class Student extends Admin_Controller
                     $this->form_validation->set_rules('grd_state', translate('state'), 'trim|required');
                 }
 
-                if (!empty($this->input->post('enable_grd_login'))) {
-                    $this->form_validation->set_rules('grd_email', translate('email'), 'trim|required|valid_email');
+                if (empty($getBranch['grd_generate'])) {
+                    $this->form_validation->set_rules('grd_username', translate('username'), 'trim|required|callback_unique_username');
+                    $this->form_validation->set_rules('grd_password', translate('password'), 'trim|required|min_length[4]');
+                    $this->form_validation->set_rules('grd_retype_password', translate('retype_password'), 'trim|required|matches[grd_password]');
                 }
             } else {
                 $this->form_validation->set_rules('parent_id', translate('guardian'), 'required');
@@ -260,12 +265,16 @@ class Student extends Admin_Controller
                 $this->form_validation->set_rules('stoppage_point_id', translate('pickup_point'), 'required');
             }
 
-            $this->form_validation->set_rules('tuition_amount', translate('tuition') . ' ' . translate('amount'), 'trim|required|numeric|greater_than[0]');
-            $this->form_validation->set_rules('tuition_pay_via', translate('payment_method'), 'trim|required');
+            $this->form_validation->set_rules('tuition_plan', 'Payment Type', 'trim|required|callback_valid_tuition_plan');
+            $this->form_validation->set_rules('tuition_amount', 'Amount Paying Now', 'trim|required|callback_valid_tuition_now');
+            $this->form_validation->set_rules('tuition_pay_via', translate('payment_method'), 'trim|required|callback_valid_enabled_pay_via');
             $this->form_validation->set_rules('tuition_date', translate('date'), 'trim|required');
 
             if ($this->form_validation->run() == true) {
                 $post = $this->input->post();
+                $post['year_id'] = get_session_id();
+                $post['register_no'] = $this->student_model->allocateRegisterNo($branchID);
+                $post['roll'] = $this->student_model->allocateRoll($post['class_id'], $post['section_id'], $branchID, $post['year_id']);
                 //save all student information in the database file
                 $studentData = $this->student_model->save($post, $getBranch);
                 $studentID = $studentData['student_id'];
@@ -274,19 +283,26 @@ class Student extends Admin_Controller
                     'student_id' => $studentID,
                     'class_id' => $post['class_id'],
                     'section_id' => $post['section_id'],
-                    'roll' => (isset($post['roll']) ? $post['roll'] : 0),
+                    'roll' => $post['roll'],
                     'session_id' => $post['year_id'],
                     'branch_id' => $branchID,
                 );
                 $this->db->insert('enroll', $arrayEnroll);
                 $enrollID = $this->db->insert_id();
 
+                $tuition_plan = ($post['tuition_plan'] === 'full') ? 'full' : 'installment';
+                $tuition_amount = (float) $post['tuition_amount'];
+                if ($tuition_plan === 'full' || $tuition_amount >= SCHOOL_FEE_AMOUNT) {
+                    $tuition_plan = 'full';
+                    $tuition_amount = SCHOOL_FEE_AMOUNT;
+                }
                 $this->student_model->recordTuitionPayment(
                     $enrollID,
-                    $post['tuition_amount'],
+                    $tuition_amount,
                     $post['tuition_pay_via'],
                     $post['tuition_date'],
-                    isset($post['tuition_remarks']) ? $post['tuition_remarks'] : ''
+                    isset($post['tuition_remarks']) ? $post['tuition_remarks'] : '',
+                    $tuition_plan
                 );
 
                 // transport data save in the database file 
@@ -702,7 +718,7 @@ class Student extends Admin_Controller
                 $arrayEnroll = array(
                     'class_id' => $this->input->post('class_id'),
                     'section_id' => $this->input->post('section_id'),
-                    'roll' => $this->input->post('roll'),
+                    'roll' => $getStudent['roll'],
                     'session_id' => $this->input->post('year_id'),
                     'branch_id' => $this->data['branch_id'],
                 );
@@ -766,7 +782,7 @@ class Student extends Admin_Controller
         $qr_file = $this->student_model->getStudentQrFile($slip);
         $is_pdf = ($this->input->get('pdf') == '1');
         $this->data['slip'] = $slip;
-        $this->data['tuition'] = $this->student_model->getTuitionPayment($id);
+        $this->data['tuition'] = $this->student_model->getTuitionSummary($id);
         $this->data['is_pdf'] = $is_pdf;
         $this->data['barcode_html'] = html_barcode($slip['barcode_value']);
         $this->data['barcode_value'] = $slip['barcode_value'];
@@ -787,30 +803,88 @@ class Student extends Admin_Controller
         $this->load->view('student/admission_slip', $this->data);
     }
 
+    public function valid_tuition_plan($plan)
+    {
+        if ($plan !== 'full' && $plan !== 'installment') {
+            $this->form_validation->set_message('valid_tuition_plan', 'Select whether the student is paying in full or in installments.');
+            return false;
+        }
+        return true;
+    }
+
+    public function valid_tuition_now($amount)
+    {
+        $plan = $this->input->post('tuition_plan');
+        $fee = SCHOOL_FEE_AMOUNT;
+        if (!is_numeric($amount) || (float) $amount <= 0) {
+            $this->form_validation->set_message('valid_tuition_now', 'Enter the amount being paid now.');
+            return false;
+        }
+        if ($plan === 'full') {
+            return true;
+        }
+        if ((float) $amount > $fee) {
+            $this->form_validation->set_message('valid_tuition_now', 'Amount cannot exceed school fees of ' . currencyFormat($fee) . '.');
+            return false;
+        }
+        if ($plan === 'installment' && (float) $amount >= $fee) {
+            $this->form_validation->set_message('valid_tuition_now', 'For installments, enter an amount less than the full school fees.');
+            return false;
+        }
+        return true;
+    }
+
+    public function valid_enabled_pay_via($id)
+    {
+        $list = $this->app_lib->getEnabledPaymentTypes($this->get_payment_config());
+        if ($id === '' || $id === null || !isset($list[$id])) {
+            $this->form_validation->set_message('valid_enabled_pay_via', 'Choose a payment method from Payment Settings.');
+            return false;
+        }
+        return true;
+    }
+
     public function record_tuition()
     {
         if (!get_permission('collect_fees', 'is_add') && !get_permission('student', 'is_edit')) {
             ajax_access_denied();
         }
         $this->form_validation->set_rules('enroll_id', translate('student'), 'trim|required|numeric');
-        $this->form_validation->set_rules('tuition_amount', translate('tuition') . ' ' . translate('amount'), 'trim|required|numeric|greater_than[0]');
-        $this->form_validation->set_rules('tuition_pay_via', translate('payment_method'), 'trim|required');
+        $this->form_validation->set_rules('tuition_amount', 'Amount Paying Now', 'trim|required|numeric|greater_than[0]');
+        $this->form_validation->set_rules('tuition_pay_via', translate('payment_method'), 'trim|required|callback_valid_enabled_pay_via');
         $this->form_validation->set_rules('tuition_date', translate('date'), 'trim|required');
         if ($this->form_validation->run() == true) {
             $enroll_id = $this->input->post('enroll_id');
-            $existing = $this->student_model->getTuitionPayment($enroll_id);
-            if (!empty($existing)) {
-                $array = array('status' => 'fail', 'error' => array('tuition_amount' => 'Tuition payment is already recorded for this student.'));
+            $summary = $this->student_model->getTuitionSummary($enroll_id);
+            $amount = (float) $this->input->post('tuition_amount');
+            if ($summary['complete']) {
+                $array = array('status' => 'fail', 'error' => array('tuition_amount' => 'School fees have already been paid in full.'));
+            } elseif ($summary['paid'] > 0 && $amount > $summary['balance']) {
+                $array = array('status' => 'fail', 'error' => array('tuition_amount' => 'Amount cannot exceed the remaining balance of ' . currencyFormat($summary['balance']) . '.'));
             } else {
-                $this->student_model->recordTuitionPayment(
-                    $enroll_id,
-                    $this->input->post('tuition_amount'),
-                    $this->input->post('tuition_pay_via'),
-                    $this->input->post('tuition_date'),
-                    $this->input->post('tuition_remarks')
-                );
-                set_alert('success', translate('information_has_been_saved_successfully'));
-                $array = array('status' => 'success', 'url' => base_url('student/profile/' . $enroll_id));
+                $plan = $this->input->post('tuition_plan');
+                if ($summary['paid'] > 0) {
+                    $plan = 'installment';
+                } elseif ($plan === 'full' || $amount >= SCHOOL_FEE_AMOUNT) {
+                    $plan = 'full';
+                    $amount = SCHOOL_FEE_AMOUNT;
+                } else {
+                    $plan = 'installment';
+                }
+                if ($plan === 'installment' && $summary['paid'] <= 0 && $amount >= SCHOOL_FEE_AMOUNT) {
+                    $array = array('status' => 'fail', 'error' => array('tuition_amount' => 'For installments, enter an amount less than the full school fees.'));
+                } else {
+                    $this->student_model->recordTuitionPayment(
+                        $enroll_id,
+                        $amount,
+                        $this->input->post('tuition_pay_via'),
+                        $this->input->post('tuition_date'),
+                        $this->input->post('tuition_remarks'),
+                        $plan
+                    );
+                    set_alert('success', translate('information_has_been_saved_successfully'));
+                    $array = array('status' => 'success', 'url' => base_url('student/profile/' . $enroll_id));
+                }
             }
         } else {
             $array = array('status' => 'fail', 'error' => $this->form_validation->error_array());

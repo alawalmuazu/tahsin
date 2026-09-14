@@ -19,7 +19,7 @@ if (empty($student['previous_details'])) {
 				</div>
 			</div>
 			<div class="col-md-12 col-lg-5 col-xl-5">
-				<h5><?=$student['first_name'] . ' ' . $student['last_name']?></h5>
+				<h5><?=html_escape(student_fullname($student))?></h5>
 				<p><?=translate('student')?> / <?=$student['category_name']?></p>
 				<ul>
 					<li><div class="icon-holder" data-toggle="tooltip" data-original-title="<?=translate('guardian_name')?>"><i class="fas fa-users"></i></div> <?=(!empty($getParent['name']) ? $getParent['name'] : 'N/A'); ?></li>
@@ -145,58 +145,13 @@ if (empty($student['previous_details'])) {
 							<i class="fas fa-school"></i> <?=translate('academic_details')?>
 						</div>
 <?php 
-$roll = $this->student_fields_model->getStatus('roll', $branchID);
 $admission_date = $this->student_fields_model->getStatus('admission_date', $branchID);
-$v = (2 + floatval($roll['status']) + floatval($admission_date['status']));
-$div = floatval(12 / $v);
+$category = $this->student_fields_model->getStatus('category', $branchID);
 ?>
 						<div class="row">
-							<div class="col-md-<?php echo $div ?> mb-sm">
-								<div class="form-group">
-									<label class="control-label"><?=translate('academic_year')?> <span class="required">*</span></label>
-									<?php
-										$arrayYear = array("" => translate('select'));
-										$years = $this->db->get('schoolyear')->result();
-										foreach ($years as $year){
-											$arrayYear[$year->id] = $year->school_year;
-										}
-										echo form_dropdown("year_id", $arrayYear, set_value('year_id', $student['session_id']), "class='form-control' id='academic_year_id'
-										data-plugin-selectTwo data-width='100%' data-minimum-results-for-search='Infinity' ");
-									?>
-									<span class="error"><?=form_error('year_id')?></span>
-								</div>
-							</div>
-
-							<div class="col-md-<?php echo $div ?> mb-sm">
-								<div class="form-group">
-									<label class="control-label"><?=translate('register_no')?> <span class="required">*</span></label>
-									<input type="text" class="form-control" name="register_no" value="<?=set_value('register_no', $student['register_no'])?>" />
-									<span class="error"><?=form_error('register_no')?></span>
-								</div>
-								<div class="col-md-3 mb-sm">
-									<label class="control-label">NIN <small class="text-muted">(National ID)</small></label>
-									<input type="text" class="form-control" name="nin" maxlength="11" pattern="[0-9]{0,11}" placeholder="11-digit NIN" value="<?=html_escape($student['nin'] ?? '')?>"/>
-									<span class="error"></span>
-								</div>
-								<div class="col-md-3 mb-sm">
-									<label class="control-label">Academy Student ID</label>
-									<input type="text" class="form-control" style="background:#f5f5f5" readonly value="<?=html_escape($student['state_student_id'] ?? '')?>"/>
-									<small class="text-muted">Auto-generated <?=SCHOOL_NAME?> ID</small>
-								</div>
-								<div class="col-md-3" style="display:none">
-									<span class="error"><?=form_error('register_no')?></span>
-								</div>
-							</div>
-<?php if ($roll['status']) { ?>
-							<div class="col-md-<?php echo $div ?> mb-sm">
-								<div class="form-group">
-									<label class="control-label"><?=translate('roll')?><?php echo $roll['required'] == 1 ? ' <span class="required">*</span>' : ''; ?></label>
-									<input type="text" class="form-control" name="roll" value="<?=set_value('roll', $student['roll'])?>" />
-									<span class="error"><?=form_error('roll')?></span>
-								</div>
-							</div>
-<?php } if ($admission_date['status']) { ?>
-							<div class="col-md-<?php echo $div ?> mb-sm">
+							<input type="hidden" name="year_id" value="<?=html_escape(set_value('year_id', $student['session_id']))?>">
+<?php if ($admission_date['status']) { ?>
+							<div class="col-md-3 mb-sm">
 								<div class="form-group">
 									<label class="control-label"><?=translate('admission_date')?><?php echo $admission_date['required'] == 1 ? ' <span class="required">*</span>' : ''; ?></label>
 									<div class="input-group">
@@ -208,19 +163,8 @@ $div = floatval(12 / $v);
 								</div>
 							</div>
 <?php } ?>
-						</div>
-<?php
-	$category = $this->student_fields_model->getStatus('category', $branchID);
-	if (is_multi_school()) {
-		$v = (3 + floatval($category['status']));
-	} else {
-		$v = (2 + floatval($category['status']));
-	}
-	$div = floatval(12 / $v);
-?>
-						<div class="row mb-md">
 							<?php if (is_multi_school()): ?>
-							<div class="col-md-<?php echo $div; ?> mb-sm">
+							<div class="col-md-3 mb-sm">
 								<div class="form-group">
 									<label class="control-label"><?=translate('branch')?> <span class="required">*</span></label>
 									<?php
@@ -232,30 +176,30 @@ $div = floatval(12 / $v);
 								</div>
 							</div>
 							<?php endif; ?>
-							<div class="col-md-<?php echo $div; ?> mb-sm">
-								<div class="form-group">
-									<label class="control-label"><?=translate('class')?> <span class="required">*</span></label>
-									<?php
-										$arrayClass = $this->app_lib->getClass($branchID);
-										echo form_dropdown("class_id", $arrayClass, set_value('class_id', $student['class_id']), "class='form-control' id='class_id' 
-										onchange='getSectionByClass(this.value,0)' data-plugin-selectTwo data-width='100%' data-minimum-results-for-search='Infinity' ");
-									?>
-									<span class="error"><?=form_error('class_id')?></span>
-								</div>
-							</div>
-							<div class="col-md-<?php echo $div; ?> mb-sm">
+							<div class="col-md-3 mb-sm">
 								<div class="form-group">
 									<label class="control-label"><?=translate('section')?> <span class="required">*</span></label>
 									<?php
-										$arraySection = $this->app_lib->getSections(set_value('class_id', $student['class_id']));
-										echo form_dropdown("section_id", $arraySection, set_value('section_id', $student['section_id']), "class='form-control' id='section_id'
+										$arraySection = $this->app_lib->getBranchSections($branchID);
+										echo form_dropdown("section_id", $arraySection, set_value('section_id', $student['section_id']), "class='form-control' id='section_id' data-class-target='#class_id'
 										data-plugin-selectTwo data-width='100%' data-minimum-results-for-search='Infinity' ");
 									?>
 									<span class="error"><?=form_error('section_id')?></span>
 								</div>
 							</div>
+							<div class="col-md-3 mb-sm">
+								<div class="form-group">
+									<label class="control-label"><?=translate('class')?> <span class="required">*</span></label>
+									<?php
+										$arrayClass = $this->app_lib->getClassesBySection(set_value('section_id', $student['section_id']));
+										echo form_dropdown("class_id", $arrayClass, set_value('class_id', $student['class_id']), "class='form-control' id='class_id' 
+										data-plugin-selectTwo data-width='100%' data-minimum-results-for-search='Infinity' ");
+									?>
+									<span class="error"><?=form_error('class_id')?></span>
+								</div>
+							</div>
 <?php if ($category['status']) { ?>
-							<div class="col-md-<?php echo $div; ?> mb-sm">
+							<div class="col-md-3 mb-sm">
 								<div class="form-group">
 									<label class="control-label"><?=translate('category')?><?php echo $category['required'] == 1 ? ' <span class="required">*</span>' : ''; ?></label>
 									<?php
@@ -268,19 +212,36 @@ $div = floatval(12 / $v);
 							</div>
 <?php } ?>
 						</div>
+						<div class="row mb-md">
+							<div class="col-md-3 mb-sm">
+								<div class="form-group">
+									<label class="control-label"><?=translate('register_no')?></label>
+									<input type="text" class="form-control" name="register_no" value="<?=set_value('register_no', $student['register_no'])?>" readonly />
+								</div>
+							</div>
+							<div class="col-md-3 mb-sm">
+								<div class="form-group">
+									<label class="control-label"><?=translate('roll')?></label>
+									<input type="text" class="form-control" name="roll" value="<?=set_value('roll', $student['roll'])?>" readonly />
+								</div>
+							</div>
+							<div class="col-md-3 mb-sm">
+								<div class="form-group">
+									<label class="control-label">Academy Student ID</label>
+									<input type="text" class="form-control" readonly value="<?=html_escape($student['state_student_id'] ?? '')?>"/>
+								</div>
+							</div>
+						</div>
 						
 						<!-- student details -->
 						<div class="headers-line mt-md">
 							<i class="fas fa-user-check"></i> <?=translate('student_details')?>
 						</div>
 <?php
-$last_name = $this->student_fields_model->getStatus('last_name', $branchID);
 $gender = $this->student_fields_model->getStatus('gender', $branchID);
-$v = (1 + floatval($last_name['status']) + floatval($gender['status']));
-$div = floatval(12 / $v);
 ?>
 						<div class="row">
-							<div class="col-md-<?php echo $div ?> mb-sm">
+							<div class="col-md-3 mb-sm">
 								<div class="form-group">
 									<label class="control-label"><?=translate('first_name')?> <span class="required">*</span></label>
 									<div class="input-group">
@@ -290,10 +251,9 @@ $div = floatval(12 / $v);
 									<span class="error"><?=form_error('first_name')?></span>
 								</div>
 							</div>
-<?php if ($last_name['status']) { ?>
-							<div class="col-md-<?php echo $div ?> mb-sm">
+							<div class="col-md-3 mb-sm">
 								<div class="form-group">
-									<label class="control-label"><?=translate('last_name')?><?php echo $last_name['required'] == 1 ? ' <span class="required">*</span>' : ''; ?></label>
+									<label class="control-label"><?=translate('surname')?> <span class="required">*</span></label>
 									<div class="input-group">
 										<span class="input-group-addon"><i class="fas fa-user-graduate"></i></span>
 										<input type="text" class="form-control" name="last_name" value="<?=set_value('last_name', $student['last_name'])?>" />
@@ -301,8 +261,18 @@ $div = floatval(12 / $v);
 									<span class="error"><?=form_error('last_name')?></span>
 								</div>
 							</div>
-<?php } if ($gender['status']) { ?>
-							<div class="col-md-<?php echo $div ?> mb-sm">
+							<div class="col-md-3 mb-sm">
+								<div class="form-group">
+									<label class="control-label"><?=translate('other_name')?></label>
+									<div class="input-group">
+										<span class="input-group-addon"><i class="fas fa-user-graduate"></i></span>
+										<input type="text" class="form-control" name="other_name" value="<?=set_value('other_name', $student['other_name'] ?? '')?>" placeholder="Other name(s)" />
+									</div>
+									<span class="error"><?=form_error('other_name')?></span>
+								</div>
+							</div>
+<?php if ($gender['status']) { ?>
+							<div class="col-md-3 mb-sm">
 								<div class="form-group">
 									<label class="control-label"><?=translate('gender')?><?php echo $gender['required'] == 1 ? ' <span class="required">*</span>' : ''; ?></label>
 									<?php
@@ -323,10 +293,17 @@ $div = floatval(12 / $v);
 <?php 
 $blood_group = $this->student_fields_model->getStatus('blood_group', $branchID);
 $birthday = $this->student_fields_model->getStatus('birthday', $branchID);
-$v = floatval($blood_group['status']) + floatval($birthday['status']);
-$div = ($v == 0) ? 12 : floatval(12 / $v);
-	if ($blood_group['status']) {
+$v = 1 + floatval($blood_group['status']) + floatval($birthday['status']);
+$div = floatval(12 / $v);
 ?>
+							<div class="col-md-<?php echo $div ?> mb-sm">
+								<div class="form-group">
+									<label class="control-label">NIN <small class="text-muted">(National Identification Number)</small></label>
+									<input type="text" class="form-control" name="nin" maxlength="11" pattern="[0-9]{0,11}" inputmode="numeric" placeholder="11-digit NIN (optional)" value="<?=html_escape(set_value('nin', $student['nin'] ?? ''))?>"/>
+									<span class="error"><?=form_error('nin')?></span>
+								</div>
+							</div>
+<?php if ($blood_group['status']) { ?>
 							<div class="col-md-<?php echo $div ?> mb-sm">
 								<div class="form-group">
 									<label class="control-label"><?=translate('blood_group')?><?php echo $blood_group['required'] == 1 ? ' <span class="required">*</span>' : ''; ?></label>
@@ -357,8 +334,7 @@ $div = ($v == 0) ? 12 : floatval(12 / $v);
 <?php 
 $mother_tongue = $this->student_fields_model->getStatus('mother_tongue', $branchID);
 $religion = $this->student_fields_model->getStatus('religion', $branchID);
-$caste = $this->student_fields_model->getStatus('caste', $branchID);
-$v = floatval($mother_tongue['status']) + floatval($religion['status']) + floatval($caste['status']);
+$v = floatval($mother_tongue['status']) + floatval($religion['status']);
 $div = ($v == 0) ? 12 : floatval(12 / $v);
 	if ($mother_tongue['status']) {
 ?>
@@ -373,16 +349,10 @@ $div = ($v == 0) ? 12 : floatval(12 / $v);
 							<div class="col-md-<?php echo $div ?> mb-sm">
 								<div class="form-group">
 									<label class="control-label"><?=translate('religion')?><?php echo $religion['required'] == 1 ? ' <span class="required">*</span>' : ''; ?></label>
-									<input type="text" class="form-control" name="religion" value="<?=set_value('religion', $student['religion'])?>" />
+									<?php
+										echo form_dropdown("religion", nigeria_religions(), set_value('religion', $student['religion']), "class='form-control' data-plugin-selectTwo data-width='100%' data-minimum-results-for-search='Infinity'");
+									?>
 									<span class="error"><?=form_error('religion')?></span>
-								</div>
-							</div>
-<?php } if ($caste['status']) { ?>
-							<div class="col-md-<?php echo $div ?> mb-sm">
-								<div class="form-group">
-									<label class="control-label"><?=translate('caste')?><?php echo $caste['required'] == 1 ? ' <span class="required">*</span>' : ''; ?></label>
-									<input type="text" class="form-control" name="caste" value="<?=set_value('caste', $student['caste'])?>" />
-									<span class="error"><?=form_error('caste')?></span>
 								</div>
 							</div>
 <?php } ?>
@@ -420,20 +390,25 @@ if ($student_mobile_no['status']) {
 									<span class="error"><?=form_error('email')?></span>
 								</div>
 							</div>
-<?php } if ($city['status']) { ?>
-							<div class="col-md-<?php echo $div ?> mb-sm">
-								<div class="form-group">
-									<label class="control-label"><?=translate('city')?><?php echo $city['required'] == 1 ? ' <span class="required">*</span>' : ''; ?></label>
-									<input type="text" class="form-control" name="city" value="<?=set_value('city', $student['city'])?>" />
-									<span class="error"><?=form_error('city')?></span>
-								</div>
-							</div>
 <?php } if ($state['status']) { ?>
 							<div class="col-md-<?php echo $div ?> mb-sm">
 								<div class="form-group">
 									<label class="control-label"><?=translate('state')?><?php echo $state['required'] == 1 ? ' <span class="required">*</span>' : ''; ?></label>
-									<input type="text" class="form-control" name="state" value="<?=set_value('state', $student['state'])?>" />
+									<?php
+										echo form_dropdown("state", nigeria_states(), set_value('state', $student['state']), "class='form-control' id='state' data-lga-target='#lga' data-plugin-selectTwo data-width='100%'");
+									?>
 									<span class="error"><?=form_error('state')?></span>
+								</div>
+							</div>
+<?php } if ($city['status']) { ?>
+							<div class="col-md-<?php echo $div ?> mb-sm">
+								<div class="form-group">
+									<label class="control-label"><?=translate('lga')?><?php echo $city['required'] == 1 ? ' <span class="required">*</span>' : ''; ?></label>
+									<?php
+										$profile_lga = set_value('lga', $student['lga'] ?? $student['city'] ?? '');
+										echo form_dropdown("lga", nigeria_lgas_for_state(set_value('state', $student['state'])), $profile_lga, "class='form-control' id='lga' data-plugin-selectTwo data-width='100%'");
+									?>
+									<span class="error"><?=form_error('lga')?></span>
 								</div>
 							</div>
 <?php } ?>
@@ -676,28 +651,82 @@ if ($previous_school_details['status']) {
 				</div>
 				<div id="fees" class="accordion-body collapse">
 					<div class="panel-body">
-						<?php $tuitionPaid = $this->student_model->getTuitionPayment($student['enrollid']); ?>
-						<?php if (empty($tuitionPaid) && (get_permission('collect_fees', 'is_add') || get_permission('student', 'is_edit'))): ?>
-						<div class="alert alert-warning">
-							<strong><?=translate('tuition')?> <?=translate('payment')?></strong> has not been recorded for this student.
+						<?php $tuition = $this->student_model->getTuitionSummary($student['enrollid']); ?>
+						<?php $canRecordTuition = (get_permission('collect_fees', 'is_add') || get_permission('student', 'is_edit')); ?>
+						<?php if ($tuition['paid'] > 0): ?>
+						<div class="alert <?=$tuition['complete'] ? 'alert-success' : 'alert-info'?>">
+							School Fees: <strong><?=currencyFormat($tuition['fee'])?></strong>
+							&nbsp;|&nbsp; Payment Type: <strong><?=html_escape($tuition['plan_label'] ?: '—')?></strong>
+							&nbsp;|&nbsp; Paid: <strong><?=currencyFormat($tuition['paid'])?></strong>
+							&nbsp;|&nbsp; Balance: <strong><?=currencyFormat($tuition['balance'])?></strong>
 						</div>
+						<?php if (count($tuition['payments']) > 0): ?>
+						<div class="table-responsive mb-md">
+							<table class="table table-bordered table-condensed table-hover mb-none">
+								<thead>
+									<tr class="text-dark">
+										<th>#</th>
+										<th><?=translate('date')?></th>
+										<th><?=translate('amount')?></th>
+										<th><?=translate('payment_method')?></th>
+										<th><?=translate('remarks')?></th>
+									</tr>
+								</thead>
+								<tbody>
+									<?php foreach ($tuition['payments'] as $i => $pay): ?>
+									<tr>
+										<td><?=($i + 1)?></td>
+										<td><?=html_escape(_d($pay['date']))?></td>
+										<td><?=currencyFormat($pay['amount'])?></td>
+										<td><?=html_escape($pay['pay_via_name'])?></td>
+										<td><?=html_escape($pay['remarks'])?></td>
+									</tr>
+									<?php endforeach; ?>
+								</tbody>
+							</table>
+						</div>
+						<?php endif; ?>
+						<?php elseif ($canRecordTuition): ?>
+						<div class="alert alert-warning">
+							<strong><?=translate('tuition')?> <?=translate('payment')?></strong> has not been recorded for this student. School fees: <strong><?=currencyFormat($tuition['fee'])?></strong>
+						</div>
+						<?php endif; ?>
+						<?php if ($canRecordTuition && !$tuition['complete']): ?>
 						<?php echo form_open('student/record_tuition', array('class' => 'form-horizontal frm-submit mb-lg')); ?>
 							<input type="hidden" name="enroll_id" value="<?=$student['enrollid']?>">
+							<?php if ($tuition['paid'] > 0): ?>
+							<input type="hidden" name="tuition_plan" value="installment">
+							<?php else: ?>
 							<div class="form-group">
-								<label class="col-md-3 control-label"><?=translate('amount')?> <span class="required">*</span></label>
+								<label class="col-md-3 control-label">Payment Type <span class="required">*</span></label>
 								<div class="col-md-6">
-									<input type="number" step="0.01" min="0" class="form-control" name="tuition_amount" placeholder="0.00">
+									<?php
+										$plan_list = array(
+											'full' => 'Pay in full',
+											'installment' => 'Pay in installments',
+										);
+										echo form_dropdown("tuition_plan", $plan_list, 'full', "class='form-control' id='tuition_plan' data-plugin-selectTwo data-width='100%' data-minimum-results-for-search='Infinity'");
+									?>
 									<span class="error"></span>
+								</div>
+							</div>
+							<?php endif; ?>
+							<div class="form-group">
+								<label class="col-md-3 control-label">Amount Paying Now <span class="required">*</span></label>
+								<div class="col-md-6">
+									<input type="number" step="0.01" min="0" max="<?=$tuition['paid'] > 0 ? $tuition['balance'] : $tuition['fee']?>" class="form-control" name="tuition_amount" id="tuition_amount" data-school-fee="<?=$tuition['fee']?>" data-already-paid="<?=$tuition['paid']?>" value="<?=$tuition['paid'] > 0 ? '' : $tuition['fee']?>" placeholder="0.00">
+									<span class="error"></span>
+									<small class="text-muted" id="tuition_balance_hint">Balance: <?=currencyFormat($tuition['balance'])?></small>
 								</div>
 							</div>
 							<div class="form-group">
 								<label class="col-md-3 control-label"><?=translate('payment_method')?> <span class="required">*</span></label>
 								<div class="col-md-6">
 									<?php
-										$payvia_list = $this->app_lib->getSelectList('payment_types');
-										echo form_dropdown("tuition_pay_via", $payvia_list, DEFAULT_PAY_VIA, "class='form-control' data-plugin-selectTwo data-width='100%' data-minimum-results-for-search='Infinity'");
+										echo payment_method_dropdown("tuition_pay_via", DEFAULT_PAY_VIA, "class='form-control' data-plugin-selectTwo data-width='100%' data-minimum-results-for-search='Infinity'");
 									?>
 									<span class="error"></span>
+									<small class="help-block"><?=collection_account_hint()?></small>
 								</div>
 							</div>
 							<div class="form-group">
@@ -721,12 +750,6 @@ if ($previous_school_details['status']) {
 								</div>
 							</div>
 						<?php echo form_close(); ?>
-						<?php elseif (!empty($tuitionPaid)): ?>
-						<div class="alert alert-success">
-							<?=translate('tuition')?>: <strong><?=currencyFormat($tuitionPaid['amount'])?></strong>
-							via <strong><?=html_escape($tuitionPaid['pay_via_name'])?></strong>
-							on <?=html_escape(_d($tuitionPaid['date']))?>
-						</div>
 						<?php endif; ?>
 						<div class="table-responsive mt-md mb-md">
 							<table class="table table-bordered table-condensed table-hover mb-none tbr-top">

@@ -164,10 +164,12 @@ class Accounting extends Admin_Controller
             }
             $this->form_validation->set_rules('voucher_head', translate('name'), array('trim', 'required', array('unique_voucher_head',
             array($this->accounting_model, 'unique_voucher_head'))));
+            $this->form_validation->set_rules('type', translate('type'), 'trim|required');
             if ($this->form_validation->run() !== false) {
                 $voucher_head_id = $this->input->post('voucher_head_id');
                 $arrayHead = array(
                     'name' => $this->input->post('voucher_head'),
+                    'type' => $this->input->post('type'),
                 );
                 $this->db->where('id', $voucher_head_id);
                 $this->db->update('voucher_head', $arrayHead);
