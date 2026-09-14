@@ -113,6 +113,7 @@ $route['health'] = 'health/index';
 $route['authentication'] = 'authentication/index';
 $route['home'] = 'home/index';
 $route['admission'] = 'home/admission';
+$route['programmes'] = 'home/programmes';
 $route['exam_results'] = 'home/exam_results';
 $route['admit_card'] = 'home/admit_card';
 $route['certificates'] = 'home/certificates';

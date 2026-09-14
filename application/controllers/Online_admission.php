@@ -270,11 +270,6 @@ class Online_admission extends Admin_Controller
                     $this->form_validation->set_rules('retype_password', translate('retype_password'), 'trim|required|matches[password]');
                 }
             }
-            if ($getBranch['grd_generate'] == 0 && $guardian == true) {
-                $this->form_validation->set_rules('grd_username', translate('username'), 'trim|required|callback_get_valid_guardian_username');
-                $this->form_validation->set_rules('grd_password', translate('password'), 'trim|required');
-                $this->form_validation->set_rules('grd_retype_password', translate('retype_password'), 'trim|required|matches[grd_password]');
-            }
 
             // custom fields validation rules
             $class_slug = "student";

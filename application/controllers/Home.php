@@ -33,33 +33,42 @@ class Home extends Frontend_Controller
     {
         $branchID = $this->home_model->getDefaultBranch();
         $this->data['branchID'] = $branchID;
-        $this->data['sliders'] = $this->home_model->getCmsHome('slider', $branchID, 1, false);
-        $this->data['features'] = $this->home_model->getCmsHome('features', $branchID, 1, false);
-        $this->data['wellcome'] = $this->home_model->getCmsHome('wellcome', $branchID);
-        $this->data['teachers'] = $this->home_model->getCmsHome('teachers', $branchID);
-        $this->data['testimonial'] = $this->home_model->getCmsHome('testimonial', $branchID);
-        $this->data['services'] = $this->home_model->getCmsHome('services', $branchID);
-        $this->data['cta_box'] = $this->home_model->getCmsHome('cta', $branchID);
-        $this->data['statistics'] = $this->home_model->getCmsHome('statistics', $branchID);
         $page_data = $this->home_model->get('front_cms_home_seo', array('branch_id' => $branchID), true);
         if (empty($page_data)) {
             $page_data = array(
                 'page_title'       => 'Home',
-                'meta_keyword'     => 'Tahsin Academy Education',
-                'meta_description' => 'Tahsin Academy — School Management Platform',
+                'meta_keyword'     => 'Tahsin Academy, Islamic school Nigeria, Tahfeez, Quran memorization, boarding school',
+                'meta_description' => 'Tahsin Academy — Excellence in Deen and Duniya. Boarding, Day and Weekend programmes combining Quranic memorization with a rigorous academic path.',
             );
         }
         $this->data['page_data'] = $page_data;
-        $this->data['main_contents'] = $this->load->view('home/index', $this->data, true);
-        $this->load->view('home/layout/index', $this->data);
+        $this->data['online_open'] = public_online_admission_enabled();
+        $this->load->view('landing/page', $this->data);
     }
 
     public function about()
     {
         $branchID = $this->home_model->getDefaultBranch();
         $this->data['branchID'] = $branchID;
-        $this->data['page_data'] = $this->home_model->get('front_cms_about', array('branch_id' => $branchID), true);
+        $this->data['page_data'] = array(
+            'page_title' => 'About',
+            'meta_keyword' => 'Tahsin Academy, about, Islamic school, Tahfeez',
+            'meta_description' => 'Tahsin Academy holds deen and duniya together — Quranic memorization, character, and a rigorous academic path. Boarding, day and weekend.',
+        );
         $this->data['main_contents'] = $this->load->view('home/about', $this->data, true);
+        $this->load->view('home/layout/index', $this->data);
+    }
+
+    public function programmes()
+    {
+        $this->data['branchID'] = $this->home_model->getDefaultBranch();
+        $this->data['page_data'] = array(
+            'page_title' => 'Programmes',
+            'meta_keyword' => 'Tahsin Academy programmes, boarding, day school, weekend tahfeez',
+            'meta_description' => 'Tahsin Academy programmes: Boarding Quran House, Day School, and Weekend Tahfeez — with or without technical skills.',
+        );
+        $this->data['online_open'] = public_online_admission_enabled();
+        $this->data['main_contents'] = $this->load->view('home/programmes', $this->data, true);
         $this->load->view('home/layout/index', $this->data);
     }
 
@@ -155,18 +164,13 @@ class Home extends Frontend_Controller
 
     public function teachers()
     {
-        $branchID = $this->home_model->getDefaultBranch();
-        $this->data['branchID'] = $branchID;
-        $this->data['page_data'] = $this->home_model->get('front_cms_teachers', array('branch_id' => $branchID), true);
-        $this->data['departments'] = $this->home_model->get_teacher_departments($branchID);
-        $this->data['doctor_list'] = $this->home_model->get_teacher_list("", $branchID);
-        $this->data['main_contents'] = $this->load->view('home/teachers', $this->data, true);
-        $this->load->view('home/layout/index', $this->data);
+        redirect(base_url());
     }
 
     public function admission()
     {
         $branchID = $this->home_model->getDefaultBranch();
+        $onlineOpen = public_online_admission_enabled();
         $captcha = $this->data['cms_setting']['captcha_status'];
         if ($captcha == 'enable') {
             $this->load->library('recaptcha', array('site_key' => $this->data['cms_setting']['recaptcha_site_key'], 'secret_key' => $this->data['cms_setting']['recaptcha_secret_key']));
@@ -176,59 +180,46 @@ class Home extends Frontend_Controller
             );
         }
         if ($_POST) {
-            $this->form_validation->set_rules("first_name", "First Name", "trim|required");
-            $this->form_validation->set_rules("class_id", "Class", "trim|required");
-            $this->form_validation->set_rules("guardian_photo", "Guardian Photo", "callback_handle_upload[guardian_photo]");
-            $this->form_validation->set_rules("student_photo", "Student Photo", "callback_handle_upload[student_photo]");
-
-            $validationArr = $this->student_fields_model->getOnlineStatusArr($branchID);
-            unset($validationArr[0]);
-            foreach ($validationArr as $key => $value) {
-                if ($value->status && $value->required) {
-                    if ($value->prefix == 'student_email' || $value->prefix == 'guardian_email') {
-                        $this->form_validation->set_rules("$value->prefix", "Email", 'trim|required|valid_email');
-                    } else if($value->prefix == 'student_mobile_no' || $value->prefix == 'guardian_mobile_no') {
-                        $this->form_validation->set_rules("$value->prefix", "Mobile No", 'trim|required|numeric');
-                    } else if($value->prefix == 'student_photo' || $value->prefix == 'guardian_photo' || $value->prefix == 'upload_documents') {
-                        if (isset($_FILES["$value->prefix"]) && empty($_FILES["$value->prefix"]['name'])) {
-                            $this->form_validation->set_rules("$value->prefix", ucwords(str_replace('_', ' ', $value->prefix)), "required" );
-                        }
-                    } else if($value->prefix == 'previous_school_details') {
-                        $this->form_validation->set_rules("school_name", "School Name", "trim|required" );
-                        $this->form_validation->set_rules("qualification", "Qualification", "trim|required" );
-                    } else {
-                        $this->form_validation->set_rules($value->prefix, ucwords(str_replace('_', ' ', $value->prefix)), 'trim|required');
-                    }
-                }  
+            if (!$onlineOpen) {
+                echo json_encode(array(
+                    'status' => 'fail',
+                    'error' => array('first_name' => 'Public admission is closed. Please visit the academy to complete admission.'),
+                ));
+                exit();
             }
 
+            $this->form_validation->set_rules('section_id', 'Section', 'trim|required');
+            $this->form_validation->set_rules('class_id', 'Class', 'trim|required');
+            $this->form_validation->set_rules('category_id', 'Category', 'trim|required');
+            $this->form_validation->set_rules('first_name', 'First Name', 'trim|required');
+            $this->form_validation->set_rules('last_name', 'Surname', 'trim|required');
+            $this->form_validation->set_rules('gender', 'Gender', 'trim|required');
+            $this->form_validation->set_rules('birthday', 'Birthday', 'trim|required');
+            $this->form_validation->set_rules('religion', 'Religion', 'trim|required');
+            $this->form_validation->set_rules('state', 'State', 'trim|required');
+            $this->form_validation->set_rules('lga', 'LGA', 'trim|required');
+            $this->form_validation->set_rules('current_address', 'Address', 'trim|required');
+            $this->form_validation->set_rules('student_photo', 'Student Photo', 'callback_handle_upload[student_photo]');
+            $this->form_validation->set_rules('grd_name', 'Guardian Name', 'trim|required');
+            $this->form_validation->set_rules('grd_relation', 'Relation', 'trim|required');
+            $this->form_validation->set_rules('father_name', 'Father Name', 'trim|required');
+            $this->form_validation->set_rules('mother_name', 'Mother Name', 'trim|required');
+            $this->form_validation->set_rules('grd_occupation', 'Occupation', 'trim|required');
+            $this->form_validation->set_rules('grd_mobileno', 'Guardian Mobile', 'trim|required');
+            $this->form_validation->set_rules('grd_email', 'Guardian Email', 'trim|required|valid_email');
+            $this->form_validation->set_rules('grd_state', 'Guardian State', 'trim|required');
+            $this->form_validation->set_rules('grd_lga', 'Guardian LGA', 'trim|required');
+            $this->form_validation->set_rules('grd_address', 'Guardian Address', 'trim|required');
             if ($captcha == 'enable') {
                 $this->form_validation->set_rules('g-recaptcha-response', 'Captcha', 'trim|required');
             }
-            // custom fields validation rules
-            $customFields = getOnlineCustomFields('student', $branchID);
-            foreach ($customFields as $fields_key => $fields_value) {
-                if ($fields_value['required']) {
-                    $fieldsID = $fields_value['id'];
-                    $fieldLabel = $fields_value['field_label'];
-                    $this->form_validation->set_rules("custom_fields[student][" . $fieldsID . "]", $fieldLabel, 'trim|required');
-                }
-            }
 
             if ($this->form_validation->run() == true) {
-                $admissionDate = !empty($_POST['admission_date']) ? date("Y-m-d", strtotime($this->input->post('admission_date'))) : "";
-                $birthday = !empty($_POST['birthday']) ? date("Y-m-d", strtotime($this->input->post('birthday'))) : "";
-                
-                $previous_details = $this->input->post('school_name');
-                if (!empty($previous_details)) {
-                    $previous_details = array(
-                        'school_name' => $this->input->post('school_name'),
-                        'qualification' => $this->input->post('qualification'),
-                        'remarks' => $this->input->post('previous_remarks'),
-                    );
-                    $previous_details =  json_encode($previous_details);
-                } else {
-                    $previous_details = "";
+                $birthday = !empty($_POST['birthday']) ? date('Y-m-d', strtotime($this->input->post('birthday'))) : '';
+                $otherName = trim((string) $this->input->post('other_name'));
+                $lastName = trim((string) $this->input->post('last_name'));
+                if ($otherName !== '') {
+                    $lastName = trim($lastName . ' ' . $otherName);
                 }
 
                 do {
@@ -239,89 +230,68 @@ class Home extends Frontend_Controller
                 $arrayData = array(
                     'reference_no' => $reference_no,
                     'first_name' => $this->input->post('first_name'),
-                    'last_name' => $this->input->post('last_name'),
+                    'last_name' => $lastName,
                     'gender' => $this->input->post('gender'),
                     'birthday' => $birthday,
-                    'admission_date' => $admissionDate,
+                    'admission_date' => date('Y-m-d'),
                     'religion' => $this->input->post('religion'),
-                    'caste' => $this->input->post('caste'),
-                    'blood_group' => $this->input->post('blood_group'),
-                    'mobile_no' => $this->input->post('student_mobile_no'),
-                    'mother_tongue' => $this->input->post('mother_tongue'),
-                    'present_address' => $this->input->post('present_address'),
-                    'permanent_address' => $this->input->post('permanent_address'),
-                    'city' => $this->input->post('city'),
+                    'caste' => '',
+                    'blood_group' => '',
+                    'mobile_no' => $this->input->post('mobileno'),
+                    'mother_tongue' => '',
+                    'present_address' => $this->input->post('current_address'),
+                    'permanent_address' => $this->input->post('current_address'),
+                    'city' => $this->input->post('lga'),
                     'state' => $this->input->post('state'),
-                    'category_id' => $this->input->post('category') ? $this->input->post('category') : $this->input->post('category_id'),
-                    'email' => $this->input->post('student_email'),
+                    'category_id' => $this->input->post('category_id'),
+                    'email' => $this->input->post('email'),
                     'student_photo' => $this->uploadImage('images/student', 'student_photo'),
-                    'previous_school_details' => $previous_details,
-                    'guardian_name' => $this->input->post('guardian_name'),
-                    'guardian_relation' => $this->input->post('guardian_relation'),
+                    'previous_school_details' => '',
+                    'guardian_name' => $this->input->post('grd_name'),
+                    'guardian_relation' => $this->input->post('grd_relation'),
                     'father_name' => $this->input->post('father_name'),
                     'mother_name' => $this->input->post('mother_name'),
-                    'grd_occupation' => $this->input->post('guardian_occupation'),
-                    'grd_income' => $this->input->post('guardian_income'),
-                    'grd_education' => $this->input->post('guardian_education'),
-                    'grd_email' => $this->input->post('guardian_email'),
-                    'grd_mobile_no' => $this->input->post('guardian_mobile_no'),
-                    'grd_address' => $this->input->post('guardian_address'),
-                    'grd_city' => $this->input->post('guardian_city'),
-                    'grd_state' => $this->input->post('guardian_state'),
-                    'grd_photo' => $this->uploadImage('images/parent', 'guardian_photo'),
+                    'grd_occupation' => $this->input->post('grd_occupation'),
+                    'grd_income' => '',
+                    'grd_education' => '',
+                    'grd_email' => $this->input->post('grd_email'),
+                    'grd_mobile_no' => $this->input->post('grd_mobileno'),
+                    'grd_address' => $this->input->post('grd_address'),
+                    'grd_city' => $this->input->post('grd_lga'),
+                    'grd_state' => $this->input->post('grd_state'),
+                    'grd_photo' => '',
                     'status' => 1,
                     'branch_id' => $branchID,
                     'class_id' => $this->input->post('class_id'),
-                    'section_id' => $this->input->post('section'),
-                    'doc' => $this->uploadImage('online_ad_documents', 'upload_documents'),
-                    'apply_date' => date("Y-m-d H:i:s"),
-                    'created_date' => date("Y-m-d H:i:s"),
+                    'section_id' => $this->input->post('section_id'),
+                    'doc' => '',
+                    'apply_date' => date('Y-m-d H:i:s'),
+                    'created_date' => date('Y-m-d H:i:s'),
                 );
                 $this->db->insert('online_admission', $arrayData);
-                $studentID = $this->db->insert_id();
 
-                // handle custom fields data
-                $class_slug = 'student';
-                $customField = $this->input->post("custom_fields[$class_slug]");
-                if (!empty($customField)) {
-                    saveCustomFieldsOnline($customField, $studentID);
-                }
-                // check out admission payment status
-                $this->load->model('admissionpayment_model');
-                $getStudent = $this->admissionpayment_model->getStudentDetails($reference_no);
-                if ($getStudent['fee_elements']['status'] == 0) {
-                    $url = base_url("home/admission_confirmation/" . $reference_no);
-                    if (empty($arrayData['section_id'])) {
-                       $section_name = "N/A";
-                    } else {
-                       $section_name = get_type_name_by_id('section', $arrayData['section_id']);
-                    }
-                    // applicant email send 
-                    $arrayData['institute_name'] = get_type_name_by_id('branch', $arrayData['branch_id']);
-                    $arrayData['reference_no'] = $reference_no;
-                    $arrayData['student_name'] = $arrayData['first_name'] . " " . $arrayData['last_name'];
-                    $arrayData['class_name'] = get_type_name_by_id('class', $arrayData['class_id']);
-                    $arrayData['section_name'] = $section_name;
-                    $arrayData['payment_url'] = base_url("admissionpayment/index/" . $reference_no);
-                    $arrayData['admission_copy_url'] = $url;
-                    $arrayData['paid_amount'] = 0;
-                    $this->email_model->onlineAdmission($arrayData);
-                    
-                    $success = "Thank you for submitting the online registration form. Please you can print this copy.";
-                    $this->session->set_flashdata('success', $success);
-                } else {
-                    $url = base_url("admissionpayment/index/" . $reference_no);
-                }
+                $url = base_url('home/admission_confirmation/' . $reference_no);
+                $section_name = empty($arrayData['section_id']) ? 'N/A' : get_type_name_by_id('section', $arrayData['section_id']);
+                $arrayData['institute_name'] = get_type_name_by_id('branch', $arrayData['branch_id']);
+                $arrayData['reference_no'] = $reference_no;
+                $arrayData['student_name'] = $arrayData['first_name'] . ' ' . $arrayData['last_name'];
+                $arrayData['class_name'] = get_type_name_by_id('class', $arrayData['class_id']);
+                $arrayData['section_name'] = $section_name;
+                $arrayData['payment_url'] = base_url('admissionpayment/index/' . $reference_no);
+                $arrayData['admission_copy_url'] = $url;
+                $arrayData['paid_amount'] = 0;
+                $this->email_model->onlineAdmission($arrayData);
+                $this->session->set_flashdata('success', 'Thank you. Your application has been received. Keep your reference number for follow-up.');
                 $array = array('status' => 'success', 'url' => $url);
             } else {
-                $error = $this->form_validation->error_array();
-                $array = array('status' => 'fail', 'error' => $error);
+                $array = array('status' => 'fail', 'error' => $this->form_validation->error_array());
             }
             echo json_encode($array);
             exit();
         }
 
         $this->data['branchID'] = $branchID;
+        $this->data['online_open'] = $onlineOpen;
         $page_data = $this->home_model->get('front_cms_admission', array('branch_id' => $branchID), true);
         if (empty($page_data)) {
             $page_data = $this->home_model->get('front_cms_admission', array(), true);
@@ -332,17 +302,32 @@ class Home extends Frontend_Controller
         $page_data = array_merge(array(
             'page_title' => 'Admission',
             'title' => 'Apply for Admission',
-            'description' => '<p>Complete the Tahsin Academy admission form below.</p>',
+            'description' => '',
             'banner_image' => '',
             'application_form_file' => '',
             'meta_keyword' => 'Tahsin Academy admission',
-            'meta_description' => 'Apply for admission to Tahsin Academy.',
+            'meta_description' => $onlineOpen
+                ? 'Apply online to Tahsin Academy — boarding, day or weekend, with or without technical skills.'
+                : 'Admission to Tahsin Academy is completed at the academy. Visit us to begin.',
             'terms_conditions_title' => '',
             'terms_conditions_description' => '',
         ), $page_data);
+        foreach (array('page_title', 'meta_keyword', 'meta_description', 'title') as $metaKey) {
+            $val = (string) ($page_data[$metaKey] ?? '');
+            if ($val === '' || stripos($val, 'smartschool') !== false || stripos($val, 'lorem') !== false) {
+                if ($metaKey === 'page_title' || $metaKey === 'title') {
+                    $page_data[$metaKey] = 'Admission';
+                } elseif ($metaKey === 'meta_keyword') {
+                    $page_data[$metaKey] = 'Tahsin Academy admission';
+                } else {
+                    $page_data[$metaKey] = $onlineOpen
+                        ? 'Apply online to Tahsin Academy — boarding, day or weekend, with or without technical skills.'
+                        : 'Admission to Tahsin Academy is completed at the academy. Visit us to begin.';
+                }
+            }
+        }
         $this->data['page_data'] = $page_data;
         $this->data['school_name'] = $this->brandName(get_type_name_by_id('branch', $branchID, 'school_name'));
-        $this->data['admission_types'] = $this->home_model->getAdmissionTypes($branchID);
         $this->data['main_contents'] = $this->load->view('home/admission', $this->data, true);
         $this->load->view('home/layout/index', $this->data);
     }
@@ -490,7 +475,18 @@ class Home extends Frontend_Controller
             }
         }
         $this->data['branchID'] = $branchID;
-        $this->data['page_data'] = $this->home_model->get('front_cms_contact', array('branch_id' => $branchID), true);
+        $cmsPage = $this->home_model->get('front_cms_contact', array('branch_id' => $branchID), true);
+        $this->data['page_data'] = array_merge(array(
+            'page_title' => 'Contact',
+            'meta_keyword' => 'Tahsin Academy contact',
+            'meta_description' => 'Write to Tahsin Academy about programmes, boarding or admission.',
+            'submit_text' => 'Send message',
+            'map_iframe' => '',
+            'address' => '',
+            'phone' => '',
+            'email' => '',
+        ), is_array($cmsPage) ? $cmsPage : array());
+        $this->data['page_data']['page_title'] = 'Contact';
         $this->data['main_contents'] = $this->load->view('home/contact', $this->data, true);
         $this->load->view('home/layout/index', $this->data);
     }
@@ -559,7 +555,17 @@ class Home extends Frontend_Controller
     {
         $branchID = $this->home_model->getDefaultBranch();
         $this->data['branchID'] = $branchID;
-        $this->data['page_data'] = $this->home_model->get('front_cms_exam_results', array('branch_id' => $branchID), true);
+        $cmsPage = $this->home_model->get('front_cms_exam_results', array('branch_id' => $branchID), true);
+        $this->data['page_data'] = array_merge(array(
+            'page_title' => 'Results',
+            'meta_keyword' => 'Tahsin Academy results',
+            'meta_description' => 'Check student exam results at Tahsin Academy.',
+            'grade_scale' => 1,
+            'attendance' => 1,
+            'banner_image' => '',
+            'description' => '',
+        ), is_array($cmsPage) ? $cmsPage : array());
+        $this->data['page_data']['page_title'] = 'Results';
         $this->data['main_contents'] = $this->load->view('home/exam_results', $this->data, true);
         $this->load->view('home/layout/index', $this->data);
     }

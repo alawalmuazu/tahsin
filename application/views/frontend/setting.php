@@ -66,7 +66,7 @@
 						</div>
 					</div>
 					<div class="form-group">
-						<label  class="col-md-3 control-label"><?php echo translate('online_admission'); ?> <span class="required">*</span></label>
+						<label  class="col-md-3 control-label">Public online admission <span class="required">*</span></label>
 						<div class="col-md-6">
 							<div class="radio-custom radio-success radio-inline mb-xs">
 								<input type="radio" value="1" <?=($setting['online_admission'] == 1 ? 'checked' : '')?> name="online_admission" id="astatus_1">
@@ -77,6 +77,7 @@
 								<input type="radio" value="0" <?=($setting['online_admission'] == 0 ? 'checked' : '')?> name="online_admission" id="astatus_2">
 								<label for="astatus_2"><?=translate('disabled')?></label>
 							</div>
+							<span class="help-block">Off = apply at the academy (staff use Create Admission). On = the website shows the application form.</span>
 						</div>
 					</div>
 					<div class="form-group">

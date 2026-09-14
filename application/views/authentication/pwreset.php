@@ -14,7 +14,7 @@
     <script src="<?php echo base_url('assets/vendor/jquery/jquery.js'); ?>"></script>
     <link rel="stylesheet" href="<?php echo base_url('assets/vendor/sweetalert/sweetalert-custom.css'); ?>">
     <script src="<?php echo base_url('assets/vendor/sweetalert/sweetalert.min.js'); ?>"></script>
-    <link rel="stylesheet" href="<?php echo base_url('assets/css/auth.css?v=' . APP_VERSION); ?>">
+    <link rel="stylesheet" href="<?php echo base_url('assets/css/auth.css?v=' . (is_file(FCPATH . 'assets/css/auth.css') ? filemtime(FCPATH . 'assets/css/auth.css') : APP_VERSION)); ?>">
 
     <script>var base_url = '<?php echo base_url() ?>';</script>
 </head>
@@ -104,6 +104,10 @@
             </button>
 
         </form>
+
+            <a href="<?php echo base_url('authentication'); ?>" class="back-link home-link">
+                <i class="fas fa-arrow-left"></i> <?php echo translate('back_to_login'); ?>
+            </a>
 
         <div class="form-footer">
             <p><?php echo $global_config['footer_text']; ?></p>

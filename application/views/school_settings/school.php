@@ -29,18 +29,28 @@
                                     <div class="col-md-6">
                                         <input type="email" class="form-control" name="email" value="<?=$school['email']?>" />
                                         <span class="error"></span>
+                                        <span class="help-block">Public contact email (website and footer).</span>
                                     </div>
                                 </div>
                                 <div class="form-group">
                                     <label class="col-md-3 control-label"><?=translate('mobile_no')?></label>
                                     <div class="col-md-6">
                                         <input type="text" class="form-control" name="mobileno" value="<?=$school['mobileno']?>" />
+                                        <span class="help-block">Public phone number on the website.</span>
                                     </div>
                                 </div>
                                 <div class="form-group">
                                     <label  class="col-md-3 control-label"><?=translate('address')?></label>
                                     <div class="col-md-6">
                                         <textarea type="text" rows="3" class="form-control" name="address"><?=$school['address']?></textarea>
+                                        <span class="help-block">Shown on the public website (home, contact, admission and footer).</span>
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <label class="col-md-3 control-label">Working hours</label>
+                                    <div class="col-md-6">
+                                        <input type="text" class="form-control" name="working_hours" value="<?=html_escape($working_hours ?? '')?>" placeholder="Mon – Fri: 8:00 AM – 3:00 PM" />
+                                        <span class="help-block">Public visiting hours, e.g. Mon – Fri: 8:00 AM – 3:00 PM.</span>
                                     </div>
                                 </div>
                                 <div class="form-group">
@@ -302,6 +312,25 @@
                                                 <i></i> <?=translate('due_fees_calculation_with_fine_')?>
                                             </label>
                                         </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+
+                    <section class="panel pg-fw">
+                        <div class="panel-body">
+                            <h5 class="chart-title mb-xs">Public online admission</h5>
+                            <div class="mt-lg">
+                                <div class="form-group mb-md">
+                                    <div class="col-md-offset-3 col-md-6">
+                                        <div class="checkbox-replace">
+                                            <label class="i-checks">
+                                                <input type="checkbox" name="online_admission" <?=(!empty($online_admission) ? 'checked' : '');?>>
+                                                <i></i> Enable the public admission form on the website.
+                                            </label>
+                                        </div>
+                                        <p class="text-muted mb-none">When this is off, families apply at the academy and staff use Create Admission. Turn it on only when you want applications submitted from the website.</p>
                                     </div>
                                 </div>
                             </div>

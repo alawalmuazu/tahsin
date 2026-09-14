@@ -582,55 +582,23 @@ endif;
 						<?php } ?>
 					</div>
 
-					<?php $grd_auto = !empty($getBranch['grd_generate']); ?>
-					<?php if ($grd_auto): ?>
-					<div class="row mb-md">
-						<div class="col-md-6 mb-sm">
-							<div class="form-group">
-								<label class="control-label"><?=translate('username')?> <?=translate('prefix')?></label>
-								<input type="text" class="form-control" value="<?=html_escape($getBranch['grd_username_prefix'])?>" readonly />
-							</div>
-						</div>
-						<div class="col-md-6 mb-sm">
-							<div class="form-group">
-								<label class="control-label"><?=translate('default')?> <?=translate('password')?></label>
-								<input type="text" class="form-control" value="<?=html_escape($getBranch['grd_default_password'])?>" readonly />
-							</div>
-						</div>
-					</div>
-					<p class="text-muted mb-md">Guardian portal login is created automatically from School Settings. Username will be <code><?=html_escape($getBranch['grd_username_prefix'])?></code> followed by the guardian ID.</p>
-					<?php else: ?>
-					<div class="row mb-md" id="grdLogin">
-						<div class="col-md-6 mb-sm">
-							<div class="form-group">
-								<label class="control-label"><?=translate('username')?> <span class="required">*</span></label>
-								<div class="input-group">
-									<span class="input-group-addon"><i class="far fa-user"></i></span>
-									<input type="text" class="form-control" name="grd_username" id="grd_username" value="<?=set_value('grd_username')?>" />
+					<?php if (!empty($getBranch['grd_generate'])): ?>
+					<div id="grdAutoLogin">
+						<div class="row mb-md">
+							<div class="col-md-6 mb-sm">
+								<div class="form-group">
+									<label class="control-label"><?=translate('username')?> <?=translate('prefix')?></label>
+									<input type="text" class="form-control" value="<?=html_escape($getBranch['grd_username_prefix'])?>" readonly />
 								</div>
-								<span class="error"></span>
 							</div>
-						</div>
-						<div class="col-md-3 mb-sm">
-							<div class="form-group">
-								<label class="control-label"><?=translate('password')?> <span class="required">*</span></label>
-								<div class="input-group">
-									<span class="input-group-addon"><i class="fas fa-unlock-alt"></i></span>
-									<input type="password" class="form-control" name="grd_password" value="<?=set_value('grd_password')?>" />
+							<div class="col-md-6 mb-sm">
+								<div class="form-group">
+									<label class="control-label"><?=translate('default')?> <?=translate('password')?></label>
+									<input type="text" class="form-control" value="<?=html_escape($getBranch['grd_default_password'])?>" readonly />
 								</div>
-								<span class="error"></span>
 							</div>
 						</div>
-						<div class="col-md-3 mb-sm">
-							<div class="form-group">
-								<label class="control-label"><?=translate('retype_password')?> <span class="required">*</span></label>
-								<div class="input-group">
-									<span class="input-group-addon"><i class="fas fa-unlock-alt"></i></span>
-									<input type="password" class="form-control" name="grd_retype_password" value="<?=set_value('grd_retype_password')?>" />
-								</div>
-								<span class="error"></span>
-							</div>
-						</div>
+						<p class="text-muted mb-md">Guardian portal login is created automatically from School Settings. Username will be <code><?=html_escape($getBranch['grd_username_prefix'])?></code> followed by the guardian ID.</p>
 					</div>
 					<?php endif; ?>
 				</div>

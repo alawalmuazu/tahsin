@@ -86,21 +86,19 @@ class Online_admission_model extends MY_Model
             );
             $this->db->insert('parent', $arrayParent);
             $parentID = $this->db->insert_id();
-            // save guardian login credential information in the database
-            if ($getBranch['grd_generate'] == 1) {
-                $grd_username = $getBranch['grd_username_prefix'] . $parentID;
-                $grd_password = $getBranch['grd_default_password'];
-            } else {
-                $grd_username = $this->input->post('grd_username');
-                $grd_password = $this->input->post('grd_password');
+            if (!empty($getBranch['grd_generate'])) {
+                $grd_username = $this->app_lib->uniqueLoginUsername(($getBranch['grd_username_prefix'] ?: 'parent_') . $parentID);
+                $grd_password = !empty($getBranch['grd_default_password']) ? $getBranch['grd_default_password'] : $this->app_lib->defaultPasswordForRole(6);
+                $parent_credential = array(
+                    'username' => $grd_username,
+                    'role' => 6,
+                    'user_id' => $parentID,
+                    'password' => $this->app_lib->pass_hashed($grd_password),
+                    'active' => 1,
+                    'must_change_password' => 1,
+                );
+                $this->db->insert('login_credential', $parent_credential);
             }
-            $parent_credential = array(
-                'username' => $grd_username,
-                'role' => 6,
-                'user_id' => $parentID,
-                'password' => $this->app_lib->pass_hashed($grd_password),
-            );
-            $this->db->insert('login_credential', $parent_credential);
 
             // insert student all information in the database
             $inser_data1['parent_id'] = $parentID;

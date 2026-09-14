@@ -16,7 +16,7 @@
     <script src="<?php echo base_url('assets/vendor/jquery/jquery.js'); ?>"></script>
     <link rel="stylesheet" href="<?php echo base_url('assets/vendor/sweetalert/sweetalert-custom.css'); ?>">
     <script src="<?php echo base_url('assets/vendor/sweetalert/sweetalert.min.js'); ?>"></script>
-    <link rel="stylesheet" href="<?php echo base_url('assets/css/auth.css?v=' . APP_VERSION); ?>">
+    <link rel="stylesheet" href="<?php echo base_url('assets/css/auth.css?v=' . (is_file(FCPATH . 'assets/css/auth.css') ? filemtime(FCPATH . 'assets/css/auth.css') : APP_VERSION)); ?>">
 
     <script>
         var base_url = '<?php echo base_url() ?>';
@@ -51,6 +51,9 @@
 
     <!-- ── Right Form Panel ───────────────────────────────────────── -->
     <main class="form-panel">
+        <a href="<?php echo base_url(); ?>" class="back-link home-link">
+            <i class="fas fa-arrow-left"></i> Home
+        </a>
         <div class="form-header">
             <img src="<?php echo $this->application_model->getBranchImage($branch_id, 'logo'); ?>" class="system-logo" alt="">
             <h1>Welcome back</h1>
@@ -106,7 +109,7 @@
                     <input type="checkbox" name="remember" id="remember">
                     <span><?php echo translate('remember'); ?></span>
                 </label>
-                <a href="<?php echo base_url("{$this->authentication_model->getSegment(1)}forgot"); ?>" class="forgot-link">
+                <a href="<?php echo base_url('forgot'); ?>" class="forgot-link">
                     <?php echo translate('lose_your_password'); ?>
                 </a>
             </div>

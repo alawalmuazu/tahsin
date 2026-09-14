@@ -89,20 +89,16 @@ class Student_model extends MY_Model
                     if (!empty($getBranch['grd_generate'])) {
                         $grd_username = $this->app_lib->uniqueLoginUsername(($getBranch['grd_username_prefix'] ?: 'parent_') . $parentID);
                         $grd_password = !empty($getBranch['grd_default_password']) ? $getBranch['grd_default_password'] : $this->app_lib->defaultPasswordForRole(6);
-                    } else {
-                        $grd_username = trim((string) $this->input->post('grd_username'));
-                        $grd_password = (string) $this->input->post('grd_password');
+                        $parent_credential = array(
+                            'user_id' => $parentID,
+                            'role' => 6,
+                            'username' => $grd_username,
+                            'password' => $this->app_lib->pass_hashed($grd_password),
+                            'active' => 1,
+                            'must_change_password' => 1,
+                        );
+                        $this->db->insert('login_credential', $parent_credential);
                     }
-                    $parent_credential = array(
-                        'user_id' => $parentID,
-                        'role' => 6,
-                        'username' => $this->app_lib->uniqueLoginUsername($grd_username),
-                        'password' => $this->app_lib->pass_hashed($grd_password),
-                        'active' => 1,
-                        'must_change_password' => 1,
-                    );
-                    $this->db->insert('login_credential', $parent_credential);
-                    $grd_username = $parent_credential['username'];
                 } else {
                     $parentID = 0;
                 }

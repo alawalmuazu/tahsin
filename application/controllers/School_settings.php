@@ -109,6 +109,9 @@ class School_settings extends Admin_Controller
             ),
         );
         $this->data['school'] = $this->school_model->get('branch', array('id' => $branchID), true);
+        $cms = $this->db->select('online_admission, working_hours')->get_where('front_cms_setting', array('branch_id' => $branchID))->row_array();
+        $this->data['online_admission'] = !empty($cms['online_admission']) ? 1 : 0;
+        $this->data['working_hours'] = trim(strip_tags((string) ($cms['working_hours'] ?? '')));
         $this->data['title'] = translate('school_settings');
         $this->data['sub_page'] = 'school_settings/school';
         $this->data['main_menu'] = 'school_m';

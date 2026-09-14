@@ -1,777 +1,422 @@
-<!-- Main Banner Starts -->
 <?php
-$page_title = !empty($page_data['page_title']) ? $page_data['page_title'] : 'Admission';
-$page_heading = !empty($page_data['title']) ? $page_data['title'] : 'Apply for Admission';
-$banner_file = !empty($page_data['banner_image']) ? $page_data['banner_image'] : '';
-$banner_url = $banner_file ? base_url('uploads/frontend/banners/' . $banner_file) : base_url('assets/frontend/images/14.png');
+$online_open = !empty($online_open);
+$email = trim((string) ($cms_setting['email'] ?? ''));
+if ($email === '' || stripos($email, 'lorem') !== false || stripos($email, 'smartschool') !== false) {
+    $email = 'info@tahsinacademy.edu.ng';
+}
+$phone = trim((string) ($cms_setting['mobile_no'] ?? ''));
+if (strpos($phone, '123456') !== false || $phone === '08022332233') {
+    $phone = '';
+}
+$address = trim((string) ($cms_setting['address'] ?? ''));
+if (stripos($address, 'lorem') !== false || strtolower($address) === 'your address') {
+    $address = '';
+}
+$hours = trim(strip_tags((string) ($cms_setting['working_hours'] ?? '')));
+if ($hours === '') {
+    $hours = 'Mon – Fri: 8:00 AM – 3:00 PM';
+}
+$selected_section = set_value('section_id');
+$arraySection = $this->app_lib->getBranchSections($branchID);
+$arrayClass = $this->app_lib->getClassesBySection($selected_section);
+$arrayCategory = $this->app_lib->getStudentCategory($branchID);
+$arrayGender = array(
+    '' => translate('select'),
+    'male' => translate('male'),
+    'female' => translate('female'),
+);
+$contactURL = base_url('contact');
 ?>
-<div class="main-banner" style="background: url(<?php echo $banner_url; ?>) center top;">
-    <div class="container px-md-0">
-        <h2><span><?php echo $page_title; ?></span></h2>
+<section class="ta-page ta-page-compact">
+    <div class="ta-wrap">
+        <div class="ta-kicker"><?php echo $online_open ? 'Public application' : 'Admission at the academy'; ?></div>
+        <h1 class="ta-display"><?php echo $online_open ? 'Apply for a place' : 'Come to Tahsin.'; ?></h1>
+        <p class="ta-page-lead">
+            <?php if ($online_open): ?>
+                Choose boarding, day or weekend, then the programme. This is an application — not enrolment. Fees and register numbers are completed at the academy after approval.
+            <?php else: ?>
+                Admission is done at the academy. Visit with the child and a guardian. The office will complete the rest.
+            <?php endif; ?>
+        </p>
+        <?php $this->load->view('landing/payment_notice'); ?>
     </div>
-</div>
-<!-- Main Banner Ends -->
-<!-- Breadcrumb Starts -->
-<div class="breadcrumb">
-    <div class="container px-md-0">
-        <ul class="list-unstyled list-inline">
-            <li class="list-inline-item"><a href="<?php echo base_url('home') ?>">Home</a></li>
-            <li class="list-inline-item active"><?php echo $page_title; ?></li>
-        </ul>
-    </div>
-</div>
-<!-- Breadcrumb Ends -->
-<!-- Main Container Starts -->
-<div class="container px-md-0 main-container">
-    <h3 class="main-heading2 mt-0"><?php echo $page_heading; ?></h3>
-    <?php echo !empty($page_data['description']) ? $page_data['description'] : ''; ?>
+</section>
 
-    <!-- Types of Admission Showcase Starts -->
-    <style>
-        .tahsin-track-card {
-            transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
-        }
-        .tahsin-track-card:hover {
-            transform: translateY(-4px);
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08) !important;
-            border-color: #10b981 !important;
-        }
-    </style>
-    <div class="tahsin-admission-types mb-4 mt-3">
-        <div class="sec-title text-center mb-4">
-            <span class="badge px-3 py-2 text-uppercase mb-2" style="background: rgba(16,185,129,0.15); color: #10b981; font-weight: 700; letter-spacing: 0.8px; border-radius: 30px; font-size: 12px;">
-                <i class="fas fa-graduation-cap me-1"></i> Available Study Tracks
-            </span>
-            <h2 style="font-size: 26px; font-weight: 700; color: #0f1923; margin-top: 6px;">Types of Admission</h2>
-            <p class="text-muted" style="max-width: 680px; margin: 0 auto; font-size: 14px;">
-                Tahsin Academy offers comprehensive Boarding, Day, and Weekend tracks integrating authentic Quranic memorization with or without modern technical skills. Choose your preferred track below:
-            </p>
-        </div>
-        <div class="row g-3">
-            <!-- 1. Boarding Quran without Technical skills -->
-            <div class="col-lg-4 col-md-6 mb-3">
-                <div class="tahsin-track-card" onclick="selectAdmissionType(1)" style="cursor: pointer; background: #fff; border: 1.5px solid #e5e7eb; border-radius: 12px; padding: 22px; height: 100%; position: relative; box-shadow: 0 4px 15px rgba(0,0,0,0.03);">
-                    <div class="d-flex align-items-center mb-3">
-                        <div style="width: 44px; height: 44px; border-radius: 10px; background: rgba(16,185,129,0.12); color: #10b981; display: flex; align-items: center; justify-content: center; font-size: 20px; margin-right: 12px; flex-shrink: 0;">
-                            <i class="fas fa-bed"></i>
-                        </div>
-                        <div>
-                            <span class="badge" style="background: #0f1923; color: #fff; font-size: 10px;">Boarding Track</span>
-                            <h5 style="margin: 3px 0 0; font-size: 14px; font-weight: 700; color: #1f2937;">Boarding Quran without Technical skills</h5>
-                        </div>
-                    </div>
-                    <p style="font-size: 13px; color: #6b7280; line-height: 1.5; margin-bottom: 15px;">
-                        Full boarding residency focused on intensive Quranic memorization, Tajweed, Islamic jurisprudence, and moral discipline.
-                    </p>
-                    <div class="d-flex align-items-center justify-content-between pt-2" style="border-top: 1px solid #f3f4f6;">
-                        <span style="font-size: 12px; font-weight: 600; color: #10b981;"><i class="fas fa-quran me-1"></i> Pure Hifz</span>
-                        <span class="btn btn-sm btn-outline-success" style="font-size: 11px; padding: 3px 12px; border-radius: 20px;">Select Track <i class="fas fa-arrow-down ms-1"></i></span>
-                    </div>
-                </div>
-            </div>
-
-            <!-- 2. Boarding Quran with Technical skills -->
-            <div class="col-lg-4 col-md-6 mb-3">
-                <div class="tahsin-track-card" onclick="selectAdmissionType(2)" style="cursor: pointer; background: #fff; border: 1.5px solid #10b981; border-radius: 12px; padding: 22px; height: 100%; position: relative; box-shadow: 0 6px 20px rgba(16,185,129,0.08);">
-                    <span style="position: absolute; top: -10px; right: 18px; background: linear-gradient(135deg, #10b981, #059669); color: #fff; font-size: 10px; font-weight: 700; padding: 2px 10px; border-radius: 12px; text-transform: uppercase; letter-spacing: 0.5px;">Recommended</span>
-                    <div class="d-flex align-items-center mb-3">
-                        <div style="width: 44px; height: 44px; border-radius: 10px; background: rgba(16,185,129,0.18); color: #059669; display: flex; align-items: center; justify-content: center; font-size: 20px; margin-right: 12px; flex-shrink: 0;">
-                            <i class="fas fa-laptop-code"></i>
-                        </div>
-                        <div>
-                            <span class="badge" style="background: #10b981; color: #fff; font-size: 10px;">Boarding + STEM</span>
-                            <h5 style="margin: 3px 0 0; font-size: 14px; font-weight: 700; color: #1f2937;">Boarding Quran with Technical skills</h5>
-                        </div>
-                    </div>
-                    <p style="font-size: 13px; color: #6b7280; line-height: 1.5; margin-bottom: 15px;">
-                        Full boarding residency integrating complete Quran memorization with digital skills, ICT, coding, and hands-on technical proficiencies.
-                    </p>
-                    <div class="d-flex align-items-center justify-content-between pt-2" style="border-top: 1px solid #f3f4f6;">
-                        <span style="font-size: 12px; font-weight: 600; color: #059669;"><i class="fas fa-star me-1"></i> Deen + Modern Skills</span>
-                        <span class="btn btn-sm btn-success" style="font-size: 11px; padding: 3px 12px; border-radius: 20px; background: #10b981; border: none;">Select Track <i class="fas fa-arrow-down ms-1"></i></span>
-                    </div>
-                </div>
-            </div>
-
-            <!-- 3. Day without Technical Skills -->
-            <div class="col-lg-4 col-md-6 mb-3">
-                <div class="tahsin-track-card" onclick="selectAdmissionType(3)" style="cursor: pointer; background: #fff; border: 1.5px solid #e5e7eb; border-radius: 12px; padding: 22px; height: 100%; position: relative; box-shadow: 0 4px 15px rgba(0,0,0,0.03);">
-                    <div class="d-flex align-items-center mb-3">
-                        <div style="width: 44px; height: 44px; border-radius: 10px; background: rgba(59,130,246,0.12); color: #3b82f6; display: flex; align-items: center; justify-content: center; font-size: 20px; margin-right: 12px; flex-shrink: 0;">
-                            <i class="fas fa-sun"></i>
-                        </div>
-                        <div>
-                            <span class="badge" style="background: #3b82f6; color: #fff; font-size: 10px;">Day Track</span>
-                            <h5 style="margin: 3px 0 0; font-size: 14px; font-weight: 700; color: #1f2937;">Day without Technical Skills</h5>
-                        </div>
-                    </div>
-                    <p style="font-size: 13px; color: #6b7280; line-height: 1.5; margin-bottom: 15px;">
-                        Standard daytime schedule covering regular academic subjects, Quran recitation, Arabic grammar, and Islamic moral education.
-                    </p>
-                    <div class="d-flex align-items-center justify-content-between pt-2" style="border-top: 1px solid #f3f4f6;">
-                        <span style="font-size: 12px; font-weight: 600; color: #3b82f6;"><i class="fas fa-check-circle me-1"></i> Day Scholar</span>
-                        <span class="btn btn-sm btn-outline-primary" style="font-size: 11px; padding: 3px 12px; border-radius: 20px;">Select Track <i class="fas fa-arrow-down ms-1"></i></span>
-                    </div>
-                </div>
-            </div>
-
-            <!-- 4. Day with Technical Skills -->
-            <div class="col-lg-4 col-md-6 mb-3">
-                <div class="tahsin-track-card" onclick="selectAdmissionType(4)" style="cursor: pointer; background: #fff; border: 1.5px solid #e5e7eb; border-radius: 12px; padding: 22px; height: 100%; position: relative; box-shadow: 0 4px 15px rgba(0,0,0,0.03);">
-                    <div class="d-flex align-items-center mb-3">
-                        <div style="width: 44px; height: 44px; border-radius: 10px; background: rgba(59,130,246,0.18); color: #2563eb; display: flex; align-items: center; justify-content: center; font-size: 20px; margin-right: 12px; flex-shrink: 0;">
-                            <i class="fas fa-microchip"></i>
-                        </div>
-                        <div>
-                            <span class="badge" style="background: #2563eb; color: #fff; font-size: 10px;">Day + Technical</span>
-                            <h5 style="margin: 3px 0 0; font-size: 14px; font-weight: 700; color: #1f2937;">Day with Technical Skills</h5>
-                        </div>
-                    </div>
-                    <p style="font-size: 13px; color: #6b7280; line-height: 1.5; margin-bottom: 15px;">
-                        Weekday schedule combining regular academic and Islamic learning with computer science laboratory sessions and practical skills.
-                    </p>
-                    <div class="d-flex align-items-center justify-content-between pt-2" style="border-top: 1px solid #f3f4f6;">
-                        <span style="font-size: 12px; font-weight: 600; color: #2563eb;"><i class="fas fa-bolt me-1"></i> Academics + ICT</span>
-                        <span class="btn btn-sm btn-outline-primary" style="font-size: 11px; padding: 3px 12px; border-radius: 20px;">Select Track <i class="fas fa-arrow-down ms-1"></i></span>
-                    </div>
-                </div>
-            </div>
-
-            <!-- 5. Weekend Tahfeez with Skills -->
-            <div class="col-lg-4 col-md-6 mb-3">
-                <div class="tahsin-track-card" onclick="selectAdmissionType(5)" style="cursor: pointer; background: #fff; border: 1.5px solid #e5e7eb; border-radius: 12px; padding: 22px; height: 100%; position: relative; box-shadow: 0 4px 15px rgba(0,0,0,0.03);">
-                    <div class="d-flex align-items-center mb-3">
-                        <div style="width: 44px; height: 44px; border-radius: 10px; background: rgba(245,158,11,0.15); color: #d97706; display: flex; align-items: center; justify-content: center; font-size: 20px; margin-right: 12px; flex-shrink: 0;">
-                            <i class="fas fa-calendar-week"></i>
-                        </div>
-                        <div>
-                            <span class="badge" style="background: #d97706; color: #fff; font-size: 10px;">Weekend + Skills</span>
-                            <h5 style="margin: 3px 0 0; font-size: 14px; font-weight: 700; color: #1f2937;">Weekend Tahfeez with Skills</h5>
-                        </div>
-                    </div>
-                    <p style="font-size: 13px; color: #6b7280; line-height: 1.5; margin-bottom: 15px;">
-                        Saturday &amp; Sunday intensive sessions tailored for memorization, Tajweed correction, and practical weekend ICT skill modules.
-                    </p>
-                    <div class="d-flex align-items-center justify-content-between pt-2" style="border-top: 1px solid #f3f4f6;">
-                        <span style="font-size: 12px; font-weight: 600; color: #d97706;"><i class="fas fa-clock me-1"></i> Sat &amp; Sun</span>
-                        <span class="btn btn-sm btn-outline-warning" style="font-size: 11px; padding: 3px 12px; border-radius: 20px; color: #d97706; border-color: #d97706;">Select Track <i class="fas fa-arrow-down ms-1"></i></span>
-                    </div>
-                </div>
-            </div>
-
-            <!-- 6. Weekend Tahfeez without Technical skills -->
-            <div class="col-lg-4 col-md-6 mb-3">
-                <div class="tahsin-track-card" onclick="selectAdmissionType(6)" style="cursor: pointer; background: #fff; border: 1.5px solid #e5e7eb; border-radius: 12px; padding: 22px; height: 100%; position: relative; box-shadow: 0 4px 15px rgba(0,0,0,0.03);">
-                    <div class="d-flex align-items-center mb-3">
-                        <div style="width: 44px; height: 44px; border-radius: 10px; background: rgba(107,114,128,0.12); color: #4b5563; display: flex; align-items: center; justify-content: center; font-size: 20px; margin-right: 12px; flex-shrink: 0;">
-                            <i class="fas fa-quran"></i>
-                        </div>
-                        <div>
-                            <span class="badge" style="background: #4b5563; color: #fff; font-size: 10px;">Weekend Tahfeez</span>
-                            <h5 style="margin: 3px 0 0; font-size: 14px; font-weight: 700; color: #1f2937;">Weekend Tahfeez without Technical skills</h5>
-                        </div>
-                    </div>
-                    <p style="font-size: 13px; color: #6b7280; line-height: 1.5; margin-bottom: 15px;">
-                        Focused weekend Quran memorization and recitation revision track for students enrolled in other weekday schools.
-                    </p>
-                    <div class="d-flex align-items-center justify-content-between pt-2" style="border-top: 1px solid #f3f4f6;">
-                        <span style="font-size: 12px; font-weight: 600; color: #4b5563;"><i class="fas fa-book-open me-1"></i> Pure Tahfeez</span>
-                        <span class="btn btn-sm btn-outline-secondary" style="font-size: 11px; padding: 3px 12px; border-radius: 20px;">Select Track <i class="fas fa-arrow-down ms-1"></i></span>
-                    </div>
-                </div>
-            </div>
+<?php if (!$online_open): ?>
+<section class="ta-path ta-admit-closed">
+    <div class="ta-wrap">
+        <div class="ta-kicker">How a child enters</div>
+        <h2 class="ta-display">Three steps. No website form.</h2>
+        <div class="ta-steps">
+            <article class="ta-step">
+                <b>01</b>
+                <h3>Visit the academy</h3>
+                <p>Come during school hours with the child and a parent or guardian. Bring a recent passport photograph if you have one.</p>
+            </article>
+            <article class="ta-step">
+                <b>02</b>
+                <h3>Choose the track</h3>
+                <p>Boarding, Day or Weekend — then With or Without Technical Skills. The Quran stays at the centre of every path.</p>
+            </article>
+            <article class="ta-step">
+                <b>03</b>
+                <h3>Office completes admission</h3>
+                <p>The office records the child and you leave with a register number — not a pending web form.</p>
+            </article>
         </div>
     </div>
-    <!-- Types of Admission Showcase Ends -->
+</section>
 
-    <div class="box2 form-box position-relative" id="admission-application-form">
-        <div class="admission-status-frm">
-            <button type="button" class="btn btn-1 admission-status-btn" data-bs-toggle="modal" data-bs-target="#admissionModal"><i class="fa-solid fa-file-lines"></i> Check Admission Status</button>
-<?php if (!empty($page_data['application_form_file'])) { ?>
-            <a class="btn btn-1 admission-status-btn" href="<?php echo base_url('home/download_application_form/' . rtrim(strtr(base64_encode($branchID), '+/', '-_'), '=')); ?>"><i class="fas fa-download"></i> Download Application Form</a> 
-<?php } ?>
+<section class="ta-programmes" id="programmes">
+    <div class="ta-wrap">
+        <div class="ta-cards">
+            <article class="ta-card">
+                <div class="ta-card-mode">Boarding</div>
+                <h3>Quran House</h3>
+                <p>Live in. Rise with the Quran. Immersion for families who want memorization, routine, and a school that does not end at the last bell.</p>
+                <div class="ta-pills">
+                    <span class="ta-pill">Without technical skills</span>
+                    <span class="ta-pill">With technical skills</span>
+                </div>
+            </article>
+            <article class="ta-card">
+                <div class="ta-card-mode">Day</div>
+                <h3>Day School</h3>
+                <p>Weekdays at Tahsin, evenings at home. Deen and classroom without leaving the family house.</p>
+                <div class="ta-pills">
+                    <span class="ta-pill">Without technical skills</span>
+                    <span class="ta-pill">With technical skills</span>
+                </div>
+            </article>
+            <article class="ta-card">
+                <div class="ta-card-mode">Weekend</div>
+                <h3>Weekend Tahfeez</h3>
+                <p>For students whose week is already spoken for. Saturdays and Sundays given to the Quran.</p>
+                <div class="ta-pills">
+                    <span class="ta-pill">Tahfeez without skills</span>
+                    <span class="ta-pill">Tahfeez with skills</span>
+                </div>
+            </article>
         </div>
+    </div>
+</section>
+<?php endif; ?>
 
-        <div class="tabs-panel tabs-product mt-4">
-            <div class="nav nav-tabs">
-                <a class="nav-item nav-link active" data-toggle="tab" href="#new-admission" role="tab" aria-controls="tab-details" aria-selected="true">New Admission Application</a>
-            </div>
-            <div class="tab-content clearfix">
-                <div class="tab-pane fade show active" id="new-admission" role="tabpanel" aria-labelledby="tab-new-admission">
-                    <?php echo form_open_multipart($this->uri->uri_string(), array('class' => 'form-horizontal frm-submit-data')); ?>
-                        <?php $section = $this->student_fields_model->getOnlineStatus('section', $branchID); ?>
-                        <div class="headers-line mt-3"><i class="fas fa-school"></i> Academic Details</div>
-                        <div class="row">
-                            <div class="col-md-<?php echo $section['status'] == 1 ? '4' : '6' ?>">
-                                <div class="form-group">
-                                    <label>School Name <span class="required">*</span></label>
-                                    <input type="text" class="form-control" name="schoolname" value="<?php echo !empty($school_name) ? $school_name : 'Tahsin Academy'; ?>" readonly />
-                                </div>
-                            </div>
-                            <div class="col-md-<?php echo $section['status'] == 1 ? '4' : '6' ?>">
-                                <div class="form-group">
-                                    <label class="control-label">Class <span class="required">*</span></label>
-                                    <?php
-                                        $arrayClass = $this->app_lib->getClass($branchID);
-                                        echo form_dropdown("class_id", $arrayClass, set_value('class_id'), "class='form-control' data-plugin-selectTwo onchange='getSectionByClass(this.value)'");
-                                    ?>
-                                    <span class="error"></span>
-                                </div>
-                            </div>
-                        <?php if ($section['status']) { ?>
-                            <div class="col-md-4">
-                                <div class="form-group">
-                                    <label class="control-label">Section<?php echo $section['required'] == 1 ? ' <span class="required">*</span>' : ''; ?></label>
-                                    <?php
-                                        $arraySection = $this->app_lib->getSections(set_value('class_id'), false);
-                                        echo form_dropdown("section", $arraySection, set_value('section'), "class='form-control' data-plugin-selectTwo id='section_id' ");
-                                    ?>
-                                    <span class="error"></span>
-                                </div>
-                            </div>
-                        <?php } ?>
-                        </div>
-                        <?php
-                        $admission_date = $this->student_fields_model->getOnlineStatus('admission_date', $branchID);
-                        $category = $this->student_fields_model->getOnlineStatus('category', $branchID);
-                        $v = floatval($admission_date['status']) + floatval($category['status']);
-                        $div = ($v == 0) ? 12 : floatval(12 / $v);
-                        ?>
-                        <div class="row">
-                            <?php if ($admission_date['status']) { ?>
-                            <div class="col-md-<?php echo $div ?>">
-                                <div class="form-group">
-                                    <label for="admission_date">Admission Date<?php echo $admission_date['required'] == 1 ? ' <span class="required">*</span>' : ''; ?></label>
-                                    <input type="text" class="form-control" data-plugin-datepicker name="admission_date" readonly value="<?php echo date('Y-m-d') ?>" id="admission_date" autocomplete="off" />
-                                    <span class="error"></span>
-                                </div>
-                            </div>
-                            <?php } if ($category['status']) { ?>
-                            <div class="col-md-<?php echo $div ?>">
-                                <div class="form-group">
-                                    <label class="control-label">Type of Admission <span class="required">*</span></label>
-                                    <?php
-                                        $admissionTypes = !empty($admission_types) ? $admission_types : $this->home_model->getAdmissionTypes($branchID);
-                                        $arrayCategory = array('' => 'Select Type of Admission') + $admissionTypes;
-                                        echo form_dropdown("category", $arrayCategory, set_value('category_id'), "class='form-control'
-                                        data-plugin-selectTwo data-width='100%' id='category_id' data-minimum-results-for-search='Infinity' ");
-                                    ?>
-                                    <span class="error"></span>
-                                </div>
-                            </div>
-                            <?php } ?>
-                        </div>
+<section class="ta-page" style="padding-top:0">
+    <div class="ta-wrap ta-admit-layout<?php echo $online_open ? '' : ' is-closed'; ?>">
+        <?php if ($online_open): ?>
+        <div class="ta-form-card ta-admit-card">
+            <?php echo form_open_multipart($this->uri->uri_string(), array('class' => 'form-horizontal frm-submit-data', 'id' => 'ta-admission-form')); ?>
 
-                        <div class="headers-line mt-3"><i class="fas fa-user-graduate"></i> Student Details</div>
-                        <div class="row">
-                            <?php 
-                            $last_name = $this->student_fields_model->getOnlineStatus('last_name', $branchID);
-                            $gender = $this->student_fields_model->getOnlineStatus('gender', $branchID);
-
-                            $v = (1 + floatval($last_name['status']) + floatval($gender['status']));
-                            $div = ($v == 0) ? 12 : floatval(12 / $v);
-                            ?>
-                            <div class="col-md-<?php echo $div ?> mb-sm">
-                                <div class="form-group">
-                                    <label class="control-label">First Name <span class="required">*</span></label>
-                                    <input type="text" class="form-control" name="first_name" value="" autocomplete="off" />
-                                    <span class="error"></span>
-                                </div>
-                            </div>
-                            <?php if ($last_name['status']) { ?>
-                            <div class="col-md-<?php echo $div ?> mb-sm">
-                                <div class="form-group">
-                                    <label class="control-label">Last Name<?php echo $last_name['required'] == 1 ? ' <span class="required">*</span>' : ''; ?></label>
-                                    <input type="text" class="form-control" name="last_name" value="" autocomplete="off" />
-                                    <span class="error"></span>
-                                </div>
-                            </div>
-                            <?php } if ($gender['status']) { ?>
-                            <div class="col-md-<?php echo $div ?> mb-sm">
-                                <div class="form-group">
-                                    <label class="control-label">Gender<?php echo ($gender['required'] == 1 ? ' <span class="required">*</span>' : ''); ?></label>
-                                    <?php
-                                        $arrayGender = array(
-                                            '' => translate('select'),
-                                            'male' => translate('male'),
-                                            'female' => translate('female')
-                                        );
-                                        echo form_dropdown("gender", $arrayGender, set_value('gender'), "class='form-control' data-plugin-selectTwo ");
-                                    ?>
-                                    <span class="error"></span>
-                                </div>
-                            </div>
-                            <?php } ?>
-                        </div>
-
-                        <div class="row">
-                            <?php 
-                            $birthday = $this->student_fields_model->getOnlineStatus('birthday', $branchID);
-                            $blood_group = $this->student_fields_model->getOnlineStatus('blood_group', $branchID);
-                            $v = floatval($birthday['status']) + floatval($blood_group['status']);
-                            $div = ($v == 0) ? 12 : floatval(12 / $v);
-                            if ($birthday['status']) {
-                            ?>
-                            <div class="col-md-<?php echo $div ?>">
-                                <div class="form-group">
-                                    <label for="birthday">Birthday<?php echo $birthday['required'] == 1 ? ' <span class="required">*</span>' : ''; ?></label>
-                                    <input type="text" class="form-control" data-plugin-datepicker name="birthday" readonly value="<?php echo set_value('birthday'); ?>" id="birthday" autocomplete="off" />
-                                    <span class="error"></span>
-                                </div>
-                            </div>
-                            <?php } if ($blood_group['status']) { ?>
-                            <div class="col-md-<?php echo $div ?> mb-sm">
-                                <div class="form-group">
-                                    <label class="control-label">Blood Group<?php echo $birthday['required'] == 1 ? ' <span class="required">*</span>' : ''; ?></label>
-                                    <?php
-                                        $bloodArray = $this->app_lib->getBloodgroup();
-                                        echo form_dropdown("blood_group", $bloodArray, set_value("blood_group"), "class='form-control populate' data-plugin-selectTwo 
-                                        data-width='100%' data-minimum-results-for-search='Infinity' ");
-                                    ?>
-                                </div>
-                            </div>
-                            <?php } ?>
-                        </div>
-
-                        <div class="row">
-                            <?php
-                            $student_mobileno = $this->student_fields_model->getOnlineStatus('student_mobile_no', $branchID); 
-                            $student_email = $this->student_fields_model->getOnlineStatus('student_email', $branchID); 
-                            $v = floatval($student_mobileno['status']) + floatval($student_email['status']);
-                            $div = ($v == 0) ? 12 : floatval(12 / $v);
-
-                            if ($student_mobileno['status']) { ?>
-                            <div class="col-md-<?php echo $div ?>">
-                                <div class="form-group">
-                                    <label for="mobile_no">Student Mobile No<?php echo $student_mobileno['required'] == 1 ? ' <span class="required">*</span>' : ''; ?></label>
-                                    <input type="text" name="student_mobile_no" class="form-control" value="<?php echo set_value('student_mobile_no'); ?>" autocomplete="off" />
-                                    <span class="error"></span>
-                                </div>
-                            </div>
-                            <?php } if ($student_email['status']) { ?>
-                            <div class="col-md-<?php echo $div ?>">
-                                <div class="form-group">
-                                    <label for="email">Student Email<?php echo $student_email['required'] == 1 ? ' <span class="required">*</span>' : ''; ?></label>
-                                    <input type="text" name="student_email" class="form-control" value="" autocomplete="off" />
-                                    <span class="error"></span>
-                                </div>
-                            </div>
-                            <?php } ?>
-                        </div>
-
-                        <?php 
-                        $mother_tongue = $this->student_fields_model->getOnlineStatus('mother_tongue', $branchID); 
-                        $religion = $this->student_fields_model->getOnlineStatus('religion', $branchID); 
-                        $caste = $this->student_fields_model->getOnlineStatus('caste', $branchID); 
-                        ?>
-                        <div class="row">
-                            <?php if ($mother_tongue['status']) { ?>
-                            <div class="col-md-4 mb-sm">
-                                <div class="form-group">
-                                    <label class="control-label">Mother Tongue<?php echo $mother_tongue['required'] == 1 ? ' <span class="required">*</span>' : ''; ?></label>
-                                    <input type="text" class="form-control" name="mother_tongue" value="<?=set_value('mother_tongue')?>" />
-                                    <span class="error"></span>
-                                </div>
-                            </div>
-                            <?php } if ($religion['status']) { ?>
-                            <div class="col-md-4 mb-sm">
-                                <div class="form-group">
-                                    <label class="control-label">Religion<?php echo $religion['required'] == 1 ? ' <span class="required">*</span>' : ''; ?></label>
-                                    <input type="text" class="form-control" name="religion" value="<?=set_value('religion')?>" />
-                                    <span class="error"></span>
-                                </div>
-                            </div>
-                            <?php } if ($caste['status']) { ?>
-                            <div class="col-md-4 mb-sm">
-                                <div class="form-group">
-                                    <label class="control-label">Caste<?php echo $caste['required'] == 1 ? ' <span class="required">*</span>' : ''; ?></label>
-                                    <input type="text" class="form-control" name="caste" value="<?=set_value('caste')?>" />
-                                    <span class="error"></span>
-                                </div>
-                            </div>
-                            <?php } ?>
-                        </div>
-
-
-                        <?php
-                        $current_address = $this->student_fields_model->getOnlineStatus('present_address', $branchID);
-                        $permanent_address = $this->student_fields_model->getOnlineStatus('permanent_address', $branchID);
-                        $div = 6;
-                        if ($current_address['status'] == 0 || $permanent_address['status'] == 0) {
-                            $div = 12;
-                        }
-                        ?>
-                        <div class="row">
-                            <?php if ($current_address['status']) { ?>
-                            <div class="col-md-<?php echo $div ?>">
-                                <div class="form-group">
-                                    <label class="control-label">Present Address<?php echo $current_address['required'] == 1 ? ' <span class="required">*</span>' : ''; ?></label>
-                                    <textarea class="form-control" name="present_address" rows="2" placeholder="Enter Present Address"><?php echo set_value('address'); ?></textarea>
-                                    <span class="error"></span>
-                                </div>
-                            </div>
-                            <?php } if ($permanent_address['status']) { ?>
-                            <div class="col-md-<?php echo $div ?>">
-                                <div class="form-group">
-                                    <label class="control-label">Permanent Address<?php echo $permanent_address['required'] == 1 ? ' <span class="required">*</span>' : ''; ?></label>
-                                    <textarea class="form-control" name="permanent_address" rows="2" placeholder="Enter Permanent Address"><?php echo set_value('address'); ?></textarea>
-                                    <span class="error"></span>
-                                </div>
-                            </div>
-                            <?php } ?>
-                        </div>
-                        <?php
-                        $city = $this->student_fields_model->getOnlineStatus('city', $branchID);
-                        $state = $this->student_fields_model->getOnlineStatus('state', $branchID);
-                        $div = 6;
-                        if ($city['status'] == 0 || $state['status'] == 0) {
-                            $div = 12;
-                        }
-                        ?>
-                        <div class="row">
-                            <?php if ($city['status']) { ?>
-                            <div class="col-md-<?php echo $div ?> mb-sm">
-                                <div class="form-group">
-                                    <label class="control-label">City<?php echo $city['required'] == 1 ? ' <span class="required">*</span>' : ''; ?></label>
-                                    <input type="text" class="form-control" name="city" value="<?=set_value('city')?>" />
-                                    <span class="error"></span>
-                                </div>
-                            </div>
-                            <?php } if ($state['status']) { ?>
-                            <div class="col-md-<?php echo $div ?> mb-sm">
-                                <div class="form-group">
-                                    <label class="control-label">State<?php echo $state['required'] == 1 ? ' <span class="required">*</span>' : ''; ?></label>
-                                    <input type="text" class="form-control" name="state" value="<?=set_value('state')?>" />
-                                    <span class="error"></span>
-                                </div>
-                            </div>
-                            <?php } ?>
-                        </div>
-
-                        <!--custom fields details-->
-                        <div class="row" id="customFields">
-                            <?php echo render_online_custom_fields('student', $branchID); ?>
-                        </div>
-
-                        <?php
-                        $student_photo = $this->student_fields_model->getOnlineStatus('student_photo', $branchID); 
-                            if ($student_photo['status']) {
-                                ?>
-                        <div class="row">
-                            <div class="col-md-12 mb-sm">
-                                <div class="form-group">
-                                    <label for="message">Student Photo<?php echo $student_photo['required'] == 1 ? ' <span class="required">*</span>' : ''; ?></label>
-                                    <div class="custom-file">
-                                        <input type="file" name="student_photo" class="custom-file-input" id="photoFile" accept=".jpg,.jpeg,.png,.bmp" onchange="changeCustomUploader(this)">
-                                        <label class="custom-file-label" for="photoFile">Choose Photo file...</label>
-                                    </div>
-                                    <span class="error"></span>
-                                </div>
-                            </div>
-                        </div>
-                        <?php }
-                        $previous_school_details = $this->student_fields_model->getOnlineStatus('previous_school_details', $branchID); 
-                        if ($previous_school_details['status']) {
-                        ?>
-
-                        <!-- previous school details -->
-                        <div class="headers-line">
-                            <i class="fas fa-bezier-curve"></i> <?=translate('previous_school_details')?>
-                        </div>
-                        <div class="row">
-                            <div class="col-md-6 mb-sm">
-                                <div class="form-group">
-                                    <label class="control-label">School Name<?php echo $previous_school_details['required'] == 1 ? ' <span class="required">*</span>' : ''; ?></label>
-                                    <input type="text" class="form-control" name="school_name" value="" />
-                                    <span class="error"></span>
-                                </div>
-                            </div>
-                            <div class="col-md-6 mb-sm">
-                                <div class="form-group">
-                                    <label class="control-label">Qualification<?php echo $previous_school_details['required'] == 1 ? ' <span class="required">*</span>' : ''; ?></label>
-                                    <input type="text" class="form-control" name="qualification" value="" />
-                                    <span class="error"></span>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="row mb-lg">
-                            <div class="col-md-12">
-                                <div class="form-group">
-                                    <label class="control-label"><?=translate('remarks')?></label>
-                                    <textarea name="previous_remarks" rows="2" class="form-control"></textarea>
-                                    <span class="error"></span>
-                                </div>
-                            </div>
-                        </div>
-                        <?php } ?>
-
-                        <?php 
-                        $guardian_name = $this->student_fields_model->getOnlineStatus('guardian_name', $branchID);
-                        $guardian_relation = $this->student_fields_model->getOnlineStatus('guardian_relation', $branchID);
-                        $father_name = $this->student_fields_model->getOnlineStatus('father_name', $branchID);
-                        $mother_name = $this->student_fields_model->getOnlineStatus('mother_name', $branchID);
-                        $guardian_occupation = $this->student_fields_model->getOnlineStatus('guardian_occupation', $branchID);
-                        $guardian_income = $this->student_fields_model->getOnlineStatus('guardian_income', $branchID);
-                        $guardian_education = $this->student_fields_model->getOnlineStatus('guardian_education', $branchID);
-                        $guardian_email = $this->student_fields_model->getOnlineStatus('guardian_email', $branchID);
-                        $guardian_mobile_no = $this->student_fields_model->getOnlineStatus('guardian_mobile_no', $branchID);
-                        $guardian_address = $this->student_fields_model->getOnlineStatus('guardian_address', $branchID);
-                        $guardian_photo = $this->student_fields_model->getOnlineStatus('guardian_photo', $branchID);
-                        
-                        if ($guardian_name['status'] || $guardian_relation['status'] || $father_name['status'] || $mother_name['status'] || $guardian_occupation['status'] || $guardian_income['status'] || $guardian_education['status'] || $guardian_email['status'] || $guardian_mobile_no['status'] || $guardian_address['status'] || $guardian_photo['status']) {
-                        ?>
-                        <div class="headers-line mt-3"><i class="fas fa-user-tie"></i> Guardian Details</div>
-                        <?php 
-                        $div = 6;
-                        if ($guardian_name['status'] == 0 || $guardian_relation['status'] == 0) {
-                            $div = 12;
-                        }
-                        ?>
-                        <div class="row">
-                            <?php if ($guardian_name['status']) { ?>
-                            <div class="col-md-<?php echo $div ?>">
-                                <div class="form-group">
-                                    <label class="control-label">Guardian Name<?php echo $guardian_name['required'] == 1 ? ' <span class="required">*</span>' : ''; ?></label>
-                                    <input type="text" class="form-control" name="guardian_name" value="<?php echo set_value('guardian_name'); ?>" autocomplete="off" />
-                                    <span class="error"></span>
-                                </div>
-                            </div>
-                            <?php } if ($guardian_relation['status']) { ?>
-                            <div class="col-md-<?php echo $div ?>">
-                                <div class="form-group">
-                                    <label class="control-label">Relation<?php echo $guardian_relation['required'] == 1 ? ' <span class="required">*</span>' : ''; ?></label>
-                                    <input type="text" name="guardian_relation" class="form-control" value="<?php echo set_value('guardian_relation'); ?>" autocomplete="off" />
-                                    <span class="error"></span>
-                                </div>
-                            </div>
-                            <?php } ?>
-                        </div>
-                        <?php 
-                        $div = 6;
-                        if ($father_name['status'] == 0 || $mother_name['status'] == 0) {
-                            $div = 12;
-                        }
-                        ?>
-                        <div class="row">
-                            <?php if ($father_name['status']) { ?>
-                            <div class="col-md-<?php echo $div ?>">
-                                <div class="form-group">
-                                    <label for="father_name">Father Name<?php echo $father_name['required'] == 1 ? ' <span class="required">*</span>' : ''; ?></label>
-                                    <input type="text" name="father_name" class="form-control" value="<?php echo set_value('father_name'); ?>" autocomplete="off" />
-                                    <span class="error"></span>
-                                </div>
-                            </div>
-                            <?php } if ($mother_name['status']) { ?>
-                            <div class="col-md-<?php echo $div ?>">
-                                <div class="form-group">
-                                    <label for="mother_name">Mother Name<?php echo $mother_name['required'] == 1 ? ' <span class="required">*</span>' : ''; ?></label>
-                                    <input type="text" name="mother_name" class="form-control" value="<?php echo set_value('mother_name'); ?>" autocomplete="off" />
-                                    <span class="error"></span>
-                                </div>
-                            </div>
-                            <?php } ?>
-                        </div>
-                        <?php 
-                        $div = 6;
-                        $v = floatval($guardian_occupation['status']) + floatval($guardian_income['status']) + floatval($guardian_education['status']);
-                        $div = ($v == 0) ? 12 : floatval(12 / $v);
-                        ?>
-                        <div class="row">
-                            <?php if ($guardian_occupation['status']) { ?>
-                            <div class="col-md-<?php echo $div ?>">
-                                <div class="form-group">
-                                    <label class="control-label">Occupation<?php echo $guardian_occupation['required'] == 1 ? ' <span class="required">*</span>' : ''; ?></label>
-                                    <input type="text" class="form-control" name="guardian_occupation" value="" autocomplete="off" />
-                                    <span class="error"></span>
-                                </div>
-                            </div>
-                            <?php } if ($guardian_income['status']) { ?>
-                            <div class="col-md-<?php echo $div ?>">
-                                <div class="form-group">
-                                    <label class="control-label">Income<?php echo $guardian_income['required'] == 1 ? ' <span class="required">*</span>' : ''; ?></label>
-                                    <input class="form-control" name="guardian_income" value="" type="text" autocomplete="off" />
-                                    <span class="error"></span>
-                                </div>
-                            </div>
-                            <?php } if ($guardian_education['status']) { ?>
-                            <div class="col-md-<?php echo $div ?>">
-                                <div class="form-group">
-                                    <label class="control-label">Education<?php echo $guardian_education['required'] == 1 ? ' <span class="required">*</span>' : ''; ?></label>
-                                    <input type="text" class="form-control" name="guardian_education" value="" autocomplete="off" />
-                                    <span class="error"></span>
-                                </div>
-                            </div>
-                            <?php } ?>
-                        </div>
-                        <?php 
-                        $div = 6;
-                        if ($guardian_email['status'] == 0 || $guardian_mobile_no['status'] == 0) {
-                            $div = 12;
-                        }
-                        ?>
-                        <div class="row">
-                            <?php if ($guardian_email['status']) { ?>
-                            <div class="col-md-<?php echo $div ?>">
-                                <div class="form-group">
-                                    <label class="control-label">Guardian Email<?php echo $guardian_email['required'] == 1 ? ' <span class="required">*</span>' : ''; ?></label>
-                                    <input type="text" class="form-control" name="guardian_email" value="" autocomplete="off">
-                                    <span class="error"></span>
-                                </div>
-                            </div>
-                            <?php } if ($guardian_mobile_no['status']) { ?>
-                            <div class="col-md-<?php echo $div ?>">
-                                <div class="form-group">
-                                    <label class="control-label">Guardian Mobile No<?php echo $guardian_mobile_no['required'] == 1 ? ' <span class="required">*</span>' : ''; ?></label>
-                                    <input type="text" class="form-control" name="guardian_mobile_no" value="" autocomplete="off" />
-                                    <span class="error"></span>
-                                </div>
-                            </div>
-                            <?php } ?>
-                        </div>
-                        <?php $guardian_address = $this->student_fields_model->getOnlineStatus('guardian_address', $branchID); 
-                            if ($guardian_address['status']) { 
-                                ?>
-                        <div class="row">
-                            <div class="col-md-12">
-                                <div class="form-group">
-                                    <label for="message">Guardian Address <?php echo $guardian_address['required'] == 1 ? ' <span class="required">*</span>' : ''; ?></label>
-                                    <textarea class="form-control" name="guardian_address" placeholder="Enter Address"><?php echo set_value('grd_address'); ?></textarea>
-                                    <span class="error"></span>
-                                </div>
-                            </div>
-                        </div>
-                        <?php } ?>
-
-                        <?php
-                        $guardian_city = $this->student_fields_model->getOnlineStatus('guardian_city', $branchID);
-                        $guardian_state = $this->student_fields_model->getOnlineStatus('guardian_state', $branchID);
-                        $div = 6;
-                        if ($guardian_city['status'] == 0 || $guardian_state['status'] == 0) {
-                            $div = 12;
-                        }
-                        ?>
-                        <div class="row">
-                            <?php if ($guardian_city['status']) { ?>
-                            <div class="col-md-<?php echo $div ?>">
-                                <div class="form-group">
-                                    <label class="control-label">Guardian City<?php echo $guardian_city['required'] == 1 ? ' <span class="required">*</span>' : ''; ?></label>
-                                    <input class="form-control" name="guardian_city" value="" type="text">
-                                    <span class="error"></span>
-                                </div>
-                            </div>
-                            <?php } if ($guardian_state['status']) { ?>
-                            <div class="col-md-<?php echo $div ?>">
-                                <div class="form-group">
-                                    <label class="control-label">Guardian State<?php echo $guardian_state['required'] == 1 ? ' <span class="required">*</span>' : ''; ?></label>
-                                    <input class="form-control" name="guardian_state" value="" type="text">
-                                    <span class="error"></span>
-                                </div>
-                            </div>
-                            <?php }?>
-                        </div>
-
-                        <?php $guardian_photo = $this->student_fields_model->getOnlineStatus('guardian_photo', $branchID); 
-                        if ($guardian_photo['status']) { 
-                        ?>
-                        <div class="row">
-                            <div class="col-md-12">
-                                <div class="form-group">
-                                    <label for="message">Guardian Photo<?php echo $guardian_photo['required'] == 1 ? ' <span class="required">*</span>' : ''; ?></label>
-                                    <div class="custom-file">
-                                        <input type="file" class="custom-file-input" name="guardian_photo" id="guardianPhoto" accept=".jpg,.jpeg,.png,.bmp" onchange="changeCustomUploader(this)">
-                                        <label class="custom-file-label" for="guardianPhoto">Choose Guardian Photo...</label>
-                                    </div>
-                                    <span class="error"></span>
-                                </div>
-                            </div>
-                        </div>
-                        <?php } } ?>
-
-                        <?php $upload_documents = $this->student_fields_model->getOnlineStatus('upload_documents', $branchID); 
-                        if ($upload_documents['status']) { 
-                        ?>
-                        <div class="headers-line mt-3"><i class="far fa-file-archive"></i> Upload Documents</div>
+            <div class="ta-admit-block">
+                <div class="ta-admit-head">
+                    <span>01</span>
+                    <div>
+                        <h2>Programme</h2>
+                        <p>Choose boarding, day or weekend, then the programme.</p>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-4">
                         <div class="form-group">
-                            <label for="message">Upload Documents<?php echo $upload_documents['required'] == 1 ? ' <span class="required">*</span>' : ''; ?></label>
-                            <div class="custom-file">
-                                <input type="file" name="upload_documents" class="custom-file-input" id="documentFile" onchange="changeCustomUploader(this)">
-                                <label class="custom-file-label" for="documentFile">Choose file...</label>
-                            </div>
+                            <label>Section <span class="required">*</span></label>
+                            <?php echo form_dropdown('section_id', $arraySection, $selected_section, "class='form-control' id='section_id' data-class-target='#class_id' data-plugin-selectTwo data-width='100%'"); ?>
                             <span class="error"></span>
                         </div>
-                        <?php } ?>
-
-
-                        <?php if ($cms_setting['captcha_status'] == 'enable'): ?>
+                    </div>
+                    <div class="col-md-4">
                         <div class="form-group">
-                            <?php echo $recaptcha['widget']; echo $recaptcha['script']; ?>
+                            <label>Class <span class="required">*</span></label>
+                            <?php echo form_dropdown('class_id', $arrayClass, set_value('class_id'), "class='form-control' id='class_id' data-plugin-selectTwo data-width='100%'"); ?>
                             <span class="error"></span>
                         </div>
-                        <?php endif; ?>
-                        <?php if (!empty($page_data['terms_conditions_title'])) {?>
-                        <div class="accordion mb-3" id="accordion-faqs">
-                            <div class="card">
-                                <div class="card-header" id="faq1">
-                                    <h5 class="card-title" data-bs-toggle="collapse" data-bs-target="#collapseOne" aria-expanded="false" aria-controls="collapseOne">
-                                        <a><?php echo $page_data['terms_conditions_title']; ?></a>
-                                    </h5>
-                                </div>
-                                <div id="collapseOne" class="collapse" aria-labelledby="faq1" data-parent="#accordion-faqs">
-                                    <div class="card-body">
-                                        <?php echo $page_data['terms_conditions_description'] ?>
-                                    </div>
-                                </div>                 
-                            </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            <label>Category <span class="required">*</span></label>
+                            <?php echo form_dropdown('category_id', $arrayCategory, set_value('category_id'), "class='form-control' id='category_id' data-plugin-selectTwo data-width='100%' data-minimum-results-for-search='Infinity'"); ?>
+                            <span class="error"></span>
                         </div>
-                    <?php } ?>
-                        <button type="submit" class="btn btn-1" data-loading-text="<i class='fas fa-spinner fa-spin'></i> Processing"><i class="fas fa-plus-circle"></i> <?=translate('submit')?></button>
-                    <?php echo form_close(); ?>
+                    </div>
                 </div>
             </div>
-        </div>
-    </div>
-</div>
 
-<!-- Modal -->
-<div class="modal fade modal-lg" id="admissionModal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <?php echo form_open('home/checkAdmissionStatus', array('class' => 'form-horizontal frm-submit-data')); ?>
-            <div class="modal-header">
-                <h5 class="modal-title" id="exampleModalLabel">Check Admission Status</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <div class="form-group mt-3 mb-3">
-                    <label>Enter Your Reference Number <span class="required">*</span></label>
-                    <input type="text" class="form-control" name="refno" id="refno" autocomplete="off">
-                    <span class="error"></span>
+            <div class="ta-admit-block">
+                <div class="ta-admit-head">
+                    <span>02</span>
+                    <div>
+                        <h2>Student</h2>
+                        <p>Names, identity and where the child lives.</p>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            <label>First name <span class="required">*</span></label>
+                            <input type="text" class="form-control" name="first_name" value="<?php echo set_value('first_name'); ?>" />
+                            <span class="error"></span>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            <label>Surname <span class="required">*</span></label>
+                            <input type="text" class="form-control" name="last_name" value="<?php echo set_value('last_name'); ?>" />
+                            <span class="error"></span>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            <label>Other name(s)</label>
+                            <input type="text" class="form-control" name="other_name" value="<?php echo set_value('other_name'); ?>" placeholder="Optional" />
+                            <span class="error"></span>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            <label>Gender <span class="required">*</span></label>
+                            <?php echo form_dropdown('gender', $arrayGender, set_value('gender'), "class='form-control' data-plugin-selectTwo data-width='100%' data-minimum-results-for-search='Infinity'"); ?>
+                            <span class="error"></span>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            <label>Birthday <span class="required">*</span></label>
+                            <input type="text" class="form-control" name="birthday" value="<?php echo set_value('birthday'); ?>" data-plugin-datepicker data-plugin-options='{ "startView": 2 }' autocomplete="off" />
+                            <span class="error"></span>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            <label>Religion <span class="required">*</span></label>
+                            <?php echo form_dropdown('religion', nigeria_religions(), set_value('religion', 'Islam'), "class='form-control' data-plugin-selectTwo data-width='100%' data-minimum-results-for-search='Infinity'"); ?>
+                            <span class="error"></span>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            <label>NIN <small>(optional)</small></label>
+                            <input type="text" class="form-control" name="nin" maxlength="11" inputmode="numeric" placeholder="11-digit NIN" value="<?php echo set_value('nin'); ?>" />
+                            <span class="error"></span>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            <label>Student mobile</label>
+                            <input type="text" class="form-control" name="mobileno" value="<?php echo set_value('mobileno'); ?>" />
+                            <span class="error"></span>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            <label>Student email</label>
+                            <input type="email" class="form-control" name="email" value="<?php echo set_value('email'); ?>" />
+                            <span class="error"></span>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label>State <span class="required">*</span></label>
+                            <?php echo form_dropdown('state', nigeria_states(), set_value('state'), "class='form-control' id='state' data-lga-target='#lga' data-plugin-selectTwo data-width='100%'"); ?>
+                            <span class="error"></span>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label>LGA <span class="required">*</span></label>
+                            <?php echo form_dropdown('lga', nigeria_lgas_for_state(set_value('state')), set_value('lga'), "class='form-control' id='lga' data-plugin-selectTwo data-width='100%'"); ?>
+                            <span class="error"></span>
+                        </div>
+                    </div>
+                    <div class="col-md-12">
+                        <div class="form-group">
+                            <label>Address <span class="required">*</span></label>
+                            <textarea name="current_address" rows="2" class="form-control"><?php echo set_value('current_address'); ?></textarea>
+                            <span class="error"></span>
+                        </div>
+                    </div>
+                    <div class="col-md-12">
+                        <div class="form-group">
+                            <label>Passport photograph <small>(optional)</small></label>
+                            <input type="file" name="student_photo" class="form-control" accept="image/jpeg,image/png,image/jpg" />
+                            <span class="error"></span>
+                        </div>
+                    </div>
                 </div>
             </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                <button type="submit" data-loading-text="<i class='fas fa-spinner fa-spin'></i> Processing" class="btn btn-primary">Check Now</button>
+
+            <div class="ta-admit-block">
+                <div class="ta-admit-head">
+                    <span>03</span>
+                    <div>
+                        <h2>Guardian</h2>
+                        <p>The adult we will call. Portal logins are created later at the academy, not here.</p>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label>Guardian name <span class="required">*</span></label>
+                            <input type="text" class="form-control" name="grd_name" value="<?php echo set_value('grd_name'); ?>" />
+                            <span class="error"></span>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label>Relation <span class="required">*</span></label>
+                            <input type="text" class="form-control" name="grd_relation" value="<?php echo set_value('grd_relation'); ?>" placeholder="Father, Mother, Uncle…" />
+                            <span class="error"></span>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label>Father's name <span class="required">*</span></label>
+                            <input type="text" class="form-control" name="father_name" value="<?php echo set_value('father_name'); ?>" />
+                            <span class="error"></span>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label>Mother's name <span class="required">*</span></label>
+                            <input type="text" class="form-control" name="mother_name" value="<?php echo set_value('mother_name'); ?>" />
+                            <span class="error"></span>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            <label>Occupation <span class="required">*</span></label>
+                            <input type="text" class="form-control" name="grd_occupation" value="<?php echo set_value('grd_occupation'); ?>" />
+                            <span class="error"></span>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            <label>Mobile <span class="required">*</span></label>
+                            <input type="text" class="form-control" name="grd_mobileno" value="<?php echo set_value('grd_mobileno'); ?>" />
+                            <span class="error"></span>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            <label>Email <span class="required">*</span></label>
+                            <input type="email" class="form-control" name="grd_email" value="<?php echo set_value('grd_email'); ?>" />
+                            <span class="error"></span>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label>State <span class="required">*</span></label>
+                            <?php echo form_dropdown('grd_state', nigeria_states(), set_value('grd_state'), "class='form-control' id='grd_state' data-lga-target='#grd_lga' data-plugin-selectTwo data-width='100%'"); ?>
+                            <span class="error"></span>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label>LGA <span class="required">*</span></label>
+                            <?php echo form_dropdown('grd_lga', nigeria_lgas_for_state(set_value('grd_state')), set_value('grd_lga'), "class='form-control' id='grd_lga' data-plugin-selectTwo data-width='100%'"); ?>
+                            <span class="error"></span>
+                        </div>
+                    </div>
+                    <div class="col-md-12">
+                        <div class="form-group">
+                            <label>Address <span class="required">*</span></label>
+                            <textarea name="grd_address" rows="2" class="form-control"><?php echo set_value('grd_address'); ?></textarea>
+                            <span class="error"></span>
+                        </div>
+                    </div>
+                </div>
             </div>
+
+            <?php if (($cms_setting['captcha_status'] ?? '') == 'enable' && !empty($recaptcha)): ?>
+            <div class="form-group">
+                <?php echo $recaptcha['widget']; echo $recaptcha['script']; ?>
+                <span class="error"></span>
+            </div>
+            <?php endif; ?>
+
+            <button type="submit" class="ta-btn ta-btn-gold" data-loading-text="<i class='fas fa-spinner fa-spin'></i> Sending">Submit application</button>
+            <p class="ta-admit-note">This form is an application, not enrolment. The academy reviews it, then fees and register numbers are completed in the office.</p>
             <?php echo form_close(); ?>
         </div>
-    </div>
-</div>
+        <?php endif; ?>
 
+        <aside class="ta-admit-side">
+            <div class="ta-form-card">
+                <h3 class="ta-display" style="font-size:28px;margin:0 0 8px">Academy</h3>
+                <p class="ta-muted"><?php echo $online_open ? 'Questions before you apply — write or visit.' : 'Come during these hours. Staff will take the admission from there.'; ?></p>
+                <ul class="ta-facts" style="margin:16px 0 0">
+                    <?php if ($address !== ''): ?>
+                    <li><i class="fas fa-map-marker-alt"></i><span><?php echo nl2br(html_escape($address)); ?></span></li>
+                    <?php endif; ?>
+                    <?php if ($phone !== ''): ?>
+                    <li><i class="fas fa-phone"></i><span><?php echo html_escape($phone); ?></span></li>
+                    <?php endif; ?>
+                    <li><i class="far fa-envelope"></i><span><a href="mailto:<?php echo html_escape($email); ?>"><?php echo html_escape($email); ?></a></span></li>
+                    <li><i class="far fa-clock"></i><span><?php echo html_escape($hours); ?></span></li>
+                </ul>
+                <a class="ta-btn ta-btn-line" href="<?php echo $contactURL; ?>">Write to us</a>
+            </div>
+
+            <div class="ta-form-card">
+                <h3 class="ta-display" style="font-size:24px;margin:0 0 8px">Already applied?</h3>
+                <p class="ta-muted">Check an existing application with the reference number you were given.</p>
+                <?php echo form_open('home/checkAdmissionStatus', array('class' => 'form-horizontal frm-submit-data')); ?>
+                    <div class="form-group">
+                        <label>Reference number</label>
+                        <input type="text" class="form-control" name="refno" placeholder="e.g. 48291033" />
+                        <span class="error"></span>
+                    </div>
+                    <button type="submit" class="ta-btn ta-btn-gold" data-loading-text="<i class='fas fa-spinner fa-spin'></i> Checking">Check status</button>
+                <?php echo form_close(); ?>
+            </div>
+        </aside>
+    </div>
+</section>
+
+<?php if ($online_open): ?>
 <script>
-function selectAdmissionType(val) {
-    var select = $('#category_id');
-    if (select.length) {
-        select.val(val).trigger('change');
-        var target = select.closest('.form-group');
-        if (target.length) {
-            $('html, body').animate({
-                scrollTop: target.offset().top - 120
-            }, 600);
-            target.css({'transition': 'background 0.3s ease', 'background': 'rgba(16, 185, 129, 0.15)', 'padding': '10px', 'border-radius': '8px'});
-            setTimeout(function() {
-                target.css('background', 'transparent');
-            }, 1800);
+(function ($) {
+    function refreshSelect2($el) {
+        if ($el && $el.length && $el.data('select2')) {
+            $el.trigger('change.select2');
         }
     }
-}
+    $(document).on('change', '[data-class-target]', function () {
+        var sectionId = $(this).val();
+        var $class = $($(this).attr('data-class-target'));
+        if (!$class.length) {
+            return;
+        }
+        if (!sectionId) {
+            $class.html('<option value="">Select Section First</option>');
+            refreshSelect2($class);
+            return;
+        }
+        $.ajax({
+            url: base_url + 'ajax/getClassBySection',
+            type: 'POST',
+            data: { section_id: sectionId },
+            success: function (html) {
+                $class.html(html);
+                refreshSelect2($class);
+            }
+        });
+    });
+    $(document).on('change', '[data-lga-target]', function () {
+        var $target = $($(this).attr('data-lga-target'));
+        if (!$target.length) {
+            return;
+        }
+        $.ajax({
+            url: base_url + 'ajax/getLgaByState',
+            type: 'POST',
+            data: { state: $(this).val() || '', selected: '' },
+            success: function (html) {
+                $target.html(html);
+                $target.val('');
+                refreshSelect2($target);
+            }
+        });
+    });
+})(jQuery);
 </script>
+<?php endif; ?>

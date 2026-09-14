@@ -1,73 +1,61 @@
-<?php $service = $this->db->get_where('front_cms_services', array('branch_id' => $branchID))->row_array(); ?>
-<!-- Main Banner Starts -->
-<div class="main-banner" style="background: url(<?php echo base_url('uploads/frontend/banners/' . $page_data['banner_image']); ?>) center top;">
-    <div class="container px-md-0">
-        <h2><span><?php echo $page_data['page_title']; ?></span></h2>
+<?php
+$alias = trim((string) ($cms_setting['url_alias'] ?? ''));
+if (strtolower($alias) === 'example') {
+    $alias = '';
+}
+$home = $alias ? base_url($alias) : base_url();
+$admission = $alias ? base_url($alias . '/admission') : base_url('admission');
+?>
+<section class="ta-page">
+    <div class="ta-wrap">
+        <div class="ta-kicker">The academy</div>
+        <h1 class="ta-display">Built for deen. Ready for duniya.</h1>
+        <p class="ta-page-lead"><?php echo html_escape(SCHOOL_NAME); ?> exists so a child does not have to leave the Quran in order to become useful in the world — or leave the world unprepared in order to memorise the Book. Both trusts are held here.</p>
     </div>
-</div>
-<!-- Main Banner Ends -->
-<!-- Breadcrumb Starts -->
-<div class="breadcrumb">
-    <div class="container px-md-0">
-        <ul class="list-unstyled list-inline">
-            <li class="list-inline-item"><a href="<?php echo base_url('home') ?>">Home</a>
-            </li>
-            <li class="list-inline-item active">
-                <?php echo $page_data['page_title']; ?>
-            </li>
-        </ul>
-    </div>
-</div>
-<!-- Breadcrumb Ends -->
-<!-- Main Container Starts -->
-<div class="container px-md-0">
-    <!-- About Intro Text Starts -->
-    <section class="welcome-area about"
-        style="background: url(<?php echo base_url('uploads/frontend/about/' . $page_data['about_image']); ?>) no-repeat right bottom;">
-        <div class="row">
-            <div class="col-lg-6 col-sm-12 about-col">
-                <h3 class="main-heading1"><?php echo $page_data['title']; ?></h3>
-                <h3 class="main-heading2"><?php echo $page_data['subtitle']; ?></h3>
-                <?php echo $page_data['content']; ?>
-            </div>
-            <div class="col-md-6 col-sm-12 d-none d-md-block"></div>
+</section>
+
+<section class="ta-creed" style="padding-top:0">
+    <div class="ta-wrap ta-split">
+        <article class="ta-panel">
+            <h3>What we refuse</h3>
+            <p>A school that treats Islam as decoration. A school that treats academics as the only exam that matters. Tahsin is neither a weekend club nor a factory of certificates.</p>
+        </article>
+        <div class="ta-star-col">
+            <svg class="ta-star" viewBox="0 0 100 100" aria-hidden="true">
+                <path fill="none" stroke="currentColor" stroke-width="2" d="M50 6 L60 40 L94 50 L60 60 L50 94 L40 60 L6 50 L40 40 Z"/>
+            </svg>
         </div>
-    </section>
-    <!-- About Intro Text Ends -->
-</div>
-<!-- Main Container Ends -->
-<!-- About Featured Section Starts -->
-<section class="about-featured parallax"
-    style="background-image: url(<?php echo base_url('uploads/frontend/about/' . $service['parallax_image']); ?>);">
-    <div class="container px-md-0">
-        <h3 class="lite"><?php echo $service['title']; ?></h3>
-        <h2 class="lite">
-            <?php echo $service['subtitle']; ?>
-        </h2>
-        <ul class="list-unstyled list row">
-            <?php
-            $services_list = $this->db->where('branch_id', $branchID)->get('front_cms_services_list')->result_array();
-            foreach ($services_list as $key => $value) {
-            ?>
-            <li class="col-lg-4 col-md-6 col-sm-12">
-                <i class="<?php echo $value['icon']; ?>"></i>
-                <h4><?php echo $value['title']; ?></h4>
-                <p><?php echo $value['description']; ?></p>
-            </li>
-            <?php } ?>
-        </ul>
+        <article class="ta-panel">
+            <h3>What we keep</h3>
+            <p>Named tracks. Boarding, day and weekend. With technical skills, or without. Teachers who can be pointed to. A portal that tells the truth about progress.</p>
+        </article>
     </div>
 </section>
-<!-- About Featured Section Ends -->
-<!-- Footer Top Bar Starts -->
-<section class="footer-top-bar">
-    <div class="container px-md-0 clearfix text-center-sm text-center-xs">
-        <h3 class="float-left  mb-3">
-            <?php $elements = json_decode($page_data['elements'], true); echo $elements['cta_title']; ?>
-        </h3>
-        <a href="<?php echo $elements['button_url'] ?>" class="btn btn-black text-uppercase float-right">
-            <?php echo $elements['button_text'] ?>
-        </a>
+
+<section class="ta-programmes" id="programmes">
+    <div class="ta-wrap">
+        <div class="ta-kicker">How we are organised</div>
+        <h2 class="ta-display">Three houses of study.</h2>
+        <div class="ta-cards">
+            <article class="ta-card">
+                <div class="ta-card-mode">Boarding</div>
+                <h3>Quran House</h3>
+                <p>Immersion. The day is shaped around recitation, class, meals and rest — a boarding life for families who want the child raised inside the academy.</p>
+            </article>
+            <article class="ta-card">
+                <div class="ta-card-mode">Day</div>
+                <h3>Day School</h3>
+                <p>The same academic and Quranic spine, returning home each evening. For families who want Tahsin without leaving the house empty.</p>
+            </article>
+            <article class="ta-card">
+                <div class="ta-card-mode">Weekend</div>
+                <h3>Weekend Tahfeez</h3>
+                <p>The Quran given a serious weekend — not an afterthought — with the option to stand skills beside hifz.</p>
+            </article>
+        </div>
+        <p style="margin-top:36px">
+            <a class="ta-btn ta-btn-gold" href="<?php echo $admission; ?>">Apply for a place</a>
+            <a class="ta-btn ta-btn-ghost" href="<?php echo $home; ?>">Back to the front</a>
+        </p>
     </div>
 </section>
-<!-- Footer Top Bar Ends -->

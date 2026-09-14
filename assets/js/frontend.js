@@ -19,7 +19,6 @@
 		$('.switch_menu').on("change", function(){
 			var state = $(this).prop('checked');
 			var menu_id = $(this).data('menu-id');
-			console.log(menu_branchID); 
 			$.ajax({
 				type: 'POST',
 				url: base_url + 'frontend/menu/status',

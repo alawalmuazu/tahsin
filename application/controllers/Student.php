@@ -245,12 +245,6 @@ class Student extends Admin_Controller
                 if (isset($validArr['guardian_state'])) {
                     $this->form_validation->set_rules('grd_state', translate('state'), 'trim|required');
                 }
-
-                if (empty($getBranch['grd_generate'])) {
-                    $this->form_validation->set_rules('grd_username', translate('username'), 'trim|required|callback_unique_username');
-                    $this->form_validation->set_rules('grd_password', translate('password'), 'trim|required|min_length[4]');
-                    $this->form_validation->set_rules('grd_retype_password', translate('retype_password'), 'trim|required|matches[grd_password]');
-                }
             } else {
                 $this->form_validation->set_rules('parent_id', translate('guardian'), 'required');
             }

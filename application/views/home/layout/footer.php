@@ -1,94 +1,4 @@
-<!-- Footer Starts -->
-<footer class="main-footer">
-    <div class="footer-area" style="background: linear-gradient(170deg, #0a1628 0%, #0d1f2d 50%, #0a1628 100%);">
-        <div class="container px-md-0">
-            <div class="row">
-                <div class="col-lg-4 col-md-4 col-sm-12">
-                    <div class="footer-logo">
-                        <img src="<?php echo base_url('uploads/app_image/logo-nav.png?v=' . APP_VERSION); ?>" alt="Tahsin Academy" class="tahsin-footer-logo">
-                    </div>
-                    <p class="footer-dec"><?php echo $cms_setting['footer_about_text']; ?></p>
-                    <ul class="social">
-                    <?php if (!empty($cms_setting['facebook_url'])) { ?>
-                        <li><a href="<?php echo $cms_setting['facebook_url']; ?>" target="_blank"><i class="fab fa-facebook-f"></i></a></li>
-                    <?php } if (!empty($cms_setting['twitter_url'])) { ?>
-                        <li><a href="<?php echo $cms_setting['twitter_url']; ?>" target="_blank"><i class="fab fa-twitter"></i></a></li>
-                    <?php } if (!empty($cms_setting['youtube_url'])) { ?>
-                        <li><a href="<?php echo $cms_setting['youtube_url']; ?>" target="_blank"><i class="fab fa-youtube"></i></a></li>
-                    <?php } if (!empty($cms_setting['google_plus'])) { ?>
-                        <li><a href="<?php echo $cms_setting['google_plus']; ?>" target="_blank"><i class="fab fa-google-plus-g"></i></a></li>
-                    <?php } if (!empty($cms_setting['linkedin_url'])) { ?>
-                        <li><a href="<?php echo $cms_setting['linkedin_url']; ?>" target="_blank"><i class="fab fa-linkedin-in"></i></a></li>
-                    <?php } if (!empty($cms_setting['instagram_url'])) { ?>
-                        <li><a href="<?php echo $cms_setting['instagram_url']; ?>" target="_blank"><i class="fab fa-instagram"></i></a></li>
-                    <?php } if (!empty($cms_setting['pinterest_url'])) { ?>
-                        <li><a href="<?php echo $cms_setting['pinterest_url']; ?>" target="_blank"><i class="fab fa-pinterest-p"></i></a></li>
-                    <?php } ?>
-                    </ul>
-                </div>
-                <div class="col-lg-4 col-md-4 col-sm-12">
-                    <h4>Address</h4>
-                    <ul class="list-unstyled address-list">
-                        <?php if (!empty($cms_setting['address'])): ?>
-                        <li class="clearfix address">
-                            <i class="fas fa-map-marker-alt"></i> <?php echo $cms_setting['address']; ?>
-                        </li>
-                        <?php endif; ?>
-                        <?php if (!empty($cms_setting['mobile_no'])): ?>
-                        <li class="clearfix">
-                            <i class="fas fa-phone"></i> <?php echo $cms_setting['mobile_no']; ?>
-                        </li>
-                        <?php endif; ?>
-                        <?php if (!empty($cms_setting['fax'])): ?>
-                        <li class="clearfix">
-                            <i class="fas fa-fax"></i> <?php echo $cms_setting['fax']; ?>
-                        </li>
-                        <?php endif; ?>
-                        <?php if (!empty($cms_setting['email'])): ?>
-                        <li class="clearfix">
-                            <i class="fas fa-envelope"></i> <a href="mailto:<?php echo $cms_setting['email']; ?>"><?php echo $cms_setting['email']; ?></a>
-                        </li>
-                        <?php endif; ?>
-                    </ul>
-                </div>
-                <div class="col-lg-4 col-md-4 col-sm-12">
-                    <h4>Quick Links</h4>
-                    <ul class="list-unstyled quick-links">
-                        <?php
-                            $school = $this->uri->segment(1);
-                            if (strtolower((string)$school) === 'example') {
-                                $school = '';
-                            }
-                            if (empty($school)) {
-                                $branchID = $this->home_model->getDefaultBranch();
-                                $r = $this->db->select('url_alias')->get_where('front_cms_setting', array('branch_id' => $branchID))->row();
-                                $school = (!empty($r) && strtolower((string)$r->url_alias) !== 'example') ? $r->url_alias : '';
-                            }
-							$result = web_menu_list(1);
-							foreach ($result as $row) {
-                                if ($cms_setting['online_admission'] == 0 && $row['alias'] == 'admission') continue;
-								$url = "#";
-                                if ($row['invisible'] == 0) {
-                                    $url = $this->home_model->genURL($row, $school);
-							?>
-                        <li><a href="<?php echo $url; ?>"><i class="fa fa-angle-right"></i> <?php echo $row['title']; ?></a></li>
-                        <?php } } ?>
-                    </ul>
-                </div>
-            </div>
-        </div>
-    </div>
-    <div class="ss-gov-footer-strip">
-        Tahsin Academy — Motto: Excellence In Deen &amp; Duniya
-    </div>
-    <div class="copyright" style="background-color: <?php echo $cms_setting['copyright_bg_color'] ?>; color: <?php echo $cms_setting['copyright_text_color'] ?>;">
-        <div class="container px-md-0 clearfix text-center">
-            <?php echo $cms_setting['copyright_text']; ?>
-        </div>
-    </div>
-    <!-- Copyright Ends -->
-</footer>
-<!-- Footer Ends -->
+<?php $this->load->view('landing/footer'); ?>
 
 <?php 
 $config = $this->home_model->whatsappChat();
@@ -153,6 +63,7 @@ if ($config['frontend_enable_chat'] == 1) {
 <script src="<?php echo base_url('assets/frontend/plugins/magnific-popup/jquery.magnific-popup.min.js');?>"></script>
 <script src="<?php echo base_url('assets/frontend/js/jquery.marquee.min.js');?>"></script>
 <script src="<?php echo base_url('assets/frontend/js/custom.js?v=' . version_combine()); ?>"></script>
+<script src="<?php echo base_url('assets/landing/js/tahsin.js?v=' . (is_file(FCPATH . 'assets/landing/js/tahsin.js') ? filemtime(FCPATH . 'assets/landing/js/tahsin.js') : APP_VERSION)); ?>"></script>
 
 <?php
 $alertclass = "";

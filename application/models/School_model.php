@@ -49,6 +49,27 @@ class School_model extends MY_Model
         );
         $this->db->where('id', $data['brance_id']);
         $this->db->update('branch', $arrayBranch);
+
+        $onlineAdmission = isset($data['online_admission']) ? 1 : 0;
+        $hours = trim(strip_tags((string) ($data['working_hours'] ?? '')));
+        $cmsData = array(
+            'online_admission' => $onlineAdmission,
+            'email' => $data['email'],
+            'mobile_no' => $data['mobileno'],
+            'address' => $data['address'],
+            'receive_contact_email' => $data['email'],
+            'working_hours' => $hours,
+        );
+        $cmsRow = $this->db->select('id')->get_where('front_cms_setting', array('branch_id' => $data['brance_id']))->row();
+        if (!empty($cmsRow)) {
+            $this->db->where('id', $cmsRow->id)->update('front_cms_setting', $cmsData);
+        } else {
+            $cmsData['branch_id'] = $data['brance_id'];
+            $cmsData['cms_active'] = 1;
+            $cmsData['application_title'] = SCHOOL_NAME;
+            $this->db->insert('front_cms_setting', $cmsData);
+        }
+
         if (!empty($data['translation'])) {
             if (!is_superadmin_loggedin()) {
                 $isRTL = $this->app_lib->getRTLStatus($data['translation']);

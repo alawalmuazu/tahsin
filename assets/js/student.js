@@ -16,9 +16,11 @@
 						$('#stuLogin').show(300);
 					}
 					if(data.guardian == 1){
-						$('#grdLogin').hide(300);
+						$('#grdLogin').hide();
+						$('#grdAutoLogin').show(300);
 					} else {
-						$('#grdLogin').show(300);
+						$('#grdLogin').hide(300);
+						$('#grdAutoLogin').hide();
 					}
 				}
 			});

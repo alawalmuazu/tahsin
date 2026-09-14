@@ -1,33 +1,17 @@
 <script type="text/javascript" src="<?php echo base_url('assets/js/certificate.js?v=' . version_combine()) ?>"></script>
 <style type="text/css">
-    #print {
-        margin-bottom: 20px;
-        margin-top: 0px;
-        padding: 2px 15px;
-        font-size: 14px;
-        font-weight: 500;
-    }
+    #print { margin-bottom: 20px; margin-top: 0; padding: 2px 15px; font-size: 14px; font-weight: 500; }
 </style>
-<!-- Main Banner Starts -->
-<div class="main-banner" style="background: url(<?php echo base_url('uploads/frontend/banners/' . $page_data['banner_image']); ?>) center top;">
-    <div class="container px-md-0">
-        <h2><span><?php echo $page_data['page_title']; ?></span></h2>
+<section class="ta-page">
+    <div class="ta-wrap">
+        <div class="ta-kicker">Student records</div>
+        <h1 class="ta-display">Exam results</h1>
+        <p class="ta-page-lead">Enter the exam, year and register number. If the record exists, the report will appear below.</p>
     </div>
-</div>
-<!-- Main Banner Ends -->
-<!-- Breadcrumb Starts -->
-<div class="breadcrumb">
-    <div class="container px-md-0">
-        <ul class="list-unstyled list-inline">
-            <li class="list-inline-item"><a href="<?php echo base_url('home'); ?>">Home</a></li>
-            <li class="list-inline-item active"><?php echo $page_data['page_title']; ?></li>
-        </ul>
-    </div>
-</div>
-<!-- Breadcrumb Ends -->
-<!-- Main Container Starts -->
-<div class="container px-md-0 main-container">
-    <p><?php echo $page_data['description']; ?></p>
+</section>
+<section class="ta-page" style="padding-top:0">
+<div class="ta-wrap">
+    <div class="ta-form-card">
     <?php echo form_open('home/examResultsPrintFn', array('class' => 'printIn')); ?>
     <div class="box2 form-box">
         <div class="row">
@@ -49,7 +33,7 @@
                                 $array[$row['id']] = $name;
                             }
                         } else {
-                            $array[0] = translate('no_information_available');
+                            $array[''] = translate('select');
                         }
 
                         echo form_dropdown("exam_id", $array, set_value('exam_id'), "class='form-control' data-plugin-selectTwo");
@@ -82,21 +66,22 @@
         </div>
         <input type="hidden" name="grade_scale" value="<?php echo $page_data['grade_scale']; ?>">
         <input type="hidden" name="attendance" value="<?php echo $page_data['attendance']; ?>">
-        <button type="submit" class="btn btn-1" data-loading-text="<i class='fas fa-spinner fa-spin'></i> Processing"><i class="fas fa-plus-circle"></i> <?=translate('submit')?></button>
+        <button type="submit" class="ta-btn ta-btn-gold" data-loading-text="<i class='fas fa-spinner fa-spin'></i> Processing"><i class="fas fa-plus-circle"></i> <?=translate('submit')?></button>
     </div>
     <?php echo form_close(); ?>
     <div class="row">
         <div class="col-md-12">
             <div id="card_holder" style="display: none;">
                 <div class="box2 form-box">
-                    <button type="button" class="btn btn-1" id="print"><i class="fas fa-print"></i> <?=translate('print')?></button>
+                    <button type="button" class="ta-btn ta-btn-line" id="print"><i class="fas fa-print"></i> <?=translate('print')?></button>
                     <div id="card"></div>
                 </div>
             </div>
         </div>
     </div>
+    </div>
 </div>
-<!-- Main Container Ends -->
+</section>
 
 <script type="text/javascript">
     $(document).ready(function () {

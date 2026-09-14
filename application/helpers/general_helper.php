@@ -216,6 +216,21 @@ function is_multi_school()
     return false;
 }
 
+function public_online_admission_enabled()
+{
+    $CI =& get_instance();
+    if (isset($CI->data['cms_setting']['online_admission'])) {
+        return (int) $CI->data['cms_setting']['online_admission'] === 1;
+    }
+    $row = $CI->db->select('online_admission')->get_where('front_cms_setting', array('branch_id' => SCHOOL_ID))->row();
+    return !empty($row) && (int) $row->online_admission === 1;
+}
+
+function school_official_account_name()
+{
+    return SCHOOL_NAME;
+}
+
 /*
  * Forms no longer post a school picker, but many save endpoints still require
  * branch_id when the user is superadmin. Fill it so those saves succeed.

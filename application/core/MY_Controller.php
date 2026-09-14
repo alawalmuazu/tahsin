@@ -239,16 +239,31 @@ class Frontend_Controller extends MY_Controller
         } else {
             $cms_setting = $defaults;
         }
+        $school = $this->db->select('email, mobileno, address')->where('id', $branchID)->get('branch')->row();
+        if (!empty($school)) {
+            $sEmail = trim((string) $school->email);
+            $sPhone = trim((string) $school->mobileno);
+            $sAddr = trim((string) $school->address);
+            if ($sEmail !== '') {
+                $cms_setting['email'] = $sEmail;
+            }
+            if ($sPhone !== '') {
+                $cms_setting['mobile_no'] = $sPhone;
+            }
+            if ($sAddr !== '') {
+                $cms_setting['address'] = $sAddr;
+            }
+        }
         $cms_setting['cms_active'] = 1;
-        $cms_setting['online_admission'] = 1;
+        $cms_setting['online_admission'] = !empty($cms_setting['online_admission']) ? 1 : 0;
         $cms_setting['application_title'] = $this->brandName($cms_setting['application_title'] ?? '');
         $demoAddress = array('', 'your address', 'address');
         $address = trim((string) ($cms_setting['address'] ?? ''));
-        if (in_array(strtolower($address), $demoAddress, true)) {
+        if (in_array(strtolower($address), $demoAddress, true) || stripos($address, 'romrog') !== false || stripos($address, 'los angeles') !== false || stripos($address, 'la palma') !== false) {
             $cms_setting['address'] = '';
         }
         $phone = trim((string) ($cms_setting['mobile_no'] ?? ''));
-        if ($phone === '' || strpos($phone, '123456') !== false || $phone === '08022332233' || $phone === '+12345678') {
+        if ($phone === '' || strpos($phone, '123456') !== false || $phone === '08022332233' || $phone === '+12345678' || strpos($phone, '954-648') !== false || strpos($phone, '963-612') !== false) {
             $cms_setting['mobile_no'] = '';
         }
         $fax = trim((string) ($cms_setting['fax'] ?? ''));
