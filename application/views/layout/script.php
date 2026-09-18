@@ -63,3 +63,92 @@ if ('serviceWorker' in navigator) {
 		min: jQuery.validator.format("Please enter a value greater than or equal to {0}.")
 	});
 </script>
+
+<!-- Tahsin Notification Audio & Realtime Polling -->
+<script type="text/javascript">
+(function() {
+    var notifAudioUrl = '<?php echo base_url("assets/mp3/ring_2.mp3"); ?>';
+    
+    // Global notification sound player: repeats 3 times
+    window.playTahsinNotification = function(repeats) {
+        if (typeof repeats === 'undefined') repeats = 3;
+        var playIndex = 0;
+        
+        function playStep() {
+            if (playIndex >= repeats) return;
+            var sound = new Audio(notifAudioUrl);
+            sound.addEventListener('ended', function() {
+                playIndex++;
+                if (playIndex < repeats) {
+                    setTimeout(playStep, 250); // slight pause between repeats
+                }
+            });
+            var promise = sound.play();
+            if (promise !== undefined) {
+                promise.catch(function(error) {
+                    console.log('Audio autoplay awaiting user gesture:', error);
+                    $(document).one('click touchstart keydown', function() {
+                        playStep();
+                    });
+                });
+            }
+        }
+        playStep();
+    };
+
+    <?php if (is_director_loggedin() || is_admin_loggedin() || is_superadmin_loggedin()): ?>
+    // Background polling for new staff registrations (Director / Admin)
+    var lastPendingCount = parseInt(sessionStorage.getItem('tahsin_pending_staff_count') || '-1', 10);
+    var checkUrl = '<?php echo base_url("credential_approvals/check_pending_ajax"); ?>';
+
+    function checkNewRegistrations() {
+        $.ajax({
+            url: checkUrl,
+            type: 'GET',
+            dataType: 'json',
+            success: function(res) {
+                if (res && typeof res.count !== 'undefined') {
+                    // Update badges
+                    if (res.count > 0) {
+                        $('.header-menu .fa-bell').parent().find('.badge').text(res.count).show();
+                    }
+                    
+                    // If count increased, alert the Director and play sound 3 times!
+                    if (lastPendingCount !== -1 && res.count > lastPendingCount) {
+                        window.playTahsinNotification(3);
+                        var latestApplicant = (res.pending && res.pending[0]) ? res.pending[0] : null;
+                        var notifText = latestApplicant ? (latestApplicant.user_name + ' (' + latestApplicant.role_name + ')') : 'New applicant';
+                        
+                        if (typeof swal !== 'undefined') {
+                            swal({
+                                toast: true,
+                                position: 'top-end',
+                                type: 'warning',
+                                title: '🔔 New Staff Registration: ' + notifText + ' awaiting your approval!',
+                                showConfirmButton: true,
+                                confirmButtonText: 'Review Now',
+                                confirmButtonClass: 'btn btn-success btn-xs',
+                                timer: 12000
+                            }).then(function(result) {
+                                if (result.value) {
+                                    window.location.href = '<?php echo base_url("credential_approvals"); ?>';
+                                }
+                            });
+                        }
+                    }
+                    lastPendingCount = res.count;
+                    sessionStorage.setItem('tahsin_pending_staff_count', res.count);
+                }
+            },
+            error: function() {
+                // Ignore transient network errors
+            }
+        });
+    }
+
+    // Run first check after 3 seconds, then poll every 20 seconds
+    setTimeout(checkNewRegistrations, 3000);
+    setInterval(checkNewRegistrations, 20000);
+    <?php endif; ?>
+})();
+</script>

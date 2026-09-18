@@ -43,10 +43,10 @@
         <div class="form-header">
             <img src="<?php echo $this->application_model->getBranchImage($branch_id, 'logo'); ?>" class="system-logo" alt="">
             <div class="page-badge">
-                <i class="fas fa-clipboard-list"></i> Apply for Account
+                <i class="fas fa-user-plus"></i> Staff Onboarding
             </div>
-            <h1>Public Registration</h1>
-            <p>Welcome! Please fill out the form below to apply for a staff or parent account.</p>
+            <h1>Staff Registration</h1>
+            <p>Welcome to Tahsin Academy. Please complete your registration details below. Your submission will be reviewed and approved by the Director before portal activation.</p>
         </div>
 
         <?php if(isset($registration_closed) && $registration_closed): ?>
@@ -61,14 +61,15 @@
             <?php echo $this->app_lib->generateCSRF(); ?>
 
             <div class="field-group <?php if (form_error('register_as')) echo 'has-error'; ?>">
-                <label for="register_as">Register As</label>
+                <label for="register_as">Position / Role Applying For <span class="text-danger">*</span></label>
                 <div class="input-wrap">
                     <i class="fas fa-user-tag field-icon"></i>
                     <select class="form-control" name="register_as" id="register_as" style="padding-left: 45px; height: 50px; border-radius: 8px;">
-                        <option value="">-- Select Role --</option>
-                        <option value="teacher" <?php echo set_select('register_as', 'teacher'); ?>>Teacher</option>
-                        <option value="employee" <?php echo set_select('register_as', 'employee'); ?>>Other Employee / Staff</option>
-                        <option value="parent" <?php echo set_select('register_as', 'parent'); ?>>Parent / Guardian</option>
+                        <option value="">-- Select Position / Role --</option>
+                        <option value="facilitator" <?php echo ($selected_role == 'facilitator' || set_value('register_as') == 'facilitator') ? 'selected' : ''; ?>>Facilitator</option>
+                        <option value="accountant" <?php echo ($selected_role == 'accountant' || set_value('register_as') == 'accountant') ? 'selected' : ''; ?>>Accountant</option>
+                        <option value="librarian" <?php echo ($selected_role == 'librarian' || set_value('register_as') == 'librarian') ? 'selected' : ''; ?>>Librarian</option>
+                        <option value="receptionist" <?php echo ($selected_role == 'receptionist' || set_value('register_as') == 'receptionist') ? 'selected' : ''; ?>>Receptionist</option>
                     </select>
                 </div>
                 <?php if (form_error('register_as')): ?>

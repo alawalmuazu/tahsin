@@ -139,7 +139,11 @@ class Authentication extends Authentication_Controller
                             redirect(base_url('dashboard'));
                         }
                     } else {
-                        set_alert('error', translate('inactive_account'));
+                        if ($login_credential->active == 0) {
+                            set_alert('error', 'Your account has been registered and is currently pending review and approval by the Director. You will be able to log in once approved.');
+                        } else {
+                            set_alert('error', translate('inactive_account'));
+                        }
                         redirect(base_url('authentication'));
                     }
                 } else {

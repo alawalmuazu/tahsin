@@ -287,11 +287,26 @@ function is_admin_loggedin()
     return false;
 }
 
-// is teacher logged in @return boolean
-function is_teacher_loggedin()
+// is facilitator / teacher logged in @return boolean
+function is_facilitator_loggedin()
 {
     $CI = &get_instance();
     if ($CI->session->userdata('loggedin_role_id') == 3) {
+        return true;
+    }
+    return false;
+}
+
+function is_teacher_loggedin()
+{
+    return is_facilitator_loggedin();
+}
+
+// is director logged in @return boolean
+function is_director_loggedin()
+{
+    $CI = &get_instance();
+    if ($CI->session->userdata('loggedin_role_id') == 9) {
         return true;
     }
     return false;

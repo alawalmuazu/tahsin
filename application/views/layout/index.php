@@ -96,6 +96,9 @@
 		$alert_message = $this->session->flashdata('alert-message-'. $alertclass);
 	?>
 		<script type="text/javascript">
+			if (typeof window.playTahsinNotification === 'function') {
+				window.playTahsinNotification(3);
+			}
 			swal({
 				toast: true,
 				position: 'top-end',

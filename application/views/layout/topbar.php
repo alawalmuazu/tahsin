@@ -287,23 +287,63 @@ foreach($languages as $lang) :
 					</div>
 				</div>
 			</li>
-			<!-- message alert box -->
+			<!-- message & notification alert box -->
 			<li>
 				<a href="#" class="dropdown-toggle header-menu-icon" data-toggle="dropdown">
 					<i class="far fa-bell"></i>
 					<?php 
-						$unreadMessage	= $this->application_model->unread_message_alert();
-						if (count($unreadMessage) > 0) {
-							echo '<span class="badge">' . count($unreadMessage) . '</span>';
+						$unreadMessage = $this->application_model->unread_message_alert();
+						$pendingApps = [];
+						if (is_director_loggedin() || is_admin_loggedin() || is_superadmin_loggedin()) {
+							$pendingApps = $this->db->select('lc.id, lc.user_id, lc.role, lc.created_at, r.name as role_name, s.name as user_name')
+								->from('login_credential lc')
+								->join('roles r', 'r.id = lc.role', 'left')
+								->join('staff s', 's.id = lc.user_id', 'left')
+								->where('lc.active', 0)
+								->where_in('lc.role', [3, 4, 5, 8])
+								->order_by('lc.id', 'DESC')
+								->limit(5)
+								->get()->result();
+						}
+						$totalAlerts = count($unreadMessage) + count($pendingApps);
+						if ($totalAlerts > 0) {
+							echo '<span class="badge" style="background:#e07a5f; color:#fff;">' . $totalAlerts . '</span>';
 						} 
 					?>
 				</a>
-				<div class="dropdown-menu header-menubox qmsg-box-mw">
-					<div class="notification-title">
-						<i class="far fa-bell"></i> <?php echo translate('message');?>
+				<div class="dropdown-menu header-menubox qmsg-box-mw" style="min-width: 320px;">
+					<div class="notification-title" style="display: flex; justify-content: space-between; align-items: center;">
+						<span><i class="far fa-bell"></i> <?php echo translate('notifications') ?: 'Notifications';?></span>
+						<?php if (count($pendingApps) > 0): ?>
+							<span class="badge" style="background:#e07a5f; color:#fff; font-size: 11px;"><?=count($pendingApps)?> Pending Review</span>
+						<?php endif; ?>
 					</div>
 					<div class="content">
 						<ul>
+							<?php if (count($pendingApps) > 0): ?>
+								<li style="background: #fffbeb; padding: 6px 12px; font-size: 11px; font-weight: 700; color: #b45309; border-bottom: 1px solid #fed7aa; text-transform: uppercase; letter-spacing: 0.5px;">
+									<i class="fas fa-user-clock"></i> Pending Staff Registrations
+								</li>
+								<?php foreach ($pendingApps as $pApp): 
+									$pRoleStyle = 'background:#0284c7; color:#fff;';
+									if ($pApp->role == 4) $pRoleStyle = 'background:#d97706; color:#fff;';
+									elseif ($pApp->role == 5) $pRoleStyle = 'background:#16a34a; color:#fff;';
+									elseif ($pApp->role == 8) $pRoleStyle = 'background:#9333ea; color:#fff;';
+								?>
+								<li style="border-bottom: 1px solid #f1f5f9; background: #fffdfa;">
+									<a href="<?php echo base_url('credential_approvals'); ?>" class="clearfix" style="padding: 10px 12px; display: block; text-decoration: none;">
+										<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 3px;">
+											<strong style="color: #1e293b; font-size: 13px;"><?php echo html_escape($pApp->user_name ?: 'Applicant'); ?></strong>
+											<span class="badge" style="<?=$pRoleStyle?> font-size: 10px;"><?php echo html_escape($pApp->role_name); ?></span>
+										</div>
+										<div style="font-size: 11px; color: #64748b;">
+											<i class="far fa-clock"></i> <?php echo get_nicetime($pApp->created_at); ?> &bull; <span style="color: #1a6b3c; font-weight: 600;">Review &amp; Approve &rarr;</span>
+										</div>
+									</a>
+								</li>
+								<?php endforeach; ?>
+							<?php endif; ?>
+
 							<?php
 								if (count($unreadMessage) > 0) {
 									foreach ($unreadMessage as $message):
@@ -323,16 +363,19 @@ foreach($languages as $lang) :
 								</li>
 							<?php
 									endforeach; 
-								}else{
-									echo '<li class="text-center">You do not have any new messages</li>';
+								} elseif (empty($pendingApps)) {
+									echo '<li class="text-center" style="padding: 15px; color: #94a3b8;">You do not have any new notifications</li>';
 								}
 							?>
 						</ul>
 					</div>
-					<div class="notification-footer">
-						<div class="text-right">
-							<a href="<?php echo base_url('communication/mailbox/inbox');?>" class="view-more">All Messages</a>
-						</div>
+					<div class="notification-footer" style="display: flex; justify-content: space-between; padding: 8px 12px;">
+						<?php if (!empty($pendingApps)): ?>
+							<a href="<?php echo base_url('credential_approvals');?>" style="font-size: 12px; font-weight: 600; color: #1a6b3c;">All Approvals</a>
+						<?php else: ?>
+							<span></span>
+						<?php endif; ?>
+						<a href="<?php echo base_url('communication/mailbox/inbox');?>" class="view-more">All Messages</a>
 					</div>
 				</div>
 			</li>

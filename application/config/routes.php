@@ -110,6 +110,14 @@ $route['profile'] = 'profile/index';
 $route['sections'] = 'sections/index';
 $route['health'] = 'health/index';
 
+$route['registration'] = 'registration/index';
+$route['registration/success'] = 'registration/success';
+$route['credential_approvals'] = 'credential_approvals/index';
+$route['credential_approvals/invite'] = 'credential_approvals/invite';
+$route['credential_approvals/approve/(:num)'] = 'credential_approvals/approve/$1';
+$route['credential_approvals/reject/(:num)'] = 'credential_approvals/reject/$1';
+$route['credential_approvals/check_pending_ajax'] = 'credential_approvals/check_pending_ajax';
+
 $route['authentication'] = 'authentication/index';
 $route['home'] = 'home/index';
 $route['admission'] = 'home/admission';

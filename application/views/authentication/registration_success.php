@@ -28,17 +28,17 @@
 
     <main class="form-panel" style="display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; padding: 40px;">
         <div class="form-header" style="text-align: center; max-width: 400px;">
-            <i class="far fa-check-circle" style="font-size: 80px; color: #28a745; margin-bottom: 20px;"></i>
-            <h1>Application Received!</h1>
-            <p style="font-size: 16px; line-height: 1.6; margin-top: 15px;">
-                Thank you for applying for an account. Your credentials have been securely saved and are currently <strong>Pending Admin Approval</strong>. 
+            <i class="far fa-check-circle" style="font-size: 80px; color: #16a34a; margin-bottom: 20px;"></i>
+            <h1 style="font-size: 26px; font-weight: 700; color: #111;">Application Submitted!</h1>
+            <p style="font-size: 16px; line-height: 1.6; margin-top: 15px; color: #374151;">
+                Thank you<?php echo !empty($registered_name) ? ', <strong>' . html_escape($registered_name) . '</strong>' : ''; ?>. Your registration details as a <strong><?php echo html_escape($registered_role); ?></strong> have been securely recorded and are currently <strong class="text-warning">Pending Review &amp; Approval by the Director</strong>.
             </p>
-            <p style="font-size: 14px; color: #666; margin-top: 15px;">
-                You will be notified once the school administrator reviews and activates your account. You can then log in using your chosen Username and Password.
+            <p style="font-size: 14px; color: #6b7280; margin-top: 15px;">
+                Once the Director reviews and activates your account, you will be able to log in to the Tahsin Academy portal using your chosen Username and Password.
             </p>
             
             <a href="<?php echo base_url('authentication'); ?>" class="btn-auth" style="display: inline-block; text-decoration: none; margin-top: 30px;">
-                Return to Login
+                Return to Login Page
             </a>
         </div>
     </main>

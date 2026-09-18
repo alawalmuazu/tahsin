@@ -448,6 +448,24 @@
                                 </a>
                             </li>
                         <?php } ?>
+                        <?php if (is_director_loggedin() || is_admin_loggedin() || is_superadmin_loggedin() || get_permission('employee', 'is_add')) { 
+                            $pending_creds_count = $this->db->where('active', 0)->where_in('role', [3, 4, 5, 8])->count_all_results('login_credential');
+                        ?>
+                            <li class="<?php if ($sub_page == 'credential_approvals/invite') echo 'nav-active'; ?>">
+                                <a href="<?php echo base_url('credential_approvals/invite'); ?>">
+                                    <span><i class="fas fa-caret-right" aria-hidden="true"></i>Send Registration Links</span>
+                                </a>
+                            </li>
+                            <li class="<?php if ($sub_page == 'credential_approvals/index') echo 'nav-active'; ?>">
+                                <a href="<?php echo base_url('credential_approvals'); ?>">
+                                    <span><i class="fas fa-caret-right" aria-hidden="true"></i>Registration Approvals
+                                    <?php if ($pending_creds_count > 0): ?>
+                                        <span class="badge" style="background:#d9534f; color:#fff; font-size:11px; border-radius:10px; margin-left:6px; padding:2px 7px;"><?php echo $pending_creds_count; ?></span>
+                                    <?php endif; ?>
+                                    </span>
+                                </a>
+                            </li>
+                        <?php } ?>
                         </ul>
                     </li>
                     <?php } ?>

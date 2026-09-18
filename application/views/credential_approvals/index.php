@@ -1,48 +1,137 @@
-<section class="panel">
-    <header class="panel-heading">
-        <h4 class="panel-title"><i class="fas fa-user-check"></i> Pending Credential Approvals</h4>
-    </header>
-    <div class="panel-body">
-        <div class="table-responsive">
-            <table class="table table-bordered table-hover table-condensed mb-none table-export">
-                <thead>
-                    <tr>
-                        <th>#</th>
-                        <th><?=translate('name')?></th>
-                        <th><?=translate('username')?></th>
-                        <th><?=translate('role')?></th>
-                        <th><?=translate('status')?></th>
-                        <th><?=translate('action')?></th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <?php 
-                    $count = 1;
-                    foreach ($pending_approvals as $row): 
-                    ?>
-                    <tr>
-                        <td><?php echo $count++; ?></td>
-                        <td><?php echo $row->user_name; ?></td>
-                        <td><?php echo $row->username; ?></td>
-                        <td><?php echo $row->role_name; ?></td>
-                        <td><span class="label label-warning-custom">Pending</span></td>
-                        <td>
-                            <a href="<?php echo base_url('credential_approvals/approve/' . $row->id); ?>" class="btn btn-success btn-circle icon" data-toggle="tooltip" data-original-title="Approve">
-                                <i class="fas fa-check"></i>
-                            </a>
-                            <a href="<?php echo base_url('credential_approvals/reject/' . $row->id); ?>" class="btn btn-danger btn-circle icon" data-toggle="tooltip" data-original-title="Reject" onclick="return confirm('Are you sure you want to reject this application?');">
-                                <i class="fas fa-times"></i>
-                            </a>
-                        </td>
-                    </tr>
-                    <?php endforeach; ?>
-                    <?php if (empty($pending_approvals)): ?>
-                    <tr>
-                        <td colspan="6" class="text-center">No pending approvals at this time.</td>
-                    </tr>
-                    <?php endif; ?>
-                </tbody>
-            </table>
+<div class="row">
+    <div class="col-md-12">
+        <div class="panel panel-info" style="border-left: 4px solid #1a6b3c;">
+            <div class="panel-body" style="padding: 16px 20px;">
+                <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;">
+                    <div>
+                        <h4 style="margin: 0 0 5px; font-weight: 600; color: #1a6b3c;">
+                            <i class="fas fa-user-check me-1"></i> Staff Registration Approvals
+                        </h4>
+                        <p class="text-muted" style="margin: 0;">
+                            Candidates who register via staff links (Facilitator, Accountant, Librarian, Receptionist) must be reviewed and approved here before their login accounts become active.
+                        </p>
+                    </div>
+                    <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                        <button type="button" class="btn btn-default btn-sm" onclick="if(typeof playTahsinNotification==='function') playTahsinNotification(3);" title="Play notification sound 3 times">
+                            <i class="fas fa-volume-up" style="color: #e07a5f;"></i> Test Sound (3x)
+                        </button>
+                        <a href="<?=base_url('credential_approvals/invite')?>" class="btn btn-default btn-sm" style="background: #1a6b3c; color: #fff; border-color: #1a6b3c;">
+                            <i class="fas fa-paper-plane"></i> Send Registration Links
+                        </a>
+                    </div>
+                </div>
+            </div>
         </div>
+
+        <section class="panel">
+            <header class="panel-heading">
+                <h4 class="panel-title"><i class="fas fa-list"></i> Pending Applications</h4>
+            </header>
+            <div class="panel-body">
+                <div class="table-responsive">
+                    <table class="table table-bordered table-hover table-condensed mb-none table-export">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Applicant Name</th>
+                                <th>Requested Role</th>
+                                <th>Username</th>
+                                <th>Email</th>
+                                <th>Phone</th>
+                                <th>Date Submitted</th>
+                                <th>Status</th>
+                                <th class="text-center">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php 
+                            $count = 1;
+                            foreach ($pending_approvals as $row): 
+                                $role_badge = 'badge-primary';
+                                $role_style = 'background: #0284c7; color: #fff;';
+                                if ($row->role == 4) { // Accountant
+                                    $role_style = 'background: #d97706; color: #fff;';
+                                } elseif ($row->role == 5) { // Librarian
+                                    $role_style = 'background: #16a34a; color: #fff;';
+                                } elseif ($row->role == 8) { // Receptionist
+                                    $role_style = 'background: #9333ea; color: #fff;';
+                                } elseif ($row->role == 3) { // Facilitator
+                                    $role_style = 'background: #0284c7; color: #fff;';
+                                }
+                            ?>
+                            <tr>
+                                <td><?php echo $count++; ?></td>
+                                <td><strong><?php echo html_escape($row->user_name); ?></strong></td>
+                                <td>
+                                    <span class="badge" style="<?=$role_style?> font-weight: 600; padding: 4px 10px; border-radius: 12px;">
+                                        <?php echo html_escape($row->role_name); ?>
+                                    </span>
+                                </td>
+                                <td><code><?php echo html_escape($row->username); ?></code></td>
+                                <td>
+                                    <?php if (!empty($row->user_email)): ?>
+                                        <a href="mailto:<?php echo html_escape($row->user_email); ?>"><?php echo html_escape($row->user_email); ?></a>
+                                    <?php else: ?>
+                                        <span class="text-muted">—</span>
+                                    <?php endif; ?>
+                                </td>
+                                <td>
+                                    <?php if (!empty($row->user_mobile)): ?>
+                                        <a href="tel:<?php echo html_escape($row->user_mobile); ?>"><?php echo html_escape($row->user_mobile); ?></a>
+                                    <?php else: ?>
+                                        <span class="text-muted">—</span>
+                                    <?php endif; ?>
+                                </td>
+                                <td>
+                                    <?php 
+                                    if (!empty($row->reg_date)) {
+                                        echo date('M d, Y · h:i A', strtotime($row->reg_date));
+                                    } else {
+                                        echo '—';
+                                    }
+                                    ?>
+                                </td>
+                                <td><span class="label label-warning" style="background: #e07a5f; color: #fff; padding: 4px 8px; border-radius: 4px;">Pending Review</span></td>
+                                <td class="text-center" style="white-space: nowrap;">
+                                    <a href="<?php echo base_url('credential_approvals/approve/' . $row->id); ?>" class="btn btn-success btn-xs" data-toggle="tooltip" data-original-title="Approve and Activate Account" onclick="return confirm('Approve and activate account for <?php echo html_escape($row->user_name); ?>?');" style="margin-right: 4px;">
+                                        <i class="fas fa-check"></i> Approve
+                                    </a>
+                                    <a href="<?php echo base_url('credential_approvals/reject/' . $row->id); ?>" class="btn btn-danger btn-xs" data-toggle="tooltip" data-original-title="Reject and Remove Application" onclick="return confirm('Are you sure you want to reject this application? This will permanently remove the pending record.');">
+                                        <i class="fas fa-times"></i> Reject
+                                    </a>
+                                </td>
+                            </tr>
+                            <?php endforeach; ?>
+                            <?php if (empty($pending_approvals)): ?>
+                            <tr>
+                                <td colspan="9" class="text-center" style="padding: 30px;">
+                                    <i class="fas fa-check-circle" style="font-size: 32px; color: #1a6b3c; margin-bottom: 10px; display: block;"></i>
+                                    <p style="font-weight: 600; margin-bottom: 4px;">No Pending Applications</p>
+                                    <span class="text-muted">All registered staff members have been reviewed. Share registration links to invite more staff.</span>
+                                    <div style="margin-top: 12px;">
+                                        <a href="<?=base_url('credential_approvals/invite')?>" class="btn btn-default btn-sm">
+                                            <i class="fas fa-paper-plane"></i> Send Staff Registration Links
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                            <?php endif; ?>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
     </div>
-</section>
+</div>
+
+<script type="text/javascript">
+$(document).ready(function() {
+    <?php if (!empty($pending_approvals)): ?>
+    setTimeout(function() {
+        if (typeof window.playTahsinNotification === 'function') {
+            window.playTahsinNotification(3);
+        }
+    }, 700);
+    <?php endif; ?>
+});
+</script>

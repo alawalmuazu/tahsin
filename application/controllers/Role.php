@@ -100,7 +100,7 @@ class Role extends Admin_Controller
     // role delete in DB
     public function delete($role_id)
     {
-        $systemRole = array(1, 2, 3, 4, 5, 6, 7);
+        $systemRole = array(1, 2, 3, 4, 5, 6, 7, 8, 9);
         if (!in_array($role_id, $systemRole)) {
             $this->db->where('id', $role_id);
             $this->db->delete('roles');
