@@ -69,6 +69,7 @@ class Registration extends Authentication_Controller
             $this->form_validation->set_rules('username', translate('username'), 'trim|required|is_unique[login_credential.username]');
             $this->form_validation->set_rules('password', translate('password'), 'trim|required|min_length[4]');
             $this->form_validation->set_rules('c_password', translate('confirm_password'), 'trim|required|matches[password]');
+            $this->form_validation->set_rules('cropped_photo', 'Profile Photo', 'trim|required');
 
             if ($this->form_validation->run() !== false) {
                 // Ignore submitted role if token is present, to prevent tampering
@@ -109,6 +110,22 @@ class Registration extends Authentication_Controller
                     $role_title     = 'Receptionist';
                 }
 
+                // Handle cropped photo upload
+                $photo_file = 'defualt.png';
+                $cropped_photo = $this->input->post('cropped_photo');
+                if (!empty($cropped_photo)) {
+                    $image_parts = explode(";base64,", $cropped_photo);
+                    if (count($image_parts) == 2) {
+                        $image_base64 = base64_decode($image_parts[1]);
+                        $file_name = 'staff_' . uniqid() . '.jpg';
+                        $file_path = FCPATH . 'uploads/images/staff/' . $file_name;
+                        
+                        if (file_put_contents($file_path, $image_base64)) {
+                            $photo_file = $file_name;
+                        }
+                    }
+                }
+
                 $staffData = array(
                     'name'         => $name,
                     'email'        => $email,
@@ -118,6 +135,7 @@ class Registration extends Authentication_Controller
                     'department'   => $department_id,
                     'staff_id'     => 'TA-' . strtoupper(substr(uniqid(), -5)),
                     'joining_date' => date('Y-m-d'),
+                    'photo'        => $photo_file,
                 );
                 $this->db->insert('staff', $staffData);
                 $userID = $this->db->insert_id();

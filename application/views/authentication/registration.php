@@ -14,6 +14,8 @@
     <script src="<?php echo base_url('assets/vendor/jquery/jquery.js'); ?>"></script>
     <link rel="stylesheet" href="<?php echo base_url('assets/vendor/sweetalert/sweetalert-custom.css'); ?>">
     <script src="<?php echo base_url('assets/vendor/sweetalert/sweetalert.min.js'); ?>"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
     <link rel="stylesheet" href="<?php echo base_url('assets/css/auth.css?v=' . APP_VERSION); ?>">
 
     <script>var base_url = '<?php echo base_url() ?>';</script>
@@ -38,7 +40,7 @@
     </div>
 
     <!-- ── Right Form Panel ───────────────────────────────────────── -->
-    <main class="form-panel" style="overflow-y: auto; padding: 40px;">
+    <main class="form-panel" style="overflow-y: auto; padding: 40px; justify-content: flex-start;">
 
         <div class="form-header">
             <img src="<?php echo $this->application_model->getBranchImage($branch_id, 'logo'); ?>" class="system-logo" alt="">
@@ -80,6 +82,25 @@
                 </div>
                 <?php if (form_error('register_as')): ?>
                 <span class="field-error"><?php echo form_error('register_as'); ?></span>
+                <?php endif; ?>
+            </div>
+
+            <!-- Profile Photo Upload -->
+            <div style="text-align: center; margin-bottom: 25px;" class="field-group <?php if (form_error('cropped_photo')) echo 'has-error'; ?>">
+                <label for="photo_upload" style="cursor: pointer; display: inline-block; position: relative;" title="Click to take or upload a photo">
+                    <div style="width: 120px; height: 120px; border-radius: 50%; overflow: hidden; background: #eef2f5; border: 3px solid <?php echo form_error('cropped_photo') ? '#e53935' : '#1a6b3c'; ?>; display: flex; align-items: center; justify-content: center;" id="photo_preview_container">
+                        <i class="fas fa-camera fa-2x <?php echo form_error('cropped_photo') ? 'text-danger' : 'text-muted'; ?>" id="photo_placeholder_icon"></i>
+                        <img id="photo_preview_img" src="<?php echo set_value('cropped_photo'); ?>" style="width: 100%; height: 100%; object-fit: cover; <?php echo set_value('cropped_photo') ? '' : 'display: none;'; ?>">
+                    </div>
+                    <div style="position: absolute; bottom: 0; right: 0; background: <?php echo form_error('cropped_photo') ? '#e53935' : '#1a6b3c'; ?>; color: white; width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">
+                        <i class="fas fa-plus"></i>
+                    </div>
+                </label>
+                <input type="file" id="photo_upload" accept="image/*" capture="user" style="display: none;">
+                <input type="hidden" name="cropped_photo" id="cropped_photo" value="<?php echo set_value('cropped_photo'); ?>">
+                <div style="font-size: 13px; color: <?php echo form_error('cropped_photo') ? '#e53935' : '#6b7280'; ?>; margin-top: 8px; font-weight: 600;">Upload or snap a headshot (Required) <span class="text-danger">*</span></div>
+                <?php if (form_error('cropped_photo')): ?>
+                <span class="field-error" style="display:block; margin-top:5px; font-weight:600;"><?php echo form_error('cropped_photo'); ?></span>
                 <?php endif; ?>
             </div>
 
@@ -175,7 +196,75 @@
 
     <script src="<?php echo base_url('assets/vendor/bootstrap/js/bootstrap.js'); ?>"></script>
 
+    <!-- Cropper Modal -->
+    <div class="modal fade" id="cropperModal" tabindex="-1" role="dialog" aria-labelledby="modalLabel" aria-hidden="true" data-backdrop="static">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="modalLabel" style="font-weight: 600; display: inline-block;">Crop Photo</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close" style="margin-top: 2px;">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body" style="padding: 10px;">
+                    <div class="img-container" style="max-height: 60vh; overflow: hidden; display: flex; justify-content: center; background: #000;">
+                        <img id="cropper_image" src="" style="max-width: 100%;">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-success" id="btn_crop" style="background: #1a6b3c; border-color: #1a6b3c;">Crop &amp; Save</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script>
+    var cropper;
+    var image = document.getElementById('cropper_image');
+
+    $('#photo_upload').on('change', function(e) {
+        var files = e.target.files;
+        if (files && files.length > 0) {
+            var file = files[0];
+            var reader = new FileReader();
+            reader.onload = function(e) {
+                image.src = e.target.result;
+                $('#cropperModal').modal('show');
+            };
+            reader.readAsDataURL(file);
+        }
+    });
+
+    $('#cropperModal').on('shown.bs.modal', function() {
+        cropper = new Cropper(image, {
+            aspectRatio: 1,
+            viewMode: 1,
+            autoCropArea: 0.9,
+        });
+    }).on('hidden.bs.modal', function() {
+        if (cropper) {
+            cropper.destroy();
+            cropper = null;
+        }
+        $('#photo_upload').val(''); // Reset input so same file can be chosen again
+    });
+
+    $('#btn_crop').on('click', function() {
+        if (!cropper) return;
+        var canvas = cropper.getCroppedCanvas({
+            width: 400,
+            height: 400
+        });
+        var base64url = canvas.toDataURL('image/jpeg');
+        
+        $('#photo_preview_img').attr('src', base64url).show();
+        $('#photo_placeholder_icon').hide();
+        $('#cropped_photo').val(base64url);
+        
+        $('#cropperModal').modal('hide');
+    });
+
     function togglePass(btn) {
         var input = btn.closest('.input-wrap').querySelector('input');
         var icon  = btn.querySelector('i');

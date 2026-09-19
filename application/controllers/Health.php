@@ -83,6 +83,7 @@ class Health extends Admin_Controller
             'uploads/'                        => 'Main uploads folder',
             'uploads/attachments/'            => 'General attachments',
             'uploads/images/'                 => 'Images',
+            'uploads/images/staff/'           => 'Staff photos',
         ];
         foreach ($upload_dirs as $dir => $label) {
             $path       = FCPATH . $dir;
