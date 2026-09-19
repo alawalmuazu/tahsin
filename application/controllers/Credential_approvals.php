@@ -136,7 +136,6 @@ class Credential_approvals extends Admin_Controller
             }
         }
 
-        $this->data['available_roles'] = $this->db->get_where('roles', array('is_system' => 0))->result_array();
         $this->load->view('layout/index', $this->data);
     }
     

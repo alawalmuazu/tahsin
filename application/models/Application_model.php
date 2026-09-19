@@ -180,9 +180,9 @@ class Application_model extends CI_Model
             }
         } else {
             if ($thumb == true) {
-                $image_url = base_url('uploads/language_flags/defualt_thumb.png');
+                $image_url = base_url('uploads/language_flags/default_thumb.png');
             } else {
-                $image_url = base_url('uploads/language_flags/defualt.png');
+                $image_url = base_url('uploads/language_flags/default.png');
             }
         }
         return $image_url;
