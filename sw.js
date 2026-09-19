@@ -18,8 +18,13 @@ self.addEventListener('fetch', event => {
   // We use a Network First, fallback to cache approach.
   if (event.request.method === 'GET') {
       event.respondWith(
-        fetch(event.request).catch(() => {
-          return caches.match(event.request);
+        fetch(event.request).catch(async () => {
+          const cachedResponse = await caches.match(event.request);
+          if (cachedResponse) {
+              return cachedResponse;
+          }
+          // If neither network nor cache has the resource, return a fallback 404 Response
+          return new Response('Not found', { status: 404, statusText: 'Not Found' });
         })
       );
   }

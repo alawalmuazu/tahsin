@@ -72,7 +72,7 @@
                 <label for="register_as">Position / Role Applying For <span class="text-danger">*</span></label>
                 <div class="input-wrap">
                     <i class="fas fa-user-tag field-icon"></i>
-                    <select class="form-control" name="register_as" id="register_as" style="padding-left: 45px; height: 50px; border-radius: 8px; pointer-events: none; background: #eef2f5;">
+                    <select class="form-control" name="register_as" id="register_as" style="<?php echo !empty($selected_role) ? 'pointer-events: none; background: #eef2f5;' : ''; ?>">
                         <option value="">-- Select Position / Role --</option>
                         <option value="facilitator" <?php echo ($selected_role == 'facilitator' || set_value('register_as') == 'facilitator') ? 'selected' : ''; ?>>Facilitator</option>
                         <option value="accountant" <?php echo ($selected_role == 'accountant' || set_value('register_as') == 'accountant') ? 'selected' : ''; ?>>Accountant</option>

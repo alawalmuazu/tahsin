@@ -240,7 +240,7 @@ body {
     font-size: 14px;
     transition: color 0.2s;
 }
-.input-wrap input {
+.input-wrap input, .input-wrap select {
     width: 100%;
     height: 50px;
     background: var(--input-bg);
@@ -253,13 +253,13 @@ body {
     transition: all 0.25s;
     outline: none;
 }
-.input-wrap input:focus {
+.input-wrap input:focus, .input-wrap select:focus {
     border-color: var(--green-mid);
     background: #fff;
     box-shadow: 0 0 0 4px rgba(26,107,60,0.08);
 }
-.input-wrap input:focus + .focus-line { width: 100%; }
-.input-wrap input:focus ~ .field-icon { color: var(--green-mid); }
+.input-wrap input:focus + .focus-line, .input-wrap select:focus + .focus-line { width: 100%; }
+.input-wrap input:focus ~ .field-icon, .input-wrap select:focus ~ .field-icon { color: var(--green-mid); }
 
 .input-wrap .toggle-pass {
     position: absolute;
