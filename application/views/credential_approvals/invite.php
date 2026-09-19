@@ -55,6 +55,14 @@
                     Copy and send any of the links below directly to candidate applicants via WhatsApp, SMS, or Email:
                 </p>
 
+                <?php
+                // Generate secure tokens for instant links
+                $hash_facilitator = urlencode(base64_encode(openssl_encrypt('facilitator', 'AES-128-ECB', 'TAHSIN_SECRET')));
+                $hash_accountant = urlencode(base64_encode(openssl_encrypt('accountant', 'AES-128-ECB', 'TAHSIN_SECRET')));
+                $hash_librarian = urlencode(base64_encode(openssl_encrypt('librarian', 'AES-128-ECB', 'TAHSIN_SECRET')));
+                $hash_receptionist = urlencode(base64_encode(openssl_encrypt('receptionist', 'AES-128-ECB', 'TAHSIN_SECRET')));
+                ?>
+
                 <div class="row">
                     <!-- 1. Facilitator -->
                     <div class="col-md-6 col-lg-3 mb-md">
@@ -70,16 +78,16 @@
                                     </div>
                                 </div>
                                 <div class="form-group" style="margin-bottom: 10px;">
-                                    <input type="text" class="form-control input-sm" id="link_facilitator" value="<?=base_url('registration?role=facilitator')?>" readonly style="background: #f8fafc; font-size: 12px;">
+                                    <input type="text" class="form-control input-sm" id="link_facilitator" value="<?=base_url('registration?token='.$hash_facilitator)?>" readonly style="background: #f8fafc; font-size: 12px;">
                                 </div>
                                 <div style="display: flex; gap: 6px;">
                                     <button class="btn btn-default btn-sm btn-block" onclick="copyRoleLink('link_facilitator', this)" style="font-size: 12px;">
                                         <i class="fas fa-copy"></i> Copy
                                     </button>
-                                    <a href="https://api.whatsapp.com/send?text=<?=urlencode("Assalamu Alaikum. Registration link for Facilitator position at Tahsin Academy: " . base_url('registration?role=facilitator'))?>" target="_blank" class="btn btn-default btn-sm" title="Share on WhatsApp" style="color: #25D366;">
+                                    <a href="https://api.whatsapp.com/send?text=<?=urlencode("Assalamu Alaikum. Registration link for Facilitator position at Tahsin Academy: " . base_url('registration?token='.$hash_facilitator))?>" target="_blank" class="btn btn-default btn-sm" title="Share on WhatsApp" style="color: #25D366;">
                                         <i class="fab fa-whatsapp"></i>
                                     </a>
-                                    <a href="<?=base_url('registration?role=facilitator')?>" target="_blank" class="btn btn-default btn-sm" title="Preview Form">
+                                    <a href="<?=base_url('registration?token='.$hash_facilitator)?>" target="_blank" class="btn btn-default btn-sm" title="Preview Form">
                                         <i class="fas fa-external-link-alt"></i>
                                     </a>
                                 </div>
@@ -101,16 +109,16 @@
                                     </div>
                                 </div>
                                 <div class="form-group" style="margin-bottom: 10px;">
-                                    <input type="text" class="form-control input-sm" id="link_accountant" value="<?=base_url('registration?role=accountant')?>" readonly style="background: #f8fafc; font-size: 12px;">
+                                    <input type="text" class="form-control input-sm" id="link_accountant" value="<?=base_url('registration?token='.$hash_accountant)?>" readonly style="background: #f8fafc; font-size: 12px;">
                                 </div>
                                 <div style="display: flex; gap: 6px;">
                                     <button class="btn btn-default btn-sm btn-block" onclick="copyRoleLink('link_accountant', this)" style="font-size: 12px;">
                                         <i class="fas fa-copy"></i> Copy
                                     </button>
-                                    <a href="https://api.whatsapp.com/send?text=<?=urlencode("Assalamu Alaikum. Registration link for Accountant position at Tahsin Academy: " . base_url('registration?role=accountant'))?>" target="_blank" class="btn btn-default btn-sm" title="Share on WhatsApp" style="color: #25D366;">
+                                    <a href="https://api.whatsapp.com/send?text=<?=urlencode("Assalamu Alaikum. Registration link for Accountant position at Tahsin Academy: " . base_url('registration?token='.$hash_accountant))?>" target="_blank" class="btn btn-default btn-sm" title="Share on WhatsApp" style="color: #25D366;">
                                         <i class="fab fa-whatsapp"></i>
                                     </a>
-                                    <a href="<?=base_url('registration?role=accountant')?>" target="_blank" class="btn btn-default btn-sm" title="Preview Form">
+                                    <a href="<?=base_url('registration?token='.$hash_accountant)?>" target="_blank" class="btn btn-default btn-sm" title="Preview Form">
                                         <i class="fas fa-external-link-alt"></i>
                                     </a>
                                 </div>
@@ -132,16 +140,16 @@
                                     </div>
                                 </div>
                                 <div class="form-group" style="margin-bottom: 10px;">
-                                    <input type="text" class="form-control input-sm" id="link_librarian" value="<?=base_url('registration?role=librarian')?>" readonly style="background: #f8fafc; font-size: 12px;">
+                                    <input type="text" class="form-control input-sm" id="link_librarian" value="<?=base_url('registration?token='.$hash_librarian)?>" readonly style="background: #f8fafc; font-size: 12px;">
                                 </div>
                                 <div style="display: flex; gap: 6px;">
                                     <button class="btn btn-default btn-sm btn-block" onclick="copyRoleLink('link_librarian', this)" style="font-size: 12px;">
                                         <i class="fas fa-copy"></i> Copy
                                     </button>
-                                    <a href="https://api.whatsapp.com/send?text=<?=urlencode("Assalamu Alaikum. Registration link for Librarian position at Tahsin Academy: " . base_url('registration?role=librarian'))?>" target="_blank" class="btn btn-default btn-sm" title="Share on WhatsApp" style="color: #25D366;">
+                                    <a href="https://api.whatsapp.com/send?text=<?=urlencode("Assalamu Alaikum. Registration link for Librarian position at Tahsin Academy: " . base_url('registration?token='.$hash_librarian))?>" target="_blank" class="btn btn-default btn-sm" title="Share on WhatsApp" style="color: #25D366;">
                                         <i class="fab fa-whatsapp"></i>
                                     </a>
-                                    <a href="<?=base_url('registration?role=librarian')?>" target="_blank" class="btn btn-default btn-sm" title="Preview Form">
+                                    <a href="<?=base_url('registration?token='.$hash_librarian)?>" target="_blank" class="btn btn-default btn-sm" title="Preview Form">
                                         <i class="fas fa-external-link-alt"></i>
                                     </a>
                                 </div>
@@ -163,16 +171,16 @@
                                     </div>
                                 </div>
                                 <div class="form-group" style="margin-bottom: 10px;">
-                                    <input type="text" class="form-control input-sm" id="link_receptionist" value="<?=base_url('registration?role=receptionist')?>" readonly style="background: #f8fafc; font-size: 12px;">
+                                    <input type="text" class="form-control input-sm" id="link_receptionist" value="<?=base_url('registration?token='.$hash_receptionist)?>" readonly style="background: #f8fafc; font-size: 12px;">
                                 </div>
                                 <div style="display: flex; gap: 6px;">
                                     <button class="btn btn-default btn-sm btn-block" onclick="copyRoleLink('link_receptionist', this)" style="font-size: 12px;">
                                         <i class="fas fa-copy"></i> Copy
                                     </button>
-                                    <a href="https://api.whatsapp.com/send?text=<?=urlencode("Assalamu Alaikum. Registration link for Receptionist position at Tahsin Academy: " . base_url('registration?role=receptionist'))?>" target="_blank" class="btn btn-default btn-sm" title="Share on WhatsApp" style="color: #25D366;">
+                                    <a href="https://api.whatsapp.com/send?text=<?=urlencode("Assalamu Alaikum. Registration link for Receptionist position at Tahsin Academy: " . base_url('registration?token='.$hash_receptionist))?>" target="_blank" class="btn btn-default btn-sm" title="Share on WhatsApp" style="color: #25D366;">
                                         <i class="fab fa-whatsapp"></i>
                                     </a>
-                                    <a href="<?=base_url('registration?role=receptionist')?>" target="_blank" class="btn btn-default btn-sm" title="Preview Form">
+                                    <a href="<?=base_url('registration?token='.$hash_receptionist)?>" target="_blank" class="btn btn-default btn-sm" title="Preview Form">
                                         <i class="fas fa-external-link-alt"></i>
                                     </a>
                                 </div>
@@ -195,7 +203,7 @@
                     <div class="form-group">
                         <label class="col-md-3 control-label">Target Role <span class="required">*</span></label>
                         <div class="col-md-6">
-                            <select name="candidate_role" class="form-control" required>
+                            <select name="candidate_role" class="form-control" data-plugin-selectTwo data-width="100%" data-minimum-results-for-search="Infinity" required>
                                 <option value="">-- Select Role --</option>
                                 <option value="facilitator">Facilitator</option>
                                 <option value="accountant">Accountant</option>

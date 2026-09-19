@@ -22,16 +22,16 @@
 body {
     font-family: 'Poppins', sans-serif;
     background: var(--off-white);
-    min-height: 100vh;
+    height: 100vh;
     display: flex;
     align-items: stretch;
-    overflow-x: hidden;
+    overflow: hidden;
 }
 
 /* ── Left Brand Panel ─────────────────────────────────────────── */
 .brand-panel {
     width: 45%;
-    min-height: 100vh;
+    height: 100vh;
     background:
         radial-gradient(900px 480px at 80% -10%, rgba(201, 162, 74, 0.18), transparent 55%),
         radial-gradient(700px 420px at 0% 90%, rgba(31, 90, 69, 0.45), transparent 50%),
@@ -161,7 +161,8 @@ body {
 /* ── Right Form Panel ─────────────────────────────────────────── */
 .form-panel {
     width: 55%;
-    min-height: 100vh;
+    height: 100vh;
+    overflow-y: auto;
     background: var(--white);
     display: flex;
     flex-direction: column;

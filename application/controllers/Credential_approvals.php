@@ -17,8 +17,10 @@ class Credential_approvals extends Admin_Controller
         $this->data['title'] = 'Registration Approvals';
         $this->data['sub_page'] = 'credential_approvals/index';
         $this->data['main_menu'] = 'employee';
-        
         $branch_id = $this->application_model->get_branch_id();
+        
+        // Fetch registration settings
+        $this->data['reg_settings'] = $this->db->select('staff_registration_enabled, staff_registration_deadline')->where('id', 1)->get('global_settings')->row();
         
         // Fetch all pending login_credentials
         $this->db->select('lc.*, r.name as role_name');
@@ -88,7 +90,9 @@ class Credential_approvals extends Admin_Controller
             $valid_roles = array('facilitator', 'accountant', 'librarian', 'receptionist');
             if (in_array($candidate_role, $valid_roles) && filter_var($candidate_email, FILTER_VALIDATE_EMAIL)) {
                 $role_label = ucfirst($candidate_role);
-                $reg_link = base_url('registration?role=' . $candidate_role);
+                // Generate a hashed invite link to prevent role tampering
+                $hash_token = urlencode(base64_encode(openssl_encrypt($candidate_role, 'AES-128-ECB', 'TAHSIN_SECRET')));
+                $reg_link = base_url('registration?token=' . $hash_token);
                 
                 // Attempt to send email via application mailer
                 $institute_name = $this->data['global_config']['institute_name'] ?: 'Tahsin Academy';
@@ -193,6 +197,27 @@ class Credential_approvals extends Admin_Controller
             set_alert('error', 'Record not found.');
         }
 
+        redirect(base_url('credential_approvals'));
+    }
+
+    public function save_settings()
+    {
+        if (!is_superadmin_loggedin() && !is_director_loggedin() && !get_permission('employee', 'is_add')) {
+            access_denied();
+        }
+
+        $enabled = $this->input->post('staff_registration_enabled') ? 1 : 0;
+        $deadline = $this->input->post('staff_registration_deadline');
+
+        $update_data = array(
+            'staff_registration_enabled' => $enabled,
+            'staff_registration_deadline' => empty($deadline) ? NULL : date('Y-m-d', strtotime($deadline))
+        );
+
+        $this->db->where('id', 1);
+        $this->db->update('global_settings', $update_data);
+
+        set_alert('success', 'Registration settings updated successfully.');
         redirect(base_url('credential_approvals'));
     }
 

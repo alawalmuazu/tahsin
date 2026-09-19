@@ -17,9 +17,37 @@ class Registration extends Authentication_Controller
 
         $branch_id = 1; // Default to Tahsin Academy single branch
         $this->data['branch_id'] = $branch_id;
-        $this->data['registration_closed'] = false;
+        
+        $reg_settings = $this->db->get_where('global_settings', array('id' => 1))->row();
+        
+        $registration_closed = false;
+        if ($reg_settings && $reg_settings->staff_registration_enabled == 0) {
+            $registration_closed = true;
+        }
+        if ($reg_settings && !empty($reg_settings->staff_registration_deadline)) {
+            $deadline_time = strtotime($reg_settings->staff_registration_deadline);
+            $current_time = strtotime(date('Y-m-d'));
+            if ($current_time > $deadline_time) {
+                $registration_closed = true;
+            }
+            $this->data['registration_deadline'] = $reg_settings->staff_registration_deadline;
+        }
+        $this->data['registration_closed'] = $registration_closed;
 
-        $selected_role = strtolower(trim((string)$this->input->get('role')));
+        $selected_role = '';
+        $token = $this->input->get('token');
+        if (!empty($token)) {
+            $decoded_role = openssl_decrypt(base64_decode(urldecode($token)), 'AES-128-ECB', 'TAHSIN_SECRET');
+            if ($decoded_role) {
+                $selected_role = strtolower(trim((string)$decoded_role));
+            }
+        }
+        
+        // Fallback for old links or if token is not used
+        if (empty($selected_role)) {
+            $selected_role = strtolower(trim((string)$this->input->get('role')));
+        }
+
         $valid_roles = array('facilitator', 'accountant', 'librarian', 'receptionist');
         if (!in_array($selected_role, $valid_roles)) {
             $selected_role = '';
@@ -43,7 +71,13 @@ class Registration extends Authentication_Controller
             $this->form_validation->set_rules('c_password', translate('confirm_password'), 'trim|required|matches[password]');
 
             if ($this->form_validation->run() !== false) {
-                $register_as = strtolower($this->input->post('register_as'));
+                // Ignore submitted role if token is present, to prevent tampering
+                if (!empty($selected_role)) {
+                    $register_as = $selected_role;
+                } else {
+                    $register_as = strtolower($this->input->post('register_as'));
+                }
+                
                 $name        = trim($this->input->post('name'));
                 $email       = trim($this->input->post('email'));
                 $mobile_no   = trim($this->input->post('mobile_no'));

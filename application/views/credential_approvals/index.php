@@ -25,6 +25,41 @@
 
         <section class="panel">
             <header class="panel-heading">
+                <h4 class="panel-title"><i class="fas fa-cog"></i> Registration Settings</h4>
+            </header>
+            <div class="panel-body">
+                <?php echo form_open('credential_approvals/save_settings', array('class' => 'form-horizontal form-bordered')); ?>
+                    <div class="form-group">
+                        <label class="col-md-3 control-label">Enable Staff Registration</label>
+                        <div class="col-md-6">
+                            <div class="material-switch mt-xs">
+                                <input id="staff_registration_enabled" name="staff_registration_enabled" type="checkbox" <?php echo ($reg_settings->staff_registration_enabled == 1) ? 'checked' : ''; ?> />
+                                <label for="staff_registration_enabled" class="label-primary"></label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="col-md-3 control-label">Registration Deadline</label>
+                        <div class="col-md-6">
+                            <input type="date" class="form-control" name="staff_registration_deadline" value="<?php echo $reg_settings->staff_registration_deadline; ?>">
+                            <span class="help-block">Leave blank for no deadline. If a deadline is set, registration will automatically close after this date.</span>
+                        </div>
+                    </div>
+                    <footer class="panel-footer">
+                        <div class="row">
+                            <div class="col-md-offset-3 col-md-2">
+                                <button type="submit" class="btn btn-default btn-block" style="background: #1a6b3c; color: #fff;">
+                                    <i class="fas fa-save"></i> Save Settings
+                                </button>
+                            </div>
+                        </div>
+                    </footer>
+                <?php echo form_close(); ?>
+            </div>
+        </section>
+
+        <section class="panel">
+            <header class="panel-heading">
                 <h4 class="panel-title"><i class="fas fa-list"></i> Pending Applications</h4>
             </header>
             <div class="panel-body">

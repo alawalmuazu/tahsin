@@ -32,8 +32,8 @@
         <p class="brand-subtitle">Excellence In Deen &amp; Duniya</p>
         <p class="brand-tagline">School management for Tahsin Academy — students, staff, parents, and academic records in one place.</p>
         <div class="brand-badges">
-            <span class="brand-badge">WAEC / NECO</span>
-            <span class="brand-badge">Academy</span>
+            <span class="brand-badge">Islamic Environment</span>
+            <span class="brand-badge">Modern Curriculum</span>
         </div>
     </div>
 
@@ -57,6 +57,12 @@
             </div>
         <?php else: ?>
 
+        <?php if(isset($registration_deadline)): ?>
+            <div class="alert alert-info" style="font-size: 13px; margin-bottom: 20px; border-radius: 8px;">
+                <i class="fas fa-info-circle me-1"></i> <strong>Note:</strong> Registration closes on <strong><?php echo date('l, M d, Y', strtotime($registration_deadline)); ?></strong>.
+            </div>
+        <?php endif; ?>
+
         <form class="form-horizontal" method="post" accept-charset="utf-8">
             <?php echo $this->app_lib->generateCSRF(); ?>
 
@@ -64,7 +70,7 @@
                 <label for="register_as">Position / Role Applying For <span class="text-danger">*</span></label>
                 <div class="input-wrap">
                     <i class="fas fa-user-tag field-icon"></i>
-                    <select class="form-control" name="register_as" id="register_as" style="padding-left: 45px; height: 50px; border-radius: 8px;">
+                    <select class="form-control" name="register_as" id="register_as" style="padding-left: 45px; height: 50px; border-radius: 8px; pointer-events: none; background: #eef2f5;">
                         <option value="">-- Select Position / Role --</option>
                         <option value="facilitator" <?php echo ($selected_role == 'facilitator' || set_value('register_as') == 'facilitator') ? 'selected' : ''; ?>>Facilitator</option>
                         <option value="accountant" <?php echo ($selected_role == 'accountant' || set_value('register_as') == 'accountant') ? 'selected' : ''; ?>>Accountant</option>
