@@ -190,6 +190,7 @@ class Registration extends Authentication_Controller
                     // 1. Send Email Notification
                     $dir_email = !empty($dir->email) ? $dir->email : 'dir@gmail.com';
                     $emailData = array(
+                        'branch_id' => $branch_id,
                         'recipient' => $dir_email,
                         'subject'   => $email_subject,
                         'message'   => $email_message,

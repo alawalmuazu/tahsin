@@ -108,14 +108,18 @@ class Credential_approvals extends Admin_Controller
                 $email_message .= "After you submit the form, your registration will be reviewed and activated by the Director.<br><br>Best regards,<br>Office of the Director<br>{$institute_name}";
 
                 $emailData = array(
+                    'branch_id' => $this->application_model->get_branch_id(),
                     'recipient' => $candidate_email,
                     'subject'   => $email_subject,
                     'message'   => $email_message,
                 );
 
-                @$this->mailer->send($emailData);
-
-                set_alert('success', "Invitation for {$candidate_name} ({$role_label}) prepared! Registration link: {$reg_link}");
+                if (@$this->mailer->send($emailData)) {
+                    set_alert('success', "Invitation emailed to {$candidate_name} ({$role_label})! Registration link: {$reg_link}");
+                } else {
+                    set_alert('error', "Invitation link generated, but the email failed to send. Please check your SMTP settings. You can still manually send the link below.");
+                }
+                
                 $this->session->set_flashdata('generated_invite_link', $reg_link);
                 $this->session->set_flashdata('generated_invite_name', $candidate_name);
                 $this->session->set_flashdata('generated_invite_role', $role_label);
@@ -158,6 +162,7 @@ class Credential_approvals extends Admin_Controller
                 $institute_name = $this->data['global_config']['institute_name'] ?: 'Tahsin Academy';
                 $login_url = base_url('authentication');
                 $emailData = array(
+                    'branch_id' => $this->application_model->get_branch_id(),
                     'recipient' => $user_email,
                     'subject'   => "Account Approved — Welcome to {$institute_name}",
                     'message'   => "Dear {$user_name},<br><br>Your registration as <strong>{$role_name}</strong> has been reviewed and <strong>APPROVED</strong> by the Director.<br><br>You can now log in to the portal with your credentials:<br><a href='{$login_url}' style='display:inline-block;padding:10px 18px;background:#1a6b3c;color:#fff;text-decoration:none;border-radius:6px;margin:12px 0;'>Log In to Portal</a><br>Username: <strong>{$cred->username}</strong><br><br>Welcome to Tahsin Academy!<br>Office of the Director",
