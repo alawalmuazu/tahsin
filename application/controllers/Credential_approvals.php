@@ -79,6 +79,7 @@ class Credential_approvals extends Admin_Controller
         $this->data['title'] = 'Send Staff Registration Links';
         $this->data['sub_page'] = 'credential_approvals/invite';
         $this->data['main_menu'] = 'employee';
+        $this->data['available_roles'] = $this->db->get_where('roles', array('is_system' => 0))->result_array();
         
         // Check if director submitted direct invitation
         if ($this->input->post('send_invite')) {
