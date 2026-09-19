@@ -20,7 +20,6 @@ class Mailer
             $school_name = get_global_setting('institute_name');
             $mail = new PHPMailer();
             if ($getConfig->protocol == 'smtp') {
-                $smtp_encryption = $getConfig->smtp_encryption;
                 $mail->isSMTP();
                 $mail->SMTPDebug = SMTP::DEBUG_OFF;
                 $mail->Host = trim($getConfig->smtp_host);
@@ -28,7 +27,7 @@ class Mailer
                 if (!empty($getConfig->smtp_encryption)) {
                     $mail->SMTPSecure =  $getConfig->smtp_encryption;
                 }
-                $mail->SMTPAuth = $getConfig->smtp_auth;
+                $mail->SMTPAuth = filter_var($getConfig->smtp_auth, FILTER_VALIDATE_BOOLEAN);
                 $mail->Username = trim($getConfig->smtp_user);
                 $mail->Password = trim($getConfig->smtp_pass);
             } else {
@@ -43,8 +42,9 @@ class Mailer
             $mail->addReplyTo($getConfig->email, $school_name);
             $mail->addAddress($data['recipient']);
             $mail->Subject = $data['subject'];
-            $mail->AltBody = $data['message'];
+            $mail->isHTML(true);
             $mail->Body = $data['message'];
+            $mail->AltBody = strip_tags($data['message']);
             if ($mail->send()) {
                 return true;
             } else {

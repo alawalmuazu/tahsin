@@ -455,7 +455,11 @@ body {
 
 /* ── Responsive ───────────────────────────────────────────────── */
 @media (max-width: 768px) {
-    body { flex-direction: column; }
+    body { 
+        flex-direction: column; 
+        overflow-y: auto;
+        height: auto;
+    }
     .brand-panel {
         width: 100%;
         min-height: auto;
@@ -464,6 +468,7 @@ body {
         justify-content: flex-start;
         align-items: center;
         gap: 14px;
+        height: auto;
     }
     .brand-logo-wrap {
         padding: 8px;
@@ -475,5 +480,10 @@ body {
     .brand-divider, .brand-tagline, .brand-badges,
     .brand-subtitle, .ring, .ring2 { display: none !important; }
     .brand-title { font-size: 14px; text-align: left; margin: 0; }
-    .form-panel  { width: 100%; padding: 28px 20px; }
+    .form-panel  { 
+        width: 100%; 
+        padding: 28px 20px; 
+        height: auto;
+        overflow-y: visible;
+    }
 }

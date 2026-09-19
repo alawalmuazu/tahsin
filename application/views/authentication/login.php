@@ -44,8 +44,8 @@
         </p>
 
         <div class="brand-badges" id="brandBadges">
-            <span class="brand-badge">WAEC / NECO</span>
-            <span class="brand-badge">Academy</span>
+            <span class="brand-badge">Student Portal</span>
+            <span class="brand-badge">Staff Portal</span>
         </div>
     </div>
 

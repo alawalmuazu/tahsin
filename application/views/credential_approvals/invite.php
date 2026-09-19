@@ -205,10 +205,13 @@
                         <div class="col-md-6">
                             <select name="candidate_role" class="form-control" data-plugin-selectTwo data-width="100%" data-minimum-results-for-search="Infinity" required>
                                 <option value="">-- Select Role --</option>
-                                <option value="facilitator">Facilitator</option>
-                                <option value="accountant">Accountant</option>
-                                <option value="librarian">Librarian</option>
-                                <option value="receptionist">Receptionist</option>
+                                <?php
+                                if (!empty($available_roles)) {
+                                    foreach ($available_roles as $role) {
+                                        echo '<option value="' . strtolower($role['name']) . '">' . html_escape($role['name']) . '</option>';
+                                    }
+                                }
+                                ?>
                             </select>
                         </div>
                     </div>

@@ -87,9 +87,11 @@ class Credential_approvals extends Admin_Controller
             $candidate_role  = strtolower(trim((string)$this->input->post('candidate_role')));
             $personal_note   = trim((string)$this->input->post('personal_note'));
 
-            $valid_roles = array('facilitator', 'accountant', 'librarian', 'receptionist');
+            $valid_roles_query = $this->db->get_where('roles', array('is_system' => 0))->result_array();
+            $valid_roles = array_map(function($role) { return strtolower($role['name']); }, $valid_roles_query);
+
             if (in_array($candidate_role, $valid_roles) && filter_var($candidate_email, FILTER_VALIDATE_EMAIL)) {
-                $role_label = ucfirst($candidate_role);
+                $role_label = ucwords($candidate_role);
                 // Generate a hashed invite link to prevent role tampering
                 $hash_token = urlencode(base64_encode(openssl_encrypt($candidate_role, 'AES-128-ECB', 'TAHSIN_SECRET')));
                 $reg_link = base_url('registration?token=' . $hash_token);
@@ -129,6 +131,7 @@ class Credential_approvals extends Admin_Controller
             }
         }
 
+        $this->data['available_roles'] = $this->db->get_where('roles', array('is_system' => 0))->result_array();
         $this->load->view('layout/index', $this->data);
     }
     

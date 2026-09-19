@@ -32,8 +32,8 @@
         <p class="brand-subtitle">Excellence In Deen &amp; Duniya</p>
         <p class="brand-tagline">School management for Tahsin Academy — students, staff, parents, and academic records in one place.</p>
         <div class="brand-badges">
-            <span class="brand-badge">WAEC / NECO</span>
-            <span class="brand-badge">Academy</span>
+            <span class="brand-badge">Student Portal</span>
+            <span class="brand-badge">Staff Portal</span>
         </div>
     </div>
 

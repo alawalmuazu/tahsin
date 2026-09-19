@@ -940,7 +940,7 @@ class School_settings extends Admin_Controller
                 $data['subject'] = 'Tahsin Academy SMTP Config Testing';
                 $data['message'] = 'This is test SMTP config email. <br />If you received this message that means that your SMTP settings is set correctly.';
                 $r = $this->mailer->send($data, true);
-                if ($r == "true") {
+                if ($r === true) {
                     $this->session->set_flashdata('test-email-success', 1);
                 } else {
                     $this->session->set_flashdata('test-email-error', 'Mailer Error: ' . $r);
