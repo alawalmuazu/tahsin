@@ -1,8 +1,8 @@
 <section class="ta-page">
     <div class="ta-wrap">
         <div class="ta-kicker">People of the school</div>
-        <h1 class="ta-display">Teachers</h1>
-        <p class="ta-page-lead">The work is done by people who can be named. If a teacher is listed here, they are on staff and teaching.</p>
+        <h1 class="ta-display">Facilitators</h1>
+        <p class="ta-page-lead">The work is done by people who can be named. If a facilitator is listed here, they are on staff and facilitating.</p>
     </div>
 </section>
 

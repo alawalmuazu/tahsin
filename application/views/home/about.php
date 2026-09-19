@@ -27,7 +27,7 @@ $admission = $alias ? base_url($alias . '/admission') : base_url('admission');
         </div>
         <article class="ta-panel">
             <h3>What we keep</h3>
-            <p>Named tracks. Boarding, day and weekend. With technical skills, or without. Teachers who can be pointed to. A portal that tells the truth about progress.</p>
+            <p>Named tracks. Boarding, day and weekend. With technical skills, or without. Facilitators who can be pointed to. A portal that tells the truth about progress.</p>
         </article>
     </div>
 </section>

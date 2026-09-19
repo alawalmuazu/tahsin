@@ -660,7 +660,7 @@ $first_part = implode(' ', $words);
                     <li><i class="fas fa-check-circle"></i> Faith is not an extra period — it is the air of the school</li>
                     <li><i class="fas fa-check-circle"></i> Academics are serious: literacy, numeracy, science, and ICT</li>
                     <li><i class="fas fa-check-circle"></i> Pathways that fit real Nigerian families — boarding, day, or weekend</li>
-                    <li><i class="fas fa-check-circle"></i> Teachers who know your child, not only the register</li>
+                    <li><i class="fas fa-check-circle"></i> Facilitators who know your child, not only the register</li>
                 </ul>
                 <a href="<?php echo $admission_url; ?>" class="btn btn-1 ss-dash-btn">Reserve a place <i class="fas fa-arrow-right"></i></a>
             </div>

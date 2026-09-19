@@ -255,7 +255,7 @@
 								</tr>
 							<?php } if (!empty($rankDetail->teacher_comments)) { ?>
 								<tr>
-									<th style="width: 250px;">Teacher Comments</th>
+									<th style="width: 250px;">Facilitator Comments</th>
 									<td><?=$rankDetail->teacher_comments?></td>
 								</tr>
 							<?php } ?>

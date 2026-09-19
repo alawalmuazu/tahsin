@@ -79,7 +79,10 @@ class Credential_approvals extends Admin_Controller
         $this->data['title'] = 'Send Staff Registration Links';
         $this->data['sub_page'] = 'credential_approvals/invite';
         $this->data['main_menu'] = 'employee';
-        $this->data['available_roles'] = $this->db->get_where('roles', array('is_system' => 0))->result_array();
+        
+        // Exclude Super Admin (1), Admin (2), Parent (6), Student (7)
+        $this->db->where_not_in('id', array(1, 2, 6, 7));
+        $this->data['available_roles'] = $this->db->get('roles')->result_array();
         
         // Check if director submitted direct invitation
         if ($this->input->post('send_invite')) {
@@ -88,7 +91,8 @@ class Credential_approvals extends Admin_Controller
             $candidate_role  = strtolower(trim((string)$this->input->post('candidate_role')));
             $personal_note   = trim((string)$this->input->post('personal_note'));
 
-            $valid_roles_query = $this->db->get_where('roles', array('is_system' => 0))->result_array();
+            $this->db->where_not_in('id', array(1, 2, 6, 7));
+            $valid_roles_query = $this->db->get('roles')->result_array();
             $valid_roles = array_map(function($role) { return strtolower($role['name']); }, $valid_roles_query);
 
             if (in_array($candidate_role, $valid_roles) && filter_var($candidate_email, FILTER_VALIDATE_EMAIL)) {

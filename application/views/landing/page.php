@@ -95,7 +95,7 @@ $jsV = is_file(FCPATH . 'assets/landing/js/tahsin.js') ? filemtime(FCPATH . 'ass
                 <ul>
                     <li>Tahfeez with living recitation, not recitation as performance</li>
                     <li>Adab, discipline, and a boarding house that feels like a home of knowledge</li>
-                    <li>Teachers who model the deen as much as they teach it</li>
+                    <li>Facilitators who model the deen as much as they teach it</li>
                 </ul>
             </article>
             <div class="ta-star-col">

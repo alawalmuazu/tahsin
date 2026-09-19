@@ -291,7 +291,7 @@
 					</tr>
 				<?php } if (!empty($rankDetail->teacher_comments)) { ?>
 					<tr>
-						<th style="width: 250px;">Teacher Comments</th>
+						<th style="width: 250px;">Facilitator Comments</th>
 						<td><?=$rankDetail->teacher_comments?></td>
 					</tr>
 				<?php } ?>
@@ -304,7 +304,7 @@
 				<tr>
 					<td style="font-size: 15px; text-align:left;">Print Date : <?=_d($print_date)?></td>
 					<td style="border-top: 1px solid #ddd; font-size:15px;text-align:left">Principal Signature</td>
-					<td style="border-top: 1px solid #ddd; font-size:15px;text-align:center;">Class Teacher Signature</td>
+					<td style="border-top: 1px solid #ddd; font-size:15px;text-align:center;">Class Facilitator Signature</td>
 					<td style="border-top: 1px solid #ddd; font-size:15px;text-align:right;">Parent Signature</td>
 				</tr>
 			</tbody>

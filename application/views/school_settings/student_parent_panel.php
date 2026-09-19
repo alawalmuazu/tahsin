@@ -53,7 +53,7 @@
                                 <div class="col-md-offset-3 col-md-6">
                                     <div class="checkbox-replace">
                                         <label class="i-checks">
-                                            <input type="checkbox" <?php echo $school['teacher_mobile_visible'] == 1 ? 'checked' : ''; ?> name="teacher_mobile_visible" id="teacher_mobile_visible"> <i></i> Teachers Mobile Number Visible.
+                                            <input type="checkbox" <?php echo $school['teacher_mobile_visible'] == 1 ? 'checked' : ''; ?> name="teacher_mobile_visible" id="teacher_mobile_visible"> <i></i> Facilitators Mobile Number Visible.
                                         </label>
                                     </div>
                                 </div>
@@ -62,7 +62,7 @@
                                 <div class="col-md-offset-3 col-md-6 mb-md">
                                     <div class="checkbox-replace">
                                         <label class="i-checks">
-                                            <input type="checkbox" <?php echo $school['teacher_email_visible'] == 1 ? 'checked' : ''; ?> name="teacher_email_visible" id="teacher_email_visible"> <i></i> Teachers Email Visible.
+                                            <input type="checkbox" <?php echo $school['teacher_email_visible'] == 1 ? 'checked' : ''; ?> name="teacher_email_visible" id="teacher_email_visible"> <i></i> Facilitators Email Visible.
                                         </label>
                                     </div>
                                 </div>
