@@ -70,6 +70,7 @@ class Registration extends Authentication_Controller
             $this->form_validation->set_rules('password', translate('password'), 'trim|required|min_length[4]');
             $this->form_validation->set_rules('c_password', translate('confirm_password'), 'trim|required|matches[password]');
             $this->form_validation->set_rules('cropped_photo', 'Profile Photo', 'trim|required');
+            $this->form_validation->set_rules('qualification', 'Qualification', 'callback_valid_registration_qualification');
 
             if ($this->form_validation->run() !== false) {
                 // Ignore submitted role if token is present, to prevent tampering
@@ -84,6 +85,7 @@ class Registration extends Authentication_Controller
                 $mobile_no   = trim($this->input->post('mobile_no'));
                 $username    = trim($this->input->post('username'));
                 $password    = $this->app_lib->pass_hashed($this->input->post('password'));
+                $qualification = $this->app_lib->normalizeQualification($this->input->post('qualification'));
 
                 // Role mappings
                 // 3: Facilitator, 4: Accountant, 5: Librarian, 8: Receptionist
@@ -127,15 +129,16 @@ class Registration extends Authentication_Controller
                 }
 
                 $staffData = array(
-                    'name'         => $name,
-                    'email'        => $email,
-                    'mobileno'     => $mobile_no,
-                    'branch_id'    => $branch_id,
-                    'designation'  => $designation_id,
-                    'department'   => $department_id,
-                    'staff_id'     => 'TA-' . strtoupper(substr(uniqid(), -5)),
-                    'joining_date' => date('Y-m-d'),
-                    'photo'        => $photo_file,
+                    'name'          => $name,
+                    'email'         => $email,
+                    'mobileno'      => $mobile_no,
+                    'branch_id'     => $branch_id,
+                    'designation'   => $designation_id,
+                    'department'    => $department_id,
+                    'qualification' => $qualification,
+                    'staff_id'      => 'TA-' . strtoupper(substr(uniqid(), -5)),
+                    'joining_date'  => date('Y-m-d'),
+                    'photo'         => $photo_file,
                 );
                 $this->db->insert('staff', $staffData);
                 $userID = $this->db->insert_id();
@@ -176,6 +179,7 @@ class Registration extends Authentication_Controller
                 $email_message .= "<table style='border-collapse:collapse;width:100%;max-width:500px;'>";
                 $email_message .= "<tr><td style='padding:8px;border:1px solid #ddd;font-weight:bold;background:#f9fafb;'>Applicant Name:</td><td style='padding:8px;border:1px solid #ddd;'>" . html_escape($name) . "</td></tr>";
                 $email_message .= "<tr><td style='padding:8px;border:1px solid #ddd;font-weight:bold;background:#f9fafb;'>Position / Role:</td><td style='padding:8px;border:1px solid #ddd;'>" . html_escape($role_title) . "</td></tr>";
+                $email_message .= "<tr><td style='padding:8px;border:1px solid #ddd;font-weight:bold;background:#f9fafb;'>Qualification:</td><td style='padding:8px;border:1px solid #ddd;'>" . html_escape($qualification) . "</td></tr>";
                 $email_message .= "<tr><td style='padding:8px;border:1px solid #ddd;font-weight:bold;background:#f9fafb;'>Email Address:</td><td style='padding:8px;border:1px solid #ddd;'>" . html_escape($email) . "</td></tr>";
                 $email_message .= "<tr><td style='padding:8px;border:1px solid #ddd;font-weight:bold;background:#f9fafb;'>Mobile Number:</td><td style='padding:8px;border:1px solid #ddd;'>" . html_escape($mobile_no) . "</td></tr>";
                 $email_message .= "<tr><td style='padding:8px;border:1px solid #ddd;font-weight:bold;background:#f9fafb;'>Username:</td><td style='padding:8px;border:1px solid #ddd;'><code>" . html_escape($username) . "</code></td></tr>";
@@ -232,5 +236,15 @@ class Registration extends Authentication_Controller
         $this->data['registered_role'] = $this->session->flashdata('registered_role') ?: 'Staff Member';
         $this->data['registered_name'] = $this->session->flashdata('registered_name') ?: '';
         $this->load->view('authentication/registration_success', $this->data);
+    }
+
+    public function valid_registration_qualification($str = '')
+    {
+        $normalized = $this->app_lib->normalizeQualification($this->input->post('qualification'));
+        if ($normalized === '') {
+            $this->form_validation->set_message('valid_registration_qualification', 'The Qualification field is required.');
+            return false;
+        }
+        return true;
     }
 }

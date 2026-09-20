@@ -309,29 +309,144 @@ class App_lib
 
     public function getDepartment($branch_id = '')
     {
-        if (empty($branch_id)) {
-            $array = array('' => translate('select_branch_first'));
-        } else {
-            $result = $this->getHybridItems('staff_department', $branch_id);
-            $array = array('' => translate('select'));
-            foreach ($result as $row) {
-                $array[$row->id] = $row->name;
-            }
-        }
-        return $array;
+        return $this->getRoleAlignedOrgList('staff_department', $branch_id);
     }
 
     public function getDesignation($branch_id = '')
     {
-        if ($branch_id == '') {
-            $array = array('' => translate('select_branch_first'));
+        return $this->getRoleAlignedOrgList('staff_designation', $branch_id);
+    }
+
+    /**
+     * Staff roles shown on employee/view tabs (excludes Super Admin, Parent, Student).
+     */
+    public function getEmployeeRoleRows()
+    {
+        $this->CI->db->where_not_in('id', array(1, 6, 7));
+        $this->CI->db->order_by('id', 'ASC');
+        return $this->CI->db->get('roles')->result();
+    }
+
+    /**
+     * Keep designation/department options in sync with employee roles
+     * (Admin, Facilitator/Teacher, Accountant, Librarian, Receptionist, …).
+     */
+    public function ensureRoleAlignedOrgUnits()
+    {
+        // Keep role label aligned with Tahsin branding (production may still say Teacher/Teachers)
+        $this->CI->db->where_in('name', array('Teacher', 'Teachers', 'teacher', 'teachers'));
+        $this->CI->db->update('roles', array('name' => 'Facilitator'));
+        $this->CI->db->where('id', 3)->where('name !=', 'Facilitator');
+        $this->CI->db->update('roles', array('name' => 'Facilitator'));
+
+        foreach (array('staff_designation', 'staff_department') as $table) {
+            $this->CI->db->where('branch_id', SCHOOL_ID);
+            $this->CI->db->where_in('name', array('Teacher', 'Teachers', 'teacher', 'teachers'));
+            $this->CI->db->update($table, array('name' => 'Facilitator'));
+        }
+
+        foreach ($this->getEmployeeRoleRows() as $role) {
+            $name = trim((string) $role->name);
+            if ($name === '') {
+                continue;
+            }
+            foreach (array('staff_designation', 'staff_department') as $table) {
+                $exists = $this->CI->db
+                    ->where('branch_id', SCHOOL_ID)
+                    ->where('name', $name)
+                    ->get($table)
+                    ->row();
+                if (empty($exists)) {
+                    $this->CI->db->insert($table, array(
+                        'name'      => $name,
+                        'branch_id' => SCHOOL_ID,
+                    ));
+                }
+            }
+        }
+    }
+
+    /**
+     * Allowed academic qualifications for staff (multi-select).
+     */
+    public function getQualificationOptions()
+    {
+        return array(
+            'ND'     => 'ND',
+            'HND'    => 'HND',
+            'BSC'    => 'BSC',
+            'MSC'    => 'MSC',
+            'PHD'    => 'PHD',
+            'OTHERS' => 'OTHERS',
+        );
+    }
+
+    /**
+     * Normalize qualification post/value to a comma-separated allowed list.
+     */
+    public function normalizeQualification($input)
+    {
+        $allowed = array_keys($this->getQualificationOptions());
+        if (is_array($input)) {
+            $picked = $input;
         } else {
-            $result = $this->getHybridItems('staff_designation', $branch_id);
-            $array = array('' => translate('select'));
-            foreach ($result as $row) {
+            $picked = preg_split('/\s*,\s*/', trim((string) $input), -1, PREG_SPLIT_NO_EMPTY);
+        }
+        $picked = array_values(array_intersect($picked, $allowed));
+        return implode(',', $picked);
+    }
+
+    /**
+     * Split stored qualification string into selected option keys.
+     */
+    public function qualificationToArray($value)
+    {
+        if (is_array($value)) {
+            return $this->normalizeQualification($value) !== ''
+                ? explode(',', $this->normalizeQualification($value))
+                : array();
+        }
+        $normalized = $this->normalizeQualification($value);
+        return $normalized === '' ? array() : explode(',', $normalized);
+    }
+
+    public function getRoleAlignedOrgList($table, $branch_id = '', $include_id = null)
+    {
+        if ($table !== 'staff_designation' && $table !== 'staff_department') {
+            return array('' => translate('select'));
+        }
+
+        if ($branch_id === '' || $branch_id === null) {
+            $branch_id = SCHOOL_ID;
+        }
+
+        $this->ensureRoleAlignedOrgUnits();
+
+        $names = array();
+        foreach ($this->getEmployeeRoleRows() as $role) {
+            $name = trim((string) $role->name);
+            if ($name !== '') {
+                $names[] = $name;
+            }
+        }
+
+        $array = array('' => translate('select'));
+        if (!empty($names)) {
+            $this->CI->db->where('branch_id', SCHOOL_ID);
+            $this->CI->db->where_in('name', $names);
+            $this->CI->db->order_by('name', 'ASC');
+            foreach ($this->CI->db->get($table)->result() as $row) {
                 $array[$row->id] = $row->name;
             }
         }
+
+        if (!empty($include_id) && !isset($array[$include_id])) {
+            $extra = $this->CI->db->get_where($table, array('id' => (int) $include_id))->row();
+            if (!empty($extra)) {
+                $array[$extra->id] = $extra->name;
+            }
+        }
+
         return $array;
     }
 

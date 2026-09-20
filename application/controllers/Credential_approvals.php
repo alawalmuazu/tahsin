@@ -80,10 +80,17 @@ class Credential_approvals extends Admin_Controller
         $this->data['sub_page'] = 'credential_approvals/invite';
         $this->data['main_menu'] = 'employee';
         
-        // Exclude Super Admin (1), Admin (2), Parent (6), Student (7)
-        $this->db->where_not_in('id', array(1, 2, 6, 7));
-        $this->data['available_roles'] = $this->db->get('roles')->result_array();
-        
+        // Instant-invite roles only (matches Instant Role Registration Links)
+        $this->data['available_roles'] = array(
+            array('slug' => 'facilitator', 'name' => 'Facilitator'),
+            array('slug' => 'accountant', 'name' => 'Accountant'),
+            array('slug' => 'librarian', 'name' => 'Librarian'),
+            array('slug' => 'receptionist', 'name' => 'Receptionist'),
+        );
+
+        // Keep production role label as Facilitator (not Teacher/Teachers)
+        $this->app_lib->ensureRoleAlignedOrgUnits();
+
         // Check if director submitted direct invitation
         if ($this->input->post('send_invite')) {
             $candidate_name  = trim((string)$this->input->post('candidate_name'));
@@ -91,12 +98,16 @@ class Credential_approvals extends Admin_Controller
             $candidate_role  = strtolower(trim((string)$this->input->post('candidate_role')));
             $personal_note   = trim((string)$this->input->post('personal_note'));
 
-            $this->db->where_not_in('id', array(1, 2, 6, 7));
-            $valid_roles_query = $this->db->get('roles')->result_array();
-            $valid_roles = array_map(function($role) { return strtolower($role['name']); }, $valid_roles_query);
+            $valid_roles = array('facilitator', 'accountant', 'librarian', 'receptionist');
+            $role_labels = array(
+                'facilitator'   => 'Facilitator',
+                'accountant'    => 'Accountant',
+                'librarian'     => 'Librarian',
+                'receptionist'  => 'Receptionist',
+            );
 
-            if (in_array($candidate_role, $valid_roles) && filter_var($candidate_email, FILTER_VALIDATE_EMAIL)) {
-                $role_label = ucwords($candidate_role);
+            if (in_array($candidate_role, $valid_roles, true) && filter_var($candidate_email, FILTER_VALIDATE_EMAIL)) {
+                $role_label = $role_labels[$candidate_role];
                 // Generate a hashed invite link to prevent role tampering
                 $hash_token = urlencode(base64_encode(openssl_encrypt($candidate_role, 'AES-128-ECB', 'TAHSIN_SECRET')));
                 $reg_link = base_url('registration?token=' . $hash_token);

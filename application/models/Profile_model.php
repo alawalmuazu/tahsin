@@ -36,7 +36,7 @@ class Profile_model extends MY_Model
             $update_data['joining_date'] = date("Y-m-d", strtotime($data['joining_date']));
             $update_data['designation'] = isset($data['designation_id']) ? $data['designation_id'] : '';
             $update_data['department'] = isset($data['department_id']) ? $data['department_id'] : '';
-            $update_data['qualification'] = $data['qualification'];
+            $update_data['qualification'] = $this->app_lib->normalizeQualification(isset($data['qualification']) ? $data['qualification'] : '');
         }
         // UPDATE ALL INFORMATION IN THE DATABASE
         $this->db->where('id', get_loggedin_user_id());

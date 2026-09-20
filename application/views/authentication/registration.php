@@ -127,6 +127,26 @@
                 <?php endif; ?>
             </div>
 
+            <div class="field-group <?php if (form_error('qualification')) echo 'has-error'; ?>">
+                <label for="qualification">Qualification <span class="text-danger">*</span></label>
+                <?php
+                    $qualification_options = $this->app_lib->getQualificationOptions();
+                    $posted_qualification = $this->input->post('qualification');
+                    $qualification_selected = $this->app_lib->qualificationToArray(
+                        $posted_qualification !== null ? $posted_qualification : ''
+                    );
+                ?>
+                <select class="form-control" name="qualification[]" id="qualification" multiple required style="min-height: 120px;">
+                    <?php foreach ($qualification_options as $code => $label): ?>
+                        <option value="<?php echo html_escape($code); ?>" <?php echo in_array($code, $qualification_selected, true) ? 'selected' : ''; ?>><?php echo html_escape($label); ?></option>
+                    <?php endforeach; ?>
+                </select>
+                <div style="font-size: 12px; color: #6b7280; margin-top: 6px;">Hold Ctrl (Windows) or Cmd (Mac) to select more than one.</div>
+                <?php if (form_error('qualification')): ?>
+                <span class="field-error"><?php echo form_error('qualification'); ?></span>
+                <?php endif; ?>
+            </div>
+
             <div class="field-group <?php if (form_error('email')) echo 'has-error'; ?>">
                 <label for="email">Email Address</label>
                 <div class="input-wrap">

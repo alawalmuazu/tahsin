@@ -28,7 +28,7 @@ class Employee_model extends MY_Model
             'designation' => isset($data['designation_id']) ? $data['designation_id'] : '',
             'department' => isset($data['department_id']) ? $data['department_id'] : '',
             'joining_date' => date("Y-m-d", strtotime($data['joining_date'])),
-            'qualification' => $data['qualification'],
+            'qualification' => $this->app_lib->normalizeQualification(isset($data['qualification']) ? $data['qualification'] : ''),
             'experience_details' => $data['experience_details'],
             'total_experience' => $data['total_experience'],
             'email' => $data['email'],

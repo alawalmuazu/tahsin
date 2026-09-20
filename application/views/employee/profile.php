@@ -96,7 +96,7 @@
 										<div class="form-group">
 											<label class="control-label"><?=translate('designation')?> <span class="required">*</span></label>
 											<?php
-												$designation_list = $this->app_lib->getDesignation($staff['branch_id']);
+												$designation_list = $this->app_lib->getRoleAlignedOrgList('staff_designation', $staff['branch_id'], $staff['designation']);
 												echo form_dropdown("designation_id", $designation_list, set_value('designation_id', $staff['designation']), "class='form-control' id='designation_id'
 												data-plugin-selectTwo data-width='100%' data-minimum-results-for-search='Infinity'");
 											?>
@@ -107,7 +107,7 @@
 										<div class="form-group">
 											<label class="control-label"><?=translate('department')?> <span class="required">*</span></label>
 											<?php
-												$department_list = $this->app_lib->getDepartment($staff['branch_id']);
+												$department_list = $this->app_lib->getRoleAlignedOrgList('staff_department', $staff['branch_id'], $staff['department']);
 												echo form_dropdown("department_id", $department_list, set_value('department_id', $staff['department']), "class='form-control' id='department_id'
 												data-plugin-selectTwo data-width='100%' data-minimum-results-for-search='Infinity'");
 											?>
@@ -121,7 +121,19 @@
 									<div class="col-md-4 mb-sm">
 										<div class="form-group">
 											<label class="control-label"><?=translate('qualification')?> <span class="required">*</span></label>
-											<textarea class="form-control" rows="1" name="qualification"><?=set_value('qualification', $staff['qualification'])?></textarea>
+											<?php
+												$qualification_options = $this->app_lib->getQualificationOptions();
+												$posted_qualification = $this->input->post('qualification');
+												$qualification_selected = $this->app_lib->qualificationToArray(
+													$posted_qualification !== null ? $posted_qualification : $staff['qualification']
+												);
+												echo form_dropdown(
+													"qualification[]",
+													$qualification_options,
+													$qualification_selected,
+													"class='form-control' id='qualification' multiple data-plugin-selectTwo data-width='100%' data-placeholder='Select qualification(s)'"
+												);
+											?>
 											<span class="error"><?php echo form_error('qualification'); ?></span>
 										</div>
 									</div>

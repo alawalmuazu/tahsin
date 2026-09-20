@@ -208,7 +208,10 @@
                                 <?php
                                 if (!empty($available_roles)) {
                                     foreach ($available_roles as $role) {
-                                        echo '<option value="' . strtolower($role['name']) . '">' . html_escape($role['name']) . '</option>';
+                                        $slug = isset($role['slug']) ? $role['slug'] : strtolower($role['name']);
+                                        $label = isset($role['name']) ? $role['name'] : ucwords($slug);
+                                        $selected = set_value('candidate_role') === $slug ? ' selected' : '';
+                                        echo '<option value="' . html_escape($slug) . '"' . $selected . '>' . html_escape($label) . '</option>';
                                     }
                                 }
                                 ?>

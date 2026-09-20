@@ -98,6 +98,14 @@ class Ajax extends MY_Controller
     {
         $html = "";
         $table = $this->input->post('table');
+        if ($table === 'staff_designation' || $table === 'staff_department') {
+            $list = $this->app_lib->getRoleAlignedOrgList($table, SCHOOL_ID);
+            foreach ($list as $id => $name) {
+                $html .= '<option value="' . html_escape($id) . '">' . html_escape($name) . '</option>';
+            }
+            echo $html;
+            return;
+        }
         $result = $this->db->select('id,name')->where('branch_id', SCHOOL_ID)->get($table)->result_array();
         if (count($result)) {
             $html .= "<option value=''>" . translate('select') . "</option>";

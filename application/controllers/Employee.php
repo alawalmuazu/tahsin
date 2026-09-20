@@ -38,7 +38,7 @@ class Employee extends Admin_Controller
         $this->form_validation->set_rules('designation_id', translate('designation'), 'trim|required');
         $this->form_validation->set_rules('department_id', translate('department'), 'trim|required');
         $this->form_validation->set_rules('joining_date', translate('joining_date'), 'trim|required');
-        $this->form_validation->set_rules('qualification', translate('qualification'), 'trim|required');
+        $this->form_validation->set_rules('qualification', translate('qualification'), 'callback_valid_qualification');
         $this->form_validation->set_rules('user_role', translate('role'), 'trim|required|callback_valid_role');
         if (isset($_POST['staff_id']) && !empty($_POST['username'])) {
             $this->form_validation->set_rules('username', translate('username'), 'trim|required|callback_unique_username');
@@ -73,6 +73,7 @@ class Employee extends Admin_Controller
         if (!get_permission('employee', 'is_view') || ($role == 1 || $role == 6 || $role == 7)) {
             access_denied();
         }
+        $this->app_lib->ensureRoleAlignedOrgUnits();
         $branchID = $this->application_model->get_branch_id();
         $this->data['act_role'] = $role;
         $this->data['title'] = translate('employee');
@@ -268,6 +269,16 @@ class Employee extends Admin_Controller
         } else {
             return true;
         }
+    }
+
+    public function valid_qualification($str = '')
+    {
+        $normalized = $this->app_lib->normalizeQualification($this->input->post('qualification'));
+        if ($normalized === '') {
+            $this->form_validation->set_message('valid_qualification', 'The {field} field is required.');
+            return false;
+        }
+        return true;
     }
 
     // employee login password change here by admin

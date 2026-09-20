@@ -148,7 +148,7 @@ class Profile extends Admin_Controller
                     $this->form_validation->set_rules('designation_id', translate('designation'), 'trim|required');
                     $this->form_validation->set_rules('department_id', translate('department'), 'trim|required');
                     $this->form_validation->set_rules('joining_date', translate('joining_date'), 'trim|required');
-                    $this->form_validation->set_rules('qualification', translate('qualification'), 'trim|required');
+                    $this->form_validation->set_rules('qualification', translate('qualification'), 'callback_valid_staff_qualification');
                 }
                 $this->form_validation->set_rules('email', translate('email'), 'trim|required|valid_email');
                 $this->form_validation->set_rules('facebook', 'Facebook', 'trim|valid_url');
@@ -194,6 +194,16 @@ class Profile extends Admin_Controller
         } else {
             return true;
         }
+    }
+
+    public function valid_staff_qualification($str = '')
+    {
+        $normalized = $this->app_lib->normalizeQualification($this->input->post('qualification'));
+        if ($normalized === '') {
+            $this->form_validation->set_message('valid_staff_qualification', 'The {field} field is required.');
+            return false;
+        }
+        return true;
     }
 
     // when user change his password
