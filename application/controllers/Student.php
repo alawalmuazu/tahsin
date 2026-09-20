@@ -671,13 +671,17 @@ class Student extends Admin_Controller
                     $this->form_validation->set_rules('branch_id', translate('branch'), 'trim|required');
                 }
                 
-                $this->form_validation->set_rules('class_id', translate('class'), 'trim');
                 $this->form_validation->set_rules('section_id', translate('section'), 'trim');
+                $this->form_validation->set_rules('category_id', translate('category'), 'trim');
                 if ($this->form_validation->run() == true) {
                     $branchID = $this->application_model->get_branch_id();
-                    $classID = $this->input->post('class_id');
                     $sectionID = $this->input->post('section_id');
-                    $filter = array('branch_id' => $branchID, 'class_id' => $classID, 'section_id' => $sectionID);
+                    $categoryID = $this->input->post('category_id');
+                    $filter = array(
+                        'branch_id' => $branchID,
+                        'section_id' => $sectionID,
+                        'category_id' => $categoryID,
+                    );
                     $export_title = get_type_name_by_id('branch', $branchID) ." ". translate('student_list');
                     $ajax_thead =  $this->load->view("student/view_ajax_thead", array('branch_id' => $branchID), true);
                     echo json_encode(array('status' => 'success', 'thead' => $ajax_thead, 'filter' => $filter , 'export_title' => $export_title , 'error' => ''));

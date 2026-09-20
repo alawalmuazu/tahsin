@@ -497,8 +497,8 @@ class Student_model extends MY_Model
     public function studentListDT()
     {
         $branchID = $this->application_model->get_branch_id();
-        $classID = $this->input->post('class_id');
         $sectionID = $this->input->post('section_id');
+        $categoryID = $this->input->post('category_id');
         $sessionID = get_session_id();
 
         // system fields validation rules
@@ -542,11 +542,11 @@ class Student_model extends MY_Model
         $this->datatables->where('student.active', 1);
         $this->datatables->where('enroll.session_id', $sessionID);
         $this->datatables->where('enroll.branch_id', $branchID);
-        if (!empty($classID)) {
-            $this->datatables->where('enroll.class_id', $classID);
-        }
         if (!empty($sectionID)) {
             $this->datatables->where('enroll.section_id', $sectionID);
+        }
+        if (!empty($categoryID)) {
+            $this->datatables->where('student.category_id', $categoryID);
         }
 
         // filter classes by teacher assigned classes

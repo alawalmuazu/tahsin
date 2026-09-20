@@ -14,7 +14,7 @@
 							<label class="control-label"><?=translate('branch')?> <span class="required">*</span></label>
 							<?php
 								$arrayBranch = $this->app_lib->getSelectList('branch');
-								echo form_dropdown("branch_id", $arrayBranch, set_value('branch_id'), "class='form-control' id='branch_id' onchange='getClassByBranch(this.value)'
+								echo form_dropdown("branch_id", $arrayBranch, set_value('branch_id'), "class='form-control' id='branch_id'
 								data-plugin-selectTwo data-width='100%'");
 							?>
 							<span class="error"></span>
@@ -23,10 +23,10 @@
 				<?php endif; ?>
 					<div class="col-md-<?php echo $widget; ?> mb-sm">
 						<div class="form-group">
-							<label class="control-label"><?=translate('class')?></label>
+							<label class="control-label"><?=translate('section')?></label>
 							<?php
-								$arrayClass = $this->app_lib->getClass($branch_id);
-								echo form_dropdown("class_id", $arrayClass, set_value('class_id'), "class='form-control' id='class_id' onchange='getSectionByClass(this.value)'
+								$arraySection = $this->app_lib->getBranchSections($branch_id);
+								echo form_dropdown("section_id", $arraySection, set_value('section_id'), "class='form-control' id='section_id'
 								data-plugin-selectTwo data-width='100%'");
 							?>
 							<span class="error"></span>
@@ -34,10 +34,10 @@
 					</div>
 					<div class="col-md-<?php echo $widget; ?> mb-sm">
 						<div class="form-group">
-							<label class="control-label"><?=translate('section')?></label>
+							<label class="control-label"><?=translate('category')?></label>
 							<?php
-								$arraySection = $this->app_lib->getSections(set_value('class_id'));
-								echo form_dropdown("section_id", $arraySection, set_value('section_id'), "class='form-control' id='section_id'
+								$arrayCategory = $this->app_lib->getStudentCategory($branch_id);
+								echo form_dropdown("category_id", $arrayCategory, set_value('category_id'), "class='form-control' id='category_id'
 								data-plugin-selectTwo data-width='100%'");
 							?>
 							<span class="error"></span>
