@@ -157,6 +157,9 @@ class Student extends Admin_Controller
         }
         $getBranch = $this->getBranchDetails();
         $branchID = $this->application_model->get_branch_id();
+        $this->load->model('pwd_category_model');
+        $this->data['pwd_category_list'] = $this->pwd_category_model->getDropdown($branchID);
+        $this->data['pwd_category_default'] = $this->pwd_category_model->getDefaultId($branchID);
         $this->data['getBranch'] = $getBranch;
         $this->data['branch_id'] = $branchID;
         $this->data['sub_page'] = 'student/add';
@@ -776,6 +779,10 @@ class Student extends Admin_Controller
             }
         }
         $this->data['student'] = $getStudent;
+        $this->load->model('pwd_category_model');
+        $branchForPwd = isset($getStudent['branch_id']) ? $getStudent['branch_id'] : $this->application_model->get_branch_id();
+        $this->data['pwd_category_list'] = $this->pwd_category_model->getDropdown($branchForPwd);
+        $this->data['pwd_category_default'] = $this->pwd_category_model->getDefaultId($branchForPwd);
         $this->data['title'] = translate('student_profile');
         $this->data['sub_page'] = 'student/profile';
         $this->data['main_menu'] = 'student';

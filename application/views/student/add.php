@@ -73,17 +73,8 @@ endif;
 					</div>
 					<?php } ?>
 					<?php
-					$arrayPwd = array('' => translate('select'));
-					$pwdSelected = set_value('pwd_category_id');
-					$pwdModelFile = APPPATH . 'models/Pwd_category_model.php';
-					if (!is_file($pwdModelFile)) {
-						$pwdModelFile = APPPATH . 'models/pwd_category_model.php';
-					}
-					if (is_file($pwdModelFile)) {
-						$this->load->model('pwd_category_model');
-						$pwdSelected = set_value('pwd_category_id', $this->pwd_category_model->getDefaultId($branch_id));
-						$arrayPwd = $this->pwd_category_model->getDropdown($branch_id);
-					}
+					$arrayPwd = isset($pwd_category_list) ? $pwd_category_list : array('' => translate('select'));
+					$pwdSelected = set_value('pwd_category_id', isset($pwd_category_default) ? $pwd_category_default : '');
 					?>
 					<div class="col-md-3 mb-sm">
 						<div class="form-group">
@@ -93,7 +84,7 @@ endif;
 								data-plugin-selectTwo data-width='100%' data-minimum-results-for-search='Infinity'");
 							?>
 							<span class="error"></span>
-							<small class="help-block">Physically Fit by default. PWD types are managed in Settings.<?php if (!isset($this->pwd_category_model) || !$this->pwd_category_model->tableReady()): ?> Run <code>pwd_student_categories.sql</code> if the list is empty.<?php endif; ?></small>
+							<small class="help-block">Physically Fit by default. PWD types are managed in Settings.</small>
 						</div>
 					</div>
 					<div class="col-md-3 mb-sm">
