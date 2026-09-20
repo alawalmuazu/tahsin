@@ -211,7 +211,7 @@ class App_lib
                 }
             }
             if ($sel) {
-                $array = array('' => translate('select'));
+                $array = array('' => 'None');
             } else {
                 $array = [];
             }
@@ -243,7 +243,7 @@ class App_lib
     public function getSections($class_id = '', $all = false, $multi = false)
     {
         if (empty($class_id)) {
-            $array = array('' => translate('select_class_first'));
+            $array = array('' => 'None');
         } else {
             $getClassTeacher = $this->getClassTeacher($class_id);
             if (is_array($getClassTeacher)) {
@@ -261,7 +261,7 @@ class App_lib
                 $result = $this->CI->db->get('sections_allocation')->result_array(); 
             }
             if ($multi == false) {
-                $array = array('' => translate('select'));
+                $array = array('' => 'None');
             }
             if ($all == true && loggedin_role_id() != 3) {
                 $array['all'] = translate('all_sections');
@@ -275,7 +275,7 @@ class App_lib
 
     public function getBranchSections($branch_id = '', $sel = true)
     {
-        $array = $sel ? array('' => translate('select')) : array();
+        $array = $sel ? array('' => 'None') : array();
         if (empty($branch_id)) {
             return $array;
         }
@@ -291,9 +291,9 @@ class App_lib
     public function getClassesBySection($section_id = '', $sel = true)
     {
         if (empty($section_id)) {
-            return array('' => translate('select_section_first'));
+            return array('' => 'None');
         }
-        $array = $sel ? array('' => translate('select')) : array();
+        $array = $sel ? array('' => 'None') : array();
         $this->CI->db->select('class.id, class.name');
         $this->CI->db->from('sections_allocation');
         $this->CI->db->join('class', 'class.id = sections_allocation.class_id', 'inner');

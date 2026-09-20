@@ -162,7 +162,7 @@
 		    if (countRow > 0) {
 		        var class_name = $('#class_id').find('option:selected').text();
 		        var section_name = $('#section_id').find('option:selected').text();
-		        section_name = (section_name == 'Select Class First' ? "<?php echo translate('all_section') ?>" : section_name);
+		        section_name = (section_name == 'Select Class First' || section_name == 'None' ? "<?php echo translate('all_section') ?>" : section_name);
 		        class_name = (class_name == 'Select' ? "<?php echo translate('all_class') ?>" : class_name);
 		        var fileName =  class_name + ' (' + section_name + ")-Invoice.pdf";
 		        $.ajax({

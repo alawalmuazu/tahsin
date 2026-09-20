@@ -508,7 +508,7 @@ function getClassByBranch(branch_id) {
         }
     });
     $('#section_id').html('');
-    $('#section_id').append('<option value="">Select Class First</option>');
+    $('#section_id').append('<option value="">None</option>');
 }
 
 // get patient category details

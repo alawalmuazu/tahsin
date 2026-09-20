@@ -189,7 +189,7 @@ foreach ($arrayClass as $key => $row): ?>
 		row += '<span class="error"></span></div></td>';
 		row += '<td style="min-width: 160px;"><div style="display: flex; align-items: flex-start;"><div class="form-group">';
 		row += '<select id="section_id_' + value + '" name="multiclass[' + value + '][section_id]" class="form-control selectTwo" data-width="100%">';
-		row += '<option value=""><?php echo translate("select_class_first") ?></option>';
+		row += '<option value="">None</option>';
 		row += '</select><span class="error"></span></div>';
 		row += '<button type="button" class="btn btn-danger removeTR ml-sm"><i class="fas fa-times"></i> </button>';
 		row += '</div></td>';

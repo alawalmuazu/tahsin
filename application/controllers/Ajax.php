@@ -118,7 +118,7 @@ class Ajax extends MY_Controller
             // Use hybrid query: board classes + branch custom classes
             $items = $this->app_lib->getHybridItems('class', $branch_id);
             if (count($items)) {
-                $html .= "<option value=''>" . translate('select') . "</option>";
+                $html .= "<option value=''>None</option>";
                 foreach ($items as $row) {
                     $html .= '<option value="' . $row->id . '">' . $row->name . '</option>';
                 }
@@ -137,7 +137,7 @@ class Ajax extends MY_Controller
         $sectionID = $this->input->post('section_id');
         $selected = $this->input->post('selected');
         if (empty($sectionID)) {
-            echo '<option value="">' . translate('select_section_first') . '</option>';
+            echo '<option value="">None</option>';
             return;
         }
         $classes = $this->app_lib->getClassesBySection($sectionID);
@@ -196,7 +196,7 @@ class Ajax extends MY_Controller
                 $html .= '<option value="">' . translate('no_information_available') . '</option>';
             }
         } else {
-            $html .= '<option value="">' . translate('select_class_first') . '</option>';
+            $html .= '<option value="">None</option>';
         }
         echo $html;
     }
@@ -229,7 +229,7 @@ class Ajax extends MY_Controller
             }
             if (count($result)) {
                 if ($multi == false) {
-                   $html .= '<option value="">' . translate('select') . '</option>';
+                   $html .= '<option value="">None</option>';
                 }
                 if ($mode == true && !is_array($getClassTeacher)) {
                     $html .= '<option value="all">' . translate('all_sections') . '</option>';
@@ -241,7 +241,7 @@ class Ajax extends MY_Controller
                 $html .= '<option value="">' . translate('no_selection_available') . '</option>';
             }
         } else {
-            $html .= '<option value="">' . translate('select_class_first') . '</option>';
+            $html .= '<option value="">None</option>';
         }
         echo $html;
     }
@@ -337,7 +337,7 @@ class Ajax extends MY_Controller
                 $html .= '<option value="">' . translate('no_information_available') . '</option>';
             }
         } else {
-            $html .= '<option value="">' . translate('select_class_first') . '</option>';
+            $html .= '<option value="">None</option>';
         }
         echo $html;
     }

@@ -718,7 +718,7 @@ class Home extends Frontend_Controller
                 ->where('sections_allocation.class_id', $classID)
                 ->get()->result_array();
             if (is_array($result) && count($result)) {
-                $html .= '<option value="">' . translate('select') . '</option>';
+                $html .= '<option value="">None</option>';
                 foreach ($result as $row) {
                     $html .= '<option value="' . $row['section_id'] . '">' . $row['name'] . '</option>';
                 }
@@ -726,7 +726,7 @@ class Home extends Frontend_Controller
                 $html .= '<option value="">' . translate('no_selection_available') . '</option>';
             }
         } else {
-            $html .= '<option value="">' . translate('select_class_first') . '</option>';
+            $html .= '<option value="">None</option>';
         }
         echo $html;
     }
