@@ -710,6 +710,21 @@ function currencyFormat($amount = 0)
     return $value;
 }
 
+/**
+ * Resolve school fee for branch/section/category (Settings → School Fees).
+ */
+function get_school_fee_amount($section_id = 0, $category_id = 0, $branch_id = null)
+{
+    $CI = &get_instance();
+    if ($branch_id === null || $branch_id === '') {
+        $branch_id = function_exists('get_loggedin_branch_id') ? get_loggedin_branch_id() : (defined('SCHOOL_ID') ? SCHOOL_ID : 1);
+    }
+    if (!isset($CI->school_fee_model)) {
+        $CI->load->model('school_fee_model');
+    }
+    return $CI->school_fee_model->resolveAmount($branch_id, $section_id, $category_id);
+}
+
 function moneyFormatIndia($num)
 {
     $explrestunits = "" ;

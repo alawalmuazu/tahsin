@@ -283,6 +283,35 @@
 				updateTuitionUI();
 			}
 		});
+
+		function refreshSchoolFeeFromSettings() {
+			var $amt = $('#tuition_amount');
+			if (!$amt.length) {
+				return;
+			}
+			$.ajax({
+				url: base_url + 'school_fees/resolve',
+				type: 'POST',
+				dataType: 'json',
+				data: {
+					section_id: $('#section_id').val() || 0,
+					category_id: $('#category_id').val() || 0,
+					branch_id: $('input[name="branch_id"]').val() || 0
+				},
+				success: function (res) {
+					if (!res || res.status !== 'success') {
+						return;
+					}
+					var fee = parseFloat(res.amount) || 0;
+					$amt.data('school-fee', fee).attr('max', fee);
+					$('#school_fee_display').val(res.formatted || fee);
+					updateTuitionUI();
+				}
+			});
+		}
+
+		$(document).on('change', '#section_id, #category_id', refreshSchoolFeeFromSettings);
+
 		if ($('#tuition_amount').length) {
 			updateTuitionUI();
 		}

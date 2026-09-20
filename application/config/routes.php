@@ -115,6 +115,9 @@ $route['audit_trail/getLogListDT/(:any)'] = 'audit_trail/getLogListDT/$1';
 $route['audit_trail/view/(:num)'] = 'audit_trail/view/$1';
 $route['audit_trail/clear'] = 'audit_trail/clear';
 
+$route['school_fees'] = 'school_fees/index';
+$route['school_fees/resolve'] = 'school_fees/resolve';
+
 $route['registration'] = 'registration/index';
 $route['registration/success'] = 'registration/success';
 $route['credential_approvals'] = 'credential_approvals/index';

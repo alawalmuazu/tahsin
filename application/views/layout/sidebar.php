@@ -1697,6 +1697,7 @@
                     if (get_permission('school_settings', 'is_view') ||
                     get_permission('live_class_config', 'is_view') ||
                     get_permission('payment_settings', 'is_view') ||
+                    get_permission('school_fees', 'is_view') ||
                     get_permission('sms_settings', 'is_view') ||
                     get_permission('email_settings', 'is_view') ||
                     get_permission('accounting_links', 'is_view')) {
@@ -1704,6 +1705,7 @@
                     }
                     if (get_permission('global_settings', 'is_view') ||
                     ($schoolSettings == true) ||
+                    is_superadmin_loggedin() ||
                     get_permission('translations', 'is_view') ||
                     get_permission('cron_job', 'is_view') ||
                     get_permission('system_update', 'is_add') ||
@@ -1726,6 +1728,12 @@
                             <li class="<?php if($main_menu == 'school_m') echo 'nav-active';?>">
                                 <a href="<?=base_url('school_settings')?>">
                                     <span><i class="fas fa-caret-right" aria-hidden="true"></i><?=translate('school_settings')?></span>
+                                </a>
+                            </li>
+                            <?php } if(get_permission('school_fees', 'is_view') || get_permission('school_settings', 'is_view') || is_superadmin_loggedin()){ ?>
+                            <li class="<?php if ($sub_page == 'school_fees/index') echo 'nav-active';?>">
+                                <a href="<?=base_url('school_fees')?>">
+                                    <span><i class="fas fa-caret-right" aria-hidden="true"></i>School Fees</span>
                                 </a>
                             </li>
                             <?php } if (is_superadmin_loggedin()) { ?>

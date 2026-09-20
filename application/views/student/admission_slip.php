@@ -199,7 +199,7 @@ $na = function ($v) {
     <?php endif; ?>
     <?php else: ?>
     <table class="pay-box">
-        <tr><td class="unpaid">Tuition payment has not been recorded for this student. School fees: <?=currencyFormat(SCHOOL_FEE_AMOUNT)?></td></tr>
+        <tr><td class="unpaid">Tuition payment has not been recorded for this student. School fees: <?=currencyFormat(isset($tuition['fee']) ? $tuition['fee'] : get_school_fee_amount())?></td></tr>
     </table>
     <?php endif; ?>
 

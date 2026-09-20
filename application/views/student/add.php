@@ -699,14 +699,14 @@ endif;
 					<i class="fas fa-money-check-alt"></i> <?=translate('tuition')?> <?=translate('payment')?>
 				</div>
 				<?php
-					$school_fee = SCHOOL_FEE_AMOUNT;
+					$school_fee = get_school_fee_amount(set_value('section_id'), set_value('category_id'), $branch_id);
 					$tuition_plan = set_value('tuition_plan', 'full');
 				?>
 				<div class="row">
 					<div class="col-md-4 mb-sm">
 						<div class="form-group">
 							<label class="control-label">School Fees</label>
-							<input type="text" class="form-control" value="<?=currencyFormat($school_fee)?>" readonly />
+							<input type="text" class="form-control" id="school_fee_display" value="<?=currencyFormat($school_fee)?>" readonly />
 						</div>
 					</div>
 					<div class="col-md-4 mb-sm">

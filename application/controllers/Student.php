@@ -282,6 +282,8 @@ class Student extends Admin_Controller
                 // "None" posts as empty — store as 0 so admission can proceed without a class
                 $post['class_id'] = empty($post['class_id']) ? 0 : (int) $post['class_id'];
                 $post['section_id'] = empty($post['section_id']) ? 0 : (int) $post['section_id'];
+                $post['category_id'] = empty($post['category_id']) ? 0 : (int) $post['category_id'];
+                $schoolFee = $this->student_model->schoolFeeAmount($post['section_id'], $post['category_id'], $branchID);
                 $post['register_no'] = $this->student_model->allocateRegisterNo($branchID);
                 $post['roll'] = $this->student_model->allocateRoll($post['class_id'], $post['section_id'], $branchID, $post['year_id']);
                 //save all student information in the database file
@@ -301,9 +303,9 @@ class Student extends Admin_Controller
 
                 $tuition_plan = ($post['tuition_plan'] === 'full') ? 'full' : 'installment';
                 $tuition_amount = (float) $post['tuition_amount'];
-                if ($tuition_plan === 'full' || $tuition_amount >= SCHOOL_FEE_AMOUNT) {
+                if ($tuition_plan === 'full' || $tuition_amount >= $schoolFee) {
                     $tuition_plan = 'full';
-                    $tuition_amount = SCHOOL_FEE_AMOUNT;
+                    $tuition_amount = $schoolFee;
                 }
                 $this->student_model->recordTuitionPayment(
                     $enrollID,
@@ -833,7 +835,10 @@ class Student extends Admin_Controller
     public function valid_tuition_now($amount)
     {
         $plan = $this->input->post('tuition_plan');
-        $fee = SCHOOL_FEE_AMOUNT;
+        $section_id = (int) $this->input->post('section_id');
+        $category_id = (int) $this->input->post('category_id');
+        $branchID = $this->application_model->get_branch_id();
+        $fee = $this->student_model->schoolFeeAmount($section_id, $category_id, $branchID);
         if (!is_numeric($amount) || (float) $amount <= 0) {
             $this->form_validation->set_message('valid_tuition_now', 'Enter the amount being paid now.');
             return false;
@@ -881,15 +886,16 @@ class Student extends Admin_Controller
                 $array = array('status' => 'fail', 'error' => array('tuition_amount' => 'Amount cannot exceed the remaining balance of ' . currencyFormat($summary['balance']) . '.'));
             } else {
                 $plan = $this->input->post('tuition_plan');
+                $fee = (float) $summary['fee'];
                 if ($summary['paid'] > 0) {
                     $plan = 'installment';
-                } elseif ($plan === 'full' || $amount >= SCHOOL_FEE_AMOUNT) {
+                } elseif ($plan === 'full' || $amount >= $fee) {
                     $plan = 'full';
-                    $amount = SCHOOL_FEE_AMOUNT;
+                    $amount = $fee;
                 } else {
                     $plan = 'installment';
                 }
-                if ($plan === 'installment' && $summary['paid'] <= 0 && $amount >= SCHOOL_FEE_AMOUNT) {
+                if ($plan === 'installment' && $summary['paid'] <= 0 && $amount >= $fee) {
                     $array = array('status' => 'fail', 'error' => array('tuition_amount' => 'For installments, enter an amount less than the full school fees.'));
                 } else {
                     $this->student_model->recordTuitionPayment(

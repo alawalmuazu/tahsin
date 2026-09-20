@@ -14,6 +14,8 @@ if ($this->input->get('branch_id')) {
             <li <?=$sub_page == 'school_settings/live_class_config' ? 'class="active"' : '';?>><a href="<?=base_url('school_settings/live_class_config' . $url)?>"><i class="fas fa-headset"></i> <?=translate('live_class') . " " . translate('settings')?></a></li>
         <?php } if(get_permission('payment_settings', 'is_view')){ ?>
             <li <?=$sub_page == 'school_settings/payment_gateway' ? 'class="active"' : '';?>><a href="<?=base_url('school_settings/payment' . $url)?>"><i class="fas fa-dollar-sign"></i> <?=translate('payment_settings')?></a></li>
+        <?php } if(get_permission('school_fees', 'is_view') || get_permission('school_settings', 'is_view') || is_superadmin_loggedin()){ ?>
+            <li <?=$sub_page == 'school_fees/index' ? 'class="active"' : '';?>><a href="<?=base_url('school_fees' . $url)?>"><i class="fas fa-money-bill-wave"></i> School Fees</a></li>
         <?php } if(get_permission('sms_settings', 'is_view')){ ?> 
             <li <?=$sub_page == 'school_settings/smsconfig' || $sub_page == 'school_settings/smstemplate' ? 'class="active"' : '';?>><a href="<?=base_url('school_settings/smsconfig' . $url)?>"><i class="far fa-comment-alt"></i> <?=translate('sms_settings')?></a></li>
         <?php } if(get_permission('email_settings', 'is_view')){  ?>
