@@ -25,6 +25,8 @@ class School_fees extends Admin_Controller
             $matrix = $this->input->post('fee');
             if (!$this->school_fee_model->tableReady()) {
                 set_alert('error', 'Run school_fees_settings.sql migration first.');
+            } elseif (!$this->school_fee_model->hasPwdDimension()) {
+                set_alert('error', 'Run school_fees_section_programme_pwd.sql migration first.');
             } else {
                 $this->school_fee_model->saveMatrix($branchID, $default, $matrix);
                 set_alert('success', translate('information_has_been_updated_successfully'));
@@ -34,7 +36,17 @@ class School_fees extends Admin_Controller
 
         $this->data['branch_id'] = $branchID;
         $this->data['sections'] = $this->db->where('branch_id', $branchID)->order_by('id', 'ASC')->get('section')->result();
-        $this->data['categories'] = $this->loadCategories($branchID);
+        $this->data['programme_categories'] = $this->loadProgrammeCategories($branchID);
+        $this->data['pwd_fit'] = null;
+        $this->data['pwd_list'] = array();
+        $this->load->model('pwd_category_model');
+        foreach ($this->pwd_category_model->getList($branchID, true) as $row) {
+            if ((int) $row->is_default === 1) {
+                $this->data['pwd_fit'] = $row;
+            } else {
+                $this->data['pwd_list'][] = $row;
+            }
+        }
         $this->data['fee_map'] = $this->school_fee_model->getMap($branchID);
         $this->data['default_amount'] = $this->school_fee_model->getDefaultAmount($branchID);
         $this->data['title'] = 'School Fees';
@@ -51,7 +63,8 @@ class School_fees extends Admin_Controller
         }
         $sectionID = (int) $this->input->post('section_id');
         $categoryID = (int) $this->input->post('category_id');
-        $amount = $this->school_fee_model->resolveAmount($branchID, $sectionID, $categoryID);
+        $pwdID = (int) $this->input->post('pwd_category_id');
+        $amount = $this->school_fee_model->resolveAmount($branchID, $sectionID, $categoryID, $pwdID);
         echo json_encode(array(
             'status' => 'success',
             'amount' => $amount,
@@ -59,14 +72,17 @@ class School_fees extends Admin_Controller
         ));
     }
 
-    protected function loadCategories($branchID)
+    protected function loadProgrammeCategories($branchID)
     {
-        $this->load->model('pwd_category_model');
-        $list = $this->pwd_category_model->getList($branchID, true);
-        if (!empty($list)) {
-            return $list;
+        $this->load->model('home_model');
+        $official = $this->home_model->getAdmissionTypes($branchID);
+        $out = array();
+        if (!empty($official)) {
+            foreach ($official as $id => $name) {
+                $out[] = (object) array('id' => $id, 'name' => $name);
+            }
+            return $out;
         }
-        // Fallback if PWD migration not run yet
         $this->db->where('branch_id', $branchID);
         $this->db->where("name NOT LIKE '[archived]%'", null, false);
         return $this->db->order_by('id', 'ASC')->get('student_category')->result();

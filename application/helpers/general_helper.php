@@ -711,9 +711,9 @@ function currencyFormat($amount = 0)
 }
 
 /**
- * Resolve school fee for branch/section/student-category (PWD id in school_fee_settings.category_id).
+ * Resolve school fee for Section × Programme Category × Student Category (PWD).
  */
-function get_school_fee_amount($section_id = 0, $category_id = 0, $branch_id = null)
+function get_school_fee_amount($section_id = 0, $programme_category_id = 0, $branch_id = null, $pwd_category_id = 0)
 {
     $CI = &get_instance();
     if ($branch_id === null || $branch_id === '') {
@@ -722,7 +722,7 @@ function get_school_fee_amount($section_id = 0, $category_id = 0, $branch_id = n
     if (!isset($CI->school_fee_model)) {
         $CI->load->model('school_fee_model');
     }
-    return $CI->school_fee_model->resolveAmount($branch_id, $section_id, $category_id);
+    return $CI->school_fee_model->resolveAmount($branch_id, $section_id, $programme_category_id, $pwd_category_id);
 }
 
 function moneyFormatIndia($num)
