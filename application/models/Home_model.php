@@ -37,8 +37,8 @@ class Home_model extends MY_Model
     public function getAdmissionTypes($branch_id = '')
     {
         $official = array(
-            'Without Technical Skills',
             'With Technical Skills',
+            'Without Technical Skills',
         );
 
         if (empty($branch_id)) {
