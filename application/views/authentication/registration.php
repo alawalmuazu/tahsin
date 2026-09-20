@@ -108,7 +108,7 @@
                 <label for="name">Full Name</label>
                 <div class="input-wrap">
                     <i class="far fa-user field-icon"></i>
-                    <input type="text" id="name" name="name" placeholder="John Doe" autocomplete="off" value="<?php echo set_value('name'); ?>">
+                    <input type="text" id="name" name="name" placeholder="Enter your Full Name" autocomplete="off" value="<?php echo set_value('name'); ?>">
                 </div>
                 <?php if (form_error('name')): ?>
                 <span class="field-error"><?php echo form_error('name'); ?></span>
@@ -119,7 +119,7 @@
                 <label for="email">Email Address</label>
                 <div class="input-wrap">
                     <i class="far fa-envelope field-icon"></i>
-                    <input type="email" id="email" name="email" placeholder="john@example.com" autocomplete="off" value="<?php echo set_value('email'); ?>">
+                    <input type="email" id="email" name="email" placeholder="Enter your email Address" autocomplete="off" value="<?php echo set_value('email'); ?>">
                 </div>
                 <?php if (form_error('email')): ?>
                 <span class="field-error"><?php echo form_error('email'); ?></span>
