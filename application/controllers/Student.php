@@ -319,7 +319,7 @@ class Student extends Admin_Controller
                 $enrollID = $this->db->insert_id();
 
                 $tuition_plan = ($post['tuition_plan'] === 'full') ? 'full' : 'installment';
-                $tuition_amount = (float) $post['tuition_amount'];
+                $tuition_amount = parse_money_input($post['tuition_amount']);
                 if ($tuition_plan === 'full' || $tuition_amount >= $schoolFee) {
                     $tuition_plan = 'full';
                     $tuition_amount = $schoolFee;
@@ -861,7 +861,8 @@ class Student extends Admin_Controller
         $pwd_category_id = (int) $this->input->post('pwd_category_id');
         $branchID = $this->application_model->get_branch_id();
         $fee = $this->student_model->schoolFeeAmount($section_id, $category_id, $pwd_category_id, $branchID);
-        if (!is_numeric($amount) || (float) $amount <= 0) {
+        $amount = parse_money_input($amount);
+        if ($amount <= 0) {
             $this->form_validation->set_message('valid_tuition_now', 'Enter the amount being paid now.');
             return false;
         }

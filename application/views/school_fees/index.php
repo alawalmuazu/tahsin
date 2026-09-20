@@ -23,7 +23,7 @@
 		<div class="form-group">
 			<label class="col-md-3 control-label">Default School Fees <span class="required">*</span></label>
 			<div class="col-md-4">
-				<input type="number" step="0.01" min="0" name="default_amount" class="form-control" value="<?php echo html_escape($default_amount); ?>" required>
+				<input type="text" inputmode="decimal" name="default_amount" class="form-control money-input" value="<?php echo html_escape(amount_format($default_amount)); ?>" required>
 				<span class="help-block">Used when no Section × Category amount is set.</span>
 			</div>
 		</div>
@@ -73,10 +73,10 @@
 								$val = isset($fee_map[$pwdId][$sec->id][$cat->id]) ? $fee_map[$pwdId][$sec->id][$cat->id] : '';
 							?>
 							<td>
-								<input type="number" step="0.01" min="0" class="form-control"
+								<input type="text" inputmode="decimal" class="form-control money-input"
 									name="fee[<?php echo $pwdId; ?>][<?php echo (int) $sec->id; ?>][<?php echo (int) $cat->id; ?>]"
-									value="<?php echo $val !== '' ? html_escape($val) : ''; ?>"
-									placeholder="<?php echo html_escape($default_amount); ?>">
+									value="<?php echo $val !== '' ? html_escape(amount_format($val)) : ''; ?>"
+									placeholder="<?php echo html_escape(amount_format($default_amount)); ?>">
 							</td>
 							<?php endforeach; ?>
 						</tr>
@@ -102,3 +102,22 @@
 	</footer>
 	<?php echo form_close(); ?>
 </section>
+<script type="text/javascript">
+(function ($) {
+	function formatMoneyInput(el) {
+		var raw = String($(el).val() || '').replace(/,/g, '');
+		if (raw === '' || isNaN(raw)) {
+			return;
+		}
+		var n = parseFloat(raw);
+		$(el).val(n.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}));
+	}
+	$(document).on('blur', '.money-input', function () {
+		formatMoneyInput(this);
+	});
+	$(document).on('focus', '.money-input', function () {
+		var raw = String($(this).val() || '').replace(/,/g, '');
+		$(this).val(raw);
+	});
+})(jQuery);
+</script>

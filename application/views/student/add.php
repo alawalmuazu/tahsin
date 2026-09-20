@@ -743,7 +743,7 @@ endif;
 					<div class="col-md-4 mb-sm">
 						<div class="form-group">
 							<label class="control-label">Amount Paying Now <span class="required">*</span></label>
-							<input type="number" step="0.01" min="0" max="<?=$school_fee?>" class="form-control" name="tuition_amount" id="tuition_amount" data-school-fee="<?=$school_fee?>" data-already-paid="0" value="<?=set_value('tuition_amount', $school_fee)?>"<?=$tuition_plan === 'full' ? ' readonly' : ''?> />
+							<input type="text" inputmode="decimal" class="form-control money-input" name="tuition_amount" id="tuition_amount" data-school-fee="<?=$school_fee?>" data-already-paid="0" value="<?=html_escape(amount_format(parse_money_input(set_value('tuition_amount', $school_fee))))?>"<?=$tuition_plan === 'full' ? ' readonly' : ''?> />
 							<span class="error"></span>
 							<small class="text-muted" id="tuition_balance_hint">Balance: <?=currencyFormat(0)?></small>
 						</div>

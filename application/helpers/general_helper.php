@@ -677,11 +677,11 @@ function currencyFormat($amount = 0)
     $amount = empty($amount) ? 0 : $amount;
     $value = $amount;
     if ($currency_formats == 1) {
-        $value = number_format($amount, 2, '.', '');
+        $value = number_format($amount, 2, '.', ',');
     } elseif ($currency_formats == 2) {
         $value = moneyFormatIndia($amount);
     } elseif ($currency_formats == 3) {
-        $value = number_format($amount, 3, '.', ',');
+        $value = number_format($amount, 2, '.', ',');
     } elseif ($currency_formats == 4) {
         $value = number_format($amount, 2, ',', '.');
     } elseif ($currency_formats == 5) {
@@ -691,7 +691,9 @@ function currencyFormat($amount = 0)
     } elseif ($currency_formats == 7) {
         $value = number_format($amount, 2, '.', ' ');
     } elseif ($currency_formats == 8) {
-        $value = $amount;
+        $value = number_format($amount, 2, '.', ',');
+    } else {
+        $value = number_format($amount, 2, '.', ',');
     }
 
     if ($symbol_position == 1) {
@@ -711,8 +713,27 @@ function currencyFormat($amount = 0)
 }
 
 /**
- * Resolve school fee for Section × Programme Category × Student Category (PWD).
+ * Parse posted money that may include thousand separators (e.g. 2,500,000.00).
  */
+function parse_money_input($value)
+{
+    if ($value === null || $value === '') {
+        return 0.0;
+    }
+    if (is_numeric($value)) {
+        return (float) $value;
+    }
+    $clean = preg_replace('/[^\d.\-]/', '', str_replace(',', '', (string) $value));
+    return ($clean === '' || $clean === '-' || $clean === '.') ? 0.0 : (float) $clean;
+}
+
+/**
+ * Format a plain amount with thousand separators (no currency symbol).
+ */
+function amount_format($amount = 0, $decimals = 2)
+{
+    return number_format((float) $amount, (int) $decimals, '.', ',');
+}
 function get_school_fee_amount($section_id = 0, $programme_category_id = 0, $branch_id = null, $pwd_category_id = 0)
 {
     $CI = &get_instance();

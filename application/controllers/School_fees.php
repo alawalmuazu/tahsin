@@ -21,8 +21,23 @@ class School_fees extends Admin_Controller
             if (!get_permission('school_fees', 'is_edit') && !get_permission('school_settings', 'is_edit') && !is_superadmin_loggedin()) {
                 access_denied();
             }
-            $default = (float) $this->input->post('default_amount');
+            $default = parse_money_input($this->input->post('default_amount'));
             $matrix = $this->input->post('fee');
+            if (is_array($matrix)) {
+                foreach ($matrix as $pwdId => $sections) {
+                    if (!is_array($sections)) {
+                        continue;
+                    }
+                    foreach ($sections as $sectionId => $cats) {
+                        if (!is_array($cats)) {
+                            continue;
+                        }
+                        foreach ($cats as $catId => $amount) {
+                            $matrix[$pwdId][$sectionId][$catId] = parse_money_input($amount);
+                        }
+                    }
+                }
+            }
             if (!$this->school_fee_model->tableReady()) {
                 set_alert('error', 'Run school_fees_settings.sql migration first.');
             } elseif (!$this->school_fee_model->hasPwdDimension()) {

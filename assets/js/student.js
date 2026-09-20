@@ -224,12 +224,16 @@
 			});
 		});
 
+		function parseTuitionMoney(v) {
+			return parseFloat(String(v == null ? '' : v).replace(/,/g, '')) || 0;
+		}
+
 		function tuitionFeeAmount() {
 			var $amt = $('#tuition_amount');
 			if (!$amt.length) {
 				return 2500000;
 			}
-			return parseFloat($amt.data('school-fee')) || parseFloat($amt.attr('max')) || 2500000;
+			return parseTuitionMoney($amt.data('school-fee')) || parseTuitionMoney($amt.attr('max')) || 2500000;
 		}
 
 		function tuitionAlreadyPaid() {
@@ -237,12 +241,12 @@
 			if (!$amt.length) {
 				return 0;
 			}
-			return parseFloat($amt.data('already-paid')) || 0;
+			return parseTuitionMoney($amt.data('already-paid'));
 		}
 
 		function formatTuitionMoney(n) {
 			var value = Number(n) || 0;
-			return value.toLocaleString('en-NG', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+			return value.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
 		}
 
 		function updateTuitionUI() {
@@ -258,17 +262,17 @@
 				plan = 'installment';
 				$amt.prop('readonly', false).attr('max', remainingCap);
 			} else if (plan === 'full') {
-				$amt.val(fee).prop('readonly', true).attr('max', fee);
+				$amt.val(formatTuitionMoney(fee)).prop('readonly', true).attr('max', fee);
 			} else {
 				$amt.prop('readonly', false).attr('max', fee);
-				if (parseFloat($amt.val()) >= fee) {
+				if (parseTuitionMoney($amt.val()) >= fee) {
 					$amt.val('');
 				}
 			}
-			var now = parseFloat($amt.val()) || 0;
+			var now = parseTuitionMoney($amt.val());
 			if (plan !== 'full' && now > remainingCap) {
 				now = remainingCap;
-				$amt.val(now > 0 ? now : '');
+				$amt.val(now > 0 ? formatTuitionMoney(now) : '');
 			}
 			var balance = Math.max(0, remainingCap - (plan === 'full' ? remainingCap : now));
 			if (plan === 'full' && paid <= 0) {
@@ -282,6 +286,20 @@
 			if (!$('#tuition_plan').length || $('#tuition_plan').val() === 'installment' || tuitionAlreadyPaid() > 0) {
 				updateTuitionUI();
 			}
+		});
+		$(document).on('blur', '#tuition_amount', function () {
+			var n = parseTuitionMoney($(this).val());
+			if ($(this).val() !== '' && !isNaN(n)) {
+				$(this).val(formatTuitionMoney(n));
+			}
+			updateTuitionUI();
+		});
+		$(document).on('focus', '#tuition_amount', function () {
+			if ($(this).prop('readonly')) {
+				return;
+			}
+			var raw = String($(this).val() || '').replace(/,/g, '');
+			$(this).val(raw);
 		});
 
 		function refreshSchoolFeeFromSettings() {
@@ -305,7 +323,7 @@
 					}
 					var fee = parseFloat(res.amount) || 0;
 					$amt.data('school-fee', fee).attr('max', fee);
-					$('#school_fee_display').val(res.formatted || fee);
+					$('#school_fee_display').val(res.formatted || ('\u20A6' + formatTuitionMoney(fee)));
 					updateTuitionUI();
 				}
 			});
