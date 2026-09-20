@@ -16,6 +16,14 @@ $appTitle = $cms_setting['application_title'] ?? SCHOOL_NAME;
 		<!-- Favicon -->
 		<link rel="shortcut icon" href="<?php echo base_url('uploads/app_image/logo.png'); ?>">
 		<title><?php echo html_escape($pageTitle . ' - ' . $appTitle); ?></title>
+		<?php
+		if (!isset($global_config) || !is_array($global_config)) {
+			$global_config = array('institute_name' => $appTitle);
+		} elseif (empty($global_config['institute_name'])) {
+			$global_config['institute_name'] = $appTitle;
+		}
+		$this->load->view('layout/pwa_head', array('global_config' => $global_config));
+		?>
 		<!-- Bootstrap -->
 		<link href="<?php echo base_url() ?>assets/frontend/css/bootstrap.min.css" rel="stylesheet">
 		<!-- Template CSS Files  -->
@@ -63,5 +71,6 @@ $appTitle = $cms_setting['application_title'] ?? SCHOOL_NAME;
 		    <?php echo $main_contents; ?>
 		</main>
 		<?php $this->load->view('home/layout/footer'); ?>
+		<?php $this->load->view('layout/pwa_install'); ?>
 	</body>
 </html>

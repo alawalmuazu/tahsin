@@ -33,15 +33,6 @@
 <script src="<?php echo base_url('assets/js/offline-queue.js?v=' . version_combine())?>"></script>
 <script src="<?php echo base_url('assets/js/app.fn.js?v=' . (is_file(FCPATH . 'assets/js/app.fn.js') ? filemtime(FCPATH . 'assets/js/app.fn.js') : version_combine()))?>"></script>
 
-<script>
-if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('<?php echo base_url('sw.js'); ?>')
-  .catch(function(error) {
-    console.log('Service worker registration failed, error:', error);
-  });
-}
-</script>
-
 <script type="text/javascript">
 	jQuery.extend(jQuery.validator.messages, {
 		required: "<?=translate('this_value_is_required')?>",

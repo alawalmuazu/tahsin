@@ -82,6 +82,7 @@
 
 	<!-- JS Script -->
 	<?php $this->load->view('layout/script.php');?>
+	<?php $this->load->view('layout/pwa_install'); ?>
 	
 	<?php
 	$alertclass = "";

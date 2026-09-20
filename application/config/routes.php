@@ -119,6 +119,7 @@ $route['credential_approvals/reject/(:num)'] = 'credential_approvals/reject/$1';
 $route['credential_approvals/check_pending_ajax'] = 'credential_approvals/check_pending_ajax';
 
 $route['authentication'] = 'authentication/index';
+$route['manifest.webmanifest'] = 'pwa/manifest';
 $route['home'] = 'home/index';
 $route['admission'] = 'home/admission';
 $route['programmes'] = 'home/programmes';

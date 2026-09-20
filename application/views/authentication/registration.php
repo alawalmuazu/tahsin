@@ -87,7 +87,7 @@
 
             <!-- Profile Photo Upload -->
             <div style="text-align: center; margin-bottom: 25px;" class="field-group <?php if (form_error('cropped_photo')) echo 'has-error'; ?>">
-                <label for="photo_upload" style="cursor: pointer; display: inline-block; position: relative;" title="Click to take or upload a photo">
+                <label for="photo_upload" style="cursor: pointer; display: inline-block; position: relative;" title="Upload a photo from your gallery">
                     <div style="width: 120px; height: 120px; border-radius: 50%; overflow: hidden; background: #eef2f5; border: 3px solid <?php echo form_error('cropped_photo') ? '#e53935' : '#1a6b3c'; ?>; display: flex; align-items: center; justify-content: center;" id="photo_preview_container">
                         <i class="fas fa-camera fa-2x <?php echo form_error('cropped_photo') ? 'text-danger' : 'text-muted'; ?>" id="photo_placeholder_icon"></i>
                         <img id="photo_preview_img" src="<?php echo set_value('cropped_photo'); ?>" style="width: 100%; height: 100%; object-fit: cover; <?php echo set_value('cropped_photo') ? '' : 'display: none;'; ?>">
@@ -96,9 +96,9 @@
                         <i class="fas fa-plus"></i>
                     </div>
                 </label>
-                <input type="file" id="photo_upload" accept="image/*" capture="user" style="display: none;">
+                <input type="file" id="photo_upload" accept="image/*" style="display: none;">
                 <input type="hidden" name="cropped_photo" id="cropped_photo" value="<?php echo set_value('cropped_photo'); ?>">
-                <div style="font-size: 13px; color: <?php echo form_error('cropped_photo') ? '#e53935' : '#6b7280'; ?>; margin-top: 8px; font-weight: 600;">Upload or snap a headshot (Required) <span class="text-danger">*</span></div>
+                <div style="font-size: 13px; color: <?php echo form_error('cropped_photo') ? '#e53935' : '#6b7280'; ?>; margin-top: 8px; font-weight: 600;">Upload a headshot (Required) <span class="text-danger">*</span></div>
                 <?php if (form_error('cropped_photo')): ?>
                 <span class="field-error" style="display:block; margin-top:5px; font-weight:600;"><?php echo form_error('cropped_photo'); ?></span>
                 <?php endif; ?>

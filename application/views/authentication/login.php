@@ -8,6 +8,7 @@
     <meta name="author" content="Tahsin Academy">
     <title><?php echo translate('login'); ?> — <?php echo $global_config['institute_name']; ?></title>
     <link rel="shortcut icon" href="<?php echo base_url('uploads/app_image/logo.png'); ?>">
+    <?php $this->load->view('layout/pwa_head'); ?>
 
     <!-- Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -177,6 +178,8 @@
         });
     </script>
     <?php endif; ?>
+
+    <?php $this->load->view('layout/pwa_install'); ?>
 
 </body>
 </html>

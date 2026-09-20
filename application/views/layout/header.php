@@ -5,6 +5,7 @@
 	<title><?php echo isset($title) ? html_escape($title) . ' — ' . html_escape($global_config['institute_name']) : html_escape($global_config['institute_name']); ?></title>
 	<link rel="icon" type="image/png" href="<?php echo base_url('uploads/app_image/logo.png');?>">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<?php $this->load->view('layout/pwa_head'); ?>
 	<!-- include stylesheet -->
 	<?php include 'stylesheet.php';?>
 
