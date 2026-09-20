@@ -68,7 +68,7 @@
 						<tbody>
 							<?php
 							$count = 1;
-							$parentslist = $this->parents_model->getParentList($branch_id);
+							$parentslist = $this->parents_model->getParentList($branch_id, null);
 							if (count($parentslist)) {
 								foreach($parentslist as $row):
 							?>	
@@ -77,10 +77,10 @@
 							<?php if (is_multi_school()) { ?>
 								<td><?php echo get_type_name_by_id('branch', $row->branch_id);?></td>
 							<?php } ?>
-								<td><?php echo $row->name;?></td>
-								<td><?php echo $row->occupation;?></td>
-								<td><?php echo $row->mobileno;?></td>
-								<td><?php echo $row->email;?></td>
+								<td><?php echo html_escape($row->name);?></td>
+								<td><?php echo html_escape($row->occupation);?></td>
+								<td><?php echo html_escape($row->mobileno);?></td>
+								<td><?php echo html_escape($row->email);?></td>
 							<?php
 							if (count($show_custom_fields)) {
 								foreach ($show_custom_fields as $fields) {
@@ -92,9 +92,9 @@
 									if ($row->children_count > 0) {
 										$names = explode(',', $row->children_names);
 										if ($row->children_count > 2) {
-											echo '<span class="label label-primary" style="font-size:12px;"><i class="fas fa-child"></i> ' . trim($names[0]) . ', ' . trim($names[1]) . ' (+' . ($row->children_count - 2) . ')</span>';
+											echo '<span class="label label-primary" style="font-size:12px;"><i class="fas fa-child"></i> ' . html_escape(trim($names[0])) . ', ' . html_escape(trim($names[1])) . ' (+' . ($row->children_count - 2) . ')</span>';
 										} else {
-											echo '<span class="label label-primary" style="font-size:12px;"><i class="fas fa-child"></i> ' . $row->children_names . '</span>';
+											echo '<span class="label label-primary" style="font-size:12px;"><i class="fas fa-child"></i> ' . html_escape($row->children_names) . '</span>';
 										}
 									} else {
 										echo '<span class="label label-danger" style="font-size:12px;">Unlinked</span>';
@@ -114,7 +114,11 @@
 								<?php endif; ?>
 								</td>
 							</tr>
-							<?php endforeach; };?>
+							<?php endforeach; } else { ?>
+							<tr>
+								<td colspan="<?php echo is_multi_school() ? 8 : 7; ?>" class="text-center text-muted">No parents found.</td>
+							</tr>
+							<?php } ?>
 						</tbody>
 					</table>
 				</div>

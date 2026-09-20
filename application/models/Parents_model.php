@@ -105,14 +105,24 @@ class Parents_model extends MY_Model
     }
 
     // get parent all details
-    public function getParentList($branchID = null, $active = 1)
+    // $active: null = all parents; 1 = portal login enabled; 0 = disabled / no credential
+    public function getParentList($branchID = null, $active = null)
     {
-        $this->db->select('parent.*,login_credential.active as active');
+        $this->db->select('parent.*,login_credential.active as active,login_credential.id as login_id');
         $this->db->select('(SELECT GROUP_CONCAT(first_name SEPARATOR ", ") FROM student WHERE student.parent_id = parent.id) as children_names');
         $this->db->select('(SELECT COUNT(id) FROM student WHERE student.parent_id = parent.id) as children_count');
         $this->db->from('parent');
-        $this->db->join('login_credential', 'login_credential.user_id = parent.id and login_credential.role = "6"', 'inner');
-        $this->db->where('login_credential.active', $active);
+        $this->db->join('login_credential', 'login_credential.user_id = parent.id AND login_credential.role = 6', 'left');
+        if ($active !== null && $active !== '') {
+            if ((int) $active === 0) {
+                $this->db->group_start();
+                $this->db->where('login_credential.active', 0);
+                $this->db->or_where('login_credential.id IS NULL', null, false);
+                $this->db->group_end();
+            } else {
+                $this->db->where('login_credential.active', (int) $active);
+            }
+        }
         if (!empty($branchID)) {
            $this->db->where('parent.branch_id', $branchID);
         }
@@ -154,8 +164,7 @@ class Parents_model extends MY_Model
     {
         $this->db->select('parent.*');
         $this->db->from('parent');
-        $this->db->join('login_credential', 'login_credential.user_id = parent.id and login_credential.role = "6"', 'inner');
-        $this->db->where('login_credential.active', 1);
+        $this->db->join('login_credential', 'login_credential.user_id = parent.id AND login_credential.role = 6', 'left');
         if (!empty($branchID)) {
             $this->db->where('parent.branch_id', $branchID);
         }
