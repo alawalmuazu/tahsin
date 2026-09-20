@@ -47,7 +47,6 @@ class Student_model extends MY_Model
             'state' => $this->input->post('state'),
             'mobileno' => $this->input->post('mobileno'),
             'category_id' => (isset($data['category_id']) ? $data['category_id'] : 0),
-            'pwd_category_id' => (isset($data['pwd_category_id']) ? (int) $data['pwd_category_id'] : null),
             'email' => $this->input->post('email'),
             'parent_id' => $this->input->post('parent_id'),
             'route_id' => (empty($this->input->post('route_id')) ? 0 : $this->input->post('route_id')),
@@ -60,6 +59,11 @@ class Student_model extends MY_Model
             'nin' => preg_replace('/[^0-9]/', '', $this->input->post('nin')),
         );
 
+        if ($this->db->field_exists('pwd_category_id', 'student')) {
+            $inser_data1['pwd_category_id'] = isset($data['pwd_category_id']) && $data['pwd_category_id'] !== ''
+                ? (int) $data['pwd_category_id']
+                : null;
+        }
 
         // moderator guardian all information
         if (!isset($data['student_id']) && empty($data['student_id'])) {

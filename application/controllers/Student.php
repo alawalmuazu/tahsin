@@ -46,7 +46,9 @@ class Student extends Admin_Controller
         $this->form_validation->set_rules('other_name', translate('other_name'), 'trim');
         $this->form_validation->set_rules('class_id', translate('class'), 'trim');
         $this->form_validation->set_rules('section_id', translate('section'), 'trim');
-        $this->form_validation->set_rules('pwd_category_id', 'Student Category', 'trim|required');
+        if ($this->db->table_exists('pwd_category')) {
+            $this->form_validation->set_rules('pwd_category_id', 'Student Category', 'trim|required');
+        }
         if (isset($_POST['student_id'])) {
             $this->form_validation->set_rules('register_no', translate('register_no'), 'trim|required|callback_unique_registerid');
         }

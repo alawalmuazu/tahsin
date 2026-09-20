@@ -164,9 +164,19 @@ $category = $this->student_fields_model->getStatus('category', $branchID);
 							</div>
 <?php } ?>
 							<?php
-							$this->load->model('pwd_category_model');
-							$pwdSelected = set_value('pwd_category_id', isset($student['pwd_category_id']) ? $student['pwd_category_id'] : $this->pwd_category_model->getDefaultId($branchID));
-							$arrayPwd = $this->pwd_category_model->getDropdown($branchID);
+							$arrayPwd = array('' => translate('select'));
+							$pwdSelected = set_value('pwd_category_id', isset($student['pwd_category_id']) ? $student['pwd_category_id'] : '');
+							$pwdModelFile = APPPATH . 'models/Pwd_category_model.php';
+							if (!is_file($pwdModelFile)) {
+								$pwdModelFile = APPPATH . 'models/pwd_category_model.php';
+							}
+							if (is_file($pwdModelFile)) {
+								$this->load->model('pwd_category_model');
+								if ($pwdSelected === '' || $pwdSelected === null) {
+									$pwdSelected = $this->pwd_category_model->getDefaultId($branchID);
+								}
+								$arrayPwd = $this->pwd_category_model->getDropdown($branchID);
+							}
 							?>
 							<div class="col-md-3 mb-sm">
 								<div class="form-group">
