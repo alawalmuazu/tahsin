@@ -246,10 +246,13 @@ class Student extends Admin_Controller
                     $this->form_validation->set_rules('grd_state', translate('state'), 'trim|required');
                 }
             } else {
-                $this->form_validation->set_rules('parent_id', translate('guardian'), 'required');
+                // Only when "guardian already exist" is explicitly checked
+                if ($this->input->post('guardian_chk')) {
+                    $this->form_validation->set_rules('parent_id', translate('guardian'), 'trim|required');
+                }
             }
 
-            // transport validation 
+            // transport validation
             $route_id = $this->input->post('route_id');
             $transport_fees_month = $this->input->post('transport_fees_month');
             $stoppage_point_id = $this->input->post('stoppage_point_id');
@@ -265,6 +268,15 @@ class Student extends Admin_Controller
             $this->form_validation->set_rules('tuition_date', translate('date'), 'trim|required');
 
             if ($this->form_validation->run() == true) {
+                $dupMsg = $this->findDuplicateAdmission($branchID);
+                if ($dupMsg) {
+                    echo json_encode(array(
+                        'status' => 'fail',
+                        'error' => array('first_name' => $dupMsg),
+                        'message' => $dupMsg,
+                    ));
+                    return;
+                }
                 $post = $this->input->post();
                 $post['year_id'] = get_session_id();
                 // "None" posts as empty — store as 0 so admission can proceed without a class
@@ -333,10 +345,15 @@ class Student extends Admin_Controller
 
                 set_alert('success', translate('information_has_been_saved_successfully'));
                 $url = base_url('student/admission_slip/' . $enrollID);
-                $array = array('status' => 'success', 'url' => $url);
+                $array = array(
+                    'status' => 'success',
+                    'url' => $url,
+                    'message' => translate('information_has_been_saved_successfully'),
+                );
             } else {
                 $error = $this->form_validation->error_array();
-                $array = array('status' => 'fail', 'error' => $error);
+                $message = !empty($error) ? reset($error) : 'Please fix the highlighted fields.';
+                $array = array('status' => 'fail', 'error' => $error, 'message' => $message);
             }
             echo json_encode($array);
         }
@@ -1174,6 +1191,48 @@ class Student extends Admin_Controller
         $this->form_validation->set_message('unique_nin',
             "NIN {$nin} is already assigned to {$name}. Each student must have a unique NIN.");
         return false;
+    }
+
+    /**
+     * Block duplicate admission: same first+surname+mobile (or email) already enrolled this session.
+     */
+    protected function findDuplicateAdmission($branchID)
+    {
+        $first = trim((string) $this->input->post('first_name'));
+        $last = trim((string) $this->input->post('last_name'));
+        $mobile = preg_replace('/\D+/', '', (string) $this->input->post('mobileno'));
+        $email = strtolower(trim((string) $this->input->post('email')));
+        $sessionId = get_session_id();
+
+        if ($first !== '' && $last !== '' && $mobile !== '') {
+            $this->db->select('s.id, s.register_no, s.first_name, s.last_name');
+            $this->db->from('student as s');
+            $this->db->join('enroll as e', 'e.student_id = s.id', 'inner');
+            $this->db->where('e.branch_id', (int) $branchID);
+            $this->db->where('e.session_id', (int) $sessionId);
+            $this->db->where('s.first_name', $first);
+            $this->db->where('s.last_name', $last);
+            $this->db->where("REPLACE(REPLACE(REPLACE(REPLACE(s.mobileno,' ',''),'-',''),'+',''),'.','') = " . $this->db->escape($mobile), null, false);
+            $hit = $this->db->limit(1)->get()->row();
+            if ($hit) {
+                return "Student {$hit->first_name} {$hit->last_name} already exists (Reg: {$hit->register_no}). Duplicate admission blocked.";
+            }
+        }
+
+        if ($email !== '' && filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            $this->db->select('s.id, s.register_no, s.first_name, s.last_name');
+            $this->db->from('student as s');
+            $this->db->join('enroll as e', 'e.student_id = s.id', 'inner');
+            $this->db->where('e.branch_id', (int) $branchID);
+            $this->db->where('e.session_id', (int) $sessionId);
+            $this->db->where('LOWER(s.email)', $email);
+            $hit = $this->db->limit(1)->get()->row();
+            if ($hit) {
+                return "Email already used by {$hit->first_name} {$hit->last_name} (Reg: {$hit->register_no}). Duplicate admission blocked.";
+            }
+        }
+
+        return null;
     }
 
     public function search()

@@ -261,16 +261,21 @@ $.extend(theme.PluginDatePicker.defaults, {
 			}
 		});
 
-		// student admission guardian slow / hidden
+		// student admission guardian show / hidden
 		$("#chkGuardian").on( "change", function() {
 			if ($(this).is(":checked")){
 				$("#guardian_form").hide("slow");
 				$("#exist_list").show("slow");
+				$("#parent_id").prop("disabled", false);
 			} else {
 				$("#guardian_form").show("slow");	
 				$("#exist_list").hide("slow");
+				$("#parent_id").val("").trigger("change").prop("disabled", true);
 			}
 		});
+		if (!$("#chkGuardian").is(":checked")) {
+			$("#parent_id").prop("disabled", true);
+		}
 
 		// script for all checkbox checked / unchecked
 		$(document).on('change', '#selectAllchkbox', function(ev)

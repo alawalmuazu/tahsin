@@ -118,9 +118,14 @@
     $("form.frm-submit-data").each(function(i, el)
     {
         var $this = $(el);
+        var submitting = false;
         $this.on('submit', function(e){
             e.preventDefault();
+            if (submitting) {
+                return false;
+            }
             var btn = $this.find('[type="submit"]');
+            submitting = true;
             $.ajax({
                 url: $(this).attr('action'),
                 type: "POST",
@@ -130,26 +135,34 @@
                 processData: false,
                 cache: false,
                 beforeSend: function () {
-                    btn.button('loading');
+                    btn.prop('disabled', true).button('loading');
                 },
                 success: function (data) {
-                    console.log(data.error);
                     $('.error').html("");
                     if (data.status == "fail") {
                         applyFormErrors($this, data.error);
-                        btn.button('reset');
+                        submitting = false;
+                        btn.prop('disabled', false).button('reset');
+                    } else if (data.status == "access_denied") {
+                        window.location.href = base_url + "dashboard";
                     } else {
-                        if (data.url) {
-                            window.location.href = data.url;
-                        } else if (data.status == "access_denied") {
-                            window.location.href = base_url + "dashboard";
-                        } else {
-                            location.reload(true);
-                        }
+                        var successMsg = data.message || 'Saved successfully';
+                        popupMsg(successMsg, 'success');
+                        var go = function () {
+                            if (data.url) {
+                                window.location.href = data.url;
+                            } else {
+                                location.reload(true);
+                            }
+                        };
+                        // Brief toast before navigate (also helps when extensions block instant redirects)
+                        setTimeout(go, 700);
                     }
                 },
-                error: function () {
-                    btn.button('reset');
+                error: function (xhr) {
+                    submitting = false;
+                    btn.prop('disabled', false).button('reset');
+                    popupMsg('Save failed. Please try again.', 'error');
                 }
             });
         });
@@ -349,17 +362,39 @@ function initDatatable(selector,url, params={}, pageLength=25, bStateSave = true
 }
 
 function applyFormErrors($form, errors) {
-    var firstUnbound = '';
+    var firstMsg = '';
+    var $firstField = null;
     $.each(errors || {}, function (index, value) {
+        if (!firstMsg) {
+            firstMsg = value;
+        }
         var $field = $form.find("[name='" + index + "']");
         if ($field.length) {
+            // If the field sits in a hidden block (e.g. existing guardian), surface it
+            var $hiddenParent = $field.closest('[style*="display: none"], :hidden').filter(function () {
+                return $(this).css('display') === 'none';
+            }).first();
+            if ($hiddenParent.length && $hiddenParent.attr('id') === 'exist_list') {
+                $('#exist_list').show();
+                $('#guardian_form').hide();
+                $('#chkGuardian').prop('checked', true);
+            }
             $field.parents('.form-group').find('.error').html(value);
-        } else if (!firstUnbound) {
-            firstUnbound = value;
+            if (!$firstField) {
+                $firstField = $field;
+            }
         }
     });
-    if (firstUnbound) {
-        popupMsg(firstUnbound, 'error');
+    if (firstMsg) {
+        popupMsg(firstMsg, 'error');
+    }
+    if ($firstField && $firstField.length) {
+        try {
+            $('html, body').animate({
+                scrollTop: $firstField.parents('.form-group').offset().top - 120
+            }, 400);
+            $firstField.trigger('focus');
+        } catch (e) {}
     }
 }
 
