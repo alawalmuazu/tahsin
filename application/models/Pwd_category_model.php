@@ -74,8 +74,17 @@ class Pwd_category_model extends MY_Model
     public function getDropdown($branch_id)
     {
         $list = array('' => translate('select'));
+        $pwdGroup = array();
         foreach ($this->getList($branch_id, true) as $row) {
-            $list[$row->id] = $row->name;
+            // Physically Fit (default) stands alone; ALL / impairments sit under PWD
+            if ((int) $row->is_default === 1) {
+                $list[(string) $row->id] = $row->name;
+            } else {
+                $pwdGroup[(string) $row->id] = $row->name;
+            }
+        }
+        if (!empty($pwdGroup)) {
+            $list['PWD'] = $pwdGroup;
         }
         return $list;
     }

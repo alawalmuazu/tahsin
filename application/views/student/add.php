@@ -84,7 +84,7 @@ endif;
 								data-plugin-selectTwo data-width='100%' data-minimum-results-for-search='Infinity'");
 							?>
 							<span class="error"></span>
-							<small class="help-block">Physically Fit by default. PWD types are managed in Settings.</small>
+							<small class="help-block">Default: Physically Fit. PWD group: ALL, Visually Impaired, Hearing Impaired (Settings).</small>
 						</div>
 					</div>
 					<div class="col-md-3 mb-sm">

@@ -6,7 +6,7 @@
 	<div class="panel-body">
 		<p class="text-muted">
 			Set the default school fee and amounts by <strong>Section</strong> (Boarding / Day / Weekend) and <strong>Student Category</strong>
-			(Physically Fit, ALL, Visually Impaired, Hearing Impaired — add more under Settings → Student Categories / PWD).
+			(Physically Fit, or PWD: ALL / Visually Impaired / Hearing Impaired — manage under Settings → Student Categories / PWD).
 			Admission tuition uses the matching amount automatically.
 		</p>
 

@@ -8,8 +8,9 @@
 			<input type="hidden" name="id" id="pwd_id" value="">
 			<div class="panel-body">
 				<p class="text-muted">
-					These are <strong>ability / PWD</strong> categories (separate from programme Category: With/Without Technical Skills).
-					Default for new admissions is <strong>Physically Fit</strong>.
+					<strong>Physically Fit</strong> is the default (not PWD).
+					<strong>PWD</strong> types are: ALL, Visually Impaired (Blind), Hearing Impaired (Deaf) — add more here as needed.
+					Separate from programme Category (With/Without Technical Skills).
 				</p>
 				<?php if (!$this->pwd_category_model->tableReady()): ?>
 				<div class="alert alert-warning">Run <code>application/migrations/pwd_student_categories.sql</code> first.</div>
@@ -54,6 +55,7 @@
 							<tr>
 								<th>#</th>
 								<th>Name</th>
+								<th>Type</th>
 								<th>Default</th>
 								<th>Active</th>
 								<th>Order</th>
@@ -62,11 +64,12 @@
 						</thead>
 						<tbody>
 							<?php if (empty($list)): ?>
-							<tr><td colspan="6" class="text-center text-muted">No categories yet.</td></tr>
+							<tr><td colspan="7" class="text-center text-muted">No categories yet.</td></tr>
 							<?php else: $i = 1; foreach ($list as $row): ?>
 							<tr>
 								<td><?php echo $i++; ?></td>
 								<td><?php echo html_escape($row->name); ?></td>
+								<td><?php echo (int) $row->is_default ? '—' : '<span class="label label-primary">PWD</span>'; ?></td>
 								<td><?php echo (int) $row->is_default ? '<span class="label label-success">Yes</span>' : '—'; ?></td>
 								<td><?php echo (int) $row->active ? 'Yes' : 'No'; ?></td>
 								<td><?php echo (int) $row->sort_order; ?></td>
