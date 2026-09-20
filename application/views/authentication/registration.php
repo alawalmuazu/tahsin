@@ -17,7 +17,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
     <link rel="stylesheet" href="<?php echo base_url('assets/vendor/select2/css/select2.css'); ?>">
-    <link rel="stylesheet" href="<?php echo base_url('assets/css/auth.css?v=' . APP_VERSION); ?>">
+    <link rel="stylesheet" href="<?php echo base_url('assets/css/auth.css?v=' . (is_file(FCPATH . 'assets/css/auth.css') ? filemtime(FCPATH . 'assets/css/auth.css') : APP_VERSION)); ?>">
 
     <script>var base_url = '<?php echo base_url() ?>';</script>
 </head>
