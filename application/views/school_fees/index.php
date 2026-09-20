@@ -5,8 +5,9 @@
 	<?php echo form_open(base_url('school_fees'), array('class' => 'form-horizontal')); ?>
 	<div class="panel-body">
 		<p class="text-muted">
-			Set the default school fee and optional amounts by <strong>Section</strong> (Boarding / Day / Weekend) and <strong>Category</strong> (With / Without Technical Skills).
-			Admission and tuition payment use the matching amount automatically.
+			Set the default school fee and amounts by <strong>Section</strong> (Boarding / Day / Weekend) and <strong>Student Category</strong>
+			(Physically Fit, ALL, Visually Impaired, Hearing Impaired — add more under Settings → Student Categories / PWD).
+			Admission tuition uses the matching amount automatically.
 		</p>
 
 		<?php if (!$this->school_fee_model->tableReady()): ?>
@@ -28,7 +29,7 @@
 			<table class="table table-bordered table-condensed">
 				<thead>
 					<tr>
-						<th>Section \ Category</th>
+						<th>Section \ Student Category</th>
 						<?php foreach ($categories as $cat): ?>
 						<th><?php echo html_escape($cat->name); ?></th>
 						<?php endforeach; ?>

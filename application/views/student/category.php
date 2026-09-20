@@ -22,6 +22,7 @@
 						<label class="control-label"><?php echo translate('category') . " " . translate('name'); ?> <span class="required">*</span></label>
 						<input type="text" class="form-control" name="category_name" value="<?php echo set_value('category_name'); ?>" />
 						<span class="error"><?php echo form_error('category_name'); ?></span>
+						<span class="help-block">Programme category (e.g. With / Without Technical Skills). Ability / PWD categories are under Settings → Student Categories (PWD).</span>
 					</div>
 				</div>
 				<div class="panel-footer">

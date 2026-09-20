@@ -163,6 +163,21 @@ $category = $this->student_fields_model->getStatus('category', $branchID);
 								</div>
 							</div>
 <?php } ?>
+							<?php
+							$this->load->model('pwd_category_model');
+							$pwdSelected = set_value('pwd_category_id', isset($student['pwd_category_id']) ? $student['pwd_category_id'] : $this->pwd_category_model->getDefaultId($branchID));
+							$arrayPwd = $this->pwd_category_model->getDropdown($branchID);
+							?>
+							<div class="col-md-3 mb-sm">
+								<div class="form-group">
+									<label class="control-label">Student Category <span class="required">*</span></label>
+									<?php
+										echo form_dropdown("pwd_category_id", $arrayPwd, $pwdSelected, "class='form-control' id='pwd_category_id'
+										data-plugin-selectTwo data-width='100%' data-minimum-results-for-search='Infinity'");
+									?>
+									<span class="error"><?=form_error('pwd_category_id')?></span>
+								</div>
+							</div>
 							<?php if (is_multi_school()): ?>
 							<div class="col-md-3 mb-sm">
 								<div class="form-group">
@@ -201,13 +216,14 @@ $category = $this->student_fields_model->getStatus('category', $branchID);
 <?php if ($category['status']) { ?>
 							<div class="col-md-3 mb-sm">
 								<div class="form-group">
-									<label class="control-label"><?=translate('category')?><?php echo $category['required'] == 1 ? ' <span class="required">*</span>' : ''; ?></label>
+									<label class="control-label">Programme <?=translate('category')?><?php echo $category['required'] == 1 ? ' <span class="required">*</span>' : ''; ?></label>
 									<?php
 										$arrayCategory = $this->app_lib->getStudentCategory($branchID);
 										echo form_dropdown("category_id", $arrayCategory, set_value('category_id', $student['category_id']), "class='form-control'
 										data-plugin-selectTwo data-width='100%' id='category_id' data-minimum-results-for-search='Infinity' ");
 									?>
 									<span class="error"><?=form_error('category_id')?></span>
+									<small class="help-block">With / Without Technical Skills</small>
 								</div>
 							</div>
 <?php } ?>

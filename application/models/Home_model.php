@@ -30,6 +30,10 @@ class Home_model extends MY_Model
         return $query->$method();
     }
 
+    /**
+     * Programme categories on admission (With / Without Technical Skills).
+     * Ability / PWD categories are separate (pwd_category table).
+     */
     public function getAdmissionTypes($branch_id = '')
     {
         $official = array(
@@ -45,6 +49,16 @@ class Home_model extends MY_Model
         foreach ($official as $catName) {
             $row = $this->db->where('name', $catName)->order_by('id', 'asc')->get('student_category')->row();
             if (empty($row)) {
+                // Un-archive if previously marked
+                $archived = $this->db->where('name', '[archived] ' . $catName)->get('student_category')->row();
+                if ($archived) {
+                    $this->db->where('id', $archived->id)->update('student_category', array(
+                        'name' => $catName,
+                        'branch_id' => $branch_id,
+                    ));
+                    $list[$archived->id] = $catName;
+                    continue;
+                }
                 $this->db->insert('student_category', array(
                     'name' => $catName,
                     'branch_id' => $branch_id,

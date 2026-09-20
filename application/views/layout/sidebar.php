@@ -1698,6 +1698,7 @@
                     get_permission('live_class_config', 'is_view') ||
                     get_permission('payment_settings', 'is_view') ||
                     get_permission('school_fees', 'is_view') ||
+                    get_permission('pwd_category', 'is_view') ||
                     get_permission('sms_settings', 'is_view') ||
                     get_permission('email_settings', 'is_view') ||
                     get_permission('accounting_links', 'is_view')) {
@@ -1734,6 +1735,12 @@
                             <li class="<?php if ($sub_page == 'school_fees/index') echo 'nav-active';?>">
                                 <a href="<?=base_url('school_fees')?>">
                                     <span><i class="fas fa-caret-right" aria-hidden="true"></i>School Fees</span>
+                                </a>
+                            </li>
+                            <?php } if(get_permission('pwd_category', 'is_view') || get_permission('school_settings', 'is_view') || is_superadmin_loggedin()){ ?>
+                            <li class="<?php if ($sub_page == 'pwd_category/index') echo 'nav-active';?>">
+                                <a href="<?=base_url('pwd_category')?>">
+                                    <span><i class="fas fa-caret-right" aria-hidden="true"></i>Student Categories (PWD)</span>
                                 </a>
                             </li>
                             <?php } if (is_superadmin_loggedin()) { ?>

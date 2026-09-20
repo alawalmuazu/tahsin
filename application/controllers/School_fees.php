@@ -61,15 +61,14 @@ class School_fees extends Admin_Controller
 
     protected function loadCategories($branchID)
     {
-        $this->load->model('home_model');
-        $official = $this->home_model->getAdmissionTypes($branchID);
-        if (!empty($official)) {
-            $out = array();
-            foreach ($official as $id => $name) {
-                $out[] = (object) array('id' => $id, 'name' => $name);
-            }
-            return $out;
+        $this->load->model('pwd_category_model');
+        $list = $this->pwd_category_model->getList($branchID, true);
+        if (!empty($list)) {
+            return $list;
         }
-        return $this->db->where('branch_id', $branchID)->order_by('id', 'ASC')->get('student_category')->result();
+        // Fallback if PWD migration not run yet
+        $this->db->where('branch_id', $branchID);
+        $this->db->where("name NOT LIKE '[archived]%'", null, false);
+        return $this->db->order_by('id', 'ASC')->get('student_category')->result();
     }
 }

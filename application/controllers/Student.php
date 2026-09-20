@@ -46,6 +46,7 @@ class Student extends Admin_Controller
         $this->form_validation->set_rules('other_name', translate('other_name'), 'trim');
         $this->form_validation->set_rules('class_id', translate('class'), 'trim');
         $this->form_validation->set_rules('section_id', translate('section'), 'trim');
+        $this->form_validation->set_rules('pwd_category_id', 'Student Category', 'trim|required');
         if (isset($_POST['student_id'])) {
             $this->form_validation->set_rules('register_no', translate('register_no'), 'trim|required|callback_unique_registerid');
         }
@@ -283,7 +284,8 @@ class Student extends Admin_Controller
                 $post['class_id'] = empty($post['class_id']) ? 0 : (int) $post['class_id'];
                 $post['section_id'] = empty($post['section_id']) ? 0 : (int) $post['section_id'];
                 $post['category_id'] = empty($post['category_id']) ? 0 : (int) $post['category_id'];
-                $schoolFee = $this->student_model->schoolFeeAmount($post['section_id'], $post['category_id'], $branchID);
+                $post['pwd_category_id'] = empty($post['pwd_category_id']) ? 0 : (int) $post['pwd_category_id'];
+                $schoolFee = $this->student_model->schoolFeeAmount($post['section_id'], $post['pwd_category_id'], $branchID);
                 $post['register_no'] = $this->student_model->allocateRegisterNo($branchID);
                 $post['roll'] = $this->student_model->allocateRoll($post['class_id'], $post['section_id'], $branchID, $post['year_id']);
                 //save all student information in the database file
@@ -836,9 +838,9 @@ class Student extends Admin_Controller
     {
         $plan = $this->input->post('tuition_plan');
         $section_id = (int) $this->input->post('section_id');
-        $category_id = (int) $this->input->post('category_id');
+        $pwd_category_id = (int) $this->input->post('pwd_category_id');
         $branchID = $this->application_model->get_branch_id();
-        $fee = $this->student_model->schoolFeeAmount($section_id, $category_id, $branchID);
+        $fee = $this->student_model->schoolFeeAmount($section_id, $pwd_category_id, $branchID);
         if (!is_numeric($amount) || (float) $amount <= 0) {
             $this->form_validation->set_message('valid_tuition_now', 'Enter the amount being paid now.');
             return false;

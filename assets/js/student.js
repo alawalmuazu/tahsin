@@ -295,7 +295,7 @@
 				dataType: 'json',
 				data: {
 					section_id: $('#section_id').val() || 0,
-					category_id: $('#category_id').val() || 0,
+					category_id: $('#pwd_category_id').val() || 0,
 					branch_id: $('input[name="branch_id"]').val() || 0
 				},
 				success: function (res) {
@@ -310,7 +310,7 @@
 			});
 		}
 
-		$(document).on('change', '#section_id, #category_id', refreshSchoolFeeFromSettings);
+		$(document).on('change', '#section_id, #pwd_category_id', refreshSchoolFeeFromSettings);
 
 		if ($('#tuition_amount').length) {
 			updateTuitionUI();

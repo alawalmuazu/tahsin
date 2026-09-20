@@ -72,6 +72,23 @@ endif;
 						</div>
 					</div>
 					<?php } ?>
+					<?php
+					$this->load->model('pwd_category_model');
+					$pwdDefault = $this->pwd_category_model->getDefaultId($branch_id);
+					$pwdSelected = set_value('pwd_category_id', $pwdDefault);
+					$arrayPwd = $this->pwd_category_model->getDropdown($branch_id);
+					?>
+					<div class="col-md-3 mb-sm">
+						<div class="form-group">
+							<label class="control-label">Student Category <span class="required">*</span></label>
+							<?php
+								echo form_dropdown("pwd_category_id", $arrayPwd, $pwdSelected, "class='form-control' id='pwd_category_id'
+								data-plugin-selectTwo data-width='100%' data-minimum-results-for-search='Infinity'");
+							?>
+							<span class="error"></span>
+							<small class="help-block">Physically Fit by default. PWD types are managed in Settings.</small>
+						</div>
+					</div>
 					<div class="col-md-3 mb-sm">
 						<div class="form-group">
 							<label class="control-label"><?=translate('section')?></label>
@@ -97,13 +114,14 @@ endif;
 					<?php if ($category['status']) { ?>
 					<div class="col-md-3 mb-sm">
 						<div class="form-group">
-							<label class="control-label"><?=translate('category')?><?php echo $category['required'] == 1 ? ' <span class="required">*</span>' : ''; ?></label>
+							<label class="control-label">Programme <?=translate('category')?><?php echo $category['required'] == 1 ? ' <span class="required">*</span>' : ''; ?></label>
 							<?php
 								$arrayCategory = $this->app_lib->getStudentCategory($branch_id);
 								echo form_dropdown("category_id", $arrayCategory, set_value('category_id'), "class='form-control'
 								data-plugin-selectTwo data-width='100%' id='category_id' data-minimum-results-for-search='Infinity' ");
 							?>
 							<span class="error"></span>
+							<small class="help-block">With / Without Technical Skills</small>
 						</div>
 					</div>
 					<?php } ?>
@@ -699,7 +717,7 @@ endif;
 					<i class="fas fa-money-check-alt"></i> <?=translate('tuition')?> <?=translate('payment')?>
 				</div>
 				<?php
-					$school_fee = get_school_fee_amount(set_value('section_id'), set_value('category_id'), $branch_id);
+					$school_fee = get_school_fee_amount(set_value('section_id'), set_value('pwd_category_id'), $branch_id);
 					$tuition_plan = set_value('tuition_plan', 'full');
 				?>
 				<div class="row">

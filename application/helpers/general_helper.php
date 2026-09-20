@@ -711,7 +711,7 @@ function currencyFormat($amount = 0)
 }
 
 /**
- * Resolve school fee for branch/section/category (Settings → School Fees).
+ * Resolve school fee for branch/section/student-category (PWD id in school_fee_settings.category_id).
  */
 function get_school_fee_amount($section_id = 0, $category_id = 0, $branch_id = null)
 {

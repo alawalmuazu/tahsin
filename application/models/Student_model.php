@@ -47,6 +47,7 @@ class Student_model extends MY_Model
             'state' => $this->input->post('state'),
             'mobileno' => $this->input->post('mobileno'),
             'category_id' => (isset($data['category_id']) ? $data['category_id'] : 0),
+            'pwd_category_id' => (isset($data['pwd_category_id']) ? (int) $data['pwd_category_id'] : null),
             'email' => $this->input->post('email'),
             'parent_id' => $this->input->post('parent_id'),
             'route_id' => (empty($this->input->post('route_id')) ? 0 : $this->input->post('route_id')),
@@ -732,10 +733,10 @@ if ($validArr['roll']) {
         if (empty($enroll)) {
             return false;
         }
-        $student = $this->db->select('category_id')->where('id', $enroll['student_id'])->get('student')->row();
+        $student = $this->db->select('pwd_category_id, category_id')->where('id', $enroll['student_id'])->get('student')->row();
         $feeAmt = $this->schoolFeeAmount(
             isset($enroll['section_id']) ? $enroll['section_id'] : 0,
-            $student ? $student->category_id : 0,
+            $student ? $student->pwd_category_id : 0,
             $enroll['branch_id']
         );
         $setup = $this->ensureTuitionSetup($enroll['branch_id'], $enroll['session_id'], $feeAmt);
@@ -804,15 +805,15 @@ if ($validArr['roll']) {
 
     public function getTuitionSummary($enroll_id)
     {
-        $enroll = $this->db->select('e.section_id, e.branch_id, s.category_id')
+        $enroll = $this->db->select('e.section_id, e.branch_id, s.pwd_category_id, s.category_id')
             ->from('enroll as e')
             ->join('student as s', 's.id = e.student_id', 'left')
             ->where('e.id', (int) $enroll_id)
             ->get()->row();
         $section_id = $enroll ? (int) $enroll->section_id : 0;
-        $category_id = $enroll ? (int) $enroll->category_id : 0;
+        $pwd_category_id = $enroll ? (int) $enroll->pwd_category_id : 0;
         $branch_id = $enroll ? (int) $enroll->branch_id : null;
-        $fee = $this->schoolFeeAmount($section_id, $category_id, $branch_id);
+        $fee = $this->schoolFeeAmount($section_id, $pwd_category_id, $branch_id);
         $payments = $this->getTuitionPayments($enroll_id);
         $paid = 0;
         $plan = '';

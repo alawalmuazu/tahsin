@@ -56,7 +56,7 @@ $contactURL = base_url('contact');
             <article class="ta-step">
                 <b>02</b>
                 <h3>Choose the track</h3>
-                <p>Boarding, Day or Weekend — then With or Without Technical Skills. The Quran stays at the centre of every path.</p>
+                <p>Boarding, Day or Weekend — then programme (With or Without Technical Skills). Choose Student Category (Physically Fit or PWD) on admission.</p>
             </article>
             <article class="ta-step">
                 <b>03</b>

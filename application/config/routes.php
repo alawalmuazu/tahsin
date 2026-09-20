@@ -118,6 +118,9 @@ $route['audit_trail/clear'] = 'audit_trail/clear';
 $route['school_fees'] = 'school_fees/index';
 $route['school_fees/resolve'] = 'school_fees/resolve';
 
+$route['pwd_category'] = 'pwd_category/index';
+$route['pwd_category/delete/(:num)'] = 'pwd_category/delete/$1';
+
 $route['registration'] = 'registration/index';
 $route['registration/success'] = 'registration/success';
 $route['credential_approvals'] = 'credential_approvals/index';
