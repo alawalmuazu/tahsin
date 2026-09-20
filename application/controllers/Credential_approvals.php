@@ -56,12 +56,25 @@ class Credential_approvals extends Admin_Controller
                     $p->branch_id = $u->branch_id;
                 }
             } else {
-                $u = $this->db->get_where('staff', array('id' => $p->user_id))->row();
+                $u = $this->db->select('staff.*, staff_designation.name as designation_name, staff_department.name as department_name')
+                    ->from('staff')
+                    ->join('staff_designation', 'staff_designation.id = staff.designation', 'left')
+                    ->join('staff_department', 'staff_department.id = staff.department', 'left')
+                    ->where('staff.id', $p->user_id)
+                    ->get()->row();
                 if ($u) {
                     $p->user_name = $u->name;
                     $p->user_email = $u->email;
                     $p->user_mobile = $u->mobileno;
                     $p->branch_id = $u->branch_id;
+                    $p->staff_id_no = $u->staff_id;
+                    $p->photo = $u->photo;
+                    $p->qualification = $u->qualification;
+                    $p->designation_name = $u->designation_name;
+                    $p->department_name = $u->department_name;
+                    $p->joining_date = $u->joining_date;
+                    $p->sex = $u->sex;
+                    $p->present_address = $u->present_address;
                 }
             }
 

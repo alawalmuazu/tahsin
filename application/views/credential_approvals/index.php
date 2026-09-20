@@ -128,6 +128,30 @@
                                 </td>
                                 <td><span class="label label-warning" style="background: #e07a5f; color: #fff; padding: 4px 8px; border-radius: 4px;">Pending Review</span></td>
                                 <td class="text-center" style="white-space: nowrap;">
+                                    <button type="button"
+                                        class="btn btn-default btn-xs btn-preview-applicant"
+                                        data-toggle="tooltip"
+                                        data-original-title="Preview application"
+                                        style="margin-right: 4px;"
+                                        data-id="<?php echo (int) $row->id; ?>"
+                                        data-name="<?php echo html_escape($row->user_name); ?>"
+                                        data-role="<?php echo html_escape($row->role_name); ?>"
+                                        data-username="<?php echo html_escape($row->username); ?>"
+                                        data-email="<?php echo html_escape($row->user_email); ?>"
+                                        data-mobile="<?php echo html_escape($row->user_mobile); ?>"
+                                        data-staff-id="<?php echo html_escape(isset($row->staff_id_no) ? $row->staff_id_no : ''); ?>"
+                                        data-qualification="<?php echo html_escape(isset($row->qualification) ? $row->qualification : ''); ?>"
+                                        data-designation="<?php echo html_escape(isset($row->designation_name) ? $row->designation_name : ''); ?>"
+                                        data-department="<?php echo html_escape(isset($row->department_name) ? $row->department_name : ''); ?>"
+                                        data-joining="<?php echo html_escape(!empty($row->joining_date) ? date('M d, Y', strtotime($row->joining_date)) : ''); ?>"
+                                        data-sex="<?php echo html_escape(isset($row->sex) ? ucfirst($row->sex) : ''); ?>"
+                                        data-address="<?php echo html_escape(isset($row->present_address) ? $row->present_address : ''); ?>"
+                                        data-submitted="<?php echo html_escape(!empty($row->reg_date) ? date('M d, Y · h:i A', strtotime($row->reg_date)) : '—'); ?>"
+                                        data-photo="<?php echo html_escape(get_image_url('staff', isset($row->photo) ? $row->photo : '')); ?>"
+                                        data-approve-url="<?php echo base_url('credential_approvals/approve/' . $row->id); ?>"
+                                        data-reject-url="<?php echo base_url('credential_approvals/reject/' . $row->id); ?>">
+                                        <i class="fas fa-eye"></i> Preview
+                                    </button>
                                     <a href="<?php echo base_url('credential_approvals/approve/' . $row->id); ?>" class="btn btn-success btn-xs" data-toggle="tooltip" data-original-title="Approve and Activate Account" onclick="return confirm('Approve and activate account for <?php echo html_escape($row->user_name); ?>?');" style="margin-right: 4px;">
                                         <i class="fas fa-check"></i> Approve
                                     </a>
@@ -159,6 +183,97 @@
     </div>
 </div>
 
+<!-- Applicant Preview Modal -->
+<div class="modal fade" id="applicantPreviewModal" tabindex="-1" role="dialog" aria-labelledby="applicantPreviewLabel">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content" style="border-radius: 10px; overflow: hidden;">
+            <div class="modal-header" style="background: #10241e; color: #fff; border: 0;">
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close" style="color: #fff; opacity: 0.85;">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+                <h4 class="modal-title" id="applicantPreviewLabel" style="font-weight: 600;">
+                    <i class="fas fa-user-circle"></i> Application Preview
+                </h4>
+            </div>
+            <div class="modal-body" style="padding: 24px;">
+                <div class="row">
+                    <div class="col-md-3 text-center" style="margin-bottom: 18px;">
+                        <img id="preview_photo" src="" alt="Applicant photo" style="width: 120px; height: 120px; border-radius: 50%; object-fit: cover; border: 3px solid #1a6b3c; background: #eef2f5;">
+                        <div style="margin-top: 10px;">
+                            <span id="preview_status" class="label label-warning" style="background: #e07a5f; color: #fff; padding: 4px 10px; border-radius: 4px;">Pending Review</span>
+                        </div>
+                    </div>
+                    <div class="col-md-9">
+                        <h3 id="preview_name" style="margin-top: 0; font-weight: 700; color: #0b1a16;"></h3>
+                        <p style="margin-bottom: 16px;">
+                            <span id="preview_role" class="badge" style="background: #0284c7; color: #fff; font-weight: 600; padding: 5px 12px; border-radius: 12px;"></span>
+                        </p>
+                        <div class="table-responsive">
+                            <table class="table table-bordered table-condensed mb-none" style="margin-bottom: 0;">
+                                <tbody>
+                                    <tr>
+                                        <th style="width: 38%; background: #f8fafc;">Staff ID</th>
+                                        <td id="preview_staff_id">—</td>
+                                    </tr>
+                                    <tr>
+                                        <th style="background: #f8fafc;">Username</th>
+                                        <td><code id="preview_username"></code></td>
+                                    </tr>
+                                    <tr>
+                                        <th style="background: #f8fafc;">Email</th>
+                                        <td id="preview_email">—</td>
+                                    </tr>
+                                    <tr>
+                                        <th style="background: #f8fafc;">Phone</th>
+                                        <td id="preview_mobile">—</td>
+                                    </tr>
+                                    <tr>
+                                        <th style="background: #f8fafc;">Qualification</th>
+                                        <td id="preview_qualification">—</td>
+                                    </tr>
+                                    <tr>
+                                        <th style="background: #f8fafc;">Designation</th>
+                                        <td id="preview_designation">—</td>
+                                    </tr>
+                                    <tr>
+                                        <th style="background: #f8fafc;">Department</th>
+                                        <td id="preview_department">—</td>
+                                    </tr>
+                                    <tr>
+                                        <th style="background: #f8fafc;">Gender</th>
+                                        <td id="preview_sex">—</td>
+                                    </tr>
+                                    <tr>
+                                        <th style="background: #f8fafc;">Joining Date</th>
+                                        <td id="preview_joining">—</td>
+                                    </tr>
+                                    <tr>
+                                        <th style="background: #f8fafc;">Address</th>
+                                        <td id="preview_address">—</td>
+                                    </tr>
+                                    <tr>
+                                        <th style="background: #f8fafc;">Date Submitted</th>
+                                        <td id="preview_submitted">—</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer" style="background: #fbf7ee; border-top: 1px solid #e7dcc4;">
+                <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+                <a href="#" id="preview_reject_btn" class="btn btn-danger" onclick="return confirm('Reject this application? This will permanently remove the pending record.');">
+                    <i class="fas fa-times"></i> Reject
+                </a>
+                <a href="#" id="preview_approve_btn" class="btn btn-success" style="background: #1a6b3c; border-color: #1a6b3c;" onclick="return confirm('Approve and activate this account?');">
+                    <i class="fas fa-check"></i> Approve
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script type="text/javascript">
 $(document).ready(function() {
     <?php if (!empty($pending_approvals)): ?>
@@ -168,5 +283,37 @@ $(document).ready(function() {
         }
     }, 700);
     <?php endif; ?>
+
+    function dash(val) {
+        return (val && String(val).trim() !== '') ? val : '—';
+    }
+
+    $(document).on('click', '.btn-preview-applicant', function() {
+        var $btn = $(this);
+        var name = $btn.data('name') || 'Applicant';
+
+        $('#preview_photo').attr('src', $btn.data('photo') || '');
+        $('#preview_name').text(name);
+        $('#preview_role').text($btn.data('role') || '—');
+        $('#preview_staff_id').text(dash($btn.data('staff-id')));
+        $('#preview_username').text($btn.data('username') || '—');
+        $('#preview_email').html($btn.data('email') ? '<a href="mailto:' + $btn.data('email') + '">' + $btn.data('email') + '</a>' : '—');
+        $('#preview_mobile').html($btn.data('mobile') ? '<a href="tel:' + $btn.data('mobile') + '">' + $btn.data('mobile') + '</a>' : '—');
+        $('#preview_qualification').text(dash($btn.data('qualification')));
+        $('#preview_designation').text(dash($btn.data('designation')));
+        $('#preview_department').text(dash($btn.data('department')));
+        $('#preview_sex').text(dash($btn.data('sex')));
+        $('#preview_joining').text(dash($btn.data('joining')));
+        $('#preview_address').text(dash($btn.data('address')));
+        $('#preview_submitted').text(dash($btn.data('submitted')));
+
+        $('#preview_approve_btn')
+            .attr('href', $btn.data('approve-url'))
+            .attr('onclick', "return confirm('Approve and activate account for " + name.replace(/'/g, "\\'") + "?');");
+        $('#preview_reject_btn')
+            .attr('href', $btn.data('reject-url'));
+
+        $('#applicantPreviewModal').modal('show');
+    });
 });
 </script>
