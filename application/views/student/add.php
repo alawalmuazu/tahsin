@@ -55,11 +55,11 @@ endif;
 				$selected_section = set_value('section_id');
 				?>
 				<input type="hidden" name="year_id" id="academic_year_id" value="<?=html_escape($academic_year)?>">
-				<div class="row mb-md">
-					<?php if (is_multi_school()): ?>
-						<input type="hidden" name="branch_id" value="<?php echo $branch_id ?>">
-					<?php endif; ?>
-					<?php if ($admission_date['status']) { ?>
+				<?php if (is_multi_school()): ?>
+					<input type="hidden" name="branch_id" value="<?php echo $branch_id ?>">
+				<?php endif; ?>
+				<?php if ($admission_date['status']) { ?>
+				<div class="row">
 					<div class="col-md-3 mb-sm">
 						<div class="form-group">
 							<label class="control-label"><?=translate('admission_date')?><?php echo $admission_date['required'] == 1 ? ' <span class="required">*</span>' : ''; ?></label>
@@ -71,11 +71,13 @@ endif;
 							<span class="error"></span>
 						</div>
 					</div>
-					<?php } ?>
-					<?php
-					$arrayPwd = isset($pwd_category_list) ? $pwd_category_list : array('' => translate('select'));
-					$pwdSelected = set_value('pwd_category_id', isset($pwd_category_default) ? $pwd_category_default : '');
-					?>
+				</div>
+				<?php } ?>
+				<?php
+				$arrayPwd = isset($pwd_category_list) ? $pwd_category_list : array('' => translate('select'));
+				$pwdSelected = set_value('pwd_category_id', isset($pwd_category_default) ? $pwd_category_default : '');
+				?>
+				<div class="row mb-md">
 					<div class="col-md-3 mb-sm">
 						<div class="form-group">
 							<label class="control-label">Student Category <span class="required">*</span></label>
