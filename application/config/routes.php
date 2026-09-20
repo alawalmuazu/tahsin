@@ -110,6 +110,8 @@ $route['profile'] = 'profile/index';
 $route['sections'] = 'sections/index';
 $route['health'] = 'health/index';
 $route['audit_trail'] = 'audit_trail/index';
+$route['audit_trail/index/(:any)'] = 'audit_trail/index/$1';
+$route['audit_trail/getLogListDT/(:any)'] = 'audit_trail/getLogListDT/$1';
 $route['audit_trail/view/(:num)'] = 'audit_trail/view/$1';
 $route['audit_trail/clear'] = 'audit_trail/clear';
 

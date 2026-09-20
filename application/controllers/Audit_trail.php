@@ -10,27 +10,36 @@ class Audit_trail extends Admin_Controller
         $this->load->library('app_audit');
     }
 
-    public function index()
+    public function index($scope = 'all')
     {
         if (!get_permission('audit_trail', 'is_view')) {
             access_denied();
         }
 
+        $allowed = array('all', 'security', 'changes');
+        if (!in_array($scope, $allowed, true)) {
+            $scope = 'all';
+        }
+
+        $this->data['scope'] = $scope;
         $this->data['title'] = 'Audit Trail';
         $this->data['sub_page'] = 'audit_trail/index';
         $this->data['main_menu'] = 'settings';
-        $this->data['filters'] = array(
-            'action' => $this->input->get('action'),
-            'module' => $this->input->get('module'),
-            'user'   => $this->input->get('user'),
-            'from'   => $this->input->get('from'),
-            'to'     => $this->input->get('to'),
-            'q'      => $this->input->get('q'),
-        );
-        $this->data['actions'] = $this->audit_trail_model->distinctActions();
-        $this->data['modules'] = $this->audit_trail_model->distinctModules();
-        $this->data['logs'] = $this->audit_trail_model->getLogs($this->data['filters'], 250);
         $this->load->view('layout/index', $this->data);
+    }
+
+    public function getLogListDT($scope = 'all')
+    {
+        if (!get_permission('audit_trail', 'is_view')) {
+            access_denied();
+        }
+        if ($_POST) {
+            $allowed = array('all', 'security', 'changes');
+            if (!in_array($scope, $allowed, true)) {
+                $scope = 'all';
+            }
+            echo $this->audit_trail_model->getLogListDT($this->input->post(), $scope);
+        }
     }
 
     public function view($id = 0)
@@ -59,7 +68,12 @@ class Audit_trail extends Admin_Controller
         if (isset($this->db->audit_enabled)) {
             $this->db->audit_enabled = false;
         }
-        $this->db->truncate('audit_log');
+        if (is_superadmin_loggedin()) {
+            $this->db->truncate('audit_log');
+        } else {
+            $this->db->where('branch_id', get_loggedin_branch_id());
+            $this->db->delete('audit_log');
+        }
         if (isset($this->db->audit_enabled)) {
             $this->db->audit_enabled = true;
         }

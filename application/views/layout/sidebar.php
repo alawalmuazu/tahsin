@@ -1790,7 +1790,7 @@
                             </li>
                             <?php } if(get_permission('audit_trail', 'is_view')){ ?>
                             <li class="<?php if ($sub_page == 'audit_trail/index' || $sub_page == 'audit_trail/view') echo 'nav-active';?>">
-                                <a href="<?=base_url('audit_trail')?>">
+                                <a href="<?=base_url('audit_trail/index')?>">
                                     <span><i class="fas fa-caret-right" aria-hidden="true"></i>Audit Trail</span>
                                 </a>
                             </li>
