@@ -12,6 +12,9 @@ class MY_DB_mysqli_driver extends CI_DB_mysqli_driver
     /** @var bool */
     protected $audit_writing = false;
 
+    /** @var int|null Preserved after audited INSERT so audit_log does not steal insert_id() */
+    protected $preserved_insert_id = null;
+
     protected $audit_skip_tables = array(
         'audit_log',
         'ci_sessions',
@@ -21,13 +24,25 @@ class MY_DB_mysqli_driver extends CI_DB_mysqli_driver
         'migrations',
     );
 
+    public function insert_id()
+    {
+        if ($this->preserved_insert_id !== null) {
+            return (int) $this->preserved_insert_id;
+        }
+        return parent::insert_id();
+    }
+
     public function insert($table = '', $set = NULL, $escape = NULL)
     {
+        $this->preserved_insert_id = null;
         $payload = $this->_auditCaptureSet($set);
         $result = parent::insert($table, $set, $escape);
+        if ($result) {
+            $this->preserved_insert_id = (int) parent::insert_id();
+        }
         if ($result && $this->_auditShouldLog($table)) {
-            $recordId = $this->insert_id();
-            $this->_auditWrite('INSERT', $table, $recordId ? (string) $recordId : null, null, $payload);
+            $recordId = $this->preserved_insert_id ? (string) $this->preserved_insert_id : null;
+            $this->_auditWrite('INSERT', $table, $recordId, null, $payload);
         }
         return $result;
     }

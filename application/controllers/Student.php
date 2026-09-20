@@ -285,14 +285,24 @@ class Student extends Admin_Controller
                 }
                 $post = $this->input->post();
                 $post['year_id'] = get_session_id();
-                // "None" posts as empty — store as 0 so admission can proceed without a class
-                $post['class_id'] = empty($post['class_id']) ? 0 : (int) $post['class_id'];
-                $post['section_id'] = empty($post['section_id']) ? 0 : (int) $post['section_id'];
+                // "None" posts as empty — store NULL (FK does not allow 0)
+                $post['class_id'] = empty($post['class_id']) ? null : (int) $post['class_id'];
+                $post['section_id'] = empty($post['section_id']) ? null : (int) $post['section_id'];
                 $post['category_id'] = empty($post['category_id']) ? 0 : (int) $post['category_id'];
                 $post['pwd_category_id'] = empty($post['pwd_category_id']) ? 0 : (int) $post['pwd_category_id'];
-                $schoolFee = $this->student_model->schoolFeeAmount($post['section_id'], $post['category_id'], $post['pwd_category_id'], $branchID);
+                $schoolFee = $this->student_model->schoolFeeAmount(
+                    $post['section_id'] ? $post['section_id'] : 0,
+                    $post['category_id'],
+                    $post['pwd_category_id'],
+                    $branchID
+                );
                 $post['register_no'] = $this->student_model->allocateRegisterNo($branchID);
-                $post['roll'] = $this->student_model->allocateRoll($post['class_id'], $post['section_id'], $branchID, $post['year_id']);
+                $post['roll'] = $this->student_model->allocateRoll(
+                    $post['class_id'] ? $post['class_id'] : 0,
+                    $post['section_id'] ? $post['section_id'] : 0,
+                    $branchID,
+                    $post['year_id']
+                );
                 //save all student information in the database file
                 $studentData = $this->student_model->save($post, $getBranch);
                 $studentID = $studentData['student_id'];

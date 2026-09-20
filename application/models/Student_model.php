@@ -115,6 +115,9 @@ class Student_model extends MY_Model
             // insert student all information in the database
             $this->db->insert('student', $inser_data1);
             $student_id = $this->db->insert_id();
+            if (empty($student_id) || !$this->db->get_where('student', array('id' => $student_id))->row()) {
+                show_error('Student record was not created. Please try again or contact support.', 500, 'Admission Error');
+            }
 
             // Auto-generate the academy student ID: TA-{YEAR}-{ZERO_PADDED_ID}
             $academy_student_id = 'TA-' . date('Y') . '-' . str_pad($student_id, 5, '0', STR_PAD_LEFT);
