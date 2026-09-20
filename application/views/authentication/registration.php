@@ -87,7 +87,7 @@
 
             <!-- Profile Photo Upload -->
             <div style="text-align: center; margin-bottom: 25px;" class="field-group <?php if (form_error('cropped_photo')) echo 'has-error'; ?>">
-                <label for="photo_upload" style="cursor: pointer; display: inline-block; position: relative;" title="Upload a photo from your gallery">
+                <button type="button" id="photo_trigger" style="cursor: pointer; display: inline-block; position: relative; border: 0; background: transparent; padding: 0;" title="Upload or take a photo" aria-haspopup="dialog">
                     <div style="width: 120px; height: 120px; border-radius: 50%; overflow: hidden; background: #eef2f5; border: 3px solid <?php echo form_error('cropped_photo') ? '#e53935' : '#1a6b3c'; ?>; display: flex; align-items: center; justify-content: center;" id="photo_preview_container">
                         <i class="fas fa-camera fa-2x <?php echo form_error('cropped_photo') ? 'text-danger' : 'text-muted'; ?>" id="photo_placeholder_icon"></i>
                         <img id="photo_preview_img" src="<?php echo set_value('cropped_photo'); ?>" style="width: 100%; height: 100%; object-fit: cover; <?php echo set_value('cropped_photo') ? '' : 'display: none;'; ?>">
@@ -95,10 +95,22 @@
                     <div style="position: absolute; bottom: 0; right: 0; background: <?php echo form_error('cropped_photo') ? '#e53935' : '#1a6b3c'; ?>; color: white; width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">
                         <i class="fas fa-plus"></i>
                     </div>
-                </label>
+                </button>
                 <input type="file" id="photo_upload" accept="image/*" style="display: none;">
+                <input type="file" id="photo_camera" accept="image/*" capture="user" style="display: none;">
                 <input type="hidden" name="cropped_photo" id="cropped_photo" value="<?php echo set_value('cropped_photo'); ?>">
-                <div style="font-size: 13px; color: <?php echo form_error('cropped_photo') ? '#e53935' : '#6b7280'; ?>; margin-top: 8px; font-weight: 600;">Upload a headshot (Required) <span class="text-danger">*</span></div>
+                <div style="font-size: 13px; color: <?php echo form_error('cropped_photo') ? '#e53935' : '#6b7280'; ?>; margin-top: 8px; font-weight: 600;">Upload or snap a headshot (Required) <span class="text-danger">*</span></div>
+                <div id="photo_source_sheet" role="dialog" aria-label="Choose photo source" style="display:none; margin-top: 12px; text-align: left; max-width: 280px; margin-left: auto; margin-right: auto; background: #fff; border: 1px solid #e7dcc4; border-radius: 12px; overflow: hidden; box-shadow: 0 8px 24px rgba(11,26,22,0.12);">
+                    <button type="button" class="photo-source-btn" data-photo-source="gallery" style="display:flex; width:100%; align-items:center; gap:10px; padding:14px 16px; border:0; background:#fff; border-bottom:1px solid #f0ebe0; font-weight:600; color:#0b1a16;">
+                        <i class="far fa-images" style="color:#1a6b3c;"></i> Upload image
+                    </button>
+                    <button type="button" class="photo-source-btn" data-photo-source="camera" style="display:flex; width:100%; align-items:center; gap:10px; padding:14px 16px; border:0; background:#fff; border-bottom:1px solid #f0ebe0; font-weight:600; color:#0b1a16;">
+                        <i class="fas fa-camera" style="color:#1a6b3c;"></i> Tap to snap
+                    </button>
+                    <button type="button" class="photo-source-btn" data-photo-source="cancel" style="display:flex; width:100%; align-items:center; justify-content:center; gap:10px; padding:12px 16px; border:0; background:#fbf7ee; font-weight:600; color:#6d7a74;">
+                        Cancel
+                    </button>
+                </div>
                 <?php if (form_error('cropped_photo')): ?>
                 <span class="field-error" style="display:block; margin-top:5px; font-weight:600;"><?php echo form_error('cropped_photo'); ?></span>
                 <?php endif; ?>
@@ -222,18 +234,36 @@
     <script>
     var cropper;
     var image = document.getElementById('cropper_image');
+    var $photoSheet = $('#photo_source_sheet');
 
-    $('#photo_upload').on('change', function(e) {
-        var files = e.target.files;
+    function openPhotoFromInput(inputEl) {
+        var files = inputEl.files;
         if (files && files.length > 0) {
-            var file = files[0];
             var reader = new FileReader();
             reader.onload = function(e) {
                 image.src = e.target.result;
                 $('#cropperModal').modal('show');
             };
-            reader.readAsDataURL(file);
+            reader.readAsDataURL(files[0]);
         }
+    }
+
+    $('#photo_trigger').on('click', function() {
+        $photoSheet.stop(true, true).slideDown(150);
+    });
+
+    $photoSheet.on('click', '[data-photo-source]', function() {
+        var source = $(this).data('photo-source');
+        $photoSheet.slideUp(120);
+        if (source === 'gallery') {
+            $('#photo_upload').val('').trigger('click');
+        } else if (source === 'camera') {
+            $('#photo_camera').val('').trigger('click');
+        }
+    });
+
+    $('#photo_upload, #photo_camera').on('change', function() {
+        openPhotoFromInput(this);
     });
 
     $('#cropperModal').on('shown.bs.modal', function() {
@@ -247,7 +277,7 @@
             cropper.destroy();
             cropper = null;
         }
-        $('#photo_upload').val(''); // Reset input so same file can be chosen again
+        $('#photo_upload, #photo_camera').val('');
     });
 
     $('#btn_crop').on('click', function() {
