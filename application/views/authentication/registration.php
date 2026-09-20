@@ -261,7 +261,7 @@
         width: '100%',
         placeholder: 'Search or select qualification(s)',
         allowClear: true,
-        closeOnSelect: false,
+        closeOnSelect: true,
         minimumResultsForSearch: 0
     });
 
