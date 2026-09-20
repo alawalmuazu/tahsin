@@ -131,7 +131,7 @@ class Admin_Controller extends MY_Controller
         parent::__construct();
         if (!is_loggedin()) {
             $this->session->set_userdata('redirect_url', current_url());
-            redirect(base_url('authentication'), 'refresh');
+            redirect(base_url('authentication'));
         }
         $this->enforcePasswordChange();
     }
@@ -160,7 +160,7 @@ class User_Controller extends MY_Controller
         parent::__construct();
         if (!is_student_loggedin() && !is_parent_loggedin()) {
             $this->session->set_userdata('redirect_url', current_url());
-            redirect(base_url('authentication'), 'refresh');
+            redirect(base_url('authentication'));
         }
         if (is_force_password_change()) {
             $class = $this->router->fetch_class();
