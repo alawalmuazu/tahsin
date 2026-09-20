@@ -16,6 +16,7 @@
     <script src="<?php echo base_url('assets/vendor/sweetalert/sweetalert.min.js'); ?>"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
+    <link rel="stylesheet" href="<?php echo base_url('assets/vendor/select2/css/select2.css'); ?>">
     <link rel="stylesheet" href="<?php echo base_url('assets/css/auth.css?v=' . APP_VERSION); ?>">
 
     <script>var base_url = '<?php echo base_url() ?>';</script>
@@ -136,12 +137,11 @@
                         $posted_qualification !== null ? $posted_qualification : ''
                     );
                 ?>
-                <select class="form-control" name="qualification[]" id="qualification" multiple required style="min-height: 120px;">
+                <select class="form-control qualification-select" name="qualification[]" id="qualification" multiple data-placeholder="Search or select qualification(s)">
                     <?php foreach ($qualification_options as $code => $label): ?>
                         <option value="<?php echo html_escape($code); ?>" <?php echo in_array($code, $qualification_selected, true) ? 'selected' : ''; ?>><?php echo html_escape($label); ?></option>
                     <?php endforeach; ?>
                 </select>
-                <div style="font-size: 12px; color: #6b7280; margin-top: 6px;">Hold Ctrl (Windows) or Cmd (Mac) to select more than one.</div>
                 <?php if (form_error('qualification')): ?>
                 <span class="field-error"><?php echo form_error('qualification'); ?></span>
                 <?php endif; ?>
@@ -227,6 +227,7 @@
     </main>
 
     <script src="<?php echo base_url('assets/vendor/bootstrap/js/bootstrap.js'); ?>"></script>
+    <script src="<?php echo base_url('assets/vendor/select2/js/select2.full.js'); ?>"></script>
 
     <!-- Cropper Modal -->
     <div class="modal fade" id="cropperModal" tabindex="-1" role="dialog" aria-labelledby="modalLabel" aria-hidden="true" data-backdrop="static">
@@ -255,6 +256,14 @@
     var cropper;
     var image = document.getElementById('cropper_image');
     var $photoSheet = $('#photo_source_sheet');
+
+    $('#qualification').select2({
+        width: '100%',
+        placeholder: 'Search or select qualification(s)',
+        allowClear: true,
+        closeOnSelect: false,
+        minimumResultsForSearch: 0
+    });
 
     function openPhotoFromInput(inputEl) {
         var files = inputEl.files;
