@@ -74,7 +74,7 @@ endif;
 					<?php } ?>
 					<div class="col-md-3 mb-sm">
 						<div class="form-group">
-							<label class="control-label"><?=translate('section')?> <span class="required">*</span></label>
+							<label class="control-label"><?=translate('section')?></label>
 							<?php
 								$arraySection = $this->app_lib->getBranchSections($branch_id);
 								echo form_dropdown("section_id", $arraySection, $selected_section, "class='form-control' id='section_id' data-class-target='#class_id'
@@ -85,7 +85,7 @@ endif;
 					</div>
 					<div class="col-md-3 mb-sm">
 						<div class="form-group">
-							<label class="control-label"><?=translate('class')?> <span class="required">*</span></label>
+							<label class="control-label"><?=translate('class')?></label>
 							<?php
 								$arrayClass = $this->app_lib->getClassesBySection($selected_section);
 								echo form_dropdown("class_id", $arrayClass, set_value('class_id'), "class='form-control' id='class_id'

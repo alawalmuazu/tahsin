@@ -1,5 +1,5 @@
--- Full audit trail: table + Settings permission + Admin/Director privileges
--- Safe to re-run (IF NOT EXISTS / INSERT IGNORE patterns).
+-- Audit trail migration — safe to re-run.
+-- Skips anything that already exists (table, permission, privileges).
 
 CREATE TABLE IF NOT EXISTS `audit_log` (
   `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
@@ -26,26 +26,32 @@ CREATE TABLE IF NOT EXISTS `audit_log` (
   KEY `idx_audit_created` (`created_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
+-- Skip if permission already exists
 INSERT INTO `permission` (`module_id`, `name`, `prefix`, `show_view`, `show_add`, `show_edit`, `show_delete`)
 SELECT 18, 'Audit Trail', 'audit_trail', 1, 0, 0, 1
 FROM DUAL
-WHERE NOT EXISTS (SELECT 1 FROM `permission` WHERE `prefix` = 'audit_trail');
+WHERE NOT EXISTS (
+  SELECT 1 FROM `permission` WHERE `prefix` = 'audit_trail' LIMIT 1
+);
 
+-- Skip Admin (2) privilege if already exists
 INSERT INTO `staff_privileges` (`role_id`, `permission_id`, `is_add`, `is_edit`, `is_view`, `is_delete`)
-SELECT r.role_id, p.id, 0, 0, 1, 1
+SELECT 2, p.id, 0, 0, 1, 1
 FROM `permission` p
-CROSS JOIN (
-  SELECT 2 AS role_id
-  UNION ALL
-  SELECT 9 AS role_id
-) r
 WHERE p.prefix = 'audit_trail'
   AND NOT EXISTS (
     SELECT 1 FROM `staff_privileges` sp
-    WHERE sp.role_id = r.role_id AND sp.permission_id = p.id
+    WHERE sp.role_id = 2 AND sp.permission_id = p.id
+    LIMIT 1
   );
 
-UPDATE `staff_privileges` sp
-INNER JOIN `permission` p ON p.id = sp.permission_id
-SET sp.is_view = 1, sp.is_delete = 1
-WHERE p.prefix = 'audit_trail' AND sp.role_id IN (2, 9);
+-- Skip Director (9) privilege if already exists
+INSERT INTO `staff_privileges` (`role_id`, `permission_id`, `is_add`, `is_edit`, `is_view`, `is_delete`)
+SELECT 9, p.id, 0, 0, 1, 1
+FROM `permission` p
+WHERE p.prefix = 'audit_trail'
+  AND NOT EXISTS (
+    SELECT 1 FROM `staff_privileges` sp
+    WHERE sp.role_id = 9 AND sp.permission_id = p.id
+    LIMIT 1
+  );

@@ -44,8 +44,8 @@ class Student extends Admin_Controller
         $this->form_validation->set_rules('first_name', translate('first_name'), 'trim|required');
         $this->form_validation->set_rules('last_name', translate('surname'), 'trim|required');
         $this->form_validation->set_rules('other_name', translate('other_name'), 'trim');
-        $this->form_validation->set_rules('class_id', translate('class'), 'trim|required');
-        $this->form_validation->set_rules('section_id', translate('section'), 'trim|required');
+        $this->form_validation->set_rules('class_id', translate('class'), 'trim');
+        $this->form_validation->set_rules('section_id', translate('section'), 'trim');
         if (isset($_POST['student_id'])) {
             $this->form_validation->set_rules('register_no', translate('register_no'), 'trim|required|callback_unique_registerid');
         }
@@ -267,6 +267,9 @@ class Student extends Admin_Controller
             if ($this->form_validation->run() == true) {
                 $post = $this->input->post();
                 $post['year_id'] = get_session_id();
+                // "None" posts as empty — store as 0 so admission can proceed without a class
+                $post['class_id'] = empty($post['class_id']) ? 0 : (int) $post['class_id'];
+                $post['section_id'] = empty($post['section_id']) ? 0 : (int) $post['section_id'];
                 $post['register_no'] = $this->student_model->allocateRegisterNo($branchID);
                 $post['roll'] = $this->student_model->allocateRoll($post['class_id'], $post['section_id'], $branchID, $post['year_id']);
                 //save all student information in the database file
