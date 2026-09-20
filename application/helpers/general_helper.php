@@ -790,7 +790,7 @@ function html_barcode($code, $height = 42)
     if ($code === '') {
         return '';
     }
-    if (!class_exists('\Mpdf\Barcode')) {
+    if (!class_exists('\Mpdf\Barcode', false)) {
         require_once APPPATH . 'third_party/mpdf/autoload.php';
     }
     try {
