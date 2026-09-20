@@ -188,6 +188,18 @@ class Credential_approvals extends Admin_Controller
             $role_row = $this->db->get_where('roles', array('id' => $cred->role))->row();
             $role_name = $role_row ? $role_row->name : 'Staff';
 
+            if (function_exists('audit_log')) {
+                audit_log(
+                    'APPROVE',
+                    'credential_approvals',
+                    "Approved registration for {$user_name} ({$role_name})",
+                    array('active' => 0),
+                    array('active' => 1, 'username' => $cred->username, 'role_id' => $cred->role),
+                    'login_credential',
+                    $id
+                );
+            }
+
             // Send approval email if email is present
             if (!empty($user_email) && filter_var($user_email, FILTER_VALIDATE_EMAIL)) {
                 $institute_name = $this->data['global_config']['institute_name'] ?: 'Tahsin Academy';
@@ -217,6 +229,18 @@ class Credential_approvals extends Admin_Controller
         if ($cred) {
             $user_id = $cred->user_id;
             $role_id = $cred->role;
+
+            if (function_exists('audit_log')) {
+                audit_log(
+                    'REJECT',
+                    'credential_approvals',
+                    'Rejected registration and removed credentials',
+                    array('username' => $cred->username, 'role_id' => $role_id, 'user_id' => $user_id, 'active' => 0),
+                    null,
+                    'login_credential',
+                    $id
+                );
+            }
 
             // Delete credential
             $this->db->where('id', $id);

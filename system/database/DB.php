@@ -197,8 +197,18 @@ function &DB($params = '', $query_builder_override = NULL)
 	file_exists($driver_file) OR show_error('Invalid DB driver');
 	require_once($driver_file);
 
-	// Instantiate the DB adapter
+	// Instantiate the DB adapter (prefer application subclass when present)
 	$driver = 'CI_DB_'.$params['dbdriver'].'_driver';
+	$my_driver_file = APPPATH.'core/'.config_item('subclass_prefix').'DB_'.$params['dbdriver'].'_driver.php';
+	if (file_exists($my_driver_file))
+	{
+		require_once($my_driver_file);
+		$my_driver = config_item('subclass_prefix').'DB_'.$params['dbdriver'].'_driver';
+		if (class_exists($my_driver, FALSE))
+		{
+			$driver = $my_driver;
+		}
+	}
 	$DB = new $driver($params);
 
 	// Check for a subdriver

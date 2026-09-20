@@ -139,6 +139,17 @@ class Authentication extends Authentication_Controller
                             redirect(base_url('dashboard'));
                         }
                     } else {
+                        if (function_exists('audit_log')) {
+                            audit_log(
+                                'LOGIN_DENIED',
+                                'authentication',
+                                $login_credential->active == 0 ? 'Login denied — pending approval' : 'Login denied — inactive account',
+                                null,
+                                array('username' => $email, 'active' => $login_credential->active),
+                                'login_credential',
+                                $login_credential->id
+                            );
+                        }
                         if ($login_credential->active == 0) {
                             set_alert('error', 'Your account has been registered and is currently pending review and approval by the Director. You will be able to log in once approved.');
                         } else {
@@ -147,6 +158,17 @@ class Authentication extends Authentication_Controller
                         redirect(base_url('authentication'));
                     }
                 } else {
+                    if (function_exists('audit_log')) {
+                        audit_log(
+                            'LOGIN_FAILED',
+                            'authentication',
+                            'Invalid username or password',
+                            null,
+                            array('username' => $email),
+                            'login_credential',
+                            null
+                        );
+                    }
                     set_alert('error', translate('username_password_incorrect'));
                     redirect(base_url('authentication'));
                 }
@@ -358,6 +380,21 @@ class Authentication extends Authentication_Controller
             if (isset($cmsRow['cms_active']) && $cmsRow['cms_active'] == 1) {
                 $webURL = base_url((isset($cmsRow['url_alias']) ? $cmsRow['url_alias'] : '') );
             }
+        }
+
+        if (function_exists('audit_log')) {
+            audit_log(
+                'LOGOUT',
+                'authentication',
+                'User logged out',
+                null,
+                array(
+                    'user_id' => get_loggedin_user_id(),
+                    'role_id' => loggedin_role_id(),
+                ),
+                'login_credential',
+                get_loggedin_id()
+            );
         }
 
         $this->session->unset_userdata('name');

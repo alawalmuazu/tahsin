@@ -164,6 +164,20 @@ class Authentication_model extends MY_Model
         $this->db->update('login_credential', array('last_login' => date('Y-m-d H:i:s')), array('id' => $sessionData['loggedin_id']));
         // login Log details save in DB here
         $this->loginLog($sessionData['loggedin_userid'], $sessionData['loggedin_role_id'], $sessionData['loggedin_branch']);
+        if (function_exists('audit_log')) {
+            audit_log(
+                'LOGIN',
+                'authentication',
+                'User logged in',
+                null,
+                array(
+                    'user_id' => $sessionData['loggedin_userid'],
+                    'role_id' => $sessionData['loggedin_role_id'],
+                ),
+                'login_credential',
+                isset($sessionData['loggedin_id']) ? $sessionData['loggedin_id'] : null
+            );
+        }
     }
 
     function loginLog($userID = 0, $role = 0, $branchID = '')
