@@ -45,3 +45,7 @@ Thumbs.db
 
 # Lighthouse audit temp files
 lh_audit.mjs
+
+# Academy proof recordings (keep folder marker only)
+uploads/academy_tahfiz/*
+!uploads/academy_tahfiz/index.html

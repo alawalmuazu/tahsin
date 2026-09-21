@@ -428,6 +428,35 @@ function popupMsg(msg, type='success') {
     });
 }
 
+// SweetAlert confirm for delete links (replaces native confirm())
+$(document).on('click', 'a.academy-confirm-delete', function (e) {
+    e.preventDefault();
+    var href = $(this).attr('href');
+    var text = $(this).attr('data-confirm') || 'Delete this item?';
+    if (typeof swal !== 'function') {
+        if (window.confirm(text)) window.location.href = href;
+        return false;
+    }
+    swal({
+        type: 'warning',
+        title: 'Are you sure?',
+        text: text,
+        showCancelButton: true,
+        showCloseButton: true,
+        focusConfirm: false,
+        buttonsStyling: false,
+        confirmButtonClass: 'btn btn-danger',
+        cancelButtonClass: 'btn btn-default',
+        confirmButtonText: 'Yes, delete',
+        cancelButtonText: 'Cancel'
+    }).then(function (result) {
+        if (result && (result.value === true || result === true)) {
+            window.location.href = href;
+        }
+    });
+    return false;
+});
+
 // staff documents edit modal show
 function editDocument(id, user) {
     $.ajax({

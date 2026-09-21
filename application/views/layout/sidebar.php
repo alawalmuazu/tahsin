@@ -394,6 +394,51 @@
                     </li>
                     <?php } ?>
                     <?php
+                    // Academy hub — always show for staff who can open the ERP
+                    if (is_loggedin() && !is_student_loggedin() && !is_parent_loggedin()) {
+                        $_ac_sub = isset($sub_page) ? $sub_page : '';
+                        $_ac_main = isset($main_menu) ? $main_menu : '';
+                    ?>
+                    <!-- Academy (Pillar B) -->
+                    <li class="nav-parent <?php if ($_ac_main == 'academy' || strpos($_ac_sub, 'academy/') === 0) echo 'nav-expanded nav-active'; ?>">
+                        <a>
+                            <i class="fas fa-graduation-cap"></i><span>Academy</span>
+                        </a>
+                        <ul class="nav nav-children">
+                            <li class="<?php if ($_ac_sub == 'academy/students') echo 'nav-active'; ?>">
+                                <a href="<?php echo base_url('academy_students'); ?>">
+                                    <span><i class="fas fa-caret-right"></i>Academy Students</span>
+                                </a>
+                            </li>
+                            <li>
+                                <a href="<?php echo base_url('employee/view'); ?>">
+                                    <span><i class="fas fa-caret-right"></i>Teachers</span>
+                                </a>
+                            </li>
+                            <li class="<?php if ($_ac_sub == 'academy/performance') echo 'nav-active'; ?>">
+                                <a href="<?php echo base_url('academy_performance'); ?>">
+                                    <span><i class="fas fa-caret-right"></i>Performance (Maths / English / Skills)</span>
+                                </a>
+                            </li>
+                            <li class="<?php if ($_ac_sub == 'academy/tahfiz') echo 'nav-active'; ?>">
+                                <a href="<?php echo base_url('tahfiz'); ?>">
+                                    <span><i class="fas fa-caret-right"></i>Tahfiz Tracker</span>
+                                </a>
+                            </li>
+                            <li class="<?php if ($_ac_sub == 'academy/genome') echo 'nav-active'; ?>">
+                                <a href="<?php echo base_url('academy_genome'); ?>">
+                                    <span><i class="fas fa-caret-right"></i>Genome Intelligence</span>
+                                </a>
+                            </li>
+                            <li class="<?php if ($_ac_sub == 'academy/broadcast') echo 'nav-active'; ?>">
+                                <a href="<?php echo base_url('academy_broadcast'); ?>">
+                                    <span><i class="fas fa-caret-right"></i>Broadcast</span>
+                                </a>
+                            </li>
+                        </ul>
+                    </li>
+                    <?php } ?>
+                    <?php
                     if(get_permission('employee', 'is_view') ||
                     get_permission('employee', 'is_add') ||
                     get_permission('designation', 'is_view') ||

@@ -26,8 +26,8 @@ ServerSignature Off
     # Referrer policy — send referrer only on same-origin requests
     Header always set Referrer-Policy "strict-origin-when-cross-origin"
 
-    # Permissions policy — disable features this app doesn't need
-    Header always set Permissions-Policy "geolocation=(), microphone=(), camera=(), payment=()"
+    # Permissions policy — mic/camera allowed on this origin for Academy recitation
+    Header always set Permissions-Policy "geolocation=(), microphone=(self), camera=(self), payment=()"
 
     # Remove PHP version header leak
     Header unset X-Powered-By
