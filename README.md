@@ -51,4 +51,5 @@ The File Manager URL (`srv1066-files.hstgr.io/…/public_html`) is only a browse
 - Single-school setup: no branch pickers, no cross-school catalogs
 - Role-based access (Super Admin, staff, parent, student)
 - Academics, fees, HR, inventory, CBT / online exams
+- Academy layer: Log Surah (proof record, live AI green mic, Alafasy listen-along, play saved), Tahfiz Tracker, performance drills, genome, broadcast
 - NERDC subject catalogue and WAEC A1–F9 grading
