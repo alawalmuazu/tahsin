@@ -46,12 +46,12 @@
 	$waStatus = isset($wa_status) ? $wa_status : 'Disabled';
 	$waMedia = !empty($wa_send_media);
 	?>
-	<strong>WhatsApp Cloud API:</strong>
+			<strong>WhatsApp Cloud API:</strong>
 	<span class="label label-<?php echo $waReady ? 'success' : 'default'; ?>"><?php echo html_escape($waStatus); ?></span>
 	<?php if ($waReady): ?>
 		Template digests can be pushed to parents. <?php echo $waMedia ? 'Native audio/video attach is attempted after each digest (needs a Meta chat window or public HTTPS files).' : 'Media is included as links in the template.'; ?>
 	<?php else: ?>
-		Configure <code>application/config/whatsapp.php</code> (enable + token + phone number ID + approved template). Until then, use click-to-chat below.
+		Configure under <a href="<?php echo base_url('school_settings/whatsapp_setting'); ?>">Settings → WhatsApp</a> (Cloud API panel). Until then, use click-to-chat below.
 	<?php endif; ?>
 	<br style="margin-top:.35rem">
 	<strong>Links always work</strong> on the public site — <code>localhost</code> audio URLs will not open for parents.

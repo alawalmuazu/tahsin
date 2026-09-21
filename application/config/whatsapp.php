@@ -4,18 +4,14 @@ defined('BASEPATH') or exit('No direct script access allowed');
 /**
  * WhatsApp Business Cloud API (Meta Graph)
  *
- * Fill credentials per environment — do not commit real tokens.
+ * Prefer School Settings → WhatsApp → “WhatsApp Business Cloud API”
+ * (table whatsapp_cloud_config). This file is only a fallback when no DB row exists.
  *
  * Template body variables (order must match your Meta-approved template):
  *   {{1}} student name
  *   {{2}} date
  *   {{3}} short summary (drills / tahfiz)
  *   {{4}} first media URL (or "—" if none)
- *
- * Free-form audio/video (type audio|video) only works inside Meta’s customer
- * care window. Outside that window, parents still get media via the template
- * URL variable / public HTTPS link. Set send_media_after_template to try
- * native attachments after the template send.
  */
 $config['whatsapp'] = array(
     'enabled' => false,

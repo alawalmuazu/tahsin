@@ -809,10 +809,110 @@ class School_settings extends Admin_Controller
             ),
         );
         $this->data['whatsapp'] = $this->school_model->get('whatsapp_chat', array('branch_id' => $branchID), true);
+        $this->data['whatsapp_cloud'] = $this->_getWhatsappCloudConfig($branchID);
         $this->data['sub_page'] = 'school_settings/whatsapp_settings';
         $this->data['main_menu'] = 'school_m';
         $this->data['title'] = translate('whatsapp_settings');
         $this->load->view('layout/index', $this->data);
+    }
+
+    public function saveWhatsappCloudConfig()
+    {
+        if (!get_permission('whatsapp_config', 'is_add')) {
+            ajax_access_denied();
+        }
+        $branchID = $this->school_model->getBranchID();
+        if (!$this->db->table_exists('whatsapp_cloud_config')) {
+            $array = array(
+                'status' => 'fail',
+                'error' => array('enabled' => 'Run application/migrations/whatsapp_cloud_config.sql first.'),
+            );
+            echo json_encode($array);
+            return;
+        }
+
+        $this->form_validation->set_rules('template_name', 'Template name', 'trim|required');
+        $this->form_validation->set_rules('template_lang', 'Template language', 'trim|required');
+        $this->form_validation->set_rules('phone_number_id', 'Phone number ID', 'trim');
+        $enabled = $this->input->post('cloud_enabled') ? 1 : 0;
+        if ($enabled) {
+            $this->form_validation->set_rules('phone_number_id', 'Phone number ID', 'trim|required');
+        }
+
+        if ($this->form_validation->run() !== false) {
+            $existing = $this->db->get_where('whatsapp_cloud_config', array('branch_id' => $branchID))->row_array();
+            $token = trim((string) $this->input->post('access_token'));
+            if ($token === '' && !empty($existing['access_token'])) {
+                $token = $existing['access_token'];
+            }
+            if ($enabled && $token === '') {
+                $array = array(
+                    'status' => 'fail',
+                    'error' => array('access_token' => 'Access token is required when Cloud API is enabled.'),
+                );
+                echo json_encode($array);
+                return;
+            }
+
+            $mediaMax = (int) $this->input->post('media_max_per_student');
+            if ($mediaMax < 1) {
+                $mediaMax = 3;
+            }
+            if ($mediaMax > 10) {
+                $mediaMax = 10;
+            }
+
+            $row = array(
+                'branch_id' => (int) $branchID,
+                'enabled' => $enabled,
+                'access_token' => $token,
+                'phone_number_id' => trim((string) $this->input->post('phone_number_id')),
+                'waba_id' => trim((string) $this->input->post('waba_id')),
+                'api_version' => trim((string) $this->input->post('api_version')) ?: 'v21.0',
+                'template_name' => trim((string) $this->input->post('template_name')),
+                'template_lang' => trim((string) $this->input->post('template_lang')) ?: 'en',
+                'send_media_after_template' => $this->input->post('send_media_after_template') ? 1 : 0,
+                'media_max_per_student' => $mediaMax,
+            );
+
+            if (empty($existing)) {
+                $this->db->insert('whatsapp_cloud_config', $row);
+            } else {
+                $this->db->where('id', (int) $existing['id']);
+                $this->db->update('whatsapp_cloud_config', $row);
+            }
+            $array = array('status' => 'success', 'message' => translate('the_configuration_has_been_updated'));
+        } else {
+            $array = array('status' => 'fail', 'error' => $this->form_validation->error_array());
+        }
+        echo json_encode($array);
+    }
+
+    protected function _getWhatsappCloudConfig($branchID)
+    {
+        $defaults = array(
+            'enabled' => 0,
+            'access_token' => '',
+            'phone_number_id' => '',
+            'waba_id' => '',
+            'api_version' => 'v21.0',
+            'template_name' => 'tahsin_daily_digest',
+            'template_lang' => 'en',
+            'send_media_after_template' => 1,
+            'media_max_per_student' => 3,
+            'has_token' => false,
+        );
+        if (!$this->db->table_exists('whatsapp_cloud_config')) {
+            return $defaults;
+        }
+        $row = $this->db->get_where('whatsapp_cloud_config', array('branch_id' => (int) $branchID))->row_array();
+        if (empty($row)) {
+            return $defaults;
+        }
+        $row['has_token'] = !empty($row['access_token']);
+        // Never echo raw token into HTML value — leave blank; keep flag for UI
+        $row['access_token'] = '';
+        return array_merge($defaults, $row);
     }
 
     public function saveWhatsappConfig()

@@ -15,8 +15,35 @@ class Whatsapp_cloud
     {
         $this->CI =& get_instance();
         $this->CI->config->load('whatsapp', true);
-        $raw = $this->CI->config->item('whatsapp', 'whatsapp');
-        $this->cfg = is_array($raw) ? $raw : array();
+        $file = $this->CI->config->item('whatsapp', 'whatsapp');
+        $this->cfg = is_array($file) ? $file : array();
+        $this->mergeDbConfig();
+    }
+
+    /**
+     * Prefer School Settings DB row over file placeholders when a row exists.
+     */
+    protected function mergeDbConfig()
+    {
+        if (!$this->CI->db->table_exists('whatsapp_cloud_config')) {
+            return;
+        }
+        $branchID = function_exists('get_loggedin_branch_id')
+            ? get_loggedin_branch_id()
+            : (defined('SCHOOL_ID') ? SCHOOL_ID : 1);
+        $row = $this->CI->db->get_where('whatsapp_cloud_config', array('branch_id' => (int) $branchID))->row_array();
+        if (empty($row)) {
+            return;
+        }
+        $this->cfg['enabled'] = !empty($row['enabled']);
+        $this->cfg['access_token'] = isset($row['access_token']) ? (string) $row['access_token'] : '';
+        $this->cfg['phone_number_id'] = isset($row['phone_number_id']) ? (string) $row['phone_number_id'] : '';
+        $this->cfg['waba_id'] = isset($row['waba_id']) ? (string) $row['waba_id'] : '';
+        $this->cfg['api_version'] = !empty($row['api_version']) ? $row['api_version'] : 'v21.0';
+        $this->cfg['template_name'] = !empty($row['template_name']) ? $row['template_name'] : 'tahsin_daily_digest';
+        $this->cfg['template_lang'] = !empty($row['template_lang']) ? $row['template_lang'] : 'en';
+        $this->cfg['send_media_after_template'] = !empty($row['send_media_after_template']);
+        $this->cfg['media_max_per_student'] = isset($row['media_max_per_student']) ? (int) $row['media_max_per_student'] : 3;
     }
 
     public function isEnabled()

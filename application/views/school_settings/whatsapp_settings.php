@@ -71,6 +71,113 @@ if (!empty($whatsapp['backend_enable_chat']) && $whatsapp['backend_enable_chat']
             </form>
         </section>
 
+        <?php
+        $cloud = isset($whatsapp_cloud) && is_array($whatsapp_cloud) ? $whatsapp_cloud : array();
+        $cloudEnabled = !empty($cloud['enabled']) ? 'checked' : '';
+        $cloudMedia = !isset($cloud['send_media_after_template']) || !empty($cloud['send_media_after_template']) ? 'checked' : '';
+        $urlCloud = '';
+        if ($this->input->get('branch_id')) {
+            $urlCloud = '?branch_id=' . $this->input->get('branch_id', true);
+        }
+        ?>
+        <section class="panel">
+            <header class="panel-heading">
+                <h4 class="panel-title"><i class="fab fa-whatsapp"></i> WhatsApp Business Cloud API</h4>
+            </header>
+            <?php if (!$this->db->table_exists('whatsapp_cloud_config')): ?>
+            <div class="panel-body">
+                <div class="alert alert-warning mb-none">
+                    Run <code>application/migrations/whatsapp_cloud_config.sql</code> in phpMyAdmin, then reload this page.
+                </div>
+            </div>
+            <?php else: ?>
+            <?php echo form_open('school_settings/saveWhatsappCloudConfig' . $urlCloud, array('class' => 'frm-submit-msg form-horizontal form-bordered')); ?>
+                <div class="panel-body">
+                    <p class="text-muted" style="margin:0 0 1rem">
+                        Used by <strong>Academy → Broadcast</strong> to push parent digests (and optional audio/video).
+                        Create an approved Meta template whose body variables are: student name, date, summary, media URL.
+                    </p>
+                    <div class="form-group">
+                        <label class="col-md-3 control-label">Enable Cloud API</label>
+                        <div class="col-md-6">
+                            <div class="material-switch mt-xs">
+                                <input class="switch_menu" id="cloud_enabled" name="cloud_enabled" type="checkbox" <?php echo $cloudEnabled; ?> />
+                                <label for="cloud_enabled" class="label-primary"></label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="col-md-3 control-label">Access token</label>
+                        <div class="col-md-6">
+                            <input type="password" class="form-control" name="access_token" value="" autocomplete="new-password"
+                                placeholder="<?php echo !empty($cloud['has_token']) ? 'Token saved — leave blank to keep' : 'Paste Meta permanent / system user token'; ?>" />
+                            <span class="error"></span>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="col-md-3 control-label">Phone number ID <span class="required">*</span></label>
+                        <div class="col-md-6">
+                            <input type="text" class="form-control" name="phone_number_id" value="<?php echo html_escape(isset($cloud['phone_number_id']) ? $cloud['phone_number_id'] : ''); ?>" />
+                            <span class="error"></span>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="col-md-3 control-label">WABA ID</label>
+                        <div class="col-md-6">
+                            <input type="text" class="form-control" name="waba_id" value="<?php echo html_escape(isset($cloud['waba_id']) ? $cloud['waba_id'] : ''); ?>" placeholder="Optional" />
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="col-md-3 control-label">API version</label>
+                        <div class="col-md-6">
+                            <input type="text" class="form-control" name="api_version" value="<?php echo html_escape(isset($cloud['api_version']) ? $cloud['api_version'] : 'v21.0'); ?>" />
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="col-md-3 control-label">Template name <span class="required">*</span></label>
+                        <div class="col-md-6">
+                            <input type="text" class="form-control" name="template_name" value="<?php echo html_escape(isset($cloud['template_name']) ? $cloud['template_name'] : 'tahsin_daily_digest'); ?>" />
+                            <span class="error"></span>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="col-md-3 control-label">Template language <span class="required">*</span></label>
+                        <div class="col-md-6">
+                            <input type="text" class="form-control" name="template_lang" value="<?php echo html_escape(isset($cloud['template_lang']) ? $cloud['template_lang'] : 'en'); ?>" />
+                            <span class="error"></span>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="col-md-3 control-label">Attach media after digest</label>
+                        <div class="col-md-6">
+                            <div class="material-switch mt-xs">
+                                <input class="switch_menu" id="send_media_after_template" name="send_media_after_template" type="checkbox" <?php echo $cloudMedia; ?> />
+                                <label for="send_media_after_template" class="label-primary"></label>
+                            </div>
+                            <p class="help-block mb-none">Tries native audio/video via Cloud API (needs open chat window or public HTTPS files).</p>
+                        </div>
+                    </div>
+                    <div class="form-group mb-md">
+                        <label class="col-md-3 control-label">Max media per student</label>
+                        <div class="col-md-6">
+                            <input type="number" min="1" max="10" class="form-control" name="media_max_per_student"
+                                value="<?php echo (int) (isset($cloud['media_max_per_student']) ? $cloud['media_max_per_student'] : 3); ?>" />
+                        </div>
+                    </div>
+                </div>
+                <div class="panel-footer">
+                    <div class="row">
+                        <div class="col-md-2 col-sm-offset-3">
+                            <button type="submit" class="btn btn-default btn-block" data-loading-text="<i class='fas fa-spinner fa-spin'></i> Processing">
+                                <i class="fas fa-plus-circle"></i> <?=translate('save');?>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            <?php echo form_close(); ?>
+            <?php endif; ?>
+        </section>
+
         <section class="panel">
             <header class="panel-heading">
                 <h4 class="panel-title"><i class="fas fa-users"></i> <?=translate('whatsapp_agent') ?></h4>
