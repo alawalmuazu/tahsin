@@ -23,6 +23,11 @@
 		<p>Daily parent digests with milestone text + audio/video links. Open WhatsApp to parents or share to a group.</p>
 	</div>
 	<div>
+		<?php if (!empty($wa_ready)): ?>
+		<?php echo form_open(base_url('academy_broadcast'), array('style' => 'display:inline', 'onsubmit' => "return confirm('Send today\\'s digests to all parents with a phone number via WhatsApp Cloud API?');")); ?>
+		<button type="submit" name="send_cloud_api" value="1" class="btn btn-success"><i class="fab fa-whatsapp"></i> Send digests via WhatsApp API</button>
+		<?php echo form_close(); ?>
+		<?php endif; ?>
 		<?php echo form_open(base_url('academy_broadcast'), array('style' => 'display:inline')); ?>
 		<button type="submit" name="save_preview" value="1" class="btn btn-default"><i class="fas fa-save"></i> Save preview log</button>
 		<?php echo form_close(); ?>
@@ -36,10 +41,20 @@
 </div>
 
 <div class="bcast-note">
-	<strong>How media works on WhatsApp:</strong>
-	Free WhatsApp links can only pre-fill <em>text</em> (not attach a file). Digests now include tap-to-play <strong>audio/video URLs</strong>.
-	For parents on phones, those URLs must be on your <strong>public site</strong> (Hostinger) — <code>localhost</code> links won’t open for them.
-	True file push / bulk groups needs <strong>WhatsApp Business Cloud API</strong> (Meta) later.
+	<?php
+	$waReady = !empty($wa_ready);
+	$waStatus = isset($wa_status) ? $wa_status : 'Disabled';
+	$waMedia = !empty($wa_send_media);
+	?>
+	<strong>WhatsApp Cloud API:</strong>
+	<span class="label label-<?php echo $waReady ? 'success' : 'default'; ?>"><?php echo html_escape($waStatus); ?></span>
+	<?php if ($waReady): ?>
+		Template digests can be pushed to parents. <?php echo $waMedia ? 'Native audio/video attach is attempted after each digest (needs a Meta chat window or public HTTPS files).' : 'Media is included as links in the template.'; ?>
+	<?php else: ?>
+		Configure <code>application/config/whatsapp.php</code> (enable + token + phone number ID + approved template). Until then, use click-to-chat below.
+	<?php endif; ?>
+	<br style="margin-top:.35rem">
+	<strong>Links always work</strong> on the public site — <code>localhost</code> audio URLs will not open for parents.
 </div>
 
 <div class="bcast-kpis">
@@ -112,6 +127,14 @@ $cohortWa = $cohortMsg !== '' ? ('https://api.whatsapp.com/send?text=' . rawurle
 			<a href="<?php echo $wa; ?>" target="_blank" class="btn btn-success btn-xs bcast-wa-link" style="margin-left:6px">
 				<i class="fab fa-whatsapp"></i> Parent
 			</a>
+			<?php endif; ?>
+			<?php if (!empty($wa_ready) && !empty($r['parent_contact'])): ?>
+			<?php echo form_open(base_url('academy_broadcast'), array('style' => 'display:inline', 'onsubmit' => "return confirm('Send this parent\\'s digest via WhatsApp API?');")); ?>
+			<input type="hidden" name="student_id" value="<?php echo (int) $r['student_id']; ?>">
+			<button type="submit" name="send_cloud_one" value="1" class="btn btn-primary btn-xs" style="margin-left:4px" title="Cloud API">
+				<i class="fab fa-whatsapp"></i> Send API
+			</button>
+			<?php echo form_close(); ?>
 			<?php endif; ?>
 			<a href="<?php echo $waShare; ?>" target="_blank" class="btn btn-default btn-xs" style="margin-left:4px" title="Pick any chat or group">
 				<i class="fab fa-whatsapp"></i> Group / pick chat

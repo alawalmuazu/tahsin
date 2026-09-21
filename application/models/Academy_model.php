@@ -1373,4 +1373,98 @@ class Academy_model extends MY_Model
             ));
         }
     }
+
+    /**
+     * Template body params for Meta WhatsApp utility template.
+     * Order: student, date, summary, media_url.
+     */
+    public function digestTemplateParams($report)
+    {
+        $name = isset($report['student_name']) ? $report['student_name'] : 'Student';
+        $date = date('j M Y');
+        $bits = array();
+        $drills = isset($report['drill_count']) ? (int) $report['drill_count'] : 0;
+        $tahfiz = isset($report['tahfiz_count']) ? (int) $report['tahfiz_count'] : 0;
+        if ($drills > 0) {
+            $bits[] = $drills . ' drill' . ($drills === 1 ? '' : 's');
+        }
+        if ($tahfiz > 0) {
+            $bits[] = $tahfiz . ' Quran milestone' . ($tahfiz === 1 ? '' : 's');
+        }
+        $summary = !empty($bits) ? implode(', ', $bits) : 'No drills or tahfiz logged today';
+
+        $mediaUrl = '—';
+        if (!empty($report['media']) && is_array($report['media'])) {
+            foreach ($report['media'] as $m) {
+                if (!empty($m['audio_url'])) {
+                    $mediaUrl = $m['audio_url'];
+                    break;
+                }
+                if (!empty($m['video_url'])) {
+                    $mediaUrl = $m['video_url'];
+                    break;
+                }
+            }
+        }
+
+        return array($name, $date, $summary, $mediaUrl);
+    }
+
+    /**
+     * Flatten media items into sendable list: type + url + caption.
+     */
+    public function digestMediaPayloads($report, $limit = 3)
+    {
+        $out = array();
+        $limit = max(1, (int) $limit);
+        if (empty($report['media']) || !is_array($report['media'])) {
+            return $out;
+        }
+        foreach ($report['media'] as $m) {
+            $label = isset($m['label']) ? $m['label'] : 'Recitation';
+            if (!empty($m['audio_url'])) {
+                $out[] = array(
+                    'type' => 'audio',
+                    'url' => $m['audio_url'],
+                    'caption' => '🎙️ ' . $label,
+                );
+            }
+            if (!empty($m['video_url'])) {
+                $out[] = array(
+                    'type' => 'video',
+                    'url' => $m['video_url'],
+                    'caption' => '🎥 ' . $label,
+                );
+            }
+            if (count($out) >= $limit) {
+                break;
+            }
+        }
+        if (count($out) > $limit) {
+            $out = array_slice($out, 0, $limit);
+        }
+        return $out;
+    }
+
+    public function logBroadcastSend($branch_id, $report, $channel, $status, $metaMessageId = null, $errorMessage = null)
+    {
+        if (!$this->db->table_exists('academy_broadcast_log')) {
+            return;
+        }
+        $row = array(
+            'branch_id' => (int) $branch_id,
+            'student_id' => (int) $report['student_id'],
+            'parent_contact' => isset($report['parent_contact']) ? $report['parent_contact'] : null,
+            'channel' => substr((string) $channel, 0, 40),
+            'message' => isset($report['message']) ? $report['message'] : '',
+            'status' => substr((string) $status, 0, 20),
+        );
+        if ($this->db->field_exists('meta_message_id', 'academy_broadcast_log')) {
+            $row['meta_message_id'] = $metaMessageId ? substr((string) $metaMessageId, 0, 120) : null;
+        }
+        if ($this->db->field_exists('error_message', 'academy_broadcast_log')) {
+            $row['error_message'] = $errorMessage ? substr((string) $errorMessage, 0, 2000) : null;
+        }
+        $this->db->insert('academy_broadcast_log', $row);
+    }
 }

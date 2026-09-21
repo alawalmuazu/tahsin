@@ -455,6 +455,10 @@ flowchart TD
             <p>Config: <code>application/config/tarteel.php</code> (not documented with secrets). Modes: <code>auto</code> (cloud then local), <code>cloud</code>, <code>local</code>. Local sidecar: <code>ws://127.0.0.1:8001/v1/recite/stream</code>. Start helper: <code>scripts/start-local-tarteel.ps1</code>; health at <code>http://127.0.0.1:8001/health</code>.</p>
             <p>Quran text for the mushaf comes from <code>api.alquran.cloud</code> (uthmani). Uploaded proof clips land under <code>uploads/academy_tahfiz/</code>.</p>
 
+            
+            <h3>WhatsApp Cloud API (Broadcast)</h3>
+            <p>Staff can push daily parent digests from <code>Academy_broadcast</code> via Meta Graph API (<code>application/libraries/Whatsapp_cloud.php</code>). Config: <code>application/config/whatsapp.php</code> (empty tokens in git — fill per host). Flow: approved utility <strong>template</strong> with student / date / summary / media URL, then optional native audio/video attach by public HTTPS link or local upload to Meta. Click-to-chat remains as fallback. Migration: <code>whatsapp_broadcast_log.sql</code>.</p>
+
             <h3>Recitation categories &amp; portion modes</h3>
             <p>Required before save (see <code>Academy_model::recitationCategories()</code>): Hifz Fauq, Hifz Taht, Talqeen, Murajaa Qareebah, Murajaa Baeedah, Musaffa, Qiyaamullail. Portion modes: Full Surah, Single Ayah, From–To Ayah, Summu'i, Rubbu'i, Safha.</p>
             <p>Telemetry columns on <code>academy_tahfiz_record</code> (v2): <code>accuracy_score</code>, <code>mistake_word_count</code>, <code>mistake_breakdown</code>, <code>audio_url</code>, <code>video_url</code>, <code>tarteel_status</code>, <code>recitation_seconds</code>, plus <code>recitation_category</code>.</p>
