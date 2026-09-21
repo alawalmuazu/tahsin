@@ -346,7 +346,13 @@ endif;
 					<div class="col-md-12 mb-sm">
 						<div class="form-group">
 							<label for="input-file-now"><?=translate('profile_picture')?><?php echo $student_photo['required'] == 1 ? ' <span class="required">*</span>' : ''; ?></label>
-							<input type="file" name="user_photo" class="dropify" data-default-file="<?=get_image_url('student')?>" />
+							<?php
+							$photoMaxKb = isset($global_config['image_size']) ? (float) $global_config['image_size'] : 0;
+							?>
+							<input type="file" name="user_photo" class="dropify js-photo-compress" accept="image/*"
+								data-default-file="<?=get_image_url('student')?>"
+								<?php if ($photoMaxKb > 0): ?>data-max-kb="<?=html_escape($photoMaxKb)?>"<?php endif; ?> />
+							<p class="photo-compress-hint text-muted" style="margin:.4rem 0 0;font-size:.78rem;min-height:1.1em"></p>
 							<span class="error"></span>
 						</div>
 					</div>

@@ -176,6 +176,7 @@ class Student extends Admin_Controller
                 'js/student.js',
                 'vendor/dropify/js/dropify.min.js',
                 'vendor/bootstrap-multiselect/js/bootstrap-multiselect.js',
+                'js/image_compress_preview.js',
             ),
         );
         $this->load->view('layout/index', $this->data);
