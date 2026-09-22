@@ -43,6 +43,11 @@ class Academy_performance extends Admin_Controller
                     redirect(base_url('academy_performance'));
                 }
 
+                if (is_teacher_loggedin() && !$this->academy_model->studentAssignedToTeacher((int) $this->input->post('student_id'), get_loggedin_user_id(), $branchID)) {
+                    set_alert('error', 'This student is not assigned to you.');
+                    redirect(base_url('academy_performance'));
+                }
+
                 $result = $this->academy_model->saveDrill(array(
                     'branch_id' => $branchID,
                     'student_id' => $this->input->post('student_id'),
@@ -54,7 +59,8 @@ class Academy_performance extends Admin_Controller
                     'time_seconds' => $this->input->post('time_seconds'),
                     'notes' => $this->input->post('notes'),
                 ));
-                set_alert('success', 'Drill saved. SPP = ' . number_format($result['spp'], 2) . ' sec/point');
+                $progress = $this->academy_model->touchTeacherSession($branchID, (int) $this->input->post('student_id'));
+                set_alert('success', 'Drill saved. SPP = ' . number_format($result['spp'], 2) . ' sec/point' . ($progress ? ' ' . $progress : ''));
                 redirect(base_url('academy_performance'));
             }
         }

@@ -405,6 +405,18 @@
                             <i class="fas fa-graduation-cap"></i><span>Academy</span>
                         </a>
                         <ul class="nav nav-children">
+                            <?php if (is_superadmin_loggedin() || is_admin_loggedin() || is_director_loggedin()) { ?>
+                            <li class="<?php if ($_ac_sub == 'academy/assign') echo 'nav-active'; ?>">
+                                <a href="<?php echo base_url('academy_review/assign'); ?>">
+                                    <span><i class="fas fa-caret-right"></i>Assign Students</span>
+                                </a>
+                            </li>
+                            <?php } ?>
+                            <li class="<?php if ($_ac_sub == 'academy/review') echo 'nav-active'; ?>">
+                                <a href="<?php echo base_url('academy_review'); ?>">
+                                    <span><i class="fas fa-caret-right"></i>Session Review</span>
+                                </a>
+                            </li>
                             <li class="<?php if ($_ac_sub == 'academy/students') echo 'nav-active'; ?>">
                                 <a href="<?php echo base_url('academy_students'); ?>">
                                     <span><i class="fas fa-caret-right"></i>Academy Students</span>

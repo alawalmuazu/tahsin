@@ -43,6 +43,10 @@ class Academy_students extends Admin_Controller
                 $this->form_validation->set_rules('recitation_category', 'Recitation category', 'trim|required');
             }
             if ($this->form_validation->run() == true) {
+                if (is_teacher_loggedin() && !$this->academy_model->studentAssignedToTeacher((int) $this->input->post('student_id'), get_loggedin_user_id(), $branchID)) {
+                    set_alert('error', 'This student is not assigned to you.');
+                    redirect(base_url('academy_students'));
+                }
                 $audioUrl = $this->input->post('audio_url');
                 $uploadError = null;
                 if (!empty($_FILES['audio_file']['name'])) {
@@ -166,6 +170,10 @@ class Academy_students extends Admin_Controller
                     $msg .= ' (Audio upload skipped: ' . trim(strip_tags($uploadError)) . ')';
                 } elseif (!$audioUrl) {
                     $msg .= ' No audio file was attached — record first, then Save.';
+                }
+                $progress = $this->academy_model->touchTeacherSession($branchID, (int) $this->input->post('student_id'));
+                if ($progress) {
+                    $msg .= ' ' . $progress;
                 }
                 set_alert('success', $msg);
                 redirect(base_url('academy_students'));

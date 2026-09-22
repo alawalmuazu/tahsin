@@ -129,6 +129,15 @@ class Academy_model extends MY_Model
         if ($sessionID) {
             $this->db->where('e.session_id', (int) $sessionID);
         }
+        if ($this->db->table_exists('academy_teacher_student') && function_exists('is_teacher_loggedin') && is_teacher_loggedin()) {
+            $this->db->join(
+                'academy_teacher_student ats',
+                'ats.student_id = s.id AND ats.teacher_id = ' . (int) get_loggedin_user_id()
+                    . ' AND ats.session_id = ' . (int) $sessionID
+                    . ' AND ats.branch_id = ' . (int) $branch_id,
+                'inner'
+            );
+        }
         $this->db->order_by('s.first_name', 'ASC');
         return $this->db->get()->result();
     }
@@ -162,6 +171,9 @@ class Academy_model extends MY_Model
         $this->db->join('student s', 's.id = d.student_id', 'left');
         $this->db->where('d.branch_id', (int) $branch_id);
         $this->db->where('DATE(d.created_at)', date('Y-m-d'));
+        if ($this->db->table_exists('academy_teacher_student') && function_exists('is_teacher_loggedin') && is_teacher_loggedin()) {
+            $this->db->where('d.evaluator_id', (int) get_loggedin_user_id());
+        }
         $this->db->order_by('d.id', 'DESC');
         $this->db->limit((int) $limit);
         return $this->db->get()->result();
@@ -173,6 +185,9 @@ class Academy_model extends MY_Model
         $this->db->from('academy_daily_drill d');
         $this->db->join('student s', 's.id = d.student_id', 'left');
         $this->db->where('d.branch_id', (int) $branch_id);
+        if ($this->db->table_exists('academy_teacher_student') && function_exists('is_teacher_loggedin') && is_teacher_loggedin()) {
+            $this->db->where('d.evaluator_id', (int) get_loggedin_user_id());
+        }
         $this->db->order_by('d.id', 'DESC');
         $this->db->limit((int) $limit);
         return $this->db->get()->result();
@@ -295,6 +310,9 @@ class Academy_model extends MY_Model
         $this->db->from('academy_tahfiz_record t');
         $this->db->join('student s', 's.id = t.student_id', 'left');
         $this->db->where('t.branch_id', (int) $branch_id);
+        if ($this->db->table_exists('academy_teacher_student') && function_exists('is_teacher_loggedin') && is_teacher_loggedin()) {
+            $this->db->where('t.instructor_id', (int) get_loggedin_user_id());
+        }
         $this->db->order_by('t.id', 'DESC');
         $this->db->limit((int) $limit);
         return $this->db->get()->result();
@@ -1076,12 +1094,23 @@ class Academy_model extends MY_Model
         $withPhone = 0;
         $withDrills = 0;
 
+        $awaitingReview = 0;
+        $gateReview = $this->db->table_exists('academy_class_session');
+
         foreach ($roster as $st) {
+            $ackTeachers = $gateReview ? $this->acknowledgedTeacherIds((int) $branch_id, (int) $st['id'], $today) : array();
+            if ($gateReview && empty($ackTeachers)) {
+                $awaitingReview++;
+                continue;
+            }
             $drills = array();
             if ($this->drillsReady()) {
                 $this->db->from('academy_daily_drill');
                 $this->db->where('student_id', $st['id']);
                 $this->db->where('DATE(created_at)', $today);
+                if ($gateReview) {
+                    $this->db->where_in('evaluator_id', $ackTeachers);
+                }
                 $drills = $this->db->get()->result();
             }
             $tahfizToday = array();
@@ -1089,6 +1118,9 @@ class Academy_model extends MY_Model
                 $this->db->from('academy_tahfiz_record');
                 $this->db->where('student_id', $st['id']);
                 $this->db->where('DATE(completed_at)', $today);
+                if ($gateReview) {
+                    $this->db->where_in('instructor_id', $ackTeachers);
+                }
                 $tahfizToday = $this->db->get()->result();
             }
 
@@ -1246,6 +1278,7 @@ class Academy_model extends MY_Model
             'with_drills' => $withDrills,
             'with_tahfiz' => $withTahfiz,
             'with_media' => $withMedia,
+            'awaiting_review' => $awaitingReview,
             'reports' => $reports,
             'cohort_message' => implode("\n", $cohortLines),
         );
@@ -1509,5 +1542,508 @@ class Academy_model extends MY_Model
         }
 
         return $filePath;
+    }
+
+    public function reviewReady()
+    {
+        return $this->db->table_exists('academy_teacher_student')
+            && $this->db->table_exists('academy_class_session')
+            && $this->db->table_exists('academy_notice');
+    }
+
+    public function studentAssignedToTeacher($studentId, $teacherId, $branchId = null)
+    {
+        if (!$this->db->table_exists('academy_teacher_student')) {
+            return true;
+        }
+        $this->db->from('academy_teacher_student');
+        $this->db->where('student_id', (int) $studentId);
+        $this->db->where('teacher_id', (int) $teacherId);
+        $this->db->where('session_id', (int) get_session_id());
+        if ($branchId) {
+            $this->db->where('branch_id', (int) $branchId);
+        }
+        return $this->db->count_all_results() > 0;
+    }
+
+    public function listTeachers($branchId)
+    {
+        $this->db->select('s.id, s.name');
+        $this->db->from('staff s');
+        $this->db->join('login_credential lc', 'lc.user_id = s.id AND lc.role = 3 AND lc.active = 1', 'inner');
+        if ($this->db->field_exists('branch_id', 'staff')) {
+            $this->db->where('s.branch_id', (int) $branchId);
+        }
+        $this->db->order_by('s.name', 'ASC');
+        return $this->db->get()->result();
+    }
+
+    public function assignmentsForTeacher($branchId, $teacherId)
+    {
+        if (!$this->reviewReady()) {
+            return array();
+        }
+        $this->db->select('ats.student_id, TRIM(CONCAT_WS(" ", s.first_name, NULLIF(s.other_name,""), s.last_name)) AS fullname, s.register_no');
+        $this->db->from('academy_teacher_student ats');
+        $this->db->join('student s', 's.id = ats.student_id', 'left');
+        $this->db->where('ats.branch_id', (int) $branchId);
+        $this->db->where('ats.session_id', (int) get_session_id());
+        $this->db->where('ats.teacher_id', (int) $teacherId);
+        $this->db->order_by('s.first_name', 'ASC');
+        return $this->db->get()->result();
+    }
+
+    public function allAssignments($branchId)
+    {
+        if (!$this->reviewReady()) {
+            return array();
+        }
+        $this->db->select('ats.*, st.name AS teacher_name, TRIM(CONCAT_WS(" ", s.first_name, NULLIF(s.other_name,""), s.last_name)) AS student_name, s.register_no');
+        $this->db->from('academy_teacher_student ats');
+        $this->db->join('staff st', 'st.id = ats.teacher_id', 'left');
+        $this->db->join('student s', 's.id = ats.student_id', 'left');
+        $this->db->where('ats.branch_id', (int) $branchId);
+        $this->db->where('ats.session_id', (int) get_session_id());
+        $this->db->order_by('st.name', 'ASC');
+        $this->db->order_by('s.first_name', 'ASC');
+        return $this->db->get()->result();
+    }
+
+    public function saveTeacherAssignments($branchId, $teacherId, $studentIds, $assignedBy)
+    {
+        if (!$this->reviewReady()) {
+            return false;
+        }
+        $teacherId = (int) $teacherId;
+        $sessionId = (int) get_session_id();
+        $branchId = (int) $branchId;
+        $clean = array();
+        foreach ((array) $studentIds as $sid) {
+            $sid = (int) $sid;
+            if ($sid > 0) {
+                $clean[$sid] = $sid;
+            }
+        }
+
+        $this->db->where(array(
+            'branch_id' => $branchId,
+            'session_id' => $sessionId,
+            'teacher_id' => $teacherId,
+        ))->delete('academy_teacher_student');
+
+        if (!empty($clean)) {
+            foreach ($clean as $sid) {
+                $this->db->insert('academy_teacher_student', array(
+                    'branch_id' => $branchId,
+                    'session_id' => $sessionId,
+                    'teacher_id' => $teacherId,
+                    'student_id' => $sid,
+                    'assigned_by' => (int) $assignedBy,
+                ));
+            }
+        }
+        return true;
+    }
+
+    /**
+     * After a teacher logs a drill or tahfiz row, advance today's class session.
+     * When every student on this teacher's list has a record from this teacher, submit it to the director.
+     * A student may also be assigned to other teachers; those sessions are separate.
+     *
+     * @return string|null status sentence for the flash message
+     */
+    public function touchTeacherSession($branchId, $studentId, $date = null, $teacherId = null)
+    {
+        if (!$this->reviewReady()) {
+            return null;
+        }
+        $branchId = (int) $branchId;
+        $studentId = (int) $studentId;
+        $date = $date ? $date : date('Y-m-d');
+        $sessionId = (int) get_session_id();
+        $teacherId = (int) ($teacherId ? $teacherId : (function_exists('get_loggedin_user_id') ? get_loggedin_user_id() : 0));
+        if ($teacherId < 1 || !$this->studentAssignedToTeacher($studentId, $teacherId, $branchId)) {
+            return null;
+        }
+
+        $assigned = $this->db->select('student_id')->get_where('academy_teacher_student', array(
+            'branch_id' => $branchId,
+            'session_id' => $sessionId,
+            'teacher_id' => $teacherId,
+        ))->result();
+        $ids = array();
+        foreach ($assigned as $a) {
+            $ids[] = (int) $a->student_id;
+        }
+        $total = count($ids);
+        $recorded = $this->countRecordedStudents($branchId, $ids, $date, $teacherId);
+
+        $row = $this->db->get_where('academy_class_session', array(
+            'branch_id' => $branchId,
+            'teacher_id' => $teacherId,
+            'session_date' => $date,
+        ))->row();
+
+        $status = $row ? $row->status : 'recording';
+        $open = array('recording', 'director_rejected', 'admin_rejected');
+        $submit = ($total > 0 && $recorded >= $total && in_array($status, $open, true));
+        if ($submit) {
+            $status = 'pending_director';
+        } elseif (!$row) {
+            $status = 'recording';
+        }
+
+        $payload = array(
+            'student_total' => $total,
+            'recorded_count' => $recorded,
+            'status' => $status,
+            'academic_session_id' => $sessionId,
+        );
+        if ($submit) {
+            $payload['submitted_at'] = date('Y-m-d H:i:s');
+            $payload['director_user_id'] = null;
+            $payload['director_note'] = null;
+            $payload['director_at'] = null;
+            $payload['admin_user_id'] = null;
+            $payload['admin_note'] = null;
+            $payload['admin_at'] = null;
+        }
+
+        if ($row) {
+            $this->db->where('id', (int) $row->id)->update('academy_class_session', $payload);
+            $sessionRowId = (int) $row->id;
+        } else {
+            $payload['branch_id'] = $branchId;
+            $payload['teacher_id'] = $teacherId;
+            $payload['session_date'] = $date;
+            $this->db->insert('academy_class_session', $payload);
+            $sessionRowId = (int) $this->db->insert_id();
+        }
+
+        if ($submit) {
+            $teacherName = get_type_name_by_id('staff', $teacherId, 'name');
+            $title = 'Academy session ready for review';
+            $body = $teacherName . ' finished ' . $date . ' (' . $recorded . '/' . $total . ' students).';
+            $this->notifyRoles(array(1, 9), $branchId, $title, $body, 'academy_review');
+            $this->pushNotice($teacherId, $branchId, 'Session sent to the director', $body, 'academy_review');
+            return 'All ' . $total . ' students recorded. Session sent to the director for review.';
+        }
+
+        return 'Recorded ' . $recorded . ' of ' . $total . ' assigned students for ' . $date . '.';
+    }
+
+    public function decideSession($id, $branchId, $actorId, $step, $approve, $note)
+    {
+        if (!$this->reviewReady()) {
+            return 'Run academy_session_review.sql first.';
+        }
+        $row = $this->db->get_where('academy_class_session', array(
+            'id' => (int) $id,
+            'branch_id' => (int) $branchId,
+        ))->row();
+        if (!$row) {
+            return 'Session not found.';
+        }
+        $note = mb_substr(trim((string) $note), 0, 500);
+        $teacherName = get_type_name_by_id('staff', $row->teacher_id, 'name');
+        $when = $row->session_date;
+
+        if ($step === 'director') {
+            if ($row->status !== 'pending_director') {
+                return 'This session is not waiting for the director.';
+            }
+            if ($approve) {
+                $this->db->where('id', (int) $row->id)->update('academy_class_session', array(
+                    'status' => 'pending_admin',
+                    'director_user_id' => (int) $actorId,
+                    'director_note' => $note !== '' ? $note : null,
+                    'director_at' => date('Y-m-d H:i:s'),
+                ));
+                $this->pushNotice((int) $row->teacher_id, $branchId, 'Director approved your session', $teacherName . ' · ' . $when . ' moved to admin.', 'academy_review');
+                $this->notifyRoles(array(1, 2), $branchId, 'Academy session needs acknowledgement', $teacherName . ' · ' . $when . ' was approved by the director.', 'academy_review');
+                return null;
+            }
+            $this->db->where('id', (int) $row->id)->update('academy_class_session', array(
+                'status' => 'director_rejected',
+                'director_user_id' => (int) $actorId,
+                'director_note' => $note !== '' ? $note : null,
+                'director_at' => date('Y-m-d H:i:s'),
+            ));
+            $this->pushNotice((int) $row->teacher_id, $branchId, 'Director rejected your session', ($note !== '' ? $note : 'Please correct and record again.') . ' · ' . $when, 'academy_review');
+            return null;
+        }
+
+        if ($step === 'admin') {
+            if ($row->status !== 'pending_admin') {
+                return 'This session is not waiting for the admin.';
+            }
+            if ($approve) {
+                $this->db->where('id', (int) $row->id)->update('academy_class_session', array(
+                    'status' => 'acknowledged',
+                    'admin_user_id' => (int) $actorId,
+                    'admin_note' => $note !== '' ? $note : null,
+                    'admin_at' => date('Y-m-d H:i:s'),
+                ));
+                $this->notifyRoles(array(1, 9), $branchId, 'Admin acknowledged an academy session', $teacherName . ' · ' . $when . ' can now be broadcast. Parent and student dashboards are updated.', 'academy_review');
+                $this->pushNotice((int) $row->teacher_id, $branchId, 'Admin acknowledged your session', $when . ' is live for parents and WhatsApp broadcast.', 'academy_review');
+                return null;
+            }
+            $this->db->where('id', (int) $row->id)->update('academy_class_session', array(
+                'status' => 'admin_rejected',
+                'admin_user_id' => (int) $actorId,
+                'admin_note' => $note !== '' ? $note : null,
+                'admin_at' => date('Y-m-d H:i:s'),
+            ));
+            $msg = ($note !== '' ? $note : 'Sent back for correction.') . ' · ' . $when;
+            $this->notifyRoles(array(1, 9), $branchId, 'Admin rejected an academy session', $teacherName . ' · ' . $msg, 'academy_review');
+            $this->pushNotice((int) $row->teacher_id, $branchId, 'Admin rejected your session', $msg, 'academy_review');
+            return null;
+        }
+
+        return 'Unknown review step.';
+    }
+
+    public function sessionsForViewer($branchId, $viewerId)
+    {
+        if (!$this->reviewReady()) {
+            return array();
+        }
+        $this->db->select('cs.*, st.name AS teacher_name');
+        $this->db->from('academy_class_session cs');
+        $this->db->join('staff st', 'st.id = cs.teacher_id', 'left');
+        $this->db->where('cs.branch_id', (int) $branchId);
+        if (function_exists('is_teacher_loggedin') && is_teacher_loggedin()) {
+            $this->db->where('cs.teacher_id', (int) $viewerId);
+        }
+        $this->db->order_by('cs.session_date', 'DESC');
+        $this->db->order_by('cs.id', 'DESC');
+        $this->db->limit(40);
+        return $this->db->get()->result();
+    }
+
+    /**
+     * Teacher ids whose session for this date is acknowledged and who teach this student.
+     */
+    public function acknowledgedTeacherIds($branchId, $studentId, $date)
+    {
+        if (!$this->db->table_exists('academy_class_session') || !$this->db->table_exists('academy_teacher_student')) {
+            return array();
+        }
+        $rows = $this->db->select('ats.teacher_id')
+            ->from('academy_teacher_student ats')
+            ->join('academy_class_session cs', 'cs.teacher_id = ats.teacher_id AND cs.branch_id = ats.branch_id AND cs.session_date = ' . $this->db->escape($date) . ' AND cs.status = "acknowledged"', 'inner')
+            ->where('ats.branch_id', (int) $branchId)
+            ->where('ats.session_id', (int) get_session_id())
+            ->where('ats.student_id', (int) $studentId)
+            ->get()->result();
+        $ids = array();
+        foreach ($rows as $r) {
+            $ids[] = (int) $r->teacher_id;
+        }
+        return $ids;
+    }
+
+    public function studentDayAcknowledged($branchId, $studentId, $date)
+    {
+        if (!$this->db->table_exists('academy_class_session')) {
+            return true;
+        }
+        return count($this->acknowledgedTeacherIds($branchId, $studentId, $date)) > 0;
+    }
+
+    /**
+     * Parent/student dashboard: latest session status, detail only after acknowledgement.
+     */
+    public function portalProgress($studentId)
+    {
+        $empty = array(
+            'ready' => false,
+            'teacher' => '',
+            'date' => '',
+            'status' => '',
+            'label' => 'No academy session yet',
+            'drills' => array(),
+            'tahfiz' => array(),
+        );
+        if (!$this->reviewReady() || (int) $studentId < 1) {
+            return $empty;
+        }
+        $assigns = $this->db->select('ats.teacher_id, st.name AS teacher_name')
+            ->from('academy_teacher_student ats')
+            ->join('staff st', 'st.id = ats.teacher_id', 'left')
+            ->where('ats.student_id', (int) $studentId)
+            ->where('ats.session_id', (int) get_session_id())
+            ->order_by('st.name', 'ASC')
+            ->get()->result();
+        if (empty($assigns)) {
+            $empty['label'] = 'Not assigned to a teacher yet';
+            return $empty;
+        }
+        $labels = array(
+            'recording' => 'Still recording',
+            'pending_director' => 'With director',
+            'director_rejected' => 'Director sent it back',
+            'pending_admin' => 'With admin',
+            'admin_rejected' => 'Admin sent it back',
+            'acknowledged' => 'Acknowledged',
+        );
+        $out = $empty;
+        $out['ready'] = true;
+        $out['teachers'] = array();
+        $names = array();
+        $ackIds = array();
+        $ackDate = null;
+        foreach ($assigns as $assign) {
+            $names[] = $assign->teacher_name;
+            $session = $this->db->where('teacher_id', (int) $assign->teacher_id)
+                ->order_by('session_date', 'DESC')
+                ->limit(1)
+                ->get('academy_class_session')->row();
+            $status = $session ? $session->status : '';
+            $out['teachers'][] = array(
+                'id' => (int) $assign->teacher_id,
+                'name' => $assign->teacher_name,
+                'date' => $session ? $session->session_date : '',
+                'status' => $status,
+                'label' => $session ? (isset($labels[$status]) ? $labels[$status] : $status) : 'No session yet',
+            );
+            if ($session && $status === 'acknowledged') {
+                $ackIds[] = (int) $assign->teacher_id;
+                $ackDate = $session->session_date;
+                $out['status'] = 'acknowledged';
+                $out['date'] = $session->session_date;
+            } elseif ($out['status'] === '' && $session) {
+                $out['status'] = $status;
+                $out['date'] = $session->session_date;
+            }
+        }
+        $out['teacher'] = implode(', ', $names);
+        $bits = array();
+        foreach ($out['teachers'] as $t) {
+            $bits[] = $t['name'] . ' (' . $t['label'] . ')';
+        }
+        $out['label'] = implode(' · ', $bits);
+        if (empty($ackIds)) {
+            return $out;
+        }
+        foreach ($out['teachers'] as $t) {
+            if ($t['status'] !== 'acknowledged' || $t['date'] === '') {
+                continue;
+            }
+            $teacherId = (int) $t['id'];
+            if ($teacherId < 1) {
+                continue;
+            }
+            if ($this->drillsReady()) {
+                $rows = $this->db->where('student_id', (int) $studentId)
+                    ->where('evaluator_id', $teacherId)
+                    ->where('DATE(created_at)', $t['date'])
+                    ->order_by('id', 'DESC')->limit(8)->get('academy_daily_drill')->result();
+                foreach ($rows as $row) {
+                    $out['drills'][] = $row;
+                }
+            }
+            if ($this->tahfizReady()) {
+                $rows = $this->db->where('student_id', (int) $studentId)
+                    ->where('instructor_id', $teacherId)
+                    ->where('DATE(completed_at)', $t['date'])
+                    ->order_by('id', 'DESC')->limit(8)->get('academy_tahfiz_record')->result();
+                foreach ($rows as $row) {
+                    $out['tahfiz'][] = $row;
+                }
+            }
+        }
+        return $out;
+    }
+
+    public function unreadNotices($userId, $limit = 6)
+    {
+        if (!$this->db->table_exists('academy_notice')) {
+            return array();
+        }
+        return $this->db->where('user_id', (int) $userId)
+            ->where('is_read', 0)
+            ->order_by('id', 'DESC')
+            ->limit((int) $limit)
+            ->get('academy_notice')->result();
+    }
+
+    public function markNoticesRead($userId)
+    {
+        if (!$this->db->table_exists('academy_notice')) {
+            return;
+        }
+        $this->db->where('user_id', (int) $userId)->update('academy_notice', array('is_read' => 1));
+    }
+
+    protected function countRecordedStudents($branchId, $studentIds, $date, $teacherId = 0)
+    {
+        if (empty($studentIds)) {
+            return 0;
+        }
+        $teacherId = (int) $teacherId;
+        $seen = array();
+        if ($this->drillsReady()) {
+            $this->db->select('student_id')->from('academy_daily_drill')
+                ->where('branch_id', (int) $branchId)
+                ->where('DATE(created_at)', $date)
+                ->where_in('student_id', $studentIds);
+            if ($teacherId > 0) {
+                $this->db->where('evaluator_id', $teacherId);
+            }
+            $rows = $this->db->group_by('student_id')->get()->result();
+            foreach ($rows as $r) {
+                $seen[(int) $r->student_id] = true;
+            }
+        }
+        if ($this->tahfizReady()) {
+            $this->db->select('student_id')->from('academy_tahfiz_record')
+                ->where('branch_id', (int) $branchId)
+                ->where('DATE(completed_at)', $date)
+                ->where_in('student_id', $studentIds);
+            if ($teacherId > 0) {
+                $this->db->where('instructor_id', $teacherId);
+            }
+            $rows = $this->db->group_by('student_id')->get()->result();
+            foreach ($rows as $r) {
+                $seen[(int) $r->student_id] = true;
+            }
+        }
+        return count($seen);
+    }
+
+    protected function notifyRoles($roleIds, $branchId, $title, $body, $link)
+    {
+        if (!$this->db->table_exists('login_credential')) {
+            return;
+        }
+        $rows = $this->db->select('user_id')->from('login_credential')
+            ->where_in('role', array_map('intval', (array) $roleIds))
+            ->where('active', 1)
+            ->get()->result();
+        $sent = array();
+        foreach ($rows as $r) {
+            $uid = (int) $r->user_id;
+            if ($uid < 1 || isset($sent[$uid])) {
+                continue;
+            }
+            $sent[$uid] = true;
+            $this->pushNotice($uid, $branchId, $title, $body, $link);
+        }
+    }
+
+    protected function pushNotice($userId, $branchId, $title, $body, $link)
+    {
+        if (!$this->db->table_exists('academy_notice') || (int) $userId < 1) {
+            return;
+        }
+        $this->db->insert('academy_notice', array(
+            'branch_id' => (int) $branchId,
+            'user_id' => (int) $userId,
+            'title' => mb_substr($title, 0, 160),
+            'body' => mb_substr((string) $body, 0, 500),
+            'link' => $link,
+            'is_read' => 0,
+        ));
     }
 }

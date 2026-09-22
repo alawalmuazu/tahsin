@@ -48,6 +48,11 @@ class Tahfiz extends Admin_Controller
                     redirect(base_url('tahfiz'));
                 }
 
+                if (is_teacher_loggedin() && !$this->academy_model->studentAssignedToTeacher((int) $this->input->post('student_id'), get_loggedin_user_id(), $branchID)) {
+                    set_alert('error', 'This student is not assigned to you.');
+                    redirect(base_url('tahfiz'));
+                }
+
                 $this->academy_model->saveTahfiz(array(
                     'branch_id' => $branchID,
                     'student_id' => $this->input->post('student_id'),
@@ -72,7 +77,8 @@ class Tahfiz extends Admin_Controller
                     'tarteel_status' => $this->input->post('accuracy_score') !== '' && $this->input->post('accuracy_score') !== null
                         ? 'VERIFIED' : 'UNVERIFIED',
                 ));
-                set_alert('success', 'Tahfiz record saved.');
+                $progress = $this->academy_model->touchTeacherSession($branchID, (int) $this->input->post('student_id'));
+                set_alert('success', 'Tahfiz record saved.' . ($progress ? ' ' . $progress : ''));
                 redirect(base_url('tahfiz'));
             }
         }

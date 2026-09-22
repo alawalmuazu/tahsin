@@ -32,6 +32,12 @@
 						<li><div class="icon-holder" data-toggle="tooltip" data-original-title="<?=translate('register_no')?>"><i class="far fa-registered"></i></div><?=html_escape($row->register_no)?></li>
 						<li><div class="icon-holder" data-toggle="tooltip" data-original-title="<?=translate('birthday')?>"><i class="fas fa-birthday-cake"></i></div><?=_d($row->birthday)?></li>
 					</ul>
+					<?php
+						$CI = get_instance();
+						$CI->load->model('academy_model');
+						$_ap = $CI->academy_model->portalProgress($row->id);
+					?>
+					<p style="margin-top:8px"><strong>Academy:</strong> <?=html_escape($_ap['label'])?><?php if (!empty($_ap['teacher'])): ?> · <?=html_escape($_ap['teacher'])?><?php endif; ?></p>
 				</div>
 				<div class="col-md-12 col-lg-3 col-xl-4">
 					<a href="<?=base_url('parents/select_child/' . $row->enroll_id);?>" class="chil-shaw btn btn-primary btn-circle pull-right"><i class="fas fa-tachometer-alt"></i> <?=translate('dashboard')?></a>
@@ -54,6 +60,39 @@ else :
 ?>
 
 <div class="dashboard-page">
+<?php
+	$CI = get_instance();
+	$CI->load->model('academy_model');
+	$academyProgress = $CI->academy_model->portalProgress($student_id);
+?>
+	<div class="row">
+		<div class="col-md-12">
+			<section class="panel">
+				<header class="panel-heading">
+					<h4 class="panel-title"><i class="fas fa-graduation-cap"></i> Academy progress</h4>
+				</header>
+				<div class="panel-body">
+					<p style="margin:0 0 .5rem"><strong><?=html_escape($academyProgress['label'])?></strong>
+						<?php if (!empty($academyProgress['date'])): ?> · <?=html_escape($academyProgress['date'])?><?php endif; ?>
+						<?php if (!empty($academyProgress['teacher'])): ?> · <?=html_escape($academyProgress['teacher'])?><?php endif; ?>
+					</p>
+					<?php if ($academyProgress['status'] === 'acknowledged'): ?>
+						<?php if (empty($academyProgress['drills']) && empty($academyProgress['tahfiz'])): ?>
+							<p class="text-muted">Acknowledged session has no drill or tahfiz rows for this student.</p>
+						<?php endif; ?>
+						<?php foreach ($academyProgress['tahfiz'] as $t): ?>
+							<div>📖 <?=html_escape($t->surah_name)?> <?php if (isset($t->accuracy_score) && $t->accuracy_score !== null): ?> · <?=html_escape($t->accuracy_score)?>%<?php endif; ?></div>
+						<?php endforeach; ?>
+						<?php foreach ($academyProgress['drills'] as $d): ?>
+							<div>📝 <?=html_escape($d->pillar)?> · <?= (int) $d->score ?>/<?= (int) $d->total_possible ?></div>
+						<?php endforeach; ?>
+					<?php else: ?>
+						<p class="text-muted" style="margin:0">Scores appear here after the admin acknowledges the teacher’s session.</p>
+					<?php endif; ?>
+				</div>
+			</section>
+		</div>
+	</div>
 	<div class="row">
 		<!-- annual fees summary of students graph -->
 		<div class="col-md-12">

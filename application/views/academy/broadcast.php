@@ -88,7 +88,13 @@ $cohortWa = $cohortMsg !== '' ? ('https://api.whatsapp.com/send?text=' . rawurle
 </div>
 
 <?php if (empty($broadcast['reports'])): ?>
-<section class="panel"><div class="panel-body text-center text-muted">No enrolled students to broadcast.</div></section>
+<section class="panel"><div class="panel-body text-center text-muted">
+	<?php if (!empty($broadcast['awaiting_review'])): ?>
+		<?php echo (int) $broadcast['awaiting_review']; ?> student<?php echo ((int) $broadcast['awaiting_review'] === 1) ? '' : 's'; ?> are waiting for teacher assignment or admin acknowledgement. WhatsApp sends only after the admin acknowledges the session.
+	<?php else: ?>
+		No enrolled students to broadcast.
+	<?php endif; ?>
+</div></section>
 <?php else:
 	$waLinks = array();
 	$allMsgs = array();

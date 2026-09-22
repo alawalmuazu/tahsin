@@ -9,15 +9,15 @@
 		</a>
 
 		<?php
-		// ── Contextual Command Strip ──────────────────────────────────
-		// Academic session
-		$_ctx_session    = $this->db->select('school_year')->where('id', get_session_id())->get('schoolyear')->row();
+		// Resolve the session id before any query builder call.
+		// get_session_id() may query global_settings, and nesting it inside
+		// select()/where() mixes those columns into the wrong table.
+		$_ctx_session_id = get_session_id();
+		$_ctx_session    = $this->db->select('school_year')->where('id', $_ctx_session_id)->get('schoolyear')->row();
 		$_ctx_session_label = isset($_ctx_session->school_year) ? $_ctx_session->school_year : '';
 
-		// ── Term & Week ───────────────────────────────────────────────
-		// Get current term name from exam_term for the active session
 		$_ctx_term_row = $this->db->select('name')
-		                          ->where('session_id', get_session_id())
+		                          ->where('session_id', $_ctx_session_id)
 		                          ->order_by('id', 'ASC')
 		                          ->limit(1)
 		                          ->get('exam_term')
@@ -293,6 +293,12 @@ foreach($languages as $lang) :
 					<i class="far fa-bell"></i>
 					<?php 
 						$unreadMessage = $this->application_model->unread_message_alert();
+						$academyNotices = array();
+						if ($this->db->table_exists('academy_notice') && is_loggedin() && !is_student_loggedin() && !is_parent_loggedin()) {
+							$CI = get_instance();
+							$CI->load->model('academy_model');
+							$academyNotices = $CI->academy_model->unreadNotices(get_loggedin_user_id());
+						}
 						$pendingApps = [];
 						if (is_director_loggedin() || is_admin_loggedin() || is_superadmin_loggedin()) {
 							$pendingApps = $this->db->select('lc.id, lc.user_id, lc.role, lc.created_at, r.name as role_name, s.name as user_name')
@@ -305,7 +311,7 @@ foreach($languages as $lang) :
 								->limit(5)
 								->get()->result();
 						}
-						$totalAlerts = count($unreadMessage) + count($pendingApps);
+						$totalAlerts = count($unreadMessage) + count($pendingApps) + count($academyNotices);
 						if ($totalAlerts > 0) {
 							echo '<span class="badge" style="background:#e07a5f; color:#fff;">' . $totalAlerts . '</span>';
 						} 
@@ -320,6 +326,20 @@ foreach($languages as $lang) :
 					</div>
 					<div class="content">
 						<ul>
+							<?php if (!empty($academyNotices)): ?>
+								<li style="background: #ecfdf5; padding: 6px 12px; font-size: 11px; font-weight: 700; color: #047857; border-bottom: 1px solid #a7f3d0; text-transform: uppercase; letter-spacing: 0.5px;">
+									<i class="fas fa-graduation-cap"></i> Academy review
+								</li>
+								<?php foreach ($academyNotices as $an): ?>
+								<li style="border-bottom: 1px solid #f1f5f9;">
+									<a href="<?php echo base_url($an->link ? $an->link : 'academy_review'); ?>" class="clearfix" style="padding: 10px 12px; display: block; text-decoration: none;">
+										<strong style="color: #1e293b; font-size: 13px;"><?php echo html_escape($an->title); ?></strong>
+										<div style="font-size: 11px; color: #64748b;"><?php echo html_escape($an->body); ?></div>
+									</a>
+								</li>
+								<?php endforeach; ?>
+							<?php endif; ?>
+
 							<?php if (count($pendingApps) > 0): ?>
 								<li style="background: #fffbeb; padding: 6px 12px; font-size: 11px; font-weight: 700; color: #b45309; border-bottom: 1px solid #fed7aa; text-transform: uppercase; letter-spacing: 0.5px;">
 									<i class="fas fa-user-clock"></i> Pending Staff Registrations
@@ -363,7 +383,7 @@ foreach($languages as $lang) :
 								</li>
 							<?php
 									endforeach; 
-								} elseif (empty($pendingApps)) {
+								} elseif (empty($pendingApps) && empty($academyNotices)) {
 									echo '<li class="text-center" style="padding: 15px; color: #94a3b8;">You do not have any new notifications</li>';
 								}
 							?>
