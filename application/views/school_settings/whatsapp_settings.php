@@ -137,6 +137,7 @@ if (!empty($whatsapp['backend_enable_chat']) && $whatsapp['backend_enable_chat']
                         <label class="col-md-3 control-label">Template name <span class="required">*</span></label>
                         <div class="col-md-6">
                             <input type="text" class="form-control" name="template_name" value="<?php echo html_escape(isset($cloud['template_name']) ? $cloud['template_name'] : 'tahsin_daily_digest'); ?>" />
+                            <span class="help-block mb-none">Body variables, in order: {{1}} student, {{2}} teacher, {{3}} portion (for example Hifz Fauq · Al-Mulk (Ayah 1–5)), {{4}} Sealed by the director. The recitation audio is attached after the template, not inside the body. Match this in Meta before the template is approved.</span>
                             <span class="error"></span>
                         </div>
                     </div>

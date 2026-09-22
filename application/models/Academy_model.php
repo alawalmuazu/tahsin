@@ -1223,9 +1223,12 @@ class Academy_model extends MY_Model
                 }
             }
 
+            $sealed = $this->sealedDigestLine($tahfizToday, $drills);
             $reports[] = array(
                 'student_id' => $st['id'],
                 'student_name' => $st['fullname'],
+                'teacher_name' => $sealed['teacher'],
+                'portion' => $sealed['portion'],
                 'parent_contact' => $st['parent_contact'],
                 'message' => implode("\n", $lines),
                 'drill_count' => count($drills),
@@ -1408,39 +1411,58 @@ class Academy_model extends MY_Model
     }
 
     /**
-     * Template body params for Meta WhatsApp utility template.
-     * Order: student, date, summary, media_url.
+     * One portion line and the teacher who sealed it, from today's acknowledged rows.
+     *
+     * @return array{teacher:string,portion:string}
      */
-    public function digestTemplateParams($report)
+    public function sealedDigestLine($tahfizRows, $drillRows)
     {
-        $name = isset($report['student_name']) ? $report['student_name'] : 'Student';
-        $date = date('j M Y');
-        $bits = array();
-        $drills = isset($report['drill_count']) ? (int) $report['drill_count'] : 0;
-        $tahfiz = isset($report['tahfiz_count']) ? (int) $report['tahfiz_count'] : 0;
-        if ($drills > 0) {
-            $bits[] = $drills . ' drill' . ($drills === 1 ? '' : 's');
-        }
-        if ($tahfiz > 0) {
-            $bits[] = $tahfiz . ' Quran milestone' . ($tahfiz === 1 ? '' : 's');
-        }
-        $summary = !empty($bits) ? implode(', ', $bits) : 'No drills or tahfiz logged today';
-
-        $mediaUrl = '—';
-        if (!empty($report['media']) && is_array($report['media'])) {
-            foreach ($report['media'] as $m) {
-                if (!empty($m['audio_url'])) {
-                    $mediaUrl = $m['audio_url'];
-                    break;
+        $teacher = 'Teacher';
+        $portion = 'Session sealed';
+        if (!empty($tahfizRows)) {
+            $t = $tahfizRows[0];
+            $label = $this->formatTahfizMilestoneLabel($t);
+            if (!$label && isset($t->surah_name)) {
+                $label = $t->surah_name;
+            }
+            $cat = '';
+            if (!empty($t->recitation_category)) {
+                $cats = $this->recitationCategories();
+                $ck = strtoupper($t->recitation_category);
+                $cat = isset($cats[$ck]) ? $cats[$ck] : $ck;
+            }
+            $portion = trim(($cat !== '' ? $cat . ' · ' : '') . ($label ? $label : 'Quran'));
+            if (!empty($t->instructor_id) && function_exists('get_type_name_by_id')) {
+                $name = get_type_name_by_id('staff', $t->instructor_id, 'name');
+                if ($name) {
+                    $teacher = $name;
                 }
-                if (!empty($m['video_url'])) {
-                    $mediaUrl = $m['video_url'];
-                    break;
+            }
+        } elseif (!empty($drillRows)) {
+            $d = $drillRows[0];
+            $n = count($drillRows);
+            $pillar = isset($d->pillar) ? $d->pillar : 'Drill';
+            $portion = $pillar . ($n > 1 ? ' · ' . $n . ' drills' : '');
+            if (!empty($d->evaluator_id) && function_exists('get_type_name_by_id')) {
+                $name = get_type_name_by_id('staff', $d->evaluator_id, 'name');
+                if ($name) {
+                    $teacher = $name;
                 }
             }
         }
+        return array('teacher' => $teacher, 'portion' => $portion);
+    }
 
-        return array($name, $date, $summary, $mediaUrl);
+    /**
+     * Template body params for the Meta utility template.
+     * Order: student, teacher, portion, seal. Audio is a later media message.
+     */
+    public function digestTemplateParams($report)
+    {
+        $name = isset($report['student_name']) && $report['student_name'] !== '' ? $report['student_name'] : 'Student';
+        $teacher = isset($report['teacher_name']) && $report['teacher_name'] !== '' ? $report['teacher_name'] : 'Teacher';
+        $portion = isset($report['portion']) && $report['portion'] !== '' ? $report['portion'] : 'Session sealed';
+        return array($name, $teacher, $portion, 'Sealed by the director');
     }
 
     /**
@@ -1676,7 +1698,8 @@ class Academy_model extends MY_Model
             $ids[] = (int) $a->student_id;
         }
         $total = count($ids);
-        $recorded = $this->countRecordedStudents($branchId, $ids, $date, $teacherId);
+        $recordedIds = $this->recordedStudentIds($branchId, $ids, $date, $teacherId);
+        $recorded = count($recordedIds);
 
         $row = $this->db->get_where('academy_class_session', array(
             'branch_id' => $branchId,
@@ -1720,16 +1743,32 @@ class Academy_model extends MY_Model
             $sessionRowId = (int) $this->db->insert_id();
         }
 
+        $priorNote = '';
+        if ($row && in_array($row->status, array('director_rejected', 'admin_rejected'), true)) {
+            $who = $row->status === 'director_rejected' ? 'Director' : 'Admin';
+            $note = $row->status === 'director_rejected' ? $row->director_note : $row->admin_note;
+            if ($note) {
+                $priorNote = ' ' . $who . ': ' . $note;
+            }
+        }
+
         if ($submit) {
             $teacherName = get_type_name_by_id('staff', $teacherId, 'name');
             $title = 'Academy session ready for review';
             $body = $teacherName . ' finished ' . $date . ' (' . $recorded . '/' . $total . ' students).';
             $this->notifyRoles(array(1, 9), $branchId, $title, $body, 'academy_review');
             $this->pushNotice($teacherId, $branchId, 'Session sent to the director', $body, 'academy_review');
-            return 'All ' . $total . ' students recorded. Session sent to the director for review.';
+            return 'Day sealed. Sent to the director.' . $priorNote;
         }
 
-        return 'Recorded ' . $recorded . ' of ' . $total . ' assigned students for ' . $date . '.';
+        $missing = array();
+        foreach ($ids as $sid) {
+            if (!isset($recordedIds[(int) $sid])) {
+                $missing[] = (int) $sid;
+            }
+        }
+        $missingLabel = $this->missingStudentLabel($missing);
+        return 'Recorded ' . $recorded . ' of ' . $total . '.' . $missingLabel . $priorNote;
     }
 
     public function decideSession($id, $branchId, $actorId, $step, $approve, $note)
@@ -1906,6 +1945,9 @@ class Academy_model extends MY_Model
                 'date' => $session ? $session->session_date : '',
                 'status' => $status,
                 'label' => $session ? (isset($labels[$status]) ? $labels[$status] : $status) : 'No session yet',
+                'portion' => '',
+                'category' => '',
+                'audio_url' => '',
             );
             if ($session && $status === 'acknowledged') {
                 $ackIds[] = (int) $assign->teacher_id;
@@ -1926,7 +1968,7 @@ class Academy_model extends MY_Model
         if (empty($ackIds)) {
             return $out;
         }
-        foreach ($out['teachers'] as $t) {
+        foreach ($out['teachers'] as $idx => $t) {
             if ($t['status'] !== 'acknowledged' || $t['date'] === '') {
                 continue;
             }
@@ -1942,6 +1984,11 @@ class Academy_model extends MY_Model
                 foreach ($rows as $row) {
                     $out['drills'][] = $row;
                 }
+                if (!empty($rows) && $out['teachers'][$idx]['portion'] === '') {
+                    $d = $rows[0];
+                    $out['teachers'][$idx]['portion'] = (isset($d->pillar) ? $d->pillar : 'Drill')
+                        . ' ' . (int) $d->score . '/' . (int) $d->total_possible;
+                }
             }
             if ($this->tahfizReady()) {
                 $rows = $this->db->where('student_id', (int) $studentId)
@@ -1951,7 +1998,151 @@ class Academy_model extends MY_Model
                 foreach ($rows as $row) {
                     $out['tahfiz'][] = $row;
                 }
+                if (!empty($rows)) {
+                    $top = $rows[0];
+                    $out['teachers'][$idx]['portion'] = (string) $this->formatTahfizMilestoneLabel($top);
+                    if (!empty($top->recitation_category)) {
+                        $cats = $this->recitationCategories();
+                        $ck = strtoupper($top->recitation_category);
+                        $out['teachers'][$idx]['category'] = isset($cats[$ck]) ? $cats[$ck] : $ck;
+                    }
+                    $out['teachers'][$idx]['audio_url'] = $this->absoluteMediaUrl(isset($top->audio_url) ? $top->audio_url : '');
+                }
             }
+        }
+        return $out;
+    }
+
+    /**
+     * Shakiest tahfiz clip for a teacher's day: lowest accuracy, then most mistakes.
+     *
+     * @return array|null
+     */
+    public function weakClipForSession($branchId, $teacherId, $date)
+    {
+        if (!$this->tahfizReady() || (int) $teacherId < 1 || !$date) {
+            return null;
+        }
+        $rows = $this->db->select('t.*, s.first_name, s.last_name')
+            ->from('academy_tahfiz_record t')
+            ->join('student s', 's.id = t.student_id', 'left')
+            ->where('t.branch_id', (int) $branchId)
+            ->where('t.instructor_id', (int) $teacherId)
+            ->where('DATE(t.completed_at)', $date)
+            ->get()->result();
+        if (empty($rows)) {
+            return null;
+        }
+        $best = null;
+        $bestRank = null;
+        foreach ($rows as $r) {
+            $acc = (isset($r->accuracy_score) && $r->accuracy_score !== null && $r->accuracy_score !== '')
+                ? (float) $r->accuracy_score : null;
+            $mistakes = (isset($r->mistake_word_count) && $r->mistake_word_count !== null && $r->mistake_word_count !== '')
+                ? (int) $r->mistake_word_count : 0;
+            $rank = array(
+                $acc === null ? 1 : 0,
+                $acc === null ? 0 : $acc,
+                -$mistakes,
+                empty($r->audio_url) ? 1 : 0,
+            );
+            if ($best === null || $rank < $bestRank) {
+                $best = $r;
+                $bestRank = $rank;
+            }
+        }
+        $cats = $this->recitationCategories();
+        $ck = isset($best->recitation_category) ? strtoupper((string) $best->recitation_category) : '';
+        return array(
+            'student' => trim((isset($best->first_name) ? $best->first_name : '') . ' ' . (isset($best->last_name) ? $best->last_name : '')),
+            'portion' => (string) $this->formatTahfizMilestoneLabel($best),
+            'category' => isset($cats[$ck]) ? $cats[$ck] : '',
+            'accuracy' => isset($best->accuracy_score) ? $best->accuracy_score : null,
+            'mistakes' => isset($best->mistake_word_count) ? $best->mistake_word_count : null,
+            'audio_url' => $this->absoluteMediaUrl(isset($best->audio_url) ? $best->audio_url : ''),
+        );
+    }
+
+    /**
+     * Acknowledge every session the director already approved for this date.
+     *
+     * @return int
+     */
+    public function releaseToday($branchId, $actorId, $date = null)
+    {
+        if (!$this->reviewReady()) {
+            return 0;
+        }
+        $date = $date ? $date : date('Y-m-d');
+        $rows = $this->db->get_where('academy_class_session', array(
+            'branch_id' => (int) $branchId,
+            'session_date' => $date,
+            'status' => 'pending_admin',
+        ))->result();
+        $n = 0;
+        foreach ($rows as $row) {
+            $err = $this->decideSession((int) $row->id, $branchId, $actorId, 'admin', true, '');
+            if ($err === null) {
+                $n++;
+            }
+        }
+        return $n;
+    }
+
+    /**
+     * Acknowledged tahfiz rows for one student, optionally one surah.
+     */
+    public function sealedPins($branchId, $studentId, $surah = null)
+    {
+        if (!$this->tahfizReady() || !$this->db->table_exists('academy_class_session') || (int) $studentId < 1) {
+            return array();
+        }
+        $this->db->select('t.*, st.name AS teacher_name, cs.session_date');
+        $this->db->from('academy_tahfiz_record t');
+        $this->db->join(
+            'academy_class_session cs',
+            'cs.teacher_id = t.instructor_id AND cs.branch_id = t.branch_id AND cs.session_date = DATE(t.completed_at) AND cs.status = "acknowledged"',
+            'inner'
+        );
+        $this->db->join('staff st', 'st.id = t.instructor_id', 'left');
+        $this->db->where('t.branch_id', (int) $branchId);
+        $this->db->where('t.student_id', (int) $studentId);
+        if ($surah !== null && $surah !== '') {
+            $this->db->where('t.surah_name', $surah);
+        }
+        $this->db->order_by('t.surah_name', 'ASC');
+        $this->db->order_by('t.ayah_from', 'ASC');
+        $this->db->order_by('cs.session_date', 'ASC');
+        $rows = $this->db->get()->result();
+        $cats = $this->recitationCategories();
+        foreach ($rows as $row) {
+            $row->portion_label = $this->formatTahfizMilestoneLabel($row);
+            $ck = isset($row->recitation_category) ? strtoupper((string) $row->recitation_category) : '';
+            $row->category_label = isset($cats[$ck]) ? $cats[$ck] : '';
+            $row->play_url = $this->absoluteMediaUrl(isset($row->audio_url) ? $row->audio_url : '');
+        }
+        return $rows;
+    }
+
+    /**
+     * Surahs that have at least one sealed pin, with a count.
+     *
+     * @return array<int,array{name:string,count:int}>
+     */
+    public function sealedSurahs($branchId, $studentId)
+    {
+        $pins = $this->sealedPins($branchId, $studentId, null);
+        $counts = array();
+        foreach ($pins as $pin) {
+            $name = isset($pin->surah_name) && $pin->surah_name !== '' ? $pin->surah_name : 'Surah';
+            if (!isset($counts[$name])) {
+                $counts[$name] = 0;
+            }
+            $counts[$name]++;
+        }
+        $out = array();
+        foreach ($counts as $name => $n) {
+            $out[] = array('name' => $name, 'count' => $n);
         }
         return $out;
     }
@@ -1978,11 +2169,19 @@ class Academy_model extends MY_Model
 
     protected function countRecordedStudents($branchId, $studentIds, $date, $teacherId = 0)
     {
+        return count($this->recordedStudentIds($branchId, $studentIds, $date, $teacherId));
+    }
+
+    /**
+     * @return array<int,true>
+     */
+    protected function recordedStudentIds($branchId, $studentIds, $date, $teacherId = 0)
+    {
+        $seen = array();
         if (empty($studentIds)) {
-            return 0;
+            return $seen;
         }
         $teacherId = (int) $teacherId;
-        $seen = array();
         if ($this->drillsReady()) {
             $this->db->select('student_id')->from('academy_daily_drill')
                 ->where('branch_id', (int) $branchId)
@@ -2009,7 +2208,34 @@ class Academy_model extends MY_Model
                 $seen[(int) $r->student_id] = true;
             }
         }
-        return count($seen);
+        return $seen;
+    }
+
+    protected function missingStudentLabel($studentIds)
+    {
+        if (empty($studentIds)) {
+            return '';
+        }
+        $rows = $this->db->select('id, first_name')->where_in('id', $studentIds)->get('student')->result();
+        $map = array();
+        foreach ($rows as $r) {
+            $map[(int) $r->id] = $r->first_name;
+        }
+        $names = array();
+        foreach ($studentIds as $id) {
+            if (!empty($map[(int) $id])) {
+                $names[] = $map[(int) $id];
+            }
+        }
+        if (empty($names)) {
+            return '';
+        }
+        $show = array_slice($names, 0, 8);
+        $label = ' Still to record: ' . implode(', ', $show);
+        if (count($names) > 8) {
+            $label .= ' and ' . (count($names) - 8) . ' more';
+        }
+        return $label . '.';
     }
 
     protected function notifyRoles($roleIds, $branchId, $title, $body, $link)

@@ -20,7 +20,47 @@ $labels = array(
 				<?php elseif (empty($sessions)): ?>
 					<p class="text-muted">No class sessions yet. A session appears when a teacher records an assigned student. It is sent to the director only after every assigned student has a drill or tahfiz entry that day.</p>
 				<?php else: ?>
-					<p class="text-muted">Director approves or rejects. Either way the teacher is notified. An approval goes to the admin to acknowledge or reject. Either way the director is notified. Acknowledgement unlocks WhatsApp broadcast and parent/student progress for that day.</p>
+					<p class="text-muted">The director listens, then approves or rejects. Approval waits for the admin to release the day. One release publishes every session the director already sealed today. Reject still sends a single day back.</p>
+					<?php if (!empty($can_admin) && !empty($pending_admin_today)): ?>
+						<?php echo form_open('academy_review', array('style' => 'margin-bottom:1rem')); ?>
+							<button class="btn btn-primary" name="release_today" value="1" type="submit">Release today’s sealed sessions (<?php echo (int) $pending_admin_today; ?>)</button>
+						<?php echo form_close(); ?>
+					<?php endif; ?>
+					<?php
+					$featured = null;
+					foreach ($sessions as $row) {
+						if ($row->status === 'pending_director' && !empty($row->weak_clip) && !empty($can_director)) {
+							$featured = $row;
+							break;
+						}
+					}
+					?>
+					<?php if ($featured): $clip = $featured->weak_clip; ?>
+						<div class="well" style="margin-bottom:1rem">
+							<strong>Listen first</strong>
+							<div style="margin:.4rem 0">
+								<?php echo html_escape($clip['student']); ?>
+								· <?php echo html_escape($featured->teacher_name); ?>
+								<?php if (!empty($clip['category'])): ?> · <?php echo html_escape($clip['category']); ?><?php endif; ?>
+								<?php if (!empty($clip['portion'])): ?> · <?php echo html_escape($clip['portion']); ?><?php endif; ?>
+								<?php if ($clip['accuracy'] !== null && $clip['accuracy'] !== ''): ?> · <?php echo html_escape($clip['accuracy']); ?>%<?php endif; ?>
+								<?php if ($clip['mistakes'] !== null && $clip['mistakes'] !== ''): ?> · <?php echo (int) $clip['mistakes']; ?> mistakes<?php endif; ?>
+							</div>
+							<?php if (!empty($clip['audio_url'])): ?>
+								<audio controls preload="none" src="<?php echo html_escape($clip['audio_url']); ?>" style="width:100%;max-width:480px"></audio>
+							<?php else: ?>
+								<p class="text-muted" style="margin:.4rem 0">No audio on this row. The portion above is the weakest score for <?php echo html_escape($featured->session_date); ?>.</p>
+							<?php endif; ?>
+							<?php echo form_open('academy_review', array('style' => 'margin-top:.6rem')); ?>
+								<input type="hidden" name="decide" value="1">
+								<input type="hidden" name="session_id" value="<?php echo (int) $featured->id; ?>">
+								<input type="hidden" name="step" value="director">
+								<input type="text" name="note" class="form-control input-sm mb-xs" placeholder="Optional note" style="max-width:360px">
+								<button class="btn btn-success btn-sm" name="decision" value="approve" type="submit">Approve</button>
+								<button class="btn btn-danger btn-sm" name="decision" value="reject" type="submit">Reject</button>
+							<?php echo form_close(); ?>
+						</div>
+					<?php endif; ?>
 					<table class="table table-bordered table-striped">
 						<thead>
 							<tr>

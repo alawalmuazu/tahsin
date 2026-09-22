@@ -20,7 +20,7 @@
 <div class="bcast-hub-header">
 	<div>
 		<h4><i class="fas fa-broadcast-tower"></i> Tahsin Broadcast Preview</h4>
-		<p>Daily parent digests with milestone text + audio/video links. Open WhatsApp to parents or share to a group.</p>
+		<p>Each digest is one sealed sentence: student, teacher, portion. The recitation audio is attached after the template.</p>
 	</div>
 	<div>
 		<?php if (!empty($wa_ready)): ?>
@@ -49,7 +49,7 @@
 			<strong>WhatsApp Cloud API:</strong>
 	<span class="label label-<?php echo $waReady ? 'success' : 'default'; ?>"><?php echo html_escape($waStatus); ?></span>
 	<?php if ($waReady): ?>
-		Template digests can be pushed to parents. <?php echo $waMedia ? 'Native audio/video attach is attempted after each digest (needs a Meta chat window or public HTTPS files).' : 'Media is included as links in the template.'; ?>
+		Template body is student, teacher, portion, and “Sealed by the director”. <?php echo $waMedia ? 'The clip is attached after that message (needs a Meta chat window or a public HTTPS file).' : 'Turn on “Attach media after digest” so the clip is sent with the sentence.'; ?>
 	<?php else: ?>
 		Configure under <a href="<?php echo base_url('school_settings/whatsapp_setting'); ?>">Settings → WhatsApp</a> (Cloud API panel). Until then, use click-to-chat below.
 	<?php endif; ?>
@@ -118,6 +118,7 @@ $cohortWa = $cohortMsg !== '' ? ('https://api.whatsapp.com/send?text=' . rawurle
 		<div>
 			<strong><?php echo html_escape($r['student_name']); ?></strong>
 			<span class="text-muted" style="margin-left:.5rem"><?php echo html_escape($r['parent_contact'] ? $r['parent_contact'] : 'No contact'); ?></span>
+			<div class="text-muted" style="font-size:.85rem;margin-top:.2rem"><?php echo html_escape($r['student_name']); ?> · <?php echo html_escape(isset($r['teacher_name']) ? $r['teacher_name'] : 'Teacher'); ?> · <?php echo html_escape(isset($r['portion']) ? $r['portion'] : 'Session sealed'); ?> · Sealed by the director</div>
 		</div>
 		<div>
 			<span class="label label-<?php echo $r['drill_count'] > 0 ? 'success' : 'default'; ?>">

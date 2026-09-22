@@ -417,6 +417,11 @@
                                     <span><i class="fas fa-caret-right"></i>Session Review</span>
                                 </a>
                             </li>
+                            <li class="<?php if ($_ac_sub == 'academy/mushaf') echo 'nav-active'; ?>">
+                                <a href="<?php echo base_url('academy_review/mushaf'); ?>">
+                                    <span><i class="fas fa-caret-right"></i>Voice mushaf</span>
+                                </a>
+                            </li>
                             <li class="<?php if ($_ac_sub == 'academy/students') echo 'nav-active'; ?>">
                                 <a href="<?php echo base_url('academy_students'); ?>">
                                     <span><i class="fas fa-caret-right"></i>Academy Students</span>

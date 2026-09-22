@@ -17,6 +17,11 @@
                             <i class="icons icon-grid"></i><span><?=translate('dashboard')?></span>
                         </a>
                     </li>
+                    <li class="<?php if ($sub_page == 'academy/mushaf') echo 'nav-active'; ?>">
+                        <a href="<?=base_url('userrole/mushaf')?>">
+                            <i class="fas fa-book-open"></i><span>Voice mushaf</span>
+                        </a>
+                    </li>
 <?php } elseif (is_parent_loggedin()) {  ?>
 
                     <li class="nav-parent <?php if ($main_menu == 'dashboard') echo 'nav-expanded nav-active'; ?>">
@@ -33,6 +38,11 @@
                                 <li class="<?php if ($sub_page == 'userrole/dashboard') echo 'nav-active'; ?>">
                                     <a href="<?=base_url('dashboard'); ?>">
                                         <i class="fas fa-tachometer-alt"></i><span><?=translate('dashboard')?></span>
+                                    </a>
+                                </li>
+                                <li class="<?php if ($sub_page == 'academy/mushaf') echo 'nav-active'; ?>">
+                                    <a href="<?=base_url('userrole/mushaf'); ?>">
+                                        <i class="fas fa-book-open"></i><span>Voice mushaf</span>
                                     </a>
                                 </li>
                             <?php endif; ?>

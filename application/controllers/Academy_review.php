@@ -19,19 +19,104 @@ class Academy_review extends Admin_Controller
         $branchID = $this->application_model->get_branch_id();
         $this->academy_model->markNoticesRead(get_loggedin_user_id());
 
+        if ($this->input->post('release_today')) {
+            if (!is_superadmin_loggedin() && !is_admin_loggedin()) {
+                access_denied();
+            }
+            $n = $this->academy_model->releaseToday($branchID, get_loggedin_user_id());
+            set_alert('success', $n > 0
+                ? ('Released ' . (int) $n . ' sealed session' . ($n === 1 ? '' : 's') . '. Parent dashboards and WhatsApp can use them.')
+                : 'No sessions are waiting for release today.');
+            redirect(base_url('academy_review'));
+        }
+
         if ($this->input->post('decide')) {
             $this->handleDecision($branchID);
         }
 
         $this->data['ready'] = $this->academy_model->reviewReady();
-        $this->data['sessions'] = $this->data['ready']
+        $sessions = $this->data['ready']
             ? $this->academy_model->sessionsForViewer($branchID, get_loggedin_user_id())
             : array();
+        $today = date('Y-m-d');
+        $pendingAdminToday = 0;
+        foreach ($sessions as $session) {
+            $session->weak_clip = null;
+            if ($session->status === 'pending_director' || $session->status === 'pending_admin') {
+                $session->weak_clip = $this->academy_model->weakClipForSession($branchID, $session->teacher_id, $session->session_date);
+            }
+            if ($session->status === 'pending_admin' && $session->session_date === $today) {
+                $pendingAdminToday++;
+            }
+        }
+        usort($sessions, function ($a, $b) {
+            $rank = function ($s) {
+                if ($s->status === 'pending_director' && !empty($s->weak_clip)) {
+                    return 0;
+                }
+                if ($s->status === 'pending_director') {
+                    return 1;
+                }
+                if ($s->status === 'pending_admin') {
+                    return 2;
+                }
+                return 3;
+            };
+            $ra = $rank($a);
+            $rb = $rank($b);
+            if ($ra !== $rb) {
+                return $ra - $rb;
+            }
+            if ($ra === 0) {
+                $aa = isset($a->weak_clip['accuracy']) && $a->weak_clip['accuracy'] !== null && $a->weak_clip['accuracy'] !== ''
+                    ? (float) $a->weak_clip['accuracy'] : 101;
+                $bb = isset($b->weak_clip['accuracy']) && $b->weak_clip['accuracy'] !== null && $b->weak_clip['accuracy'] !== ''
+                    ? (float) $b->weak_clip['accuracy'] : 101;
+                if ($aa != $bb) {
+                    return $aa < $bb ? -1 : 1;
+                }
+            }
+            return strcmp($b->session_date, $a->session_date);
+        });
+        $this->data['sessions'] = $sessions;
+        $this->data['pending_admin_today'] = $pendingAdminToday;
         $this->data['can_director'] = is_superadmin_loggedin() || is_director_loggedin();
         $this->data['can_admin'] = is_superadmin_loggedin() || is_admin_loggedin();
         $this->data['is_teacher'] = is_teacher_loggedin();
         $this->data['title'] = 'Academy Session Review';
         $this->data['sub_page'] = 'academy/review';
+        $this->data['main_menu'] = 'academy';
+        $this->load->view('layout/index', $this->data);
+    }
+
+    /**
+     * Staff view of a student's sealed recitation pins.
+     */
+    public function mushaf()
+    {
+        $this->guardStaff();
+        $branchID = $this->application_model->get_branch_id();
+        $studentId = (int) $this->input->get('student_id');
+        if ($studentId > 0 && !$this->studentInBranch($branchID, $studentId)) {
+            $studentId = 0;
+        }
+        $surah = trim((string) $this->input->get('surah'));
+        $this->data['students'] = $this->studentsForAssign($branchID);
+        $this->data['student_id'] = $studentId;
+        $this->data['surah'] = $surah;
+        $this->data['surahs'] = $studentId > 0 ? $this->academy_model->sealedSurahs($branchID, $studentId) : array();
+        $this->data['pins'] = ($studentId > 0 && $surah !== '') ? $this->academy_model->sealedPins($branchID, $studentId, $surah) : array();
+        $studentName = '';
+        if ($studentId > 0) {
+            $stu = $this->db->select('first_name, last_name')->where('id', $studentId)->get('student')->row();
+            if ($stu) {
+                $studentName = trim($stu->first_name . ' ' . $stu->last_name);
+            }
+        }
+        $this->data['student_name'] = $studentName;
+        $this->data['mushaf_base'] = 'academy_review/mushaf';
+        $this->data['title'] = 'Voice mushaf';
+        $this->data['sub_page'] = 'academy/mushaf';
         $this->data['main_menu'] = 'academy';
         $this->load->view('layout/index', $this->data);
     }
@@ -105,6 +190,17 @@ class Academy_review extends Admin_Controller
                 : 'Rejected. The other party has been notified.');
         }
         redirect(base_url('academy_review'));
+    }
+
+    protected function studentInBranch($branchID, $studentId)
+    {
+        $sessionID = get_session_id();
+        $this->db->where('student_id', (int) $studentId);
+        $this->db->where('branch_id', (int) $branchID);
+        if ($sessionID) {
+            $this->db->where('session_id', (int) $sessionID);
+        }
+        return $this->db->count_all_results('enroll') > 0;
     }
 
     protected function guardStaff()

@@ -37,7 +37,15 @@
 						$CI->load->model('academy_model');
 						$_ap = $CI->academy_model->portalProgress($row->id);
 					?>
-					<p style="margin-top:8px"><strong>Academy:</strong> <?=html_escape($_ap['label'])?><?php if (!empty($_ap['teacher'])): ?> · <?=html_escape($_ap['teacher'])?><?php endif; ?></p>
+					<?php if (!empty($_ap['teachers'])): ?>
+						<div style="margin-top:8px">
+							<?php foreach ($_ap['teachers'] as $_t): ?>
+								<div><strong><?=html_escape($_t['name'])?></strong> · <?=html_escape($_t['label'])?></div>
+							<?php endforeach; ?>
+						</div>
+					<?php else: ?>
+						<p style="margin-top:8px"><strong>Academy:</strong> <?=html_escape($_ap['label'])?></p>
+					<?php endif; ?>
 				</div>
 				<div class="col-md-12 col-lg-3 col-xl-4">
 					<a href="<?=base_url('parents/select_child/' . $row->enroll_id);?>" class="chil-shaw btn btn-primary btn-circle pull-right"><i class="fas fa-tachometer-alt"></i> <?=translate('dashboard')?></a>
@@ -72,22 +80,23 @@ else :
 					<h4 class="panel-title"><i class="fas fa-graduation-cap"></i> Academy progress</h4>
 				</header>
 				<div class="panel-body">
-					<p style="margin:0 0 .5rem"><strong><?=html_escape($academyProgress['label'])?></strong>
-						<?php if (!empty($academyProgress['date'])): ?> · <?=html_escape($academyProgress['date'])?><?php endif; ?>
-						<?php if (!empty($academyProgress['teacher'])): ?> · <?=html_escape($academyProgress['teacher'])?><?php endif; ?>
-					</p>
-					<?php if ($academyProgress['status'] === 'acknowledged'): ?>
-						<?php if (empty($academyProgress['drills']) && empty($academyProgress['tahfiz'])): ?>
-							<p class="text-muted">Acknowledged session has no drill or tahfiz rows for this student.</p>
-						<?php endif; ?>
-						<?php foreach ($academyProgress['tahfiz'] as $t): ?>
-							<div>📖 <?=html_escape($t->surah_name)?> <?php if (isset($t->accuracy_score) && $t->accuracy_score !== null): ?> · <?=html_escape($t->accuracy_score)?>%<?php endif; ?></div>
-						<?php endforeach; ?>
-						<?php foreach ($academyProgress['drills'] as $d): ?>
-							<div>📝 <?=html_escape($d->pillar)?> · <?= (int) $d->score ?>/<?= (int) $d->total_possible ?></div>
-						<?php endforeach; ?>
+					<?php if (empty($academyProgress['teachers'])): ?>
+						<p style="margin:0"><?=html_escape($academyProgress['label'])?></p>
 					<?php else: ?>
-						<p class="text-muted" style="margin:0">Scores appear here after the admin acknowledges the teacher’s session.</p>
+						<?php foreach ($academyProgress['teachers'] as $t): ?>
+							<div style="margin:0 0 .75rem">
+								<strong><?=html_escape($t['name'])?></strong>
+								· <?=html_escape($t['label'])?>
+								<?php if (!empty($t['date'])): ?> · <?=html_escape($t['date'])?><?php endif; ?>
+								<?php if ($t['status'] === 'acknowledged' && (!empty($t['category']) || !empty($t['portion']))): ?>
+									<div><?php if (!empty($t['category'])): ?><?=html_escape($t['category'])?> · <?php endif; ?><?=html_escape($t['portion'])?></div>
+								<?php endif; ?>
+								<?php if ($t['status'] === 'acknowledged' && !empty($t['audio_url'])): ?>
+									<audio controls preload="none" src="<?=html_escape($t['audio_url'])?>" style="display:block;margin-top:.35rem;width:100%;max-width:420px"></audio>
+								<?php endif; ?>
+							</div>
+						<?php endforeach; ?>
+						<p style="margin:.25rem 0 0"><a href="<?=base_url('userrole/mushaf')?>">Voice mushaf</a></p>
 					<?php endif; ?>
 				</div>
 			</section>

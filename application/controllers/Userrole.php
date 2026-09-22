@@ -29,6 +29,41 @@ class Userrole extends User_Controller
         redirect(base_url(), 'refresh');
     }
 
+    /**
+     * Sealed recitation pins for the logged-in student or the selected child.
+     */
+    public function mushaf()
+    {
+        if (!is_student_loggedin() && !is_parent_loggedin()) {
+            access_denied();
+        }
+        $studentId = 0;
+        if (is_student_loggedin()) {
+            $studentId = (int) get_loggedin_user_id();
+        } elseif (is_parent_loggedin()) {
+            $studentId = (int) $this->session->userdata('myChildren_id');
+        }
+        if ($studentId < 1) {
+            set_alert('error', 'Select a child first.');
+            redirect(base_url('parents/my_children'));
+        }
+        $this->load->model('academy_model');
+        $branchID = $this->application_model->get_branch_id();
+        $surah = trim((string) $this->input->get('surah'));
+        $stu = $this->db->select('first_name, last_name')->where('id', $studentId)->get('student')->row();
+        $this->data['students'] = array();
+        $this->data['student_id'] = $studentId;
+        $this->data['surah'] = $surah;
+        $this->data['surahs'] = $this->academy_model->sealedSurahs($branchID, $studentId);
+        $this->data['pins'] = $surah !== '' ? $this->academy_model->sealedPins($branchID, $studentId, $surah) : array();
+        $this->data['student_name'] = $stu ? trim($stu->first_name . ' ' . $stu->last_name) : '';
+        $this->data['mushaf_base'] = 'userrole/mushaf';
+        $this->data['title'] = 'Voice mushaf';
+        $this->data['sub_page'] = 'academy/mushaf';
+        $this->data['main_menu'] = 'dashboard';
+        $this->load->view('layout/index', $this->data);
+    }
+
     /* Getting All Teachers List */
     public function teacher()
     {

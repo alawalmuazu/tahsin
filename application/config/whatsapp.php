@@ -7,11 +7,13 @@ defined('BASEPATH') or exit('No direct script access allowed');
  * Prefer School Settings → WhatsApp → “WhatsApp Business Cloud API”
  * (table whatsapp_cloud_config). This file is only a fallback when no DB row exists.
  *
- * Template body variables (order must match your Meta-approved template):
+ * Template body variables (order must match the Meta template):
  *   {{1}} student name
- *   {{2}} date
- *   {{3}} short summary (drills / tahfiz)
- *   {{4}} first media URL (or "—" if none)
+ *   {{2}} teacher name
+ *   {{3}} portion (category and ayah range)
+ *   {{4}} Sealed by the director
+ * Audio is a follow-up media message, not a body variable.
+ * Edit tahsin_daily_digest in Meta to this order before it is approved.
  */
 $config['whatsapp'] = array(
     'enabled' => false,

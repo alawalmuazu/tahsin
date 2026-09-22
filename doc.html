@@ -466,7 +466,7 @@ flowchart TD
                 <li><strong>Record.</strong> The teacher saves only students on their own list. A student counts for today when this teacher wrote the drill (<code>evaluator_id</code>) or the tahfiz row (<code>instructor_id</code>). Status stays <code>recording</code> until the list is complete.</li>
                 <li><strong>Auto-submit.</strong> When the last assigned student is recorded, the day moves to <code>pending_director</code>. The director (role 9), superadmin (role 1), and the teacher get a bell notice (<code>academy_notice</code>).</li>
                 <li><strong>Director.</strong> Approve moves the day to <code>pending_admin</code> and notifies the teacher, admin (role 2), and superadmin. Reject sets <code>director_rejected</code> and notifies the teacher. The next time that teacher's list is complete, it resubmits.</li>
-                <li><strong>Admin.</strong> Acknowledge sets <code>acknowledged</code>. That teacher's scores for that date appear on the parent and student dashboards, and those rows can go out on WhatsApp. Director, superadmin, and the teacher are notified. Reject sets <code>admin_rejected</code> and notifies the same people; the teacher can record and resubmit.</li>
+                <li><strong>Admin.</strong> <strong>Release today's sealed sessions</strong> sets every <code>pending_admin</code> row for today to <code>acknowledged</code> in one action. That teacher's portion and audio appear on the parent and student dashboards, and those rows can go out on WhatsApp. Director, superadmin, and the teacher are notified. Reject on a single row still sets <code>admin_rejected</code>.</li>
             </ol>
             <div class="table-container">
                 <table>
@@ -475,7 +475,7 @@ flowchart TD
                         <tr><td>List complete</td><td><code>pending_director</code></td><td>Director, superadmin, teacher</td></tr>
                         <tr><td>Director approves</td><td><code>pending_admin</code></td><td>Teacher, admin, superadmin</td></tr>
                         <tr><td>Director rejects</td><td><code>director_rejected</code></td><td>Teacher</td></tr>
-                        <tr><td>Admin acknowledges</td><td><code>acknowledged</code></td><td>Director, superadmin, teacher</td></tr>
+                        <tr><td>Admin releases the day</td><td><code>acknowledged</code></td><td>Director, superadmin, teacher</td></tr>
                         <tr><td>Admin rejects</td><td><code>admin_rejected</code></td><td>Director, superadmin, teacher</td></tr>
                     </tbody>
                 </table>
@@ -491,6 +491,7 @@ flowchart TD
                     <tr><td><code>academy_performance</code> → <code>Academy_performance</code></td><td>Subject-pillar drills (Maths, English, Arabic, Quran, Skills, Core) with timed scores.</td></tr>
                     <tr><td><code>tahfiz</code> → <code>Tahfiz</code></td><td>Tahfiz Tracker ledger (portion modes + recitation categories).</td></tr>
                     <tr><td><code>academy_genome</code> → <code>Academy_genome</code></td><td>Genome overview aggregates.</td></tr>
+                    <tr><td><code>academy_review/mushaf</code> and <code>userrole/mushaf</code></td><td>Voice mushaf. Sealed tahfiz clips for one student, grouped by surah, in ayah order. Staff pick a student. A student or a selected child opens their own.</td></tr>
                     <tr><td><code>academy_broadcast</code> → <code>Academy_broadcast</code></td><td>Daily parent broadcast preview/log; optional akhlaq telemetry cleanup.</td></tr>
                 </tbody>
             </table>
@@ -515,7 +516,7 @@ flowchart TD
             
             <h3>WhatsApp Cloud API (Broadcast)</h3>
             <p>Staff can push daily parent digests from <code>Academy_broadcast</code> via Meta Graph API (<code>application/libraries/Whatsapp_cloud.php</code>). Configure under School Settings → WhatsApp (table <code>whatsapp_cloud_config</code>); file config is fallback only. Flow: approved utility <strong>template</strong> with student / date / summary / media URL, then optional native audio/video attach by public HTTPS link or local upload to Meta. Click-to-chat remains as fallback. Migrations: <code>whatsapp_broadcast_log.sql</code>, <code>whatsapp_cloud_config.sql</code>.</p>
-            <p><strong>Production:</strong> After deploy, run <code>academy_session_review.sql</code> (the trailing statements drop the old one-student unique key and add the multi-teacher key) and <code>whatsapp_cloud_config.sql</code> if needed, enter the permanent Meta system-user token and IDs in School Settings (never commit tokens). Install <code>ffmpeg</code> on the server so recitation uploads convert to MP3 for WhatsApp. Template name/lang must match an <strong>APPROVED</strong> Meta template (e.g. <code>tahsin_daily_digest</code> / <code>en_US</code>). Broadcast includes only acknowledged teachers’ rows for that day. <strong>Remove or HTTP-auth block</strong> root <code>test_whatsapp.php</code> on live — it is local diagnostics only and can write tokens to the database.</p>
+            <p><strong>Production:</strong> After deploy, run <code>academy_session_review.sql</code> (the trailing statements drop the old one-student unique key and add the multi-teacher key) and <code>whatsapp_cloud_config.sql</code> if needed, enter the permanent Meta system-user token and IDs in School Settings (never commit tokens). Install <code>ffmpeg</code> on the server so recitation uploads convert to MP3 for WhatsApp. Template name/lang must match an <strong>APPROVED</strong> Meta template (e.g. <code>tahsin_daily_digest</code> / <code>en_US</code>). Template body variables are student, teacher, portion, and "Sealed by the director". Audio is attached after the template. Edit <code>tahsin_daily_digest</code> to that order before Meta approves it. Broadcast includes only acknowledged teachers’ rows for that day. <strong>Remove or HTTP-auth block</strong> root <code>test_whatsapp.php</code> on live — it is local diagnostics only and can write tokens to the database.</p>
 
             <h3>Recitation categories &amp; portion modes</h3>
             <p>Required before save (see <code>Academy_model::recitationCategories()</code>): Hifz Fauq, Hifz Taht, Talqeen, Murajaa Qareebah, Murajaa Baeedah, Musaffa, Qiyaamullail. Portion modes: Full Surah, Single Ayah, From–To Ayah, Summu'i, Rubbu'i, Safha.</p>
