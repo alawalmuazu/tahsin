@@ -1283,7 +1283,8 @@
     if (fileInput && window.DataTransfer) {
       try {
         var dt = new DataTransfer();
-        dt.items.add(new File([blob], filename || 'recitation.wav', { type: blob.type || 'audio/wav' }));
+        var defaultExt = (blob.type && blob.type.indexOf('ogg') !== -1) ? 'recitation.ogg' : ((blob.type && blob.type.indexOf('webm') !== -1) ? 'recitation.webm' : 'recitation.mp3');
+        dt.items.add(new File([blob], filename || defaultExt, { type: blob.type || 'audio/mpeg' }));
         fileInput.files = dt.files;
       } catch (e) {
         console.warn('DataTransfer file attach failed', e);
@@ -1555,12 +1556,25 @@
         preview.play();
       }
       state.chunks = [];
-      var mime = MediaRecorder.isTypeSupported('audio/webm') ? (withVideo ? 'video/webm' : 'audio/webm') : '';
-      state.mediaRecorder = new MediaRecorder(state.stream, mime ? { mimeType: mime } : undefined);
+      var audioMimes = ['audio/ogg;codecs=opus', 'audio/webm;codecs=opus', 'audio/webm', 'audio/mp4'];
+      var chosenMime = '';
+      if (withVideo) {
+        chosenMime = MediaRecorder.isTypeSupported('video/webm') ? 'video/webm' : '';
+      } else {
+        for (var i = 0; i < audioMimes.length; i++) {
+          if (MediaRecorder.isTypeSupported(audioMimes[i])) {
+            chosenMime = audioMimes[i];
+            break;
+          }
+        }
+      }
+      state.mediaRecorder = new MediaRecorder(state.stream, chosenMime ? { mimeType: chosenMime } : undefined);
       state.mediaRecorder.ondataavailable = function (e) { if (e.data.size) state.chunks.push(e.data); };
       state.mediaRecorder.onstop = function () {
-        state.audioBlob = new Blob(state.chunks, { type: state.mediaRecorder.mimeType || 'audio/webm' });
-        attachAudioBlob(state.audioBlob, 'recitation.webm');
+        var recMime = state.mediaRecorder.mimeType || chosenMime || 'audio/webm';
+        state.audioBlob = new Blob(state.chunks, { type: recMime });
+        var ext = recMime.indexOf('ogg') !== -1 ? 'recitation.ogg' : (recMime.indexOf('webm') !== -1 ? 'recitation.webm' : 'recitation.mp3');
+        attachAudioBlob(state.audioBlob, ext);
         var acc = state.matched ? Math.round((state.matched / Math.max(1, state.matched + state.mistakes)) * 100) : null;
         appendAkhlaqTag(acc, state.mistakes);
         setHiddenMetrics();

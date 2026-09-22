@@ -1467,4 +1467,47 @@ class Academy_model extends MY_Model
         }
         $this->db->insert('academy_broadcast_log', $row);
     }
+
+    /**
+     * Convert any audio file (.wav, .webm, .ogg) to standard WhatsApp/browser-ready .mp3 via ffmpeg.
+     *
+     * @param string $filePath Absolute path to the source audio file
+     * @param bool $deleteSource Whether to delete the original source file after successful conversion
+     * @return string Final audio file path (.mp3 if converted, or original if failed)
+     */
+    public function convertToMp3($filePath, $deleteSource = false)
+    {
+        if (!is_file($filePath) || !is_readable($filePath)) {
+            return $filePath;
+        }
+
+        $ext = strtolower(pathinfo($filePath, PATHINFO_EXTENSION));
+        if ($ext === 'mp3') {
+            return $filePath;
+        }
+
+        $dir = dirname($filePath);
+        $filename = pathinfo($filePath, PATHINFO_FILENAME);
+        $targetMp3 = $dir . DIRECTORY_SEPARATOR . $filename . '.mp3';
+
+        // Check if ffmpeg is available
+        $ffmpegCmd = 'ffmpeg';
+        if (DIRECTORY_SEPARATOR === '\\' && is_file('C:\\ffmpeg\\bin\\ffmpeg.exe')) {
+            $ffmpegCmd = 'C:\\ffmpeg\\bin\\ffmpeg.exe';
+        }
+
+        $cmd = escapeshellcmd($ffmpegCmd) . ' -y -i ' . escapeshellarg($filePath) . ' -vn -ar 44100 -ac 2 -b:a 128k ' . escapeshellarg($targetMp3) . ' 2>&1';
+        $output = array();
+        $ret = 0;
+        @exec($cmd, $output, $ret);
+
+        if ($ret === 0 && is_file($targetMp3) && filesize($targetMp3) > 100) {
+            if ($deleteSource && $targetMp3 !== $filePath) {
+                @unlink($filePath);
+            }
+            return $targetMp3;
+        }
+
+        return $filePath;
+    }
 }

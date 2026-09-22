@@ -315,17 +315,23 @@ class Academy_students extends Admin_Controller
             'detect_mime' => true,
         );
         $this->load->library('upload');
-        $this->upload->initialize($config);
+        $file = null;
         if ($this->upload->do_upload('audio_file')) {
             $data = $this->upload->data();
-            return base_url('uploads/academy_tahfiz/' . $data['file_name']);
+            $file = $data['full_path'];
+        } else {
+            // Retry without strict mime sniff (Chrome audio/webm often fails CI mime map)
+            $config['detect_mime'] = false;
+            $this->upload->initialize($config);
+            if ($this->upload->do_upload('audio_file')) {
+                $data = $this->upload->data();
+                $file = $data['full_path'];
+            }
         }
-        // Retry without strict mime sniff (Chrome audio/webm often fails CI mime map)
-        $config['detect_mime'] = false;
-        $this->upload->initialize($config);
-        if ($this->upload->do_upload('audio_file')) {
-            $data = $this->upload->data();
-            return base_url('uploads/academy_tahfiz/' . $data['file_name']);
+
+        if ($file) {
+            $finalFile = $this->academy_model->convertToMp3($file, true);
+            return base_url('uploads/academy_tahfiz/' . basename($finalFile));
         }
         return null;
     }
@@ -349,6 +355,8 @@ class Academy_students extends Admin_Controller
                 $ext = 'wav';
             } elseif ($ext === 'mp4' || $ext === 'x-m4a') {
                 $ext = 'm4a';
+            } elseif ($ext === 'ogg' || $ext === 'opus') {
+                $ext = 'ogg';
             }
         }
         $allowed = array('mp3', 'wav', 'ogg', 'webm', 'm4a', 'mp4', 'opus');
@@ -360,9 +368,11 @@ class Academy_students extends Admin_Controller
             @mkdir($dir, 0755, true);
         }
         $name = 'rec_' . date('YmdHis') . '_' . substr(md5(uniqid('', true)), 0, 8) . '.' . $ext;
-        if (@file_put_contents($dir . $name, $bin) === false) {
+        $rawPath = $dir . $name;
+        if (@file_put_contents($rawPath, $bin) === false) {
             return null;
         }
-        return base_url('uploads/academy_tahfiz/' . $name);
+        $finalFile = $this->academy_model->convertToMp3($rawPath, true);
+        return base_url('uploads/academy_tahfiz/' . basename($finalFile));
     }
 }

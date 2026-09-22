@@ -115,12 +115,19 @@ class Whatsapp_cloud
         return true;
     }
 
+    public function reloadConfig()
+    {
+        $this->mergeDbConfig();
+    }
+
     /**
      * @param string $toE164 digits
      * @param string[] $bodyParams ordered template variables
+     * @param string|null $templateName override template name if provided
+     * @param string|null $templateLang override template language code if provided
      * @return array{ok:bool,wamid:?string,error:?string,raw?:mixed}
      */
-    public function sendTemplate($toE164, $bodyParams)
+    public function sendTemplate($toE164, $bodyParams, $templateName = null, $templateLang = null)
     {
         $to = $this->normalizePhone($toE164);
         if ($to === '') {
@@ -129,6 +136,9 @@ class Whatsapp_cloud
         if (!$this->isConfigured()) {
             return $this->fail('WhatsApp Cloud API is not configured');
         }
+
+        $tpl = !empty($templateName) ? (string) $templateName : (string) $this->cfgValue('template_name');
+        $lng = !empty($templateLang) ? (string) $templateLang : (string) $this->cfgValue('template_lang', 'en');
 
         $components = array();
         $params = array();
@@ -152,8 +162,8 @@ class Whatsapp_cloud
             'to' => $to,
             'type' => 'template',
             'template' => array(
-                'name' => (string) $this->cfgValue('template_name'),
-                'language' => array('code' => (string) $this->cfgValue('template_lang', 'en')),
+                'name' => $tpl,
+                'language' => array('code' => $lng),
                 'components' => $components,
             ),
         );
@@ -219,6 +229,26 @@ class Whatsapp_cloud
         }
         if (!$this->isPublicHttpsUrl($url)) {
             return $this->fail('Media URL must be public HTTPS (not localhost)');
+        }
+
+        // WhatsApp Cloud API rejects .wav files; auto-resolve to .mp3 if available or convert
+        if ($type === 'audio' && preg_match('/\.wav$/i', $url)) {
+            $mp3Url = preg_replace('/\.wav$/i', '.mp3', $url);
+            $local = $this->localPathFromUrl($url);
+            if ($local) {
+                $mp3Local = preg_replace('/\.wav$/i', '.mp3', $local);
+                if (file_exists($mp3Local)) {
+                    $url = $mp3Url;
+                } elseif (file_exists($local)) {
+                    $this->CI->load->model('academy_model');
+                    if (method_exists($this->CI->academy_model, 'convertToMp3')) {
+                        $converted = $this->CI->academy_model->convertToMp3($local);
+                        if (file_exists($converted) && preg_match('/\.mp3$/i', $converted)) {
+                            $url = $mp3Url;
+                        }
+                    }
+                }
+            }
         }
 
         $mediaObj = array('link' => $url);
