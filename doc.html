@@ -427,6 +427,60 @@ flowchart TD
             <p>Sidebar group <strong>Academy</strong> (<code>main_menu = academy</code>). Data layer: <code>Academy_model</code>. Migrations: <code>application/migrations/academy_engine.sql</code>, <code>academy_engine_v2.sql</code>, <code>recitation_categories.sql</code>, <code>clean_akhlaq_telemetry_tags.sql</code>, <code>academy_session_review.sql</code>.</p>
             <p><strong>Session review:</strong> Admin, director, or superadmin assigns students on <code>academy_review/assign</code>. Tick many students and save once; the save replaces only that teacher’s list. Filters: name or register number, Student Category (<code>pwd_category</code>), Section, Class, and Programme Category (<code>student_category</code>). A student may sit on several teachers at once. The assignment unique key is branch + academic session + teacher + student (<code>uq_ats_teacher_student</code>). Each teacher records only their own list. When every assigned student has an entry from that teacher for the day, the session moves <code>recording</code> → <code>pending_director</code> and the director (and superadmin) get a bell notice. Director approve moves it to <code>pending_admin</code> and notifies the teacher; reject notifies the teacher and the next complete save can resubmit. Admin acknowledge publishes that teacher’s scores on the parent and student dashboards and includes those rows in the WhatsApp broadcast; reject notifies the director and the teacher. Other teachers’ work stays hidden until their own sessions are acknowledged.</p>
 
+            <h3>Session lifecycle</h3>
+            <p>Each teacher has their own day. A student can sit on several teachers (Quran, Maths, English, and so on). Saving an assignment replaces only that teacher's list. One teacher's acknowledgement publishes only that teacher's scores for that date.</p>
+            <div class="mermaid-wrapper">
+                <div class="mermaid">
+flowchart LR
+    student[Student] --> t1[Teacher A list]
+    student --> t2[Teacher B list]
+    t1 --> dayA[Teacher A day]
+    t2 --> dayB[Teacher B day]
+    dayA --> pubA[Publish A after A is acknowledged]
+    dayB --> pubB[Publish B after B is acknowledged]
+                </div>
+            </div>
+            <div class="mermaid-wrapper">
+                <div class="mermaid">
+flowchart TD
+    assign["Admin, director, or superadmin ticks students and saves once"] --> list["That teacher's list for this academic session"]
+    list --> record["Teacher logs a drill or tahfiz row for an assigned student"]
+    record --> check{"Every student on this teacher's list recorded today?"}
+    check -->|No| recording["recording"]
+    recording --> record
+    check -->|Yes| director["pending_director"]
+    director --> dchoice{"Director"}
+    dchoice -->|Approve| admin["pending_admin"]
+    dchoice -->|Reject| drej["director_rejected"]
+    drej --> record
+    admin --> achoice{"Admin"}
+    achoice -->|Acknowledge| ack["acknowledged"]
+    achoice -->|Reject| arej["admin_rejected"]
+    arej --> record
+    ack --> dash["Parent and student dashboards show this teacher's scores"]
+    ack --> wa["WhatsApp broadcast may include this teacher's rows"]
+                </div>
+            </div>
+            <ol>
+                <li><strong>Assign.</strong> On <code>academy_review/assign</code>, pick one teacher, filter by name or register number, Student Category, Section, Class, or Programme Category, tick many students, and save once. The same student can remain on other teachers. Unique key: <code>uq_ats_teacher_student</code> (branch, academic session, teacher, student).</li>
+                <li><strong>Record.</strong> The teacher saves only students on their own list. A student counts for today when this teacher wrote the drill (<code>evaluator_id</code>) or the tahfiz row (<code>instructor_id</code>). Status stays <code>recording</code> until the list is complete.</li>
+                <li><strong>Auto-submit.</strong> When the last assigned student is recorded, the day moves to <code>pending_director</code>. The director (role 9), superadmin (role 1), and the teacher get a bell notice (<code>academy_notice</code>).</li>
+                <li><strong>Director.</strong> Approve moves the day to <code>pending_admin</code> and notifies the teacher, admin (role 2), and superadmin. Reject sets <code>director_rejected</code> and notifies the teacher. The next time that teacher's list is complete, it resubmits.</li>
+                <li><strong>Admin.</strong> Acknowledge sets <code>acknowledged</code>. That teacher's scores for that date appear on the parent and student dashboards, and those rows can go out on WhatsApp. Director, superadmin, and the teacher are notified. Reject sets <code>admin_rejected</code> and notifies the same people; the teacher can record and resubmit.</li>
+            </ol>
+            <div class="table-container">
+                <table>
+                    <thead><tr><th>Event</th><th>Status</th><th>Bell</th></tr></thead>
+                    <tbody>
+                        <tr><td>List complete</td><td><code>pending_director</code></td><td>Director, superadmin, teacher</td></tr>
+                        <tr><td>Director approves</td><td><code>pending_admin</code></td><td>Teacher, admin, superadmin</td></tr>
+                        <tr><td>Director rejects</td><td><code>director_rejected</code></td><td>Teacher</td></tr>
+                        <tr><td>Admin acknowledges</td><td><code>acknowledged</code></td><td>Director, superadmin, teacher</td></tr>
+                        <tr><td>Admin rejects</td><td><code>admin_rejected</code></td><td>Director, superadmin, teacher</td></tr>
+                    </tbody>
+                </table>
+            </div>
+            <p>Parents and students see each assigned teacher's status (still recording, with director, with admin, or sent back) before acknowledgement. Drill and tahfiz scores appear only for teachers whose day is <code>acknowledged</code>.</p>
             <h3>Screens</h3>
             <table>
                 <thead><tr><th>Route / controller</th><th>Purpose</th></tr></thead>
