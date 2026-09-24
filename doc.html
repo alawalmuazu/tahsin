@@ -400,6 +400,22 @@ flowchart TD
     CRED -- "Role 1 / 2 / staff" --> ADMIN[Admin dashboard]
                 </div>
             </div>
+            <h3>Parent portal</h3>
+            <p>A new parent row in <code>Parents_model::save()</code> also inserts <code>login_credential</code> role 6 with <code>active = 0</code>. The username is the parent email. Login stays off until a superadmin, admin, or director opens the parents list and approves it (<code>parents/approve</code> → <code>Parents_model::approvePortal()</code>). Approval sets <code>active = 1</code> and <code>must_change_password = 1</code>. An unapproved login is told to wait for a director or an admin.</p>
+            <p>The first successful sign-in is sent to <code>profile/password</code> and cannot open the rest of the portal. After the new password is saved, the session is destroyed and the parent returns to <code>authentication/index/changed</code>. That password change sets <code>login_credential.pwa_required = 1</code> (column from <code>application/migrations/parent_portal_approval.sql</code>). The next sign-in is held on <code>profile/install_app</code> until the browser is standalone or the app install event fires, which calls <code>profile/pwa_done</code> and clears the flag. <code>Admin_Controller</code> and <code>User_Controller</code> both enforce this gate.</p>
+            <div class="mermaid-wrapper">
+                <div class="mermaid">
+flowchart TD
+    create["Parent saved with login inactive"] --> wait["Waiting for approval"]
+    wait --> approve["Superadmin, admin, or director approves"]
+    approve --> first["First sign-in"]
+    first --> pw["profile/password"]
+    pw --> out["Signed out"]
+    out --> second["Sign in with the new password"]
+    second --> pwa["profile/install_app"]
+    pwa --> done["App installed, portal opens"]
+                </div>
+            </div>
         </section>
 
         <section id="modules" class="glass-panel">
@@ -516,7 +532,7 @@ flowchart TD
             
             <h3>WhatsApp Cloud API (Broadcast)</h3>
             <p>Staff can push daily parent digests from <code>Academy_broadcast</code> via Meta Graph API (<code>application/libraries/Whatsapp_cloud.php</code>). Configure under School Settings → WhatsApp (table <code>whatsapp_cloud_config</code>); file config is fallback only. Flow: approved utility <strong>template</strong> with student / date / summary / media URL, then optional native audio/video attach by public HTTPS link or local upload to Meta. Click-to-chat remains as fallback. Migrations: <code>whatsapp_broadcast_log.sql</code>, <code>whatsapp_cloud_config.sql</code>.</p>
-            <p><strong>Production:</strong> After deploy, run <code>academy_session_review.sql</code> (the trailing statements drop the old one-student unique key and add the multi-teacher key) and <code>whatsapp_cloud_config.sql</code> if needed, enter the permanent Meta system-user token and IDs in School Settings (never commit tokens). Install <code>ffmpeg</code> on the server so recitation uploads convert to MP3 for WhatsApp. Template name/lang must match an <strong>APPROVED</strong> Meta template (e.g. <code>tahsin_daily_digest</code> / <code>en_US</code>). Template body variables are student, teacher, portion, and "Sealed by the director". Audio is attached after the template. Edit <code>tahsin_daily_digest</code> to that order before Meta approves it. Broadcast includes only acknowledged teachers’ rows for that day. <strong>Remove or HTTP-auth block</strong> root <code>test_whatsapp.php</code> on live — it is local diagnostics only and can write tokens to the database.</p>
+            <p><strong>Production:</strong> After deploy, run <code>academy_session_review.sql</code> (the trailing statements drop the old one-student unique key and add the multi-teacher key), <code>parent_portal_approval.sql</code> (adds <code>login_credential.pwa_required</code>) and <code>whatsapp_cloud_config.sql</code> if needed, enter the permanent Meta system-user token and IDs in School Settings (never commit tokens). Install <code>ffmpeg</code> on the server so recitation uploads convert to MP3 for WhatsApp. Template name/lang must match an <strong>APPROVED</strong> Meta template. Use <code>tahsin_sealed_digest</code> / <code>en</code> (student, teacher, portion, "Sealed by the director"). Audio is attached after the template. Leave <code>tahsin_daily_digest</code> unused: it is the older drill-count wording and cannot be edited while PENDING. Broadcast includes only acknowledged teachers’ rows for that day. <strong>Remove or HTTP-auth block</strong> root <code>test_whatsapp.php</code> on live — it is local diagnostics only and can write tokens to the database.</p>
 
             <h3>Recitation categories &amp; portion modes</h3>
             <p>Required before save (see <code>Academy_model::recitationCategories()</code>): Hifz Fauq, Hifz Taht, Talqeen, Murajaa Qareebah, Murajaa Baeedah, Musaffa, Qiyaamullail. Portion modes: Full Surah, Single Ayah, From–To Ayah, Summu'i, Rubbu'i, Safha.</p>
