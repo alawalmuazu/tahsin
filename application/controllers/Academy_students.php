@@ -274,6 +274,8 @@ class Academy_students extends Admin_Controller
                 'fullname' => (string) $st['fullname'],
                 'register_no' => (string) $st['register_no'],
                 'class_level' => (string) $st['class_level'],
+                'photo_url' => !empty($st['photo_url']) ? (string) $st['photo_url'] : '',
+                'has_photo' => !empty($st['has_photo']),
                 'streak' => isset($st['streak']) ? (int) $st['streak'] : 0,
                 'tahfiz_records' => $recs,
                 'today_goal' => isset($st['today_goal_detail']) ? $st['today_goal_detail'] : null,

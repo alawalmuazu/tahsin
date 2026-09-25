@@ -8,7 +8,8 @@
 .academy-card{background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:1rem;cursor:pointer;transition:box-shadow .2s,transform .2s;position:relative}
 .academy-card:hover{box-shadow:0 8px 24px rgba(15,23,42,.08);transform:translateY(-2px);border-color:#94a3b8}
 .academy-card-top{display:flex;gap:.75rem;align-items:center;margin-bottom:.75rem}
-.academy-avatar{width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,#0284c7,#0369a1);color:#fff;display:flex;align-items:center;justify-content:center;font-size:.75rem;font-weight:700;flex-shrink:0}
+.academy-avatar{width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,#0284c7,#0369a1);color:#fff;display:flex;align-items:center;justify-content:center;font-size:.75rem;font-weight:700;flex-shrink:0;overflow:hidden}
+.academy-avatar img{width:100%;height:100%;object-fit:cover;display:block}
 .academy-card-name{font-weight:700;font-size:.95rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .academy-card-meta{font-size:.75rem;color:#64748b}
 .academy-card-surah{font-size:.72rem;color:#0284c7;font-weight:600;margin-top:2px}
@@ -182,7 +183,7 @@
 		data-student-name="<?php echo html_escape($st['fullname']); ?>"
 		onclick="academyOpenLog(this)">
 		<div class="academy-card-top">
-			<div class="academy-avatar"><?php echo html_escape($initials ?: '?'); ?></div>
+			<div class="academy-avatar"><?php if (!empty($st['has_photo'])): ?><img src="<?php echo html_escape($st['photo_url']); ?>" alt=""><?php else: echo html_escape($initials ?: '?'); endif; ?></div>
 			<div style="min-width:0;flex:1">
 				<div class="academy-card-name"><?php echo html_escape($st['fullname']); ?>
 					<?php if (!empty($st['media_consent'])): ?>
@@ -308,7 +309,7 @@
 						data-enrolled="<?php echo !empty($st['admission_date']) ? strtotime($st['admission_date']) : 0; ?>">
 						<td>
 							<div style="display:flex;align-items:center;gap:.65rem">
-								<div class="academy-avatar" style="width:32px;height:32px;font-size:.7rem"><?php echo html_escape($initials ?: '?'); ?></div>
+								<div class="academy-avatar" style="width:32px;height:32px;font-size:.7rem"><?php if (!empty($st['has_photo'])): ?><img src="<?php echo html_escape($st['photo_url']); ?>" alt=""><?php else: echo html_escape($initials ?: '?'); endif; ?></div>
 								<div>
 									<strong><?php echo html_escape($st['fullname']); ?></strong>
 									<?php if (!empty($st['media_consent'])): ?>

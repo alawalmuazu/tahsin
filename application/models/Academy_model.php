@@ -568,7 +568,7 @@ class Academy_model extends MY_Model
             return array();
         }
         $sessionID = get_session_id();
-        $select = 's.id, s.register_no, s.admission_date, s.birthday, s.gender, s.mobileno, s.parent_id,
+        $select = 's.id, s.register_no, s.admission_date, s.birthday, s.gender, s.mobileno, s.parent_id, s.photo,
             e.id AS enroll_id,
             TRIM(CONCAT_WS(" ", s.first_name, NULLIF(s.other_name,""), s.last_name)) AS fullname,
             e.class_id, e.section_id, c.name AS class_name, se.name AS section_name,
@@ -659,6 +659,10 @@ class Academy_model extends MY_Model
                 $classLevel = 'Unassigned';
             }
 
+            $photoFile = isset($s->photo) ? trim((string) $s->photo) : '';
+            $hasPhoto = ($photoFile !== '' && $photoFile !== 'defualt.png'
+                && is_file(FCPATH . 'uploads/images/student/' . $photoFile));
+
             $parentPhones = $this->parentPhoneList(
                 isset($s->parent_mobile) ? $s->parent_mobile : '',
                 isset($s->parent_extra_phones) ? $s->parent_extra_phones : '',
@@ -668,6 +672,9 @@ class Academy_model extends MY_Model
                 'id' => $sid,
                 'enroll_id' => (int) $s->enroll_id,
                 'fullname' => $s->fullname,
+                'photo' => $photoFile,
+                'photo_url' => get_image_url('student', $photoFile),
+                'has_photo' => $hasPhoto,
                 'register_no' => $s->register_no,
                 'class_level' => $classLevel,
                 'class_name' => $s->class_name,

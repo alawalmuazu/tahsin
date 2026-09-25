@@ -230,6 +230,22 @@
     }
   }
 
+  function avatarMarkup(st) {
+    if (st && st.has_photo && st.photo_url) {
+      return '<img src="' + escapeHtml(st.photo_url) + '" alt="">';
+    }
+    return escapeHtml(initials(st && st.fullname));
+  }
+
+  function setAvatarEl(el, st) {
+    if (!el) return;
+    if (st && st.has_photo && st.photo_url) {
+      el.innerHTML = '<img src="' + escapeHtml(st.photo_url) + '" alt="">';
+    } else {
+      el.textContent = initials(st && st.fullname);
+    }
+  }
+
   function initials(name) {
     return (name || '?').split(/\s+/).slice(0, 2).map(function (p) { return p.charAt(0).toUpperCase(); }).join('');
   }
@@ -731,7 +747,7 @@
       var row = document.createElement('button');
       row.type = 'button';
       row.className = 'ls-student-row' + (String(st.id) === String(state.studentId) ? ' active' : '');
-      row.innerHTML = '<span class="ls-avatar">' + escapeHtml(initials(st.fullname)) + '</span>' +
+      row.innerHTML = '<span class="ls-avatar">' + avatarMarkup(st) + '</span>' +
         '<span><strong>' + escapeHtml(st.fullname) + '</strong><br><span class="ls-muted">' +
         escapeHtml(st.class_level || 'Unassigned') + '</span></span>';
       row.onclick = function () { selectStudent(st.id); };
@@ -752,7 +768,7 @@
       var av = byId('ls_sel_avatar');
       var nm = byId('ls_sel_name');
       var mt = byId('ls_sel_meta');
-      if (av) av.textContent = initials(st.fullname);
+      setAvatarEl(av, st);
       if (nm) {
         nm.innerHTML = escapeHtml(st.fullname);
         if (st.streak > 0) {

@@ -8,7 +8,8 @@
 .ls-card{background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:1rem;margin-bottom:.85rem}
 .ls-title{font-weight:700;font-size:.95rem;margin:0 0 .65rem}
 .ls-muted{color:#64748b;font-size:.78rem}
-.ls-avatar{width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,#0284c7,#0369a1);color:#fff;display:inline-flex;align-items:center;justify-content:center;font-weight:700;font-size:.8rem;flex-shrink:0}
+.ls-avatar{width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,#0284c7,#0369a1);color:#fff;display:inline-flex;align-items:center;justify-content:center;font-weight:700;font-size:.8rem;flex-shrink:0;overflow:hidden}
+.ls-avatar img{width:100%;height:100%;object-fit:cover;display:block}
 .ls-student-selected,.ls-student-row{display:flex;gap:.75rem;align-items:center}
 .ls-student-row{width:100%;text-align:left;border:1px solid #e2e8f0;background:#fff;border-radius:10px;padding:.55rem .7rem;margin-bottom:.4rem}
 .ls-student-row.active,.ls-student-row:hover{border-color:#0284c7;background:#eff6ff}
