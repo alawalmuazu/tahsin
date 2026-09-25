@@ -134,6 +134,20 @@ class Academy_students extends Admin_Controller
                     redirect(base_url('academy_students'));
                 }
 
+                $prior = $this->academy_model->priorMilestoneMessage(array(
+                    'student_id' => $this->input->post('student_id'),
+                    'instructor_id' => get_loggedin_user_id(),
+                    'surah_number' => $surahNum,
+                    'recitation_category' => $catKey,
+                    'ayah_from' => $ayahFrom,
+                    'ayah_to' => $ayahTo,
+                    'completed_at' => date('Y-m-d H:i:s'),
+                ));
+                if ($prior !== '') {
+                    set_alert('error', $prior);
+                    redirect(base_url('academy_students'));
+                }
+
                 $newId = $this->academy_model->saveTahfiz(array(
                     'branch_id' => $branchID,
                     'student_id' => $this->input->post('student_id'),
@@ -171,7 +185,7 @@ class Academy_students extends Admin_Controller
                 } elseif (!$audioUrl) {
                     $msg .= ' No audio file was attached — record first, then Save.';
                 }
-                $progress = $this->academy_model->touchTeacherSession($branchID, (int) $this->input->post('student_id'));
+                $progress = $this->academy_model->touchTeacherSession($branchID, (int) $this->input->post('student_id'), null, null, $catKey, (int) $newId);
                 if ($progress) {
                     $msg .= ' ' . $progress;
                 }

@@ -365,6 +365,13 @@
                                     <span><i class="fas fa-caret-right"></i><?=translate('parents_list')?></span>
                                 </a>
                             </li>
+                        <?php if (is_superadmin_loggedin() || is_admin_loggedin() || is_director_loggedin()) { ?>
+                            <li class="<?php if ($sub_page == 'parents/approvals') echo 'nav-active';?>">
+                                <a href="<?=base_url('parents/approvals')?>">
+                                    <span><i class="fas fa-caret-right"></i>Parent Approvals</span>
+                                </a>
+                            </li>
+                        <?php } ?>
                         <?php } if(get_permission('parent', 'is_add')){ ?>
                             <li class="<?php if ($sub_page == 'parents/add') echo 'nav-active';?>">
                                 <a href="<?=base_url('parents/add')?>">
@@ -417,6 +424,18 @@
                                     <span><i class="fas fa-caret-right"></i>Session Review</span>
                                 </a>
                             </li>
+                            <?php if (is_superadmin_loggedin() || is_admin_loggedin() || is_director_loggedin()) { ?>
+                            <li class="<?php if ($_ac_sub == 'academy/tarteel') echo 'nav-active'; ?>">
+                                <a href="<?php echo base_url('academy_review/tarteel'); ?>">
+                                    <span><i class="fas fa-caret-right"></i>Tarteel analysis</span>
+                                </a>
+                            </li>
+                            <li class="<?php if ($_ac_sub == 'academy/tarteel_settings') echo 'nav-active'; ?>">
+                                <a href="<?php echo base_url('academy_review/tarteel_settings'); ?>">
+                                    <span><i class="fas fa-caret-right"></i>Tarteel settings</span>
+                                </a>
+                            </li>
+                            <?php } ?>
                             <li class="<?php if ($_ac_sub == 'academy/mushaf') echo 'nav-active'; ?>">
                                 <a href="<?php echo base_url('academy_review/mushaf'); ?>">
                                     <span><i class="fas fa-caret-right"></i>Voice mushaf</span>
@@ -428,7 +447,7 @@
                                 </a>
                             </li>
                             <li>
-                                <a href="<?php echo base_url('employee/view'); ?>">
+                                <a href="<?php echo base_url('employee/view/3'); ?>">
                                     <span><i class="fas fa-caret-right"></i>Teachers</span>
                                 </a>
                             </li>

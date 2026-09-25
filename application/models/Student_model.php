@@ -88,6 +88,19 @@ class Student_model extends MY_Model
                         'branch_id' => $this->application_model->get_branch_id(),
                         'photo' => $this->uploadImage('parent', 'guardian_photo'),
                     );
+                    if ($this->db->field_exists('extra_phones', 'parent')) {
+                        $phones = $this->input->post('extra_phones');
+                        $clean = array();
+                        if (is_array($phones)) {
+                            foreach ($phones as $phone) {
+                                $phone = trim((string) $phone);
+                                if ($phone !== '') {
+                                    $clean[] = $phone;
+                                }
+                            }
+                        }
+                        $arrayParent['extra_phones'] = json_encode(array_values($clean));
+                    }
                     $this->db->insert('parent', $arrayParent);
                     $parentID = $this->db->insert_id();
 

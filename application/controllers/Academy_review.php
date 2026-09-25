@@ -24,8 +24,9 @@ class Academy_review extends Admin_Controller
                 access_denied();
             }
             $n = $this->academy_model->releaseToday($branchID, get_loggedin_user_id());
+            $sent = trim(implode(' ', $this->academy_model->digestNotices));
             set_alert('success', $n > 0
-                ? ('Released ' . (int) $n . ' sealed session' . ($n === 1 ? '' : 's') . '. Parent dashboards and WhatsApp can use them.')
+                ? ('Released ' . (int) $n . ' sealed session' . ($n === 1 ? '' : 's') . '. Parent and student dashboards are updated.' . ($sent !== '' ? ' ' . $sent : ''))
                 : 'No sessions are waiting for release today.');
             redirect(base_url('academy_review'));
         }
@@ -42,8 +43,14 @@ class Academy_review extends Admin_Controller
         $pendingAdminToday = 0;
         foreach ($sessions as $session) {
             $session->weak_clip = null;
-            if ($session->status === 'pending_director' || $session->status === 'pending_admin') {
-                $session->weak_clip = $this->academy_model->weakClipForSession($branchID, $session->teacher_id, $session->session_date);
+            if (in_array($session->status, array('pending_director', 'pending_admin', 'acknowledged'), true)) {
+                $session->weak_clip = $this->academy_model->weakClipForSession(
+                    $branchID,
+                    $session->teacher_id,
+                    $session->session_date,
+                    isset($session->recitation_category) ? $session->recitation_category : '',
+                    isset($session->milestone_id) ? $session->milestone_id : 0
+                );
             }
             if ($session->status === 'pending_admin' && $session->session_date === $today) {
                 $pendingAdminToday++;
@@ -85,6 +92,114 @@ class Academy_review extends Admin_Controller
         $this->data['is_teacher'] = is_teacher_loggedin();
         $this->data['title'] = 'Academy Session Review';
         $this->data['sub_page'] = 'academy/review';
+        $this->data['main_menu'] = 'academy';
+        $this->load->view('layout/index', $this->data);
+    }
+
+    /**
+     * Director and admin analysis of stored Tarteel results.
+     */
+    public function tarteel()
+    {
+        $this->guardStaff();
+        if (!is_superadmin_loggedin() && !is_admin_loggedin() && !is_director_loggedin()) {
+            access_denied();
+        }
+        $branchID = $this->application_model->get_branch_id();
+        $studentId = (int) $this->input->get('student_id');
+        if ($studentId > 0 && !$this->studentInBranch($branchID, $studentId)) {
+            $studentId = 0;
+        }
+        $rows = $this->academy_model->tarteelAnalyses($branchID, $studentId);
+        $withReport = 0;
+        $mistakeTotal = 0;
+        $correctTotal = 0;
+        $accSum = 0;
+        $accN = 0;
+        foreach ($rows as $row) {
+            $report = $row->tarteel;
+            if (!empty($report['mistakes']) || !empty($report['correct']) || $report['engine'] !== '') {
+                $withReport++;
+            }
+            $mistakeTotal += count($report['mistakes']);
+            $correctTotal += count($report['correct']);
+            if ($row->accuracy_score !== null && $row->accuracy_score !== '') {
+                $accSum += (float) $row->accuracy_score;
+                $accN++;
+            }
+        }
+        $this->data['rows'] = $rows;
+        $this->data['insight'] = $this->academy_model->tarteelInsight($rows);
+        $this->data['students'] = $this->studentsForAssign($branchID);
+        $this->data['student_id'] = $studentId;
+        $this->data['summary'] = array(
+            'recordings' => count($rows),
+            'with_report' => $withReport,
+            'mistakes' => $mistakeTotal,
+            'correct' => $correctTotal,
+            'avg_accuracy' => $accN > 0 ? round($accSum / $accN, 1) : null,
+        );
+        $this->data['title'] = 'Tarteel analysis';
+        $this->data['sub_page'] = 'academy/tarteel';
+        $this->data['main_menu'] = 'academy';
+        $this->load->view('layout/index', $this->data);
+    }
+
+    /**
+     * Internal bands. A parent never sees this page.
+     */
+    public function tarteel_settings()
+    {
+        $this->guardStaff();
+        if (!is_superadmin_loggedin() && !is_admin_loggedin() && !is_director_loggedin()) {
+            access_denied();
+        }
+        $branchID = $this->application_model->get_branch_id();
+        if ($this->input->post('save_tarteel_bands')) {
+            $posted = $this->input->post('bands');
+            $bands = array();
+            if (is_array($posted)) {
+                $sort = 1;
+                foreach ($posted as $band) {
+                    if (!is_array($band)) {
+                        continue;
+                    }
+                    $bands[] = array(
+                        'id' => isset($band['id']) ? (int) $band['id'] : 0,
+                        'name' => isset($band['name']) ? $band['name'] : '',
+                        'sort_order' => $sort++,
+                        'strength_min_accuracy' => isset($band['strength_min_accuracy']) ? $band['strength_min_accuracy'] : 75,
+                        'strength_max_mistakes' => isset($band['strength_max_mistakes']) ? $band['strength_max_mistakes'] : 1,
+                        'weak_max_accuracy' => isset($band['weak_max_accuracy']) ? $band['weak_max_accuracy'] : 60,
+                        'weak_min_mistakes' => isset($band['weak_min_mistakes']) ? $band['weak_min_mistakes'] : 4,
+                    );
+                }
+            }
+            $extra = trim((string) $this->input->post('new_band_name'));
+            if ($extra !== '') {
+                $bands[] = array(
+                    'id' => 0,
+                    'name' => $extra,
+                    'sort_order' => count($bands) + 1,
+                    'strength_min_accuracy' => $this->input->post('new_strength_min_accuracy'),
+                    'strength_max_mistakes' => $this->input->post('new_strength_max_mistakes'),
+                    'weak_max_accuracy' => $this->input->post('new_weak_max_accuracy'),
+                    'weak_min_mistakes' => $this->input->post('new_weak_min_mistakes'),
+                );
+            }
+            $assignments = $this->input->post('student_band');
+            if (!is_array($assignments)) {
+                $assignments = array();
+            }
+            $this->academy_model->saveTarteelBands($branchID, $bands, $assignments);
+            set_alert('success', 'Tarteel levels saved. Analysis now uses each student’s level.');
+            redirect(base_url('academy_review/tarteel_settings'));
+        }
+        $this->data['bands'] = $this->academy_model->tarteelBands($branchID);
+        $this->data['assigned'] = $this->academy_model->tarteelStudentBands($branchID);
+        $this->data['students'] = $this->studentsForAssign($branchID);
+        $this->data['title'] = 'Tarteel settings';
+        $this->data['sub_page'] = 'academy/tarteel_settings';
         $this->data['main_menu'] = 'academy';
         $this->load->view('layout/index', $this->data);
     }
@@ -185,8 +300,11 @@ class Academy_review extends Admin_Controller
         if ($err) {
             set_alert('error', $err);
         } else {
+            $sent = trim(implode(' ', $this->academy_model->digestNotices));
             set_alert('success', $approve
-                ? ($step === 'admin' ? 'Acknowledged. WhatsApp broadcast and parent/student dashboards can use this session.' : 'Approved and sent to the admin.')
+                ? ($step === 'admin'
+                    ? ('Acknowledged. Parent and student dashboards are updated.' . ($sent !== '' ? ' ' . $sent : ''))
+                    : 'Approved and sent to the admin.')
                 : 'Rejected. The other party has been notified.');
         }
         redirect(base_url('academy_review'));

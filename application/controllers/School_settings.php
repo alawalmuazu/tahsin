@@ -896,7 +896,7 @@ class School_settings extends Admin_Controller
             'phone_number_id' => '',
             'waba_id' => '',
             'api_version' => 'v21.0',
-            'template_name' => 'tahsin_daily_digest',
+            'template_name' => 'tahsin_sealed_digest',
             'template_lang' => 'en',
             'send_media_after_template' => 1,
             'media_max_per_student' => 3,

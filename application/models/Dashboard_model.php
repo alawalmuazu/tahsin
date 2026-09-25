@@ -37,11 +37,16 @@ class Dashboard_model extends CI_Model
 
     public function getMonthlyPayment($id = '')
     {
+        $sessionID = get_session_id();
         $this->db->select('IFNULL(sum(h.amount),0) as amount');
         $this->db->from('fee_allocation as fa');
         $this->db->join('fee_payment_history as h', 'h.allocation_id = fa.id', 'left');
-        $this->db->where("h.date BETWEEN DATE_SUB(CURDATE(),INTERVAL 1 MONTH) AND CURDATE() AND fa.student_id = " . $this->db->escape($id) . " AND fa.session_id = " . $this->db->escape(get_session_id()));
-        return $this->db->get()->row()->amount;
+        $this->db->where('fa.student_id', $id);
+        $this->db->where('fa.session_id', $sessionID);
+        $this->db->where('h.date >=', date('Y-m-d', strtotime('-1 month')));
+        $this->db->where('h.date <=', date('Y-m-d'));
+        $row = $this->db->get()->row();
+        return $row ? $row->amount : 0;
     }
 
     /* annual academic fees summary charts */
@@ -67,8 +72,8 @@ class Dashboard_model extends CI_Model
                 $total_amount += $row->amount;
                 $sql = "SELECT SUM(`h`.`amount`) AS `total_paid`, SUM(`h`.`discount`) AS `total_discount` FROM `fee_payment_history` as `h` WHERE `h`.`allocation_id` = " . $this->db->escape($row->allocation_id) . " AND  `h`.`type_id` = " . $this->db->escape($row->fee_type_id);
                 $r = $this->db->query($sql)->row();
-                $totalpaid += $r->total_paid;
-                $total_discount += $r->total_discount;
+                $totalpaid += $r ? (float) $r->total_paid : 0;
+                $total_discount += $r ? (float) $r->total_discount : 0;
             }
             $total_fee[] = floatval($total_amount);
             $total_paid[] = floatval($totalpaid);
@@ -87,7 +92,9 @@ class Dashboard_model extends CI_Model
         $total_present = array();
         $total_absent = array();
         $total_late = array();
-        $enrollID = $this->db->select('id')->where(['student_id' => $studentID, 'session_id' => get_session_id()])->get('enroll')->row()->id;
+        $sessionID = get_session_id();
+        $enroll = $this->db->select('id')->where(array('student_id' => $studentID, 'session_id' => $sessionID))->get('enroll')->row();
+        $enrollID = $enroll ? (int) $enroll->id : 0;
         for ($month = 1; $month <= 12; $month++):
             $total_present[] = $this->db->query("SELECT id FROM student_attendance WHERE MONTH(date) = " . $this->db->escape($month) . " AND YEAR(date) = YEAR(CURDATE()) AND status = 'P' AND enroll_id = " . $this->db->escape($enrollID))->num_rows();
             $total_absent[] = $this->db->query("SELECT id FROM student_attendance WHERE MONTH(date) = " . $this->db->escape($month) . " AND YEAR(date) = YEAR(CURDATE()) AND status = 'A' AND enroll_id = " . $this->db->escape($enrollID))->num_rows();
@@ -103,7 +110,9 @@ class Dashboard_model extends CI_Model
     public function get_monthly_attachments($id = '')
     {
         $branchID = get_loggedin_branch_id();
-        $classID = $this->db->select('class_id')->where('student_id', $id)->get('enroll')->row()->class_id;
+        $sessionID = get_session_id();
+        $enroll = $this->db->select('class_id')->where(array('student_id' => $id, 'session_id' => $sessionID))->get('enroll')->row();
+        $classID = ($enroll && $enroll->class_id !== null && $enroll->class_id !== '') ? $enroll->class_id : 'unfiltered';
         $this->db->select('id');
         $this->db->from('attachments');
         $this->db->where("date BETWEEN DATE_SUB(CURDATE() ,INTERVAL 1 MONTH) AND CURDATE() AND (class_id = " . $this->db->escape($classID) . " OR class_id = 'unfiltered') AND branch_id = " . $this->db->escape($branchID));

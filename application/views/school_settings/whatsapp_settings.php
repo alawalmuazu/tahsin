@@ -136,8 +136,8 @@ if (!empty($whatsapp['backend_enable_chat']) && $whatsapp['backend_enable_chat']
                     <div class="form-group">
                         <label class="col-md-3 control-label">Template name <span class="required">*</span></label>
                         <div class="col-md-6">
-                            <input type="text" class="form-control" name="template_name" value="<?php echo html_escape(isset($cloud['template_name']) ? $cloud['template_name'] : 'tahsin_daily_digest'); ?>" />
-                            <span class="help-block mb-none">Body variables, in order: {{1}} student, {{2}} teacher, {{3}} portion (for example Hifz Fauq · Al-Mulk (Ayah 1–5)), {{4}} Sealed by the director. The recitation audio is attached after the template, not inside the body. Match this in Meta before the template is approved.</span>
+                            <input type="text" class="form-control" name="template_name" value="<?php echo html_escape(isset($cloud['template_name']) ? $cloud['template_name'] : 'tahsin_sealed_digest'); ?>" />
+                            <span class="help-block mb-none">Use <code>tahsin_sealed_digest</code> / <code>en</code>. Body: “Your child {{1}} completed today's recitation with {{2}}. The portion heard in class was {{3}}. This session is {{4}}…” Audio is the next message. The older <code>tahsin_daily_digest</code> template is the drill-count wording and should not be used.</span>
                             <span class="error"></span>
                         </div>
                     </div>

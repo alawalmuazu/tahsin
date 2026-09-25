@@ -60,6 +60,7 @@
     activeCoord: null,
     mushafMeta: null,
     mushafTheme: 'paper',
+    textFormat: 'medium',
     surahArabicName: '',
     recitationCategory: null,
     textHidden: false,
@@ -806,6 +807,93 @@
     });
   }
 
+  var LS_MARK = /[\u0610-\u061A\u064B-\u065F\u0670\u06D6-\u06ED\u08D4-\u08FF]/;
+
+  function mushafPieces(word) {
+    var chars = Array.from(word);
+    var out = [];
+    var i = 0;
+    while (i < chars.length) {
+      if (LS_MARK.test(chars[i])) { i++; continue; }
+      var base = chars[i++];
+      var marks = '';
+      while (i < chars.length && LS_MARK.test(chars[i])) marks += chars[i++];
+      out.push({ base: base, marks: marks });
+    }
+    return out;
+  }
+
+  function isWaslPiece(p, index) {
+    if (!p) return false;
+    if (p.base === '\u0671') return true;
+    return index === 0 && p.base === '\u0644' && p.marks.indexOf('\u0651') !== -1;
+  }
+
+  function fillMushafWord(span, word, format) {
+    span.style.letterSpacing = '';
+    var parts = mushafPieces(word);
+    if (format === 'advanced') {
+      span.style.letterSpacing = '0';
+      span.textContent = '';
+      parts.forEach(function (p, n) {
+        if (isWaslPiece(p, n)) {
+          var wasl = document.createElement('span');
+          wasl.className = 'ls-wasl';
+          wasl.title = 'Wasl — skip this when you join the word';
+          wasl.textContent = p.base;
+          span.appendChild(wasl);
+        } else {
+          span.appendChild(document.createTextNode(p.base));
+        }
+        Array.from(p.marks).forEach(function (m) {
+          var mk = document.createElement('span');
+          var kind = 'ls-vowel';
+          if (m === '\u064E' || m === '\u064B') kind = 'ls-fatha';
+          else if (m === '\u0650' || m === '\u064D') kind = 'ls-kasra';
+          else if (m === '\u064F' || m === '\u064C') kind = 'ls-damma';
+          else if (m === '\u0651') kind = 'ls-shadda';
+          else if (m === '\u0652') kind = 'ls-sukun';
+          mk.className = kind;
+          mk.textContent = m;
+          span.appendChild(mk);
+        });
+      });
+      return;
+    }
+    if (format === 'muraja') {
+      span.style.letterSpacing = '0.06em';
+      span.textContent = '';
+      parts.forEach(function (p, n) {
+        if (isWaslPiece(p, n)) {
+          var wasl = document.createElement('span');
+          wasl.className = 'ls-wasl';
+          wasl.title = 'Wasl — skip this when you join the word';
+          wasl.textContent = p.base;
+          span.appendChild(wasl);
+        } else {
+          span.appendChild(document.createTextNode(p.base));
+        }
+      });
+      return;
+    }
+    span.textContent = '';
+    parts.forEach(function (p, n) {
+      var bit = document.createElement('span');
+      bit.className = 'ls-letter' + (format === 'novice' ? ' ls-letter-' + (n % 4) : '');
+      if (isWaslPiece(p, n)) bit.className += ' ls-wasl';
+      bit.style.margin = format === 'novice' ? '0 .18em' : '0 .02em';
+      bit.title = isWaslPiece(p, n) ? 'Wasl — skip this when you join the word' : '';
+      bit.appendChild(document.createTextNode(p.base));
+      if (p.marks) {
+        var mk = document.createElement('span');
+        mk.className = 'ls-vowel';
+        mk.textContent = p.marks;
+        bit.appendChild(mk);
+      }
+      span.appendChild(bit);
+    });
+  }
+
   function loadArabicText() {
     var el = byId('ls_arabic_text');
     if (!el) return;
@@ -886,13 +974,14 @@
           wrap.setAttribute('data-juz', a.juz != null ? a.juz : '');
 
           var words = text.trim().split(/\s+/).filter(Boolean);
+          var format = state.textFormat || 'medium';
           words.forEach(function (w, idx) {
             var wordEl = document.createElement('span');
             wordEl.className = 'ls-word';
             wordEl.setAttribute('data-s', state.surah);
             wordEl.setAttribute('data-a', a.numberInSurah);
             wordEl.setAttribute('data-w', idx + 1);
-            wordEl.textContent = w;
+            fillMushafWord(wordEl, w, format);
             wordEl.title = 'Ayah ' + a.numberInSurah + ', Word ' + (idx + 1);
             wrap.appendChild(wordEl);
           });
@@ -985,6 +1074,80 @@
     refreshWordHighlights();
   }
 
+  function wordTextForKey(key) {
+    var parts = String(key).split('_');
+    var n = document.querySelector(
+      '#ls_arabic_text .ls-word[data-s="' + parts[0] + '"][data-a="' + parts[1] + '"][data-w="' + parts[2] + '"]'
+    );
+    return n ? n.textContent : '';
+  }
+
+  function plainMistake(m, key) {
+    var parts = String(key || '').split('_');
+    var pos = (m && m.positions && m.positions[0]) || null;
+    return {
+      type: (m && (m.mistakeType || m.type)) || 'TAJWEED',
+      id: (m && m.id) || '',
+      surah: pos ? pos.surahNumber : (Number(parts[0]) || null),
+      ayah: pos ? pos.ayahNumber : (Number(parts[1]) || (m && m.ayah) || null),
+      word: pos ? pos.wordNumber : (Number(parts[2]) || null),
+      text: key ? wordTextForKey(key) : '',
+      expected: (m && (m.expectedTranscript || m.expected)) || '',
+      received: (m && (m.receivedTranscript || m.received)) || '',
+      positions: (m && m.positions) || [],
+      startTimeMs: m && m.startTimeMs != null ? m.startTimeMs : null,
+      endTimeMs: m && m.endTimeMs != null ? m.endTimeMs : null
+    };
+  }
+
+  function tarteelReport() {
+    var correct = Object.keys(state.matchedKeys).map(function (key) {
+      var parts = key.split('_');
+      return {
+        surah: Number(parts[0]) || null,
+        ayah: Number(parts[1]) || null,
+        word: Number(parts[2]) || null,
+        text: wordTextForKey(key)
+      };
+    });
+    var mistakes = [];
+    var seen = {};
+    Object.keys(state.mistakesByWord).forEach(function (key) {
+      var row = plainMistake(state.mistakesByWord[key], key);
+      var id = (row.id || row.type) + '|' + key;
+      if (seen[id]) return;
+      seen[id] = true;
+      mistakes.push(row);
+    });
+    var summary = state.tarteelSummary || {};
+    if (summary.allMistakes && summary.allMistakes.length) {
+      summary.allMistakes.forEach(function (m) {
+        var row = plainMistake(m, '');
+        var id = (row.id || row.type) + '|' + row.surah + ':' + row.ayah + ':' + row.word + '|' + row.expected;
+        if (seen[id]) return;
+        seen[id] = true;
+        mistakes.push(row);
+      });
+    }
+    var states = [];
+    (summary.allStates || []).forEach(function (st) {
+      states.push({
+        type: st.type || '',
+        word: st.word || '',
+        position: st.position || null,
+        startTime: st.startTime != null ? st.startTime : null,
+        endTime: st.endTime != null ? st.endTime : null
+      });
+    });
+    return {
+      engine: state.tarteelEngine || 'auto',
+      transcript: summary.transcript || '',
+      correct: correct,
+      mistakes: mistakes,
+      states: states
+    };
+  }
+
   function setHiddenMetrics() {
     var acc;
     if (Object.keys(state.matchedKeys).length) {
@@ -996,6 +1159,9 @@
     }
     if (byId('ls_accuracy_score')) byId('ls_accuracy_score').value = acc != null ? acc : '';
     if (byId('ls_mistake_word_count')) byId('ls_mistake_word_count').value = state.mistakes || 0;
+    if (byId('ls_mistake_breakdown')) {
+      byId('ls_mistake_breakdown').value = JSON.stringify(tarteelReport());
+    }
     if (byId('ls_recitation_seconds')) byId('ls_recitation_seconds').value = state.elapsed || 0;
     var live = byId('ls_accuracy_live');
     if (live) {
@@ -1496,6 +1662,21 @@
     }
   }
 
+  async function refineWithLocalFinal(blob) {
+    if (!blob) return null;
+    try {
+      var res = await fetch('http://127.0.0.1:8001/v1/recite/final', {
+        method: 'POST',
+        headers: { 'Content-Type': 'audio/wav' },
+        body: blob
+      });
+      if (!res.ok) return null;
+      return await res.json();
+    } catch (e) {
+      return null;
+    }
+  }
+
   async function stopLiveRecitation(silent) {
     stopTimer();
     var client = state.tarteelClient;
@@ -1507,9 +1688,23 @@
     if (client) {
       try {
         var result = await client.stop();
-        if (result && result.audioBlob) {
-          attachAudioBlob(result.audioBlob, 'tarteel-recitation.wav');
-          if (result.durationSec) state.elapsed = result.durationSec;
+        if (result) {
+          state.tarteelSummary = {
+            transcript: result.transcript || '',
+            allStates: result.allStates || [],
+            allMistakes: result.allMistakes || [],
+            durationSec: result.durationSec || 0
+          };
+          if (result.audioBlob) {
+            attachAudioBlob(result.audioBlob, 'tarteel-recitation.wav');
+            if (result.durationSec) state.elapsed = result.durationSec;
+          }
+        }
+        var liveEngine = state.tarteelEngine === 'local' ? 'local' : 'cloud';
+        var finalPass = await refineWithLocalFinal(result && result.audioBlob);
+        if (finalPass && finalPass.transcript && state.tarteelSummary) {
+          state.tarteelSummary.transcript = finalPass.transcript;
+          state.tarteelEngine = liveEngine + '+local-final';
         }
         var acc = tarteelAccuracy();
         state.matched = Object.keys(state.matchedKeys).length;
@@ -1528,10 +1723,11 @@
       setBtnVisible('ls_btn_start_video', false);
       setBtnVisible('ls_btn_live', false);
       setEngineLabel(
-        state.tarteelEngine === 'local' ? 'Local Engine Ready' : 'Cloud preferred · local fallback',
+        state.tarteelEngine && state.tarteelEngine.indexOf('local-final') !== -1
+          ? 'Live ' + (state.tarteelEngine.indexOf('cloud') === 0 ? 'cloud' : 'local') + ' · final local transcript'
+          : (state.tarteelEngine === 'local' ? 'Local Engine Ready' : 'Cloud preferred · local fallback'),
         ''
       );
-      refreshEngineProbe();
     }
   }
 
@@ -1781,6 +1977,21 @@
     }
     syncLiveFab();
     updateProgressStrip();
+    var formatSel = byId('ls_text_format');
+    if (formatSel) {
+      try {
+        var savedFormat = localStorage.getItem('ls_text_format');
+        if (savedFormat) {
+          formatSel.value = savedFormat;
+          state.textFormat = savedFormat;
+        }
+      } catch (e) {}
+      formatSel.onchange = function () {
+        state.textFormat = formatSel.value || 'medium';
+        try { localStorage.setItem('ls_text_format', state.textFormat); } catch (e) {}
+        if (state.surah) loadArabicText();
+      };
+    }
     if (byId('ls_theme_paper')) byId('ls_theme_paper').onclick = function () { applyMushafTheme('paper'); };
     if (byId('ls_theme_night')) byId('ls_theme_night').onclick = function () { applyMushafTheme('night'); };
     try {

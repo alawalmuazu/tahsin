@@ -29,7 +29,7 @@ $cfgRow = $CI->db->get_where('whatsapp_cloud_config', ['branch_id' => 1])->row_a
 $wabaId      = isset($cfgRow['waba_id']) ? $cfgRow['waba_id'] : '';
 $accessToken = isset($cfgRow['access_token']) ? $cfgRow['access_token'] : '';
 $phoneId     = isset($cfgRow['phone_number_id']) ? $cfgRow['phone_number_id'] : '';
-$tplName     = isset($cfgRow['template_name']) ? $cfgRow['template_name'] : 'tahsin_daily_digest';
+$tplName     = isset($cfgRow['template_name']) ? $cfgRow['template_name'] : 'tahsin_sealed_digest';
 $tplLang     = isset($cfgRow['template_lang']) ? $cfgRow['template_lang'] : 'en';
 
 // Handle quick token update
@@ -74,10 +74,10 @@ if ($action === 'hello') {
     $sendResult['template_used'] = 'hello_world (en_US)';
 } elseif ($action === 'digest') {
     $sampleParams = [
-        'Yusuf Ibrahim',
-        date('j M Y'),
-        '3 drills, 2 Quran milestones (Tahfiz: Surah Al-Mulk)',
-        'https://tahsinacademy.com.ng/uploads/audio/recitation.ogg'
+        'Ahmad',
+        'Ustadh Yusuf',
+        'Hifz Fauq - Al-Mulk (Ayah 1-5)',
+        'Sealed by the director',
     ];
     $sendResult = $CI->whatsapp_cloud->sendTemplate($recipient, $sampleParams);
     $sendResult['template_used'] = $tplName . ' (' . $tplLang . ')';
@@ -169,7 +169,7 @@ if ($isCli) {
 
     <div class="btn-group">
       <a href="test_whatsapp.php?action=hello" class="btn btn-success">🚀 Test 'hello_world' Send (Instant)</a>
-      <a href="test_whatsapp.php?action=digest" class="btn btn-primary">📊 Test 'tahsin_daily_digest' Send</a>
+      <a href="test_whatsapp.php?action=digest" class="btn btn-primary">📊 Test 'tahsin_sealed_digest' Send</a>
       <a href="test_whatsapp.php" class="btn btn-default">🔄 Refresh Status</a>
       <a href="academy_broadcast" class="btn btn-default" target="_blank">🌐 Open Academy Broadcast</a>
     </div>
@@ -204,7 +204,7 @@ if ($isCli) {
           <?= htmlspecialchars(isset($sendResult['error']) ? $sendResult['error'] : 'Error'); ?><br>
           <?php if (strpos(isset($sendResult['error']) ? $sendResult['error'] : '', '132001') !== false): ?>
             <p style="margin-top:.4rem;font-size:.82rem;">
-              ⏳ <strong>Meta In-Review Notice:</strong> The custom <code>tahsin_daily_digest</code> template is currently under review by Meta.<br>
+              ⏳ <strong>Meta In-Review Notice:</strong> <code>tahsin_sealed_digest</code> (en) is the sealed-sentence template. It cannot be sent until Meta marks it APPROVED. The older <code>tahsin_daily_digest</code> body is the drill-count wording.<br>
               In the meantime, click <strong>"🚀 Test 'hello_world' Send"</strong> above to verify your live API connection.
             </p>
           <?php endif; ?>

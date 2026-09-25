@@ -26,6 +26,9 @@ class Userrole extends User_Controller
 
     public function index()
     {
+        if (is_parent_loggedin() || is_student_loggedin()) {
+            redirect(base_url('dashboard'));
+        }
         redirect(base_url(), 'refresh');
     }
 
@@ -42,6 +45,13 @@ class Userrole extends User_Controller
             $studentId = (int) get_loggedin_user_id();
         } elseif (is_parent_loggedin()) {
             $studentId = (int) $this->session->userdata('myChildren_id');
+            if ($studentId < 1) {
+                $only = $this->db->select('id')->where('parent_id', get_loggedin_user_id())->get('student')->result();
+                if (count($only) === 1) {
+                    $studentId = (int) $only[0]->id;
+                    $this->session->set_userdata('myChildren_id', $studentId);
+                }
+            }
         }
         if ($studentId < 1) {
             set_alert('error', 'Select a child first.');

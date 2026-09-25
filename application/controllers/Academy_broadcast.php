@@ -64,103 +64,19 @@ class Academy_broadcast extends Admin_Controller
             return;
         }
 
-        $sent = 0;
-        $failed = 0;
-        $skipped = 0;
-        $mediaSent = 0;
-        $mediaFailed = 0;
         $reports = isset($broadcast['reports']) ? $broadcast['reports'] : array();
-
-        foreach ($reports as $r) {
-            if ($onlyStudentId !== null && (int) $r['student_id'] !== (int) $onlyStudentId) {
-                continue;
-            }
-            $phone = $this->whatsapp_cloud->normalizePhone(isset($r['parent_contact']) ? $r['parent_contact'] : '');
-            if ($phone === '') {
-                $skipped++;
-                $this->academy_model->logBroadcastSend($branchID, $r, 'whatsapp_cloud', 'skipped', null, 'No parent phone');
-                continue;
-            }
-
-            $params = $this->academy_model->digestTemplateParams($r);
-            $result = $this->whatsapp_cloud->sendTemplate($phone, $params);
-            if (!empty($result['ok'])) {
-                $sent++;
-                $this->academy_model->logBroadcastSend(
-                    $branchID,
-                    $r,
-                    'whatsapp_cloud',
-                    'sent',
-                    isset($result['wamid']) ? $result['wamid'] : null,
-                    null
-                );
-            } else {
-                $failed++;
-                $err = isset($result['error']) ? $result['error'] : 'Send failed';
-                $this->academy_model->logBroadcastSend($branchID, $r, 'whatsapp_cloud', 'failed', null, $err);
-                usleep(150000);
-                continue;
-            }
-
-            if ($this->whatsapp_cloud->wantsMediaAfterTemplate()) {
-                $mediaItems = $this->academy_model->digestMediaPayloads($r, $this->whatsapp_cloud->mediaMaxPerStudent());
-                foreach ($mediaItems as $item) {
-                    $mres = $this->whatsapp_cloud->sendMediaByUrl(
-                        $phone,
-                        $item['type'],
-                        $item['url'],
-                        isset($item['caption']) ? $item['caption'] : ''
-                    );
-                    if (!empty($mres['ok'])) {
-                        $mediaSent++;
-                        $this->academy_model->logBroadcastSend(
-                            $branchID,
-                            $r,
-                            'whatsapp_cloud_media',
-                            'sent',
-                            isset($mres['wamid']) ? $mres['wamid'] : null,
-                            null
-                        );
-                    } else {
-                        $mediaFailed++;
-                        $merr = isset($mres['error']) ? $mres['error'] : 'Media send failed';
-                        $this->academy_model->logBroadcastSend(
-                            $branchID,
-                            $r,
-                            'whatsapp_cloud_media',
-                            'failed',
-                            null,
-                            $merr
-                        );
-                    }
-                    usleep(200000);
-                }
-            }
-
-            usleep(200000);
+        if ($onlyStudentId !== null) {
+            $reports = array_values(array_filter($reports, function ($r) use ($onlyStudentId) {
+                return (int) $r['student_id'] === (int) $onlyStudentId;
+            }));
         }
-
-        $parts = array();
-        $parts[] = $sent . ' digest' . ($sent === 1 ? '' : 's') . ' sent';
-        if ($failed) {
-            $parts[] = $failed . ' failed';
-        }
-        if ($skipped) {
-            $parts[] = $skipped . ' skipped (no phone)';
-        }
-        if ($mediaSent || $mediaFailed) {
-            $parts[] = $mediaSent . ' media ok';
-            if ($mediaFailed) {
-                $parts[] = $mediaFailed . ' media failed (links still in digest; native attach needs open chat window)';
-            }
-        }
-
-        if ($sent > 0 && $failed === 0) {
-            set_alert('success', implode(' · ', $parts) . '.');
-        } elseif ($sent > 0) {
-            set_alert('warning', implode(' · ', $parts) . '.');
+        $message = $this->academy_model->deliverCloudDigests($branchID, $reports);
+        if (strpos($message, 'failed') !== false || strpos($message, 'not configured') !== false) {
+            set_alert('error', $message);
+        } elseif (strpos($message, '0 WhatsApp') === 0) {
+            set_alert('error', $message);
         } else {
-            set_alert('error', implode(' · ', $parts) . '.');
+            set_alert('success', $message);
         }
     }
 }

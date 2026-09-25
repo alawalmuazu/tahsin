@@ -68,6 +68,9 @@ else :
 ?>
 
 <div class="dashboard-page">
+<?php if (is_parent_loggedin()): ?>
+	<p style="margin:0 0 12px"><a href="<?=base_url('parents/my_children')?>"><i class="fas fa-arrow-left"></i> My children</a></p>
+<?php endif; ?>
 <?php
 	$CI = get_instance();
 	$CI->load->model('academy_model');
@@ -178,10 +181,15 @@ else :
 							<div class="col-md-6 col-sm-6 col-xs-6">
 								<h3 class="counter text-right mt-md text-primary">
 									<?php
-										$this->db->from('event');
-										$this->db->where('start_date BETWEEN DATE_SUB(CURDATE() ,INTERVAL 1 MONTH) AND CURDATE() AND branch_id = "'. get_loggedin_branch_id() .'"');
-								    	echo $this->db->get()->num_rows();				
-									?>
+									$eventCount = 0;
+									if ($this->db->table_exists('event')) {
+										$eventCount = $this->db->where('branch_id', get_loggedin_branch_id())
+											->where('start_date >=', date('Y-m-d', strtotime('-1 month')))
+											->where('start_date <=', date('Y-m-d'))
+											->count_all_results('event');
+									}
+									echo (int) $eventCount;
+								?>
 								</h3>
 							</div>
 							<div class="col-md-12 col-sm-12 col-xs-12">

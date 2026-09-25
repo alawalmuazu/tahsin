@@ -23,7 +23,7 @@ class App_lib
         }
         $this->CI->db->where('user_id', $user_id);
         $result = $this->CI->db->get('login_credential')->row_array();
-        return $result['id'];
+        return isset($result['id']) ? $result['id'] : null;
     }
 
     function isExistingAddon($prefix ='')
@@ -991,7 +991,7 @@ class App_lib
         }
         $sql = "SELECT `attendance_type` FROM `branch` WHERE `id` = " . $ci->db->escape($branchID);
         $result = $ci->db->query($sql)->row();
-        return $result->attendance_type;
+        return $result ? $result->attendance_type : 0;
     }
 
     function getSchoolConfig($branchID = '', $select = '*')

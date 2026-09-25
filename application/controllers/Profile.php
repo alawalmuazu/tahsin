@@ -222,17 +222,28 @@ class Profile extends Admin_Controller
                     echo json_encode($array);
                     exit();
                 }
-                $this->db->where('id', get_loggedin_id());
-                $this->db->update('login_credential', array(
+                $update = array(
                     'password' => $this->app_lib->pass_hashed($new_password),
                     'must_change_password' => 0,
-                ));
+                );
+                $parentFirstLogin = is_parent_loggedin() && is_force_password_change();
+                if ($parentFirstLogin && $this->db->field_exists('pwa_required', 'login_credential')) {
+                    $update['pwa_required'] = 1;
+                }
+                $this->db->where('id', get_loggedin_id());
+                $this->db->update('login_credential', $update);
                 $this->session->unset_userdata('force_password_change');
                 $emailData = array(
                     'branch_id' => get_loggedin_branch_id(),
                     'password' => $new_password,
                 );
                 $this->email_model->changePassword($emailData);
+                if ($parentFirstLogin) {
+                    $this->session->sess_destroy();
+                    $array = array('status' => 'success', 'url' => base_url('authentication/index/changed'));
+                    echo json_encode($array);
+                    exit();
+                }
                 set_alert('success', translate('password_has_been_changed'));
                 $array = array('status' => 'success', 'url' => base_url('dashboard'));
             } else {
@@ -247,6 +258,29 @@ class Profile extends Admin_Controller
         $this->data['main_menu'] = 'profile';
         $this->data['title'] = translate('profile');
         $this->load->view('layout/index', $this->data);
+    }
+
+    public function install_app()
+    {
+        if (!is_parent_loggedin()) {
+            redirect(base_url('dashboard'));
+        }
+        $this->data['sub_page'] = 'profile/install_app';
+        $this->data['main_menu'] = 'profile';
+        $this->data['title'] = 'Install Tahsin';
+        $this->load->view('layout/index', $this->data);
+    }
+
+    public function pwa_done()
+    {
+        if (!is_parent_loggedin()) {
+            redirect(base_url('dashboard'));
+        }
+        if ($this->db->field_exists('pwa_required', 'login_credential')) {
+            $this->db->where('id', get_loggedin_id());
+            $this->db->update('login_credential', array('pwa_required' => 0));
+        }
+        redirect(base_url('dashboard'));
     }
 
     // when user change his username

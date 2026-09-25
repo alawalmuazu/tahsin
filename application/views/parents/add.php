@@ -122,11 +122,14 @@
 					</div>
 					<div class="col-md-3 mb-sm">
 						<div class="form-group">
-							<label class="control-label"><?=translate('mobile_no')?> <span class="required">*</span></label>
+							<label class="control-label"><?=translate('mobile_no')?> <span class="required">*</span>
+								<button type="button" class="btn btn-default btn-xs" id="add-parent-phone" title="Add another phone number" style="margin-left:6px;"><i class="fas fa-plus"></i></button>
+							</label>
 							<div class="input-group">
 								<span class="input-group-addon"><i class="fas fa-phone-volume"></i></span>
 								<input type="text" class="form-control" name="mobileno" value="<?=set_value('mobileno')?>" autocomplete="off" />
 							</div>
+							<?php $this->load->view('parents/_extra_phones'); ?>
 							<span class="error"><?php echo form_error('mobileno'); ?></span>
 						</div>
 					</div>
@@ -169,10 +172,10 @@
 				</div>
 				<div class="mb-lg checkbox-replace">
 					<label class="i-checks">
-						<input type="checkbox" name="enable_login" value="1" <?php echo set_checkbox('enable_login', '1'); ?>>
-						<i></i> Enable parent portal login
+						<input type="checkbox" name="enable_login" value="1" checked disabled>
+						<i></i> Parent portal login
 					</label>
-					<p class="text-muted mt-sm mb-none">Off by default. If enabled, username is their email. Temporary password: <code><?php echo DEFAULT_PASSWORD_PARENT; ?></code>. They must change it on first login.</p>
+					<p class="text-muted mt-sm mb-none">Username is their email. A director or an admin must approve the account before they can sign in. Temporary password: <code><?php echo DEFAULT_PASSWORD_PARENT; ?></code>. They must change it on first login.</p>
 				</div>
 				
 				<!-- social links -->

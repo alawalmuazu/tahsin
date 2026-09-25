@@ -3,6 +3,9 @@ defined('BASEPATH') or exit('No direct script access allowed');
 
 class Academy_model extends MY_Model
 {
+    /** Sentences from WhatsApp sends fired by acknowledgement. */
+    public $digestNotices = array();
+
     public function __construct()
     {
         parent::__construct();
@@ -117,8 +120,34 @@ class Academy_model extends MY_Model
         );
     }
 
+    /**
+     * Student ids assigned to the logged-in facilitator for this session.
+     * Null means the viewer is not a teacher, so lists stay school-wide.
+     */
+    public function assignedStudentIds($branch_id)
+    {
+        if (!$this->db->table_exists('academy_teacher_student') || !function_exists('is_teacher_loggedin') || !is_teacher_loggedin()) {
+            return null;
+        }
+        $rows = $this->db->select('student_id')
+            ->from('academy_teacher_student')
+            ->where('teacher_id', (int) get_loggedin_user_id())
+            ->where('branch_id', (int) $branch_id)
+            ->where('session_id', (int) get_session_id())
+            ->get()->result();
+        $ids = array();
+        foreach ($rows as $row) {
+            $ids[] = (int) $row->student_id;
+        }
+        return $ids;
+    }
+
     public function getActiveStudents($branch_id)
     {
+        $assigned = $this->assignedStudentIds($branch_id);
+        if (is_array($assigned) && empty($assigned)) {
+            return array();
+        }
         $sessionID = get_session_id();
         $this->db->select('s.id, s.register_no, TRIM(CONCAT_WS(" ", s.first_name, NULLIF(s.other_name,""), s.last_name)) AS fullname, e.class_id, e.section_id, c.name AS class_name, se.name AS section_name');
         $this->db->from('enroll e');
@@ -129,14 +158,8 @@ class Academy_model extends MY_Model
         if ($sessionID) {
             $this->db->where('e.session_id', (int) $sessionID);
         }
-        if ($this->db->table_exists('academy_teacher_student') && function_exists('is_teacher_loggedin') && is_teacher_loggedin()) {
-            $this->db->join(
-                'academy_teacher_student ats',
-                'ats.student_id = s.id AND ats.teacher_id = ' . (int) get_loggedin_user_id()
-                    . ' AND ats.session_id = ' . (int) $sessionID
-                    . ' AND ats.branch_id = ' . (int) $branch_id,
-                'inner'
-            );
+        if (is_array($assigned)) {
+            $this->db->where_in('s.id', $assigned);
         }
         $this->db->order_by('s.first_name', 'ASC');
         return $this->db->get()->result();
@@ -166,13 +189,17 @@ class Academy_model extends MY_Model
 
     public function getTodaysDrills($branch_id, $limit = 50)
     {
+        $assigned = $this->assignedStudentIds($branch_id);
+        if (is_array($assigned) && empty($assigned)) {
+            return array();
+        }
         $this->db->select('d.*, TRIM(CONCAT_WS(" ", s.first_name, NULLIF(s.other_name,""), s.last_name)) AS student_name, s.register_no');
         $this->db->from('academy_daily_drill d');
         $this->db->join('student s', 's.id = d.student_id', 'left');
         $this->db->where('d.branch_id', (int) $branch_id);
         $this->db->where('DATE(d.created_at)', date('Y-m-d'));
-        if ($this->db->table_exists('academy_teacher_student') && function_exists('is_teacher_loggedin') && is_teacher_loggedin()) {
-            $this->db->where('d.evaluator_id', (int) get_loggedin_user_id());
+        if (is_array($assigned)) {
+            $this->db->where_in('d.student_id', $assigned);
         }
         $this->db->order_by('d.id', 'DESC');
         $this->db->limit((int) $limit);
@@ -181,12 +208,16 @@ class Academy_model extends MY_Model
 
     public function getRecentDrills($branch_id, $limit = 100)
     {
+        $assigned = $this->assignedStudentIds($branch_id);
+        if (is_array($assigned) && empty($assigned)) {
+            return array();
+        }
         $this->db->select('d.*, TRIM(CONCAT_WS(" ", s.first_name, NULLIF(s.other_name,""), s.last_name)) AS student_name, s.register_no');
         $this->db->from('academy_daily_drill d');
         $this->db->join('student s', 's.id = d.student_id', 'left');
         $this->db->where('d.branch_id', (int) $branch_id);
-        if ($this->db->table_exists('academy_teacher_student') && function_exists('is_teacher_loggedin') && is_teacher_loggedin()) {
-            $this->db->where('d.evaluator_id', (int) get_loggedin_user_id());
+        if (is_array($assigned)) {
+            $this->db->where_in('d.student_id', $assigned);
         }
         $this->db->order_by('d.id', 'DESC');
         $this->db->limit((int) $limit);
@@ -197,6 +228,71 @@ class Academy_model extends MY_Model
     {
         $this->db->where(array('id' => (int) $id, 'branch_id' => (int) $branch_id));
         return $this->db->delete('academy_daily_drill');
+    }
+
+    /**
+     * Same facilitator, student, category, and portion already saved today.
+     *
+     * @return string empty when this save is new
+     */
+    public function priorMilestoneMessage($data)
+    {
+        if (!$this->tahfizReady()) {
+            return '';
+        }
+        $cats = $this->recitationCategories();
+        $cat = isset($data['recitation_category']) ? strtoupper(trim((string) $data['recitation_category'])) : '';
+        $cat = ($cat !== '' && isset($cats[$cat])) ? $cat : '';
+        $studentId = (int) (isset($data['student_id']) ? $data['student_id'] : 0);
+        $teacherId = (int) (isset($data['instructor_id']) ? $data['instructor_id'] : 0);
+        $surah = (int) (isset($data['surah_number']) ? $data['surah_number'] : 0);
+        $ayahFrom = isset($data['ayah_from']) && $data['ayah_from'] !== '' && $data['ayah_from'] !== null ? (int) $data['ayah_from'] : 0;
+        $ayahTo = isset($data['ayah_to']) && $data['ayah_to'] !== '' && $data['ayah_to'] !== null ? (int) $data['ayah_to'] : 0;
+        $when = !empty($data['completed_at']) ? date('Y-m-d', strtotime($data['completed_at'])) : date('Y-m-d');
+        if ($studentId < 1 || $teacherId < 1 || $surah < 1 || $cat === '') {
+            return '';
+        }
+        $this->db->from('academy_tahfiz_record');
+        $this->db->where('student_id', $studentId);
+        $this->db->where('instructor_id', $teacherId);
+        $this->db->where('surah_number', $surah);
+        $this->db->where('DATE(completed_at)', $when);
+        if ($this->db->field_exists('recitation_category', 'academy_tahfiz_record')) {
+            $this->db->where('recitation_category', $cat);
+        }
+        if ($ayahFrom > 0) {
+            $this->db->where('ayah_from', $ayahFrom);
+        }
+        if ($ayahTo > 0) {
+            $this->db->where('ayah_to', $ayahTo);
+        }
+        $row = $this->db->order_by('id', 'DESC')->limit(1)->get()->row();
+        if (!$row) {
+            return '';
+        }
+        $surahs = $this->surahList();
+        $name = isset($surahs[$surah]) ? $surahs[$surah] : 'this portion';
+        $ayahLabel = ($ayahFrom > 0 && $ayahTo > 0 && $ayahFrom !== $ayahTo)
+            ? ' (Ayah ' . $ayahFrom . '–' . $ayahTo . ')'
+            : ($ayahFrom > 0 ? ' (Ayah ' . $ayahFrom . ')' : '');
+        $status = 'already recorded';
+        if ($this->db->table_exists('academy_class_session') && $this->db->field_exists('milestone_id', 'academy_class_session')) {
+            $session = $this->db->get_where('academy_class_session', array('milestone_id' => (int) $row->id))->row();
+            if ($session) {
+                $labels = array(
+                    'recording' => 'still recording',
+                    'pending_director' => 'already with the director',
+                    'director_rejected' => 'sent back by the director',
+                    'pending_admin' => 'already with the admin',
+                    'admin_rejected' => 'sent back by the admin',
+                    'acknowledged' => 'already acknowledged',
+                );
+                $status = isset($labels[$session->status]) ? $labels[$session->status] : 'already recorded';
+            }
+        }
+        $whenLabel = !empty($row->completed_at) ? date('j M Y, g:i A', strtotime($row->completed_at)) : '';
+        $recorded = 'was recorded earlier today' . ($whenLabel !== '' ? ' (' . $whenLabel . ')' : '');
+        return $cats[$cat] . ' · ' . $name . $ayahLabel . ' ' . $recorded . '. It is ' . $status . '.';
     }
 
     public function saveTahfiz($data)
@@ -306,12 +402,16 @@ class Academy_model extends MY_Model
 
     public function getRecentTahfiz($branch_id, $limit = 100)
     {
+        $assigned = $this->assignedStudentIds($branch_id);
+        if (is_array($assigned) && empty($assigned)) {
+            return array();
+        }
         $this->db->select('t.*, TRIM(CONCAT_WS(" ", s.first_name, NULLIF(s.other_name,""), s.last_name)) AS student_name, s.register_no');
         $this->db->from('academy_tahfiz_record t');
         $this->db->join('student s', 's.id = t.student_id', 'left');
         $this->db->where('t.branch_id', (int) $branch_id);
-        if ($this->db->table_exists('academy_teacher_student') && function_exists('is_teacher_loggedin') && is_teacher_loggedin()) {
-            $this->db->where('t.instructor_id', (int) get_loggedin_user_id());
+        if (is_array($assigned)) {
+            $this->db->where_in('t.student_id', $assigned);
         }
         $this->db->order_by('t.id', 'DESC');
         $this->db->limit((int) $limit);
@@ -418,16 +518,64 @@ class Academy_model extends MY_Model
     }
 
     /**
+     * Primary parent mobile plus every extra_phones entry, unique after E.164 normalize.
+     * Falls back to the student mobile only when the parent has no number.
+     *
+     * @return string[]
+     */
+    public function parentPhoneList($primary, $extraJson = '', $studentFallback = '')
+    {
+        $this->load->library('whatsapp_cloud');
+        $raw = array();
+        $primary = trim((string) $primary);
+        if ($primary !== '') {
+            $raw[] = $primary;
+        }
+        if ($extraJson !== '' && $extraJson !== null) {
+            $decoded = is_array($extraJson) ? $extraJson : json_decode((string) $extraJson, true);
+            if (is_array($decoded)) {
+                foreach ($decoded as $phone) {
+                    $phone = trim((string) $phone);
+                    if ($phone !== '') {
+                        $raw[] = $phone;
+                    }
+                }
+            }
+        }
+        if (empty($raw)) {
+            $fallback = trim((string) $studentFallback);
+            if ($fallback !== '') {
+                $raw[] = $fallback;
+            }
+        }
+        $unique = array();
+        foreach ($raw as $phone) {
+            $n = $this->whatsapp_cloud->normalizePhone($phone);
+            if ($n !== '') {
+                $unique[$n] = true;
+            }
+        }
+        return array_keys($unique);
+    }
+
+    /**
      * Full Academy Students cohort: roster + tahfiz + drills + barakah for hub UI.
      */
     public function getCohortRoster($branch_id)
     {
+        $assigned = $this->assignedStudentIds($branch_id);
+        if (is_array($assigned) && empty($assigned)) {
+            return array();
+        }
         $sessionID = get_session_id();
         $select = 's.id, s.register_no, s.admission_date, s.birthday, s.gender, s.mobileno, s.parent_id,
             e.id AS enroll_id,
             TRIM(CONCAT_WS(" ", s.first_name, NULLIF(s.other_name,""), s.last_name)) AS fullname,
             e.class_id, e.section_id, c.name AS class_name, se.name AS section_name,
             p.name AS parent_name, p.mobileno AS parent_mobile';
+        if ($this->db->field_exists('extra_phones', 'parent')) {
+            $select .= ', p.extra_phones AS parent_extra_phones';
+        }
         if ($this->db->field_exists('media_consent', 'student')) {
             $select .= ', s.media_consent';
         }
@@ -440,6 +588,9 @@ class Academy_model extends MY_Model
         $this->db->where('e.branch_id', (int) $branch_id);
         if ($sessionID) {
             $this->db->where('e.session_id', (int) $sessionID);
+        }
+        if (is_array($assigned)) {
+            $this->db->where_in('s.id', $assigned);
         }
         $this->db->group_by('s.id');
         $this->db->order_by('s.first_name', 'ASC');
@@ -508,6 +659,11 @@ class Academy_model extends MY_Model
                 $classLevel = 'Unassigned';
             }
 
+            $parentPhones = $this->parentPhoneList(
+                isset($s->parent_mobile) ? $s->parent_mobile : '',
+                isset($s->parent_extra_phones) ? $s->parent_extra_phones : '',
+                isset($s->mobileno) ? $s->mobileno : ''
+            );
             $roster[] = array(
                 'id' => $sid,
                 'enroll_id' => (int) $s->enroll_id,
@@ -518,7 +674,8 @@ class Academy_model extends MY_Model
                 'section_name' => $s->section_name,
                 'age_group' => $ageGroup,
                 'gender' => $s->gender,
-                'parent_contact' => $s->parent_mobile ? $s->parent_mobile : $s->mobileno,
+                'parent_contact' => !empty($parentPhones) ? $parentPhones[0] : ($s->parent_mobile ? $s->parent_mobile : $s->mobileno),
+                'parent_phones' => $parentPhones,
                 'parent_name' => $s->parent_name,
                 'coordinator' => null,
                 'admission_date' => $s->admission_date,
@@ -1124,7 +1281,7 @@ class Academy_model extends MY_Model
                 $tahfizToday = $this->db->get()->result();
             }
 
-            if ($st['parent_contact']) {
+            if (!empty($st['parent_phones']) || $st['parent_contact']) {
                 $withPhone++;
             }
             if (!empty($drills)) {
@@ -1230,10 +1387,11 @@ class Academy_model extends MY_Model
                 'teacher_name' => $sealed['teacher'],
                 'portion' => $sealed['portion'],
                 'parent_contact' => $st['parent_contact'],
+                'parent_phones' => !empty($st['parent_phones']) ? $st['parent_phones'] : array(),
                 'message' => implode("\n", $lines),
                 'drill_count' => count($drills),
                 'tahfiz_count' => count($tahfizToday),
-                'has_phone' => !empty($st['parent_contact']),
+                'has_phone' => !empty($st['parent_phones']) || !empty($st['parent_contact']),
                 'media' => $media,
             );
         }
@@ -1457,6 +1615,157 @@ class Academy_model extends MY_Model
      * Template body params for the Meta utility template.
      * Order: student, teacher, portion, seal. Audio is a later media message.
      */
+    /**
+     * Send today's sealed digest for one acknowledged teacher.
+     * Called when an admin acknowledges, so Broadcast does not need a second click.
+     */
+    public function dispatchSealedDigests($branchId, $teacherId, $date)
+    {
+        if ($date !== date('Y-m-d')) {
+            return 'WhatsApp sends today\'s sealed digest only. This session is ' . $date . '.';
+        }
+        $this->load->library('whatsapp_cloud');
+        if (!$this->whatsapp_cloud->isConfigured()) {
+            return 'WhatsApp was not sent: Cloud API is not configured.';
+        }
+
+        $wanted = array();
+        if ($this->db->table_exists('academy_teacher_student')) {
+            $rows = $this->db->select('student_id')->get_where('academy_teacher_student', array(
+                'branch_id' => (int) $branchId,
+                'teacher_id' => (int) $teacherId,
+                'session_id' => (int) get_session_id(),
+            ))->result();
+            foreach ($rows as $row) {
+                $wanted[(int) $row->student_id] = true;
+            }
+        }
+        if (empty($wanted)) {
+            return 'No parent digest to send for this session.';
+        }
+        $broadcast = $this->generateDailyBroadcast($branchId);
+        $reports = array();
+        foreach ((isset($broadcast['reports']) ? $broadcast['reports'] : array()) as $report) {
+            $sid = (int) $report['student_id'];
+            if (isset($wanted[$sid])) {
+                $reports[] = $report;
+            }
+        }
+        if (empty($reports)) {
+            return 'No parent digest to send for this session.';
+        }
+        return $this->deliverCloudDigests($branchId, $reports);
+    }
+
+    /**
+     * @param array $reports rows from generateDailyBroadcast()
+     */
+    public function deliverCloudDigests($branchId, $reports)
+    {
+        $this->load->library('whatsapp_cloud');
+        if (!$this->whatsapp_cloud->isConfigured()) {
+            return 'WhatsApp Cloud API is not configured.';
+        }
+
+        $sent = 0;
+        $failed = 0;
+        $skipped = 0;
+        $mediaSent = 0;
+        $mediaFailed = 0;
+        $firstError = '';
+
+        foreach ($reports as $r) {
+            $phones = array();
+            if (!empty($r['parent_phones']) && is_array($r['parent_phones'])) {
+                foreach ($r['parent_phones'] as $candidate) {
+                    $n = $this->whatsapp_cloud->normalizePhone($candidate);
+                    if ($n !== '') {
+                        $phones[$n] = true;
+                    }
+                }
+            }
+            if (empty($phones)) {
+                $n = $this->whatsapp_cloud->normalizePhone(isset($r['parent_contact']) ? $r['parent_contact'] : '');
+                if ($n !== '') {
+                    $phones[$n] = true;
+                }
+            }
+            if (empty($phones)) {
+                $skipped++;
+                $this->logBroadcastSend($branchId, $r, 'whatsapp_cloud', 'skipped', null, 'No parent phone');
+                continue;
+            }
+
+            $params = $this->digestTemplateParams($r);
+            foreach (array_keys($phones) as $phone) {
+                $r['parent_contact'] = $phone;
+                $result = $this->whatsapp_cloud->sendTemplate($phone, $params);
+                if (!empty($result['ok'])) {
+                    $sent++;
+                    $this->logBroadcastSend(
+                        $branchId,
+                        $r,
+                        'whatsapp_cloud',
+                        'sent',
+                        isset($result['wamid']) ? $result['wamid'] : null,
+                        null
+                    );
+                } else {
+                    $failed++;
+                    $err = isset($result['error']) ? $result['error'] : 'Send failed';
+                    if ($firstError === '') {
+                        $firstError = $err;
+                    }
+                    $this->logBroadcastSend($branchId, $r, 'whatsapp_cloud', 'failed', null, $err);
+                    usleep(150000);
+                    continue;
+                }
+
+                if ($this->whatsapp_cloud->wantsMediaAfterTemplate()) {
+                    $mediaItems = $this->digestMediaPayloads($r, $this->whatsapp_cloud->mediaMaxPerStudent());
+                    foreach ($mediaItems as $item) {
+                        $mres = $this->whatsapp_cloud->sendMediaByUrl(
+                            $phone,
+                            $item['type'],
+                            $item['url'],
+                            isset($item['caption']) ? $item['caption'] : ''
+                        );
+                        if (!empty($mres['ok'])) {
+                            $mediaSent++;
+                            $this->logBroadcastSend($branchId, $r, 'whatsapp_cloud_media', 'sent', isset($mres['wamid']) ? $mres['wamid'] : null, null);
+                        } else {
+                            $mediaFailed++;
+                            $merr = isset($mres['error']) ? $mres['error'] : 'Media send failed';
+                            $this->logBroadcastSend($branchId, $r, 'whatsapp_cloud_media', 'failed', null, $merr);
+                        }
+                        usleep(200000);
+                    }
+                }
+                usleep(200000);
+            }
+        }
+
+        $parts = array();
+        $parts[] = $sent . ' WhatsApp digest' . ($sent === 1 ? '' : 's') . ' sent';
+        if ($failed) {
+            $parts[] = $failed . ' failed';
+        }
+        if ($skipped) {
+            $parts[] = $skipped . ' skipped (no phone)';
+        }
+        if ($mediaSent || $mediaFailed) {
+            $parts[] = $mediaSent . ' media ok';
+            if ($mediaFailed) {
+                $parts[] = $mediaFailed . ' media failed';
+            }
+        }
+        $message = implode(' · ', $parts) . '.';
+        if ($firstError !== '') {
+            $message .= ' ' . $firstError;
+        }
+        return $message;
+    }
+
     public function digestTemplateParams($report)
     {
         $name = isset($report['student_name']) && $report['student_name'] !== '' ? $report['student_name'] : 'Student';
@@ -1568,9 +1877,118 @@ class Academy_model extends MY_Model
 
     public function reviewReady()
     {
-        return $this->db->table_exists('academy_teacher_student')
+        $ready = $this->db->table_exists('academy_teacher_student')
             && $this->db->table_exists('academy_class_session')
             && $this->db->table_exists('academy_notice');
+        if ($ready) {
+            $this->ensureSessionCategory();
+        }
+        return $ready;
+    }
+
+    /**
+     * Sessions are unique per teacher, day, and recitation category.
+     */
+    protected function ensureSessionCategory()
+    {
+        static $done = false;
+        if ($done || !$this->db->table_exists('academy_class_session')) {
+            return;
+        }
+        $done = true;
+        if (!$this->db->field_exists('recitation_category', 'academy_class_session')) {
+            $this->db->query("ALTER TABLE `academy_class_session` ADD COLUMN `recitation_category` VARCHAR(40) NOT NULL DEFAULT '' AFTER `session_date`");
+        }
+        if (!$this->db->field_exists('milestone_id', 'academy_class_session')) {
+            $this->db->query("ALTER TABLE `academy_class_session` ADD COLUMN `milestone_id` INT(11) NOT NULL DEFAULT 0 AFTER `recitation_category`");
+        }
+        $schema = $this->db->database;
+        $old = $this->db->query(
+            "SELECT COUNT(*) AS c FROM information_schema.STATISTICS WHERE TABLE_SCHEMA = " . $this->db->escape($schema) . " AND TABLE_NAME = 'academy_class_session' AND INDEX_NAME = 'uq_acs_teacher_day'"
+        )->row();
+        if ($old && (int) $old->c > 0) {
+            $this->db->query('ALTER TABLE `academy_class_session` DROP INDEX `uq_acs_teacher_day`');
+        }
+        $mid = $this->db->query(
+            "SELECT COUNT(*) AS c FROM information_schema.STATISTICS WHERE TABLE_SCHEMA = " . $this->db->escape($schema) . " AND TABLE_NAME = 'academy_class_session' AND INDEX_NAME = 'uq_acs_teacher_day_cat'"
+        )->row();
+        if ($mid && (int) $mid->c > 0) {
+            $this->db->query('ALTER TABLE `academy_class_session` DROP INDEX `uq_acs_teacher_day_cat`');
+        }
+        $new = $this->db->query(
+            "SELECT COUNT(*) AS c FROM information_schema.STATISTICS WHERE TABLE_SCHEMA = " . $this->db->escape($schema) . " AND TABLE_NAME = 'academy_class_session' AND INDEX_NAME = 'uq_acs_milestone'"
+        )->row();
+        if (!$new || (int) $new->c === 0) {
+            $this->db->query('ALTER TABLE `academy_class_session` ADD UNIQUE KEY `uq_acs_milestone` (`branch_id`, `teacher_id`, `session_date`, `recitation_category`, `milestone_id`)');
+        }
+        $this->backfillSessionCategories();
+    }
+
+    /**
+     * Give an existing day-session the category it was recorded under, without colliding.
+     */
+    protected function backfillSessionCategories()
+    {
+        if (!$this->tahfizReady() || !$this->db->field_exists('recitation_category', 'academy_tahfiz_record')) {
+            return;
+        }
+        $rows = $this->db->query(
+            "SELECT cs.id, cs.branch_id, cs.teacher_id, cs.session_date,
+                (SELECT t.recitation_category FROM academy_tahfiz_record t
+                 WHERE t.branch_id = cs.branch_id AND t.instructor_id = cs.teacher_id
+                   AND DATE(t.completed_at) = cs.session_date
+                   AND t.recitation_category IS NOT NULL AND t.recitation_category <> ''
+                 ORDER BY t.id ASC LIMIT 1) AS cat
+             FROM academy_class_session cs
+             WHERE cs.recitation_category = ''"
+        )->result();
+        foreach ($rows as $row) {
+            $cat = strtoupper(trim((string) $row->cat));
+            if ($cat === '') {
+                continue;
+            }
+            $taken = $this->db->get_where('academy_class_session', array(
+                'branch_id' => (int) $row->branch_id,
+                'teacher_id' => (int) $row->teacher_id,
+                'session_date' => $row->session_date,
+                'recitation_category' => $cat,
+            ))->row();
+            if ($taken && (int) $taken->id !== (int) $row->id) {
+                continue;
+            }
+            $firstId = (int) $this->db->query(
+                "SELECT id FROM academy_tahfiz_record
+                 WHERE branch_id = " . (int) $row->branch_id . " AND instructor_id = " . (int) $row->teacher_id . "
+                   AND DATE(completed_at) = " . $this->db->escape($row->session_date) . "
+                   AND recitation_category = " . $this->db->escape($cat) . "
+                 ORDER BY id ASC LIMIT 1"
+            )->row()->id;
+            $this->db->where('id', (int) $row->id)->update('academy_class_session', array(
+                'recitation_category' => $cat,
+                'milestone_id' => $firstId,
+            ));
+        }
+        if (!$this->db->field_exists('milestone_id', 'academy_class_session')) {
+            return;
+        }
+        $open = $this->db->query(
+            "SELECT t.id, t.branch_id, t.instructor_id, t.student_id, t.recitation_category, DATE(t.completed_at) AS session_date
+             FROM academy_tahfiz_record t
+             LEFT JOIN academy_class_session cs ON cs.milestone_id = t.id
+             WHERE cs.id IS NULL AND t.recitation_category IS NOT NULL AND t.recitation_category <> ''
+               AND DATE(t.completed_at) = CURDATE()
+             ORDER BY t.id ASC"
+        )->result();
+        foreach ($open as $milestone) {
+            $this->touchTeacherSession(
+                (int) $milestone->branch_id,
+                (int) $milestone->student_id,
+                $milestone->session_date,
+                (int) $milestone->instructor_id,
+                $milestone->recitation_category,
+                (int) $milestone->id
+            );
+        }
     }
 
     public function studentAssignedToTeacher($studentId, $teacherId, $branchId = null)
@@ -1668,13 +2086,14 @@ class Academy_model extends MY_Model
     }
 
     /**
-     * After a teacher logs a drill or tahfiz row, advance today's class session.
-     * When every student on this teacher's list has a record from this teacher, submit it to the director.
-     * A student may also be assigned to other teachers; those sessions are separate.
+     * After a teacher logs a drill or tahfiz row, advance that category's class session.
+     * Each recitation category is its own session, so one student can have several in a day.
+     * When every assigned student has a row in that category, submit it to the director.
+     * An already acknowledged category stays closed. A different category opens a new review.
      *
      * @return string|null status sentence for the flash message
      */
-    public function touchTeacherSession($branchId, $studentId, $date = null, $teacherId = null)
+    public function touchTeacherSession($branchId, $studentId, $date = null, $teacherId = null, $category = null, $milestoneId = 0)
     {
         if (!$this->reviewReady()) {
             return null;
@@ -1697,15 +2116,35 @@ class Academy_model extends MY_Model
         foreach ($assigned as $a) {
             $ids[] = (int) $a->student_id;
         }
+        $cats = $this->recitationCategories();
+        $category = strtoupper(trim((string) $category));
+        if ($category !== '' && !isset($cats[$category])) {
+            $category = '';
+        }
+        $categoryLabel = isset($cats[$category]) ? $cats[$category] : 'This session';
+
         $total = count($ids);
-        $recordedIds = $this->recordedStudentIds($branchId, $ids, $date, $teacherId);
+        $recordedIds = $this->recordedStudentIds($branchId, $ids, $date, $teacherId, $category);
         $recorded = count($recordedIds);
 
-        $row = $this->db->get_where('academy_class_session', array(
+        $milestoneId = (int) $milestoneId;
+        $where = array(
             'branch_id' => $branchId,
             'teacher_id' => $teacherId,
             'session_date' => $date,
-        ))->row();
+        );
+        if ($this->db->field_exists('recitation_category', 'academy_class_session')) {
+            $where['recitation_category'] = $category;
+        }
+        if ($this->db->field_exists('milestone_id', 'academy_class_session')) {
+            $where['milestone_id'] = $milestoneId;
+        }
+        $row = $this->db->get_where('academy_class_session', $where)->row();
+
+        if ($row && !in_array($row->status, array('recording', 'director_rejected', 'admin_rejected'), true)) {
+            $closed = str_replace('_', ' ', $row->status);
+            return $categoryLabel . ' is already ' . $closed . '. A different recitation category opens a new review.';
+        }
 
         $status = $row ? $row->status : 'recording';
         $open = array('recording', 'director_rejected', 'admin_rejected');
@@ -1722,6 +2161,12 @@ class Academy_model extends MY_Model
             'status' => $status,
             'academic_session_id' => $sessionId,
         );
+        if ($this->db->field_exists('recitation_category', 'academy_class_session')) {
+            $payload['recitation_category'] = $category;
+        }
+        if ($this->db->field_exists('milestone_id', 'academy_class_session')) {
+            $payload['milestone_id'] = $milestoneId;
+        }
         if ($submit) {
             $payload['submitted_at'] = date('Y-m-d H:i:s');
             $payload['director_user_id'] = null;
@@ -1755,10 +2200,10 @@ class Academy_model extends MY_Model
         if ($submit) {
             $teacherName = get_type_name_by_id('staff', $teacherId, 'name');
             $title = 'Academy session ready for review';
-            $body = $teacherName . ' finished ' . $date . ' (' . $recorded . '/' . $total . ' students).';
+            $body = $teacherName . ' finished ' . $categoryLabel . ' on ' . $date . ' (' . $recorded . '/' . $total . ' students).';
             $this->notifyRoles(array(1, 9), $branchId, $title, $body, 'academy_review');
             $this->pushNotice($teacherId, $branchId, 'Session sent to the director', $body, 'academy_review');
-            return 'Day sealed. Sent to the director.' . $priorNote;
+            return $categoryLabel . ' sent to the director.' . $priorNote;
         }
 
         $missing = array();
@@ -1823,8 +2268,9 @@ class Academy_model extends MY_Model
                     'admin_note' => $note !== '' ? $note : null,
                     'admin_at' => date('Y-m-d H:i:s'),
                 ));
-                $this->notifyRoles(array(1, 9), $branchId, 'Admin acknowledged an academy session', $teacherName . ' · ' . $when . ' can now be broadcast. Parent and student dashboards are updated.', 'academy_review');
-                $this->pushNotice((int) $row->teacher_id, $branchId, 'Admin acknowledged your session', $when . ' is live for parents and WhatsApp broadcast.', 'academy_review');
+                $this->notifyRoles(array(1, 9), $branchId, 'Admin acknowledged an academy session', $teacherName . ' · ' . $when . ' is live for parents. The WhatsApp digest is sending.', 'academy_review');
+                $this->pushNotice((int) $row->teacher_id, $branchId, 'Admin acknowledged your session', $when . ' is live for parents. The WhatsApp digest is sending.', 'academy_review');
+                $this->digestNotices[] = $this->dispatchSealedDigests($branchId, (int) $row->teacher_id, $when);
                 return null;
             }
             $this->db->where('id', (int) $row->id)->update('academy_class_session', array(
@@ -1901,6 +2347,7 @@ class Academy_model extends MY_Model
             'date' => '',
             'status' => '',
             'label' => 'No academy session yet',
+            'teachers' => array(),
             'drills' => array(),
             'tahfiz' => array(),
         );
@@ -2018,18 +2465,25 @@ class Academy_model extends MY_Model
      *
      * @return array|null
      */
-    public function weakClipForSession($branchId, $teacherId, $date)
+    public function weakClipForSession($branchId, $teacherId, $date, $category = '', $milestoneId = 0)
     {
         if (!$this->tahfizReady() || (int) $teacherId < 1 || !$date) {
             return null;
         }
+        $milestoneId = (int) $milestoneId;
         $rows = $this->db->select('t.*, s.first_name, s.last_name')
             ->from('academy_tahfiz_record t')
             ->join('student s', 's.id = t.student_id', 'left')
             ->where('t.branch_id', (int) $branchId)
             ->where('t.instructor_id', (int) $teacherId)
-            ->where('DATE(t.completed_at)', $date)
-            ->get()->result();
+            ->where('DATE(t.completed_at)', $date);
+        $category = strtoupper(trim((string) $category));
+        if ($milestoneId > 0) {
+            $this->db->where('t.id', $milestoneId);
+        } elseif ($category !== '' && $this->db->field_exists('recitation_category', 'academy_tahfiz_record')) {
+            $this->db->where('t.recitation_category', $category);
+        }
+        $rows = $this->db->get()->result();
         if (empty($rows)) {
             return null;
         }
@@ -2059,8 +2513,401 @@ class Academy_model extends MY_Model
             'category' => isset($cats[$ck]) ? $cats[$ck] : '',
             'accuracy' => isset($best->accuracy_score) ? $best->accuracy_score : null,
             'mistakes' => isset($best->mistake_word_count) ? $best->mistake_word_count : null,
+            'seconds' => isset($best->recitation_seconds) ? $best->recitation_seconds : null,
             'audio_url' => $this->absoluteMediaUrl(isset($best->audio_url) ? $best->audio_url : ''),
+            'surah_number' => isset($best->surah_number) ? (int) $best->surah_number : 0,
+            'ayah_from' => isset($best->ayah_from) ? (int) $best->ayah_from : 0,
+            'ayah_to' => isset($best->ayah_to) ? (int) $best->ayah_to : 0,
+            'tarteel' => $this->tarteelReport(isset($best->mistake_breakdown) ? $best->mistake_breakdown : ''),
         );
+    }
+
+    /**
+     * Full Tarteel report: engine, correct words, Tajweed mistakes, aligned states.
+     *
+     * @return array{engine:string,transcript:string,correct:array,mistakes:array,states:array}
+     */
+    public function tarteelReport($json)
+    {
+        $empty = array(
+            'engine' => '',
+            'transcript' => '',
+            'correct' => array(),
+            'mistakes' => array(),
+            'states' => array(),
+        );
+        $raw = json_decode((string) $json, true);
+        if (!is_array($raw)) {
+            return $empty;
+        }
+        $labels = array(
+            'INCORRECT_TASHKEEL' => 'Incorrect tashkeel',
+            'MISSED_WORD' => 'Missed word',
+            'MISSED_WORDS' => 'Missed words',
+            'EXTRA_WORD' => 'Extra word',
+            'EXTRA_WORDS' => 'Extra words',
+            'INCORRECT_WORD' => 'Incorrect word',
+            'INCORRECT_WORDS' => 'Incorrect words',
+        );
+        $mistakeRows = isset($raw['mistakes']) && is_array($raw['mistakes']) ? $raw['mistakes'] : $raw;
+        $mistakes = array();
+        if (isset($raw['mistakes']) || (isset($mistakeRows[0]) && is_array($mistakeRows[0]))) {
+            foreach ($mistakeRows as $m) {
+                if (!is_array($m)) {
+                    continue;
+                }
+                $type = isset($m['type']) ? strtoupper(trim((string) $m['type'])) : 'TAJWEED';
+                $mistakes[] = array(
+                    'label' => isset($labels[$type]) ? $labels[$type] : ucwords(strtolower(str_replace('_', ' ', $type))),
+                    'ayah' => isset($m['ayah']) ? (int) $m['ayah'] : 0,
+                    'word' => isset($m['word']) ? (int) $m['word'] : 0,
+                    'text' => isset($m['text']) ? (string) $m['text'] : '',
+                    'expected' => isset($m['expected']) ? (string) $m['expected'] : '',
+                    'received' => isset($m['received']) ? (string) $m['received'] : '',
+                );
+            }
+        }
+        $correct = array();
+        if (!empty($raw['correct']) && is_array($raw['correct'])) {
+            foreach ($raw['correct'] as $c) {
+                if (!is_array($c)) {
+                    continue;
+                }
+                $correct[] = array(
+                    'ayah' => isset($c['ayah']) ? (int) $c['ayah'] : 0,
+                    'word' => isset($c['word']) ? (int) $c['word'] : 0,
+                    'text' => isset($c['text']) ? (string) $c['text'] : '',
+                );
+            }
+        }
+        $engine = isset($raw['engine']) ? (string) $raw['engine'] : '';
+        $engineLabel = array('cloud' => 'Tarteel cloud', 'local' => 'Local engine', 'auto' => 'Auto');
+        return array(
+            'engine' => isset($engineLabel[$engine]) ? $engineLabel[$engine] : $engine,
+            'transcript' => isset($raw['transcript']) ? (string) $raw['transcript'] : '',
+            'correct' => $correct,
+            'mistakes' => $mistakes,
+            'states' => $this->tarteelStates(isset($raw['states']) ? $raw['states'] : array()),
+        );
+    }
+
+    /**
+     * Word timings saved by the engine, kept small enough for the review player.
+     */
+    protected function tarteelStates($states)
+    {
+        if (!is_array($states)) {
+            return array();
+        }
+        $out = array();
+        foreach ($states as $st) {
+            if (!is_array($st)) {
+                continue;
+            }
+            $pos = isset($st['position']) && is_array($st['position']) ? $st['position'] : array();
+            $out[] = array(
+                'ayah' => isset($pos['ayahNumber']) ? (int) $pos['ayahNumber'] : 0,
+                'word' => isset($pos['wordNumber']) ? (int) $pos['wordNumber'] : 0,
+                'start' => isset($st['startTime']) ? (float) $st['startTime'] : null,
+                'end' => isset($st['endTime']) ? (float) $st['endTime'] : null,
+            );
+            if (count($out) >= 800) {
+                break;
+            }
+        }
+        return $out;
+    }
+
+    /**
+     * Recordings with their Tarteel report for director and admin analysis.
+     */
+    /**
+     * Editable analysis bands. Parents never see these; they only receive a sealed clip.
+     */
+    public function ensureTarteelBands($branchId)
+    {
+        if (!$this->db->table_exists('academy_tarteel_band')) {
+            $this->db->query("CREATE TABLE `academy_tarteel_band` (
+                `id` INT(11) NOT NULL AUTO_INCREMENT,
+                `branch_id` INT(11) NOT NULL,
+                `name` VARCHAR(40) NOT NULL,
+                `sort_order` INT(11) NOT NULL DEFAULT 0,
+                `strength_min_accuracy` DECIMAL(5,1) NOT NULL DEFAULT 75,
+                `strength_max_mistakes` INT(11) NOT NULL DEFAULT 1,
+                `weak_max_accuracy` DECIMAL(5,1) NOT NULL DEFAULT 60,
+                `weak_min_mistakes` INT(11) NOT NULL DEFAULT 4,
+                PRIMARY KEY (`id`),
+                KEY `idx_atb_branch` (`branch_id`)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8");
+        }
+        if (!$this->db->table_exists('academy_tarteel_student')) {
+            $this->db->query("CREATE TABLE `academy_tarteel_student` (
+                `branch_id` INT(11) NOT NULL,
+                `student_id` INT(11) NOT NULL,
+                `band_id` INT(11) NOT NULL,
+                PRIMARY KEY (`branch_id`, `student_id`)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8");
+        }
+        $n = (int) $this->db->where('branch_id', (int) $branchId)->count_all_results('academy_tarteel_band');
+        if ($n > 0) {
+            return;
+        }
+        $defaults = array(
+            array('Beginner', 1, 60, 3, 40, 6),
+            array('Medium', 2, 75, 1, 60, 4),
+            array('Advanced', 3, 90, 0, 75, 2),
+        );
+        foreach ($defaults as $d) {
+            $this->db->insert('academy_tarteel_band', array(
+                'branch_id' => (int) $branchId,
+                'name' => $d[0],
+                'sort_order' => $d[1],
+                'strength_min_accuracy' => $d[2],
+                'strength_max_mistakes' => $d[3],
+                'weak_max_accuracy' => $d[4],
+                'weak_min_mistakes' => $d[5],
+            ));
+        }
+    }
+
+    public function tarteelBands($branchId)
+    {
+        $this->ensureTarteelBands($branchId);
+        return $this->db->order_by('sort_order', 'ASC')->get_where('academy_tarteel_band', array(
+            'branch_id' => (int) $branchId,
+        ))->result();
+    }
+
+    public function tarteelStudentBands($branchId)
+    {
+        $this->ensureTarteelBands($branchId);
+        $map = array();
+        $rows = $this->db->get_where('academy_tarteel_student', array('branch_id' => (int) $branchId))->result();
+        foreach ($rows as $row) {
+            $map[(int) $row->student_id] = (int) $row->band_id;
+        }
+        return $map;
+    }
+
+    public function saveTarteelBands($branchId, $bands, $assignments)
+    {
+        $this->ensureTarteelBands($branchId);
+        $branchId = (int) $branchId;
+        $kept = array();
+        foreach ($bands as $band) {
+            $name = trim((string) $band['name']);
+            if ($name === '') {
+                continue;
+            }
+            $row = array(
+                'name' => substr($name, 0, 40),
+                'sort_order' => (int) $band['sort_order'],
+                'strength_min_accuracy' => max(0, min(100, (float) $band['strength_min_accuracy'])),
+                'strength_max_mistakes' => max(0, (int) $band['strength_max_mistakes']),
+                'weak_max_accuracy' => max(0, min(100, (float) $band['weak_max_accuracy'])),
+                'weak_min_mistakes' => max(1, (int) $band['weak_min_mistakes']),
+            );
+            $id = (int) $band['id'];
+            if ($id > 0) {
+                $this->db->where('id', $id)->where('branch_id', $branchId)->update('academy_tarteel_band', $row);
+                $kept[] = $id;
+            } else {
+                $row['branch_id'] = $branchId;
+                $this->db->insert('academy_tarteel_band', $row);
+                $kept[] = (int) $this->db->insert_id();
+            }
+        }
+        if (!empty($kept)) {
+            $this->db->where('branch_id', $branchId)->where_not_in('id', $kept)->delete('academy_tarteel_band');
+            $this->db->where('branch_id', $branchId)->where_not_in('band_id', $kept)->delete('academy_tarteel_student');
+        }
+        $valid = array();
+        foreach ($this->tarteelBands($branchId) as $band) {
+            $valid[(int) $band->id] = true;
+        }
+        foreach ($assignments as $studentId => $bandId) {
+            $studentId = (int) $studentId;
+            $bandId = (int) $bandId;
+            if ($studentId < 1 || empty($valid[$bandId])) {
+                continue;
+            }
+            $exists = $this->db->get_where('academy_tarteel_student', array(
+                'branch_id' => $branchId,
+                'student_id' => $studentId,
+            ))->row();
+            if ($exists) {
+                $this->db->where('branch_id', $branchId)->where('student_id', $studentId)->update('academy_tarteel_student', array(
+                    'band_id' => $bandId,
+                ));
+            } else {
+                $this->db->insert('academy_tarteel_student', array(
+                    'branch_id' => $branchId,
+                    'student_id' => $studentId,
+                    'band_id' => $bandId,
+                ));
+            }
+        }
+    }
+
+    public function tarteelVerdict($accuracy, $mistakes, $band)
+    {
+        $strengthAcc = $band ? (float) $band->strength_min_accuracy : 75;
+        $strengthMistakes = $band ? (int) $band->strength_max_mistakes : 1;
+        $weakAcc = $band ? (float) $band->weak_max_accuracy : 60;
+        $weakMistakes = $band ? (int) $band->weak_min_mistakes : 4;
+        $name = $band ? $band->name : 'Medium';
+        if ($accuracy !== null && $accuracy >= $strengthAcc && $mistakes <= $strengthMistakes) {
+            return array(
+                'verdict' => 'Strength',
+                'verdict_note' => $name . ': ' . $strengthAcc . '% or better, at most ' . $strengthMistakes . ' mistake' . ($strengthMistakes === 1 ? '' : 's') . '.',
+            );
+        }
+        if (($accuracy !== null && $accuracy < $weakAcc) || $mistakes >= $weakMistakes) {
+            return array(
+                'verdict' => 'Needs improving',
+                'verdict_note' => $name . ': below ' . $weakAcc . '% or ' . $weakMistakes . ' or more mistakes.',
+            );
+        }
+        return array(
+            'verdict' => 'Holding',
+            'verdict_note' => $name . ': between the strength line and the improve line.',
+        );
+    }
+
+    public function tarteelAnalyses($branchId, $studentId = 0, $limit = 60)
+    {
+        if (!$this->tahfizReady()) {
+            return array();
+        }
+        $cats = $this->recitationCategories();
+        $this->db->select('t.*, st.name AS teacher_name, TRIM(CONCAT_WS(" ", s.first_name, NULLIF(s.other_name,""), s.last_name)) AS student_name');
+        $this->db->from('academy_tahfiz_record t');
+        $this->db->join('student s', 's.id = t.student_id', 'left');
+        $this->db->join('staff st', 'st.id = t.instructor_id', 'left');
+        $this->db->where('t.branch_id', (int) $branchId);
+        if ((int) $studentId > 0) {
+            $this->db->where('t.student_id', (int) $studentId);
+        }
+        $this->db->order_by('t.completed_at', 'DESC');
+        $this->db->limit((int) $limit);
+        $rows = $this->db->get()->result();
+        $bands = array();
+        foreach ($this->tarteelBands($branchId) as $band) {
+            $bands[(int) $band->id] = $band;
+        }
+        $assigned = $this->tarteelStudentBands($branchId);
+        $medium = null;
+        foreach ($bands as $band) {
+            if (strcasecmp($band->name, 'Medium') === 0) {
+                $medium = $band;
+                break;
+            }
+        }
+        if ($medium === null && !empty($bands)) {
+            $medium = reset($bands);
+        }
+        foreach ($rows as $row) {
+            $ck = isset($row->recitation_category) ? strtoupper((string) $row->recitation_category) : '';
+            $row->category_label = isset($cats[$ck]) ? $cats[$ck] : '';
+            $row->portion_label = (string) $this->formatTahfizMilestoneLabel($row);
+            $row->play_url = $this->absoluteMediaUrl(isset($row->audio_url) ? $row->audio_url : '');
+            $row->tarteel = $this->tarteelReport(isset($row->mistake_breakdown) ? $row->mistake_breakdown : '');
+            $bandId = isset($assigned[(int) $row->student_id]) ? $assigned[(int) $row->student_id] : 0;
+            $band = ($bandId && isset($bands[$bandId])) ? $bands[$bandId] : $medium;
+            $row->band_name = $band ? $band->name : 'Medium';
+            $acc = ($row->accuracy_score !== null && $row->accuracy_score !== '') ? (float) $row->accuracy_score : null;
+            $mistakes = ($row->mistake_word_count !== null && $row->mistake_word_count !== '') ? (int) $row->mistake_word_count : 0;
+            $judged = $this->tarteelVerdict($acc, $mistakes, $band);
+            $row->verdict = $judged['verdict'];
+            $row->verdict_note = $judged['verdict_note'];
+        }
+        return $rows;
+    }
+
+    /**
+     * Strength, weakness, and what to improve across the recordings on screen.
+     */
+    public function tarteelInsight($rows)
+    {
+        $students = array();
+        $categories = array();
+        $types = array();
+        foreach ($rows as $row) {
+            $sid = (int) $row->student_id;
+            if (!isset($students[$sid])) {
+                $students[$sid] = array(
+                    'name' => $row->student_name,
+                    'n' => 0,
+                    'acc' => 0,
+                    'acc_n' => 0,
+                    'mistakes' => 0,
+                    'band' => isset($row->band_name) ? $row->band_name : 'Medium',
+                    'strengths' => array(),
+                    'weak' => array(),
+                );
+            }
+            $students[$sid]['n']++;
+            $students[$sid]['mistakes'] += (int) $row->mistake_word_count;
+            if ($row->accuracy_score !== null && $row->accuracy_score !== '') {
+                $students[$sid]['acc'] += (float) $row->accuracy_score;
+                $students[$sid]['acc_n']++;
+            }
+            $cat = $row->category_label !== '' ? $row->category_label : 'Uncategorised';
+            if (!isset($categories[$cat])) {
+                $categories[$cat] = array('n' => 0, 'acc' => 0, 'acc_n' => 0, 'mistakes' => 0, 'strength' => 0, 'weak' => 0);
+            }
+            $categories[$cat]['n']++;
+            $categories[$cat]['mistakes'] += (int) $row->mistake_word_count;
+            if ($row->accuracy_score !== null && $row->accuracy_score !== '') {
+                $categories[$cat]['acc'] += (float) $row->accuracy_score;
+                $categories[$cat]['acc_n']++;
+            }
+            if ($row->verdict === 'Strength') {
+                $categories[$cat]['strength']++;
+                $students[$sid]['strengths'][$row->portion_label . ($row->category_label !== '' ? ' · ' . $row->category_label : '')] = true;
+            }
+            if ($row->verdict === 'Needs improving') {
+                $categories[$cat]['weak']++;
+                $students[$sid]['weak'][] = $row->portion_label
+                    . ($row->category_label !== '' ? ' · ' . $row->category_label : '')
+                    . ' · ' . ($row->accuracy_score !== null && $row->accuracy_score !== '' ? $row->accuracy_score . '%' : 'no score')
+                    . ' · ' . (int) $row->mistake_word_count . ' mistakes';
+            }
+            if (!empty($row->tarteel['mistakes'])) {
+                foreach ($row->tarteel['mistakes'] as $m) {
+                    $label = $m['label'];
+                    if (!isset($types[$label])) {
+                        $types[$label] = 0;
+                    }
+                    $types[$label]++;
+                }
+            }
+        }
+        $people = array();
+        foreach ($students as $s) {
+            $s['avg'] = $s['acc_n'] > 0 ? round($s['acc'] / $s['acc_n'], 1) : null;
+            $s['strengths'] = array_keys($s['strengths']);
+            $people[] = $s;
+        }
+        $catRows = array();
+        foreach ($categories as $name => $c) {
+            $avg = $c['acc_n'] > 0 ? round($c['acc'] / $c['acc_n'], 1) : null;
+            $note = 'Holding';
+            if ($c['n'] > 0 && $c['strength'] >= $c['weak'] && $c['strength'] * 2 >= $c['n']) {
+                $note = 'Strength';
+            } elseif ($c['n'] > 0 && $c['weak'] > $c['strength']) {
+                $note = 'Needs improving';
+            }
+            $catRows[] = array(
+                'name' => $name,
+                'n' => $c['n'],
+                'avg' => $avg,
+                'mistakes' => $c['mistakes'],
+                'note' => $note,
+            );
+        }
+        arsort($types);
+        return array('students' => $people, 'categories' => $catRows, 'types' => $types);
     }
 
     /**
@@ -2101,7 +2948,7 @@ class Academy_model extends MY_Model
         $this->db->from('academy_tahfiz_record t');
         $this->db->join(
             'academy_class_session cs',
-            'cs.teacher_id = t.instructor_id AND cs.branch_id = t.branch_id AND cs.session_date = DATE(t.completed_at) AND cs.status = "acknowledged"',
+            'cs.teacher_id = t.instructor_id AND cs.branch_id = t.branch_id AND cs.session_date = DATE(t.completed_at) AND cs.status = "acknowledged" AND (cs.milestone_id = t.id OR (cs.milestone_id = 0 AND (cs.recitation_category = \'\' OR cs.recitation_category = t.recitation_category)))',
             'inner'
         );
         $this->db->join('staff st', 'st.id = t.instructor_id', 'left');
@@ -2175,14 +3022,15 @@ class Academy_model extends MY_Model
     /**
      * @return array<int,true>
      */
-    protected function recordedStudentIds($branchId, $studentIds, $date, $teacherId = 0)
+    protected function recordedStudentIds($branchId, $studentIds, $date, $teacherId = 0, $category = '')
     {
         $seen = array();
         if (empty($studentIds)) {
             return $seen;
         }
         $teacherId = (int) $teacherId;
-        if ($this->drillsReady()) {
+        $category = strtoupper(trim((string) $category));
+        if ($category === '' && $this->drillsReady()) {
             $this->db->select('student_id')->from('academy_daily_drill')
                 ->where('branch_id', (int) $branchId)
                 ->where('DATE(created_at)', $date)
@@ -2202,6 +3050,9 @@ class Academy_model extends MY_Model
                 ->where_in('student_id', $studentIds);
             if ($teacherId > 0) {
                 $this->db->where('instructor_id', $teacherId);
+            }
+            if ($category !== '' && $this->db->field_exists('recitation_category', 'academy_tahfiz_record')) {
+                $this->db->where('recitation_category', $category);
             }
             $rows = $this->db->group_by('student_id')->get()->result();
             foreach ($rows as $r) {

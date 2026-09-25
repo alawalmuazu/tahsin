@@ -560,11 +560,14 @@ endif;
 						<?php } if ($guardian_mobile_no['status']) { ?>
 						<div class="col-md-<?php echo $div ?> mb-sm">
 							<div class="form-group">
-								<label class="control-label"><?=translate('mobile_no')?><?php echo $guardian_mobile_no['required'] == 1 ? ' <span class="required">*</span>' : ''; ?></label>
+								<label class="control-label"><?=translate('mobile_no')?><?php echo $guardian_mobile_no['required'] == 1 ? ' <span class="required">*</span>' : ''; ?>
+									<button type="button" class="btn btn-default btn-xs" id="add-parent-phone" title="Add another phone number" style="margin-left:6px;"><i class="fas fa-plus"></i></button>
+								</label>
 								<div class="input-group">
 									<span class="input-group-addon"><i class="fas fa-phone-volume"></i></span>
 									<input class="form-control" name="grd_mobileno" type="text" value="<?=set_value('grd_mobileno')?>">
 								</div>
+								<?php $this->load->view('parents/_extra_phones'); ?>
 								<span class="error"></span>
 							</div>
 						</div>

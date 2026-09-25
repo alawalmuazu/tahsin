@@ -198,6 +198,56 @@ class Parents extends Admin_Controller
     }
 
     /* parents delete  */
+    public function approve($id = '')
+    {
+        if (!is_superadmin_loggedin() && !is_admin_loggedin() && !is_director_loggedin()) {
+            access_denied();
+        }
+        if (!get_permission('parent', 'is_edit')) {
+            access_denied();
+        }
+        if ($this->parents_model->approvePortal($id)) {
+            set_alert('success', 'Parent approved. They can sign in with password 123456 and must change it immediately.');
+        } else {
+            set_alert('error', 'Parent could not be approved.');
+        }
+        redirect(base_url('parents/approvals'));
+    }
+
+    public function reject($id = '')
+    {
+        if (!is_superadmin_loggedin() && !is_admin_loggedin() && !is_director_loggedin()) {
+            access_denied();
+        }
+        if (!get_permission('parent', 'is_edit')) {
+            access_denied();
+        }
+        $login = $this->db->get_where('login_credential', array('role' => 6, 'user_id' => (int) $id, 'active' => 0))->row();
+        if ($login) {
+            $this->db->where('id', (int) $login->id)->delete('login_credential');
+            set_alert('success', 'Parent application rejected. The pending login was removed. The parent profile and children stay.');
+        } else {
+            set_alert('error', 'No pending parent login was found.');
+        }
+        redirect(base_url('parents/approvals'));
+    }
+
+    public function approvals()
+    {
+        if (!is_superadmin_loggedin() && !is_admin_loggedin() && !is_director_loggedin()) {
+            access_denied();
+        }
+        if (!get_permission('parent', 'is_view')) {
+            access_denied();
+        }
+        $branchID = $this->application_model->get_branch_id();
+        $this->data['pending_parents'] = $this->parents_model->getParentList($branchID, 0);
+        $this->data['title'] = 'Parent Approvals';
+        $this->data['sub_page'] = 'parents/approvals';
+        $this->data['main_menu'] = 'parents';
+        $this->load->view('layout/index', $this->data);
+    }
+
     public function delete($id = '')
     {
         // check access permission
@@ -226,7 +276,9 @@ class Parents extends Admin_Controller
         $parent_id = $this->input->post('parent_id');
         if (!empty($parent_id)) {
             $login_id = $this->app_lib->get_credential_id($parent_id, 'parent');
-            $this->db->where_not_in('id', $login_id);
+            if (!empty($login_id)) {
+                $this->db->where_not_in('id', $login_id);
+            }
         }
         $this->db->where('username', $username);
         $query = $this->db->get('login_credential');
@@ -252,13 +304,20 @@ class Parents extends Admin_Controller
         if ($this->form_validation->run() !== false) {
             $parentID = $this->input->post('parent_id');
             $password = $this->input->post('password');
-            if (!isset($_POST['authentication'])) {
-                $this->db->where('role', 6);
-                $this->db->where('user_id', $parentID);
-                $this->db->update('login_credential', array('password' => $this->app_lib->pass_hashed($password), 'must_change_password' => 1, 'active' => 1));
+            $login = $this->db->get_where('login_credential', array('role' => 6, 'user_id' => $parentID))->row();
+            if (!$login) {
+                $parentRow = $this->db->select('email')->where('id', $parentID)->get('parent')->row();
+                $username = ($parentRow && trim((string) $parentRow->email) !== '') ? trim($parentRow->email) : ('parent' . (int) $parentID);
+                $cred = $this->app_lib->buildPortalCredential(6, $parentID, $username, false);
+                if (!isset($_POST['authentication']) && $password !== '') {
+                    $cred['password'] = $this->app_lib->pass_hashed($password);
+                }
+                $this->db->insert('login_credential', $cred);
+            } elseif (!isset($_POST['authentication'])) {
+                $this->db->where('id', (int) $login->id);
+                $this->db->update('login_credential', array('password' => $this->app_lib->pass_hashed($password), 'must_change_password' => 1));
             } else {
-                $this->db->where('role', 6);
-                $this->db->where('user_id', $parentID);
+                $this->db->where('id', (int) $login->id);
                 $this->db->update('login_credential', array('active' => 0));
             }
             set_alert('success', translate('information_has_been_updated_successfully'));
@@ -393,7 +452,7 @@ class Parents extends Admin_Controller
                 $this->session->set_userdata('myChildren_id', $r->student_id);
                 $this->session->set_userdata('enrollID', $r->id);
             }
-            redirect($_SERVER['HTTP_REFERER']);
+            redirect(base_url('dashboard'));
         } else {
             $this->session->set_userdata('last_page', current_url());
             redirect(base_url(), 'refresh');
@@ -402,12 +461,15 @@ class Parents extends Admin_Controller
 
     public function my_children($id = '')
     {
-        if (is_parent_loggedin()) {
-            $this->session->set_userdata('myChildren_id', '');
-            redirect(base_url('dashboard'));
-        } else {
+        if (!is_parent_loggedin()) {
             $this->session->set_userdata('last_page', current_url());
             redirect(base_url(), 'refresh');
         }
+        $this->data['title'] = translate('my_children');
+        $this->data['student_id'] = 0;
+        $this->data['school_id'] = get_loggedin_branch_id();
+        $this->data['sub_page'] = 'userrole/dashboard';
+        $this->data['main_menu'] = 'dashboard';
+        $this->load->view('layout/index', $this->data);
     }
 }

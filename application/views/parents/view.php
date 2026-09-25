@@ -79,7 +79,20 @@
 							<?php } ?>
 								<td><?php echo html_escape($row->name);?></td>
 								<td><?php echo html_escape($row->occupation);?></td>
-								<td><?php echo html_escape($row->mobileno);?></td>
+								<td><?php
+									echo html_escape($row->mobileno);
+									if (!empty($row->extra_phones)) {
+										$more = json_decode($row->extra_phones, true);
+										if (is_array($more)) {
+											foreach ($more as $phone) {
+												$phone = trim((string) $phone);
+												if ($phone !== '') {
+													echo '<br>' . html_escape($phone);
+												}
+											}
+										}
+									}
+								?></td>
 								<td><?php echo html_escape($row->email);?></td>
 							<?php
 							if (count($show_custom_fields)) {

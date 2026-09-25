@@ -1,7 +1,12 @@
 <section class="panel">
 	<?php if (is_force_password_change()) { ?>
 	<div class="alert alert-warning" style="margin: 15px 15px 0;">
-		<strong>Password update required.</strong> You must set a new password before using the portal. Use the temporary password you were given as the current password.
+		<strong>Change your password before you continue.</strong>
+		<?php if (is_parent_loggedin()) { ?>
+		Use <code>123456</code> as the current password. After it is saved you will be signed out, then sign in with the new password. The next screen asks you to install the Tahsin app.
+		<?php } else { ?>
+		Use the temporary password you were given as the current password.
+		<?php } ?>
 	</div>
 	<?php } ?>
 	<div class="tabs-custom">

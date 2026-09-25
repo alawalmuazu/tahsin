@@ -53,6 +53,23 @@ class Tahfiz extends Admin_Controller
                     redirect(base_url('tahfiz'));
                 }
 
+                $completedAt = $this->input->post('completed_at')
+                    ? date('Y-m-d H:i:s', strtotime($this->input->post('completed_at')))
+                    : date('Y-m-d H:i:s');
+                $prior = $this->academy_model->priorMilestoneMessage(array(
+                    'student_id' => $this->input->post('student_id'),
+                    'instructor_id' => get_loggedin_user_id(),
+                    'surah_number' => $this->input->post('surah_number'),
+                    'recitation_category' => $cat,
+                    'ayah_from' => $this->input->post('ayah_from'),
+                    'ayah_to' => $this->input->post('ayah_to'),
+                    'completed_at' => $completedAt,
+                ));
+                if ($prior !== '') {
+                    set_alert('error', $prior);
+                    redirect(base_url('tahfiz'));
+                }
+
                 $this->academy_model->saveTahfiz(array(
                     'branch_id' => $branchID,
                     'student_id' => $this->input->post('student_id'),
@@ -66,9 +83,7 @@ class Tahfiz extends Admin_Controller
                     'page_to' => $this->input->post('page_to'),
                     'verified' => $this->input->post('verified') ? 1 : 0,
                     'akhlaq_note' => $this->input->post('akhlaq_note'),
-                    'completed_at' => $this->input->post('completed_at')
-                        ? date('Y-m-d H:i:s', strtotime($this->input->post('completed_at')))
-                        : date('Y-m-d H:i:s'),
+                    'completed_at' => $completedAt,
                     'accuracy_score' => $this->input->post('accuracy_score'),
                     'mistake_word_count' => $this->input->post('mistake_word_count'),
                     'audio_url' => $this->input->post('audio_url'),
@@ -77,7 +92,7 @@ class Tahfiz extends Admin_Controller
                     'tarteel_status' => $this->input->post('accuracy_score') !== '' && $this->input->post('accuracy_score') !== null
                         ? 'VERIFIED' : 'UNVERIFIED',
                 ));
-                $progress = $this->academy_model->touchTeacherSession($branchID, (int) $this->input->post('student_id'));
+                $progress = $this->academy_model->touchTeacherSession($branchID, (int) $this->input->post('student_id'), null, null, $cat);
                 set_alert('success', 'Tahfiz record saved.' . ($progress ? ' ' . $progress : ''));
                 redirect(base_url('tahfiz'));
             }

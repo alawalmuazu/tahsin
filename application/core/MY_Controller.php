@@ -122,6 +122,29 @@ class MY_Controller extends CI_Controller
         $name = trim((string) $name);
         return ($name === '') ? SCHOOL_NAME : $name;
     }
+
+    protected function enforceParentInstall()
+    {
+        if (!function_exists('is_parent_loggedin') || !is_parent_loggedin() || is_force_password_change()) {
+            return;
+        }
+        if (!$this->db->field_exists('pwa_required', 'login_credential')) {
+            return;
+        }
+        $row = $this->db->select('pwa_required')->where('id', get_loggedin_id())->get('login_credential')->row();
+        if (!$row || (int) $row->pwa_required !== 1) {
+            return;
+        }
+        $class = $this->router->fetch_class();
+        $method = $this->router->fetch_method();
+        if ($class === 'profile' && ($method === 'install_app' || $method === 'pwa_done')) {
+            return;
+        }
+        if ($class === 'authentication' && $method === 'logout') {
+            return;
+        }
+        redirect(base_url('profile/install_app'));
+    }
 }
 
 class Admin_Controller extends MY_Controller
@@ -134,6 +157,7 @@ class Admin_Controller extends MY_Controller
             redirect(base_url('authentication'));
         }
         $this->enforcePasswordChange();
+        $this->enforceParentInstall();
     }
 
     protected function enforcePasswordChange()
@@ -169,6 +193,7 @@ class User_Controller extends MY_Controller
                 redirect(base_url('profile/password'));
             }
         }
+        $this->enforceParentInstall();
     }
 }
 

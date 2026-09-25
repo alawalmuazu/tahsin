@@ -157,14 +157,20 @@
 
     <?php
     $alertclass = "";
-    if ($this->session->flashdata('alert-message-success')) {
+    if (!empty($password_changed) || $this->uri->segment(3) === 'changed') {
+        $alertclass = "success";
+        $alert_message = 'Password changed. Sign in again with your new password.';
+    } elseif ($this->session->flashdata('alert-message-success')) {
         $alertclass = "success";
     } elseif ($this->session->flashdata('alert-message-error')) {
         $alertclass = "error";
     } elseif ($this->session->flashdata('alert-message-info')) {
         $alertclass = "info";
     }
-    if ($alertclass != ''): $alert_message = $this->session->flashdata('alert-message-' . $alertclass);
+    if ($alertclass != '') {
+        if (empty($alert_message)) {
+            $alert_message = $this->session->flashdata('alert-message-' . $alertclass);
+        }
     ?>
     <script>
         swal({
@@ -177,7 +183,7 @@
             timer: 8000
         });
     </script>
-    <?php endif; ?>
+    <?php } ?>
 
     <?php $this->load->view('layout/pwa_install'); ?>
 

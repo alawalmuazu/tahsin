@@ -29,7 +29,7 @@
                             <i class="icons icon-grid"></i><span><?=translate('dashboard')?></span>
                         </a>
                         <ul class="nav nav-children">
-                            <li class="<?php if ($sub_page == 'userrole/dashboard' && empty(get_activeChildren_id())) echo 'nav-active'; ?>">
+                            <li class="<?php if ($this->uri->segment(1) == 'parents' && $this->uri->segment(2) == 'my_children') echo 'nav-active'; ?>">
                                 <a href="<?=base_url('parents/my_children')?>">
                                     <i class="fab fa-slideshare"></i><span><?=translate('my_children')?></span>
                                 </a>

@@ -34,36 +34,42 @@ class Parents_model extends MY_Model
             'linkedin_url' => $data['linkedin'],
             'twitter_url' => $data['twitter'],
         );
+        if ($this->db->field_exists('extra_phones', 'parent')) {
+            $phones = isset($data['extra_phones']) && is_array($data['extra_phones']) ? $data['extra_phones'] : array();
+            $clean = array();
+            foreach ($phones as $phone) {
+                $phone = trim((string) $phone);
+                if ($phone !== '') {
+                    $clean[] = $phone;
+                }
+            }
+            $inser_data1['extra_phones'] = json_encode(array_values($clean));
+        }
         
         if (!isset($data['parent_id']) && empty($data['parent_id'])) {
             // save employee information in the database
             $this->db->insert('parent', $inser_data1);
             $parent_id = $this->db->insert_id();
-            $enable_login = !empty($data['enable_login']);
             $email = trim((string) $data['email']);
             $username = $email !== '' ? $email : ('parent' . $parent_id);
-            $inser_data2 = $this->app_lib->buildPortalCredential(6, $parent_id, $username, $enable_login);
+            $inser_data2 = $this->app_lib->buildPortalCredential(6, $parent_id, $username, false);
             $this->db->insert('login_credential', $inser_data2);
-            $username = $inser_data2['username'];
-            $password = $enable_login ? $this->app_lib->defaultPasswordForRole(6) : '';
-
-            if ($enable_login && $email !== '') {
-                $emailData = array(
-                    'name' => $data['name'],
-                    'username' => $username,
-                    'password' => $password,
-                    'user_role' => 6,
-                    'email' => $data['email'],
-                );
-                $this->email_model->sentStaffRegisteredAccount($emailData);
-            }
             return $parent_id;
         } else {
             $this->db->where('id', $data['parent_id']);
             $this->db->update('parent', $inser_data1);
-            // update login credential information in the database
-            $this->db->where(array('role' => 6, 'user_id' => $data['parent_id']));
-            $this->db->update('login_credential', array('username' => $data['username']));
+            $parent_id = (int) $data['parent_id'];
+            $username = isset($data['username']) ? trim((string) $data['username']) : '';
+            if ($username === '') {
+                $username = 'parent' . $parent_id;
+            }
+            $login = $this->db->get_where('login_credential', array('role' => 6, 'user_id' => $parent_id))->row();
+            if ($login) {
+                $this->db->where('id', (int) $login->id);
+                $this->db->update('login_credential', array('username' => $username));
+            } else {
+                $this->db->insert('login_credential', $this->app_lib->buildPortalCredential(6, $parent_id, $username, false));
+            }
         }
 
         if ($this->db->affected_rows() > 0) {
@@ -77,7 +83,7 @@ class Parents_model extends MY_Model
     {
         $this->db->select('parent.*,login_credential.role as role_id,login_credential.active,login_credential.username,login_credential.id as login_id, roles.name as role');
         $this->db->from('parent');
-        $this->db->join('login_credential', 'login_credential.user_id = parent.id and login_credential.role = "6"', 'inner');
+        $this->db->join('login_credential', 'login_credential.user_id = parent.id and login_credential.role = "6"', 'left');
         $this->db->join('roles', 'roles.id = login_credential.role', 'left');
         $this->db->where('parent.id', $id);
         if (!is_superadmin_loggedin()) {
@@ -108,7 +114,7 @@ class Parents_model extends MY_Model
     // $active: null = all parents; 1 = portal login enabled; 0 = disabled / no credential
     public function getParentList($branchID = null, $active = null)
     {
-        $this->db->select('parent.*,login_credential.active as active,login_credential.id as login_id');
+        $this->db->select('parent.*,login_credential.active as active,login_credential.id as login_id,login_credential.username as login_username,login_credential.created_at as login_created');
         $this->db->select('(SELECT GROUP_CONCAT(first_name SEPARATOR ", ") FROM student WHERE student.parent_id = parent.id) as children_names');
         $this->db->select('(SELECT COUNT(id) FROM student WHERE student.parent_id = parent.id) as children_count');
         $this->db->from('parent');
@@ -128,6 +134,46 @@ class Parents_model extends MY_Model
         }
         $this->db->order_by('parent.id', 'ASC');
         return $this->db->get()->result();
+    }
+
+    /**
+     * Director or admin approves a parent. Login stays off until this runs.
+     * The temporary password is 123456 and must be changed on first sign-in.
+     */
+    public function approvePortal($parentId)
+    {
+        $parentId = (int) $parentId;
+        $parent = $this->db->where('id', $parentId)->get('parent')->row();
+        if (!$parent) {
+            return false;
+        }
+        $email = trim((string) $parent->email);
+        $username = $email !== '' ? $email : ('parent' . $parentId);
+        $password = $this->app_lib->pass_hashed($this->app_lib->defaultPasswordForRole(6));
+        $login = $this->db->get_where('login_credential', array('role' => 6, 'user_id' => $parentId))->row();
+        $fields = array(
+            'active' => 1,
+            'password' => $password,
+            'must_change_password' => 1,
+        );
+        if ($this->db->field_exists('pwa_required', 'login_credential')) {
+            $fields['pwa_required'] = 0;
+        }
+        if ($login) {
+            if ($email !== '' && (empty($login->username) || $login->username === ('parent' . $parentId))) {
+                $fields['username'] = $this->app_lib->uniqueLoginUsername($username, (int) $login->id);
+            }
+            $this->db->where('id', (int) $login->id)->update('login_credential', $fields);
+        } else {
+            $cred = $this->app_lib->buildPortalCredential(6, $parentId, $username, true);
+            $cred['password'] = $password;
+            $cred['must_change_password'] = 1;
+            if ($this->db->field_exists('pwa_required', 'login_credential')) {
+                $cred['pwa_required'] = 0;
+            }
+            $this->db->insert('login_credential', $cred);
+        }
+        return true;
     }
 
     // CSV import single parent row

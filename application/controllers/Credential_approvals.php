@@ -20,13 +20,21 @@ class Credential_approvals extends Admin_Controller
         $branch_id = $this->application_model->get_branch_id();
         
         // Fetch registration settings
-        $this->data['reg_settings'] = $this->db->select('staff_registration_enabled, staff_registration_deadline')->where('id', 1)->get('global_settings')->row();
+        if ($this->db->field_exists('staff_registration_enabled', 'global_settings')) {
+            $this->data['reg_settings'] = $this->db->select('staff_registration_enabled, staff_registration_deadline')->where('id', 1)->get('global_settings')->row();
+        } else {
+            $this->data['reg_settings'] = (object) array(
+                'staff_registration_enabled' => 1,
+                'staff_registration_deadline' => null,
+            );
+        }
         
         // Fetch all pending login_credentials
         $this->db->select('lc.*, r.name as role_name');
         $this->db->from('login_credential lc');
         $this->db->join('roles r', 'r.id = lc.role', 'left');
         $this->db->where('lc.active', 0); // 0 = Pending Approval
+        $this->db->where_not_in('lc.role', array(6, 7));
         $this->db->order_by('lc.id', 'DESC');
         $pending = $this->db->get()->result();
         
@@ -269,6 +277,10 @@ class Credential_approvals extends Admin_Controller
         $enabled = $this->input->post('staff_registration_enabled') ? 1 : 0;
         $deadline = $this->input->post('staff_registration_deadline');
 
+        if (!$this->db->field_exists('staff_registration_enabled', 'global_settings')) {
+            set_alert('error', 'Run application/migrations/add_registration_settings.sql before saving registration settings.');
+            redirect(base_url('credential_approvals'));
+        }
         $update_data = array(
             'staff_registration_enabled' => $enabled,
             'staff_registration_deadline' => empty($deadline) ? NULL : date('Y-m-d', strtotime($deadline))

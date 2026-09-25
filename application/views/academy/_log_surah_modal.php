@@ -52,6 +52,19 @@
 .ls-ayah-num{display:inline-flex;align-items:center;justify-content:center;width:1.4em;height:1.4em;margin:0 .15rem 0 .3rem;border-radius:50%;border:1.5px solid #78716c;color:#44403c;font-size:.7rem;font-weight:700;font-family:system-ui,sans-serif;line-height:1;vertical-align:middle;background:#fff;box-shadow:inset 0 0 0 1px #e7e5e4}
 .ls-arabic--night .ls-ayah-num{background:#1e293b;border-color:#64748b;color:#cbd5e1;box-shadow:none}
 .ls-word{display:inline;padding:0 1px;margin:0 1px;border-radius:3px;border:none;background:transparent;transition:background .15s,color .15s,box-shadow .15s}
+.ls-letter{display:inline-block;border-radius:4px}
+.ls-letter-0{color:#1d4ed8 !important;background:#dbeafe}
+.ls-letter-1{color:#0f766e !important;background:#ccfbf1}
+.ls-letter-2{color:#c2410c !important;background:#ffedd5}
+.ls-letter-3{color:#7e22ce !important;background:#f3e8ff}
+.ls-vowel{color:#ea580c !important;font-weight:700}
+.ls-fatha{color:#ea580c !important}
+.ls-kasra{color:#1d4ed8 !important}
+.ls-damma{color:#be123c !important}
+.ls-shadda{color:#7c3aed !important}
+.ls-sukun{color:#0f766e !important}
+.ls-word-muraja{color:#1d4ed8 !important}
+.ls-wasl{color:#1d4ed8 !important;background:#dbeafe;border-radius:3px;font-weight:700}
 .ls-word-matched{color:#047857;background:transparent}
 .ls-word-active{color:#064e3b;background:#cfffea;box-shadow:inset 0 -2px 0 #34d399;font-weight:700}
 .ls-word-mistake{color:#be123c;background:rgba(244,63,94,.14);box-shadow:inset 0 -2px 0 #f43f5e}
@@ -274,6 +287,13 @@
 							</div>
 							<div class="ls-mushaf-toolbar">
 								<div id="ls_mushaf_chrome" class="ls-mushaf-chrome" style="display:none"></div>
+								<select id="ls_text_format" class="form-control input-sm" style="width:auto;max-width:220px" aria-label="Uthmani text format">
+									<option value="novice">Novice — letter and vowel</option>
+									<option value="beginner">Beginner — vowels marked</option>
+									<option value="medium" selected>Medium — Uthmani</option>
+									<option value="advanced">Advanced — mushaf line</option>
+									<option value="muraja">Muraja'a — letters only</option>
+								</select>
 								<div class="ls-theme-toggle" role="group" aria-label="Mushaf theme">
 									<button type="button" id="ls_theme_paper" class="active" data-theme="paper">Paper</button>
 									<button type="button" id="ls_theme_night" data-theme="night">Night</button>

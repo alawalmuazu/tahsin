@@ -656,7 +656,8 @@ input[type="number"] {
 	padding: 30px 0;
 	border-radius: 8px;
 	position: relative;
-	background-image: url(../images/profile_bg.jpg);
+	background-color: #10241e;
+	background-image: linear-gradient(115deg, #10241e 0%, #1a6b3c 55%, #c866a1 100%);
 	background-repeat: no-repeat;
 	background-position: center;
 	background-size: cover;

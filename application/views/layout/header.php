@@ -23,7 +23,7 @@
 					foreach ($element as $keyjs => $js) {
 						$jsFile = FCPATH . 'assets/' . $js;
 						$ver = is_file($jsFile) ? filemtime($jsFile) : version_combine();
-						echo '<script defer src="' . base_url('assets/' . $js) . '?v=' . $ver . '"></script>' . "\n";
+						echo '<script src="' . base_url('assets/' . $js) . '?v=' . $ver . '"></script>' . "\n";
 					}
 				}
 			}
@@ -31,7 +31,7 @@
 	}
 	?>
 	<!-- ramom css -->
-	<link rel="stylesheet" href="<?php echo base_url('assets/css/ramom.css?v=' . version_combine());?>">
+	<link rel="stylesheet" href="<?php echo base_url('assets/css/ramom.css?v=' . (is_file(FCPATH . 'assets/css/ramom.css') ? filemtime(FCPATH . 'assets/css/ramom.css') : version_combine()));?>">
 	<?php if ($theme_config["border_mode"] == 'false'): ?>
 		<link rel="stylesheet" href="<?php echo base_url('assets/css/skins/square-borders.css?v=' . version_combine());?>">
 	<?php endif; ?>

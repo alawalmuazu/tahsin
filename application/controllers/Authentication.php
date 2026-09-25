@@ -24,6 +24,7 @@ class Authentication extends Authentication_Controller
         if (is_loggedin()) {
             redirect(base_url('dashboard'));
         }
+        $this->data['password_changed'] = ($url_alias === 'changed');
 
         if ($_POST) {
             $rules = array(
@@ -151,7 +152,7 @@ class Authentication extends Authentication_Controller
                             );
                         }
                         if ($login_credential->active == 0) {
-                            set_alert('error', 'Your account has been registered and is currently pending review and approval by the Director. You will be able to log in once approved.');
+                            set_alert('error', 'Your account is waiting for a director or an admin to approve it. You can sign in after that approval.');
                         } else {
                             set_alert('error', translate('inactive_account'));
                         }

@@ -16,11 +16,27 @@
 			<div class="col-md-12 col-lg-5 col-xl-5">
 				<h5><?=html_escape($parent['name'])?></h5>
 				<p><?=ucfirst('parent')?></p>
+				<?php if (empty($parent['username']) || (string) $parent['active'] !== '1'): ?>
+					<div class="alert alert-warning" style="margin-top:10px">This parent cannot sign in yet. A director or an admin must approve the account from the parents list. After approval the username is the email and the temporary password is 123456.</div>
+				<?php endif; ?>
 				<ul>
 					<li><div class="icon-holder" data-toggle="tooltip" data-original-title="<?=translate('relation')?>"><i class="fas fa-bezier-curve"></i></div> <?=html_escape($parent['relation'])?></li>
 					<li><div class="icon-holder" data-toggle="tooltip" data-original-title="<?=translate('occupation')?>"><i class="fas fa-user-tag"></i></div> <?=html_escape(empty($parent['occupation']) ? 'N/A' : $parent['occupation']);?></li>
 					<li><div class="icon-holder" data-toggle="tooltip" data-original-title="<?=translate('income')?>"><i class="fas fa-dollar-sign"></i></div> <?=html_escape(empty($parent['income']) ? 'N/A' : $parent['income']);?></li>
-					<li><div class="icon-holder" data-toggle="tooltip" data-original-title="<?=translate('mobile_no')?>"><i class="fas fa-phone"></i></div> <?=html_escape(empty($parent['mobileno']) ? 'N/A' : $parent['mobileno']);?></li>
+					<li><div class="icon-holder" data-toggle="tooltip" data-original-title="<?=translate('mobile_no')?>"><i class="fas fa-phone"></i></div> <?php
+						echo html_escape(empty($parent['mobileno']) ? 'N/A' : $parent['mobileno']);
+						if (!empty($parent['extra_phones'])) {
+							$more = json_decode($parent['extra_phones'], true);
+							if (is_array($more)) {
+								foreach ($more as $phone) {
+									$phone = trim((string) $phone);
+									if ($phone !== '') {
+										echo '<br>' . html_escape($phone);
+									}
+								}
+							}
+						}
+					?></li>
 					<li><div class="icon-holder" data-toggle="tooltip" data-original-title="<?=translate('email')?>"><i class="far fa-envelope"></i></div> <?=html_escape(!empty($parent['email']) ? $parent['email'] : 'N/A')?></li>
 					<li><div class="icon-holder" data-toggle="tooltip" data-original-title="<?=translate('address')?>"><i class="fas fa-home"></i></div> <?=html_escape(!empty($parent['address']) ? $parent['address'] : 'N/A'); ?></li>
 				</ul>
@@ -158,11 +174,23 @@
 						</div>
 						<div class="col-md-3 mb-sm">
 							<div class="form-group">
-								<label class="control-label"><?=translate('mobile_no')?> <span class="required">*</span></label>
+								<label class="control-label"><?=translate('mobile_no')?> <span class="required">*</span>
+									<button type="button" class="btn btn-default btn-xs" id="add-parent-phone" title="Add another phone number" style="margin-left:6px;"><i class="fas fa-plus"></i></button>
+								</label>
 								<div class="input-group">
 									<span class="input-group-addon"><i class="fas fa-phone-volume"></i></span>
 									<input class="form-control" name="mobileno" type="text" value="<?=set_value('mobileno', $parent['mobileno'])?>" autocomplete="off" />
 								</div>
+								<?php
+									$extra_phones = array();
+									if (!empty($parent['extra_phones'])) {
+										$decoded = json_decode($parent['extra_phones'], true);
+										if (is_array($decoded)) {
+											$extra_phones = $decoded;
+										}
+									}
+									$this->load->view('parents/_extra_phones', array('extra_phones' => $extra_phones));
+								?>
 								<span class="error"><?php echo form_error('mobileno'); ?></span>
 							</div>
 						</div>
