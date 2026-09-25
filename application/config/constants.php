@@ -24,7 +24,7 @@ define('SCHOOL_MOTTO', 'Excellence In Deen & Duniya');
 define('DEFAULT_PAY_VIA', 4); // Bank Transfer (offline) — see payment_types.id
 define('SCHOOL_FEE_AMOUNT', 2500000);
 define('DEFAULT_PASSWORD_STAFF', 'TahsinStaff@1');
-define('DEFAULT_PASSWORD_PARENT', 'TahsinParent@1');
+define('DEFAULT_PASSWORD_PARENT', '123456');
 define('DEFAULT_PASSWORD_STUDENT', 'TahsinStudent@1');
 
 /*
