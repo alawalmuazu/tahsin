@@ -430,7 +430,7 @@ flowchart TD
                         <tr><td><strong>Money / ops</strong></td><td><code>Fees</code>, <code>Feespayment</code>, <code>Accounting</code>, <code>Payroll</code>, <code>Advance_salary</code>, <code>Inventory</code>, <code>Transport</code>, <code>Hostels</code>, <code>Library</code></td></tr>
                         <tr><td><strong>Comms / CMS</strong></td><td><code>Communication</code>, <code>Sendsmsmail</code>, <code>Event</code>, <code>Home</code> + <code>frontend/*</code></td></tr>
                         <tr><td><strong>Admin</strong></td><td><code>Branch</code>, <code>Role</code>, <code>Sessions</code>, <code>Settings</code>, <code>School_settings</code>, <code>Modules</code>, <code>Backup</code>, <code>Translations</code>, <code>Custom_field</code></td></tr>
-                                        <tr><td>Academy</td><td><code>Academy_review</code>, <code>Academy_students</code>, <code>Academy_performance</code>, <code>Tahfiz</code>, <code>Academy_genome</code>, <code>Academy_broadcast</code></td><td>Assign, session review, halaqah tahfiz, drills, genome, broadcast (see §8)</td></tr>
+                                        <tr><td>Academy</td><td><code>Academy_review</code>, <code>Academy_students</code>, <code>Academy_performance</code>, <code>Tahfiz</code>, <code>Academy_genome</code>, <code>Academy_broadcast</code></td><td>Assign, session review by category/milestone, Tarteel analysis and settings, halaqah tahfiz, drills, genome, broadcast (see §8)</td></tr>
 </tbody>
                 </table>
             </div>
@@ -440,11 +440,11 @@ flowchart TD
 
         <section id="academy" class="glass-panel">
             <h2>8. Academy reporting layer</h2>
-            <p>Sidebar group <strong>Academy</strong> (<code>main_menu = academy</code>). Data layer: <code>Academy_model</code>. Migrations: <code>application/migrations/academy_engine.sql</code>, <code>academy_engine_v2.sql</code>, <code>recitation_categories.sql</code>, <code>clean_akhlaq_telemetry_tags.sql</code>, <code>academy_session_review.sql</code>.</p>
-            <p><strong>Session review:</strong> Admin, director, or superadmin assigns students on <code>academy_review/assign</code>. Tick many students and save once; the save replaces only that teacher’s list. Filters: name or register number, Student Category (<code>pwd_category</code>), Section, Class, and Programme Category (<code>student_category</code>). A student may sit on several teachers at once. The assignment unique key is branch + academic session + teacher + student (<code>uq_ats_teacher_student</code>). Each teacher records only their own list. When every assigned student has an entry from that teacher for the day, the session moves <code>recording</code> → <code>pending_director</code> and the director (and superadmin) get a bell notice. Director approve moves it to <code>pending_admin</code> and notifies the teacher; reject notifies the teacher and the next complete save can resubmit. Admin acknowledge publishes that teacher’s scores on the parent and student dashboards and sends today’s WhatsApp digest for that teacher’s assigned students; reject notifies the director and the teacher. Other teachers’ work stays hidden until their own sessions are acknowledged.</p>
+            <p>Sidebar group <strong>Academy</strong> (<code>main_menu = academy</code>). Data layer: <code>Academy_model</code>. Migrations: <code>application/migrations/academy_engine.sql</code>, <code>academy_engine_v2.sql</code>, <code>recitation_categories.sql</code>, <code>clean_akhlaq_telemetry_tags.sql</code>, <code>academy_session_review.sql</code>, <code>academy_session_by_category.sql</code>.</p>
+            <p><strong>Session review:</strong> Admin, director, or superadmin assigns students on <code>academy_review/assign</code>. Tick many students and save once; the save replaces only that teacher’s list. Filters: name or register number, Student Category (<code>pwd_category</code>), Section, Class, and Programme Category (<code>student_category</code>). A student may sit on several teachers at once. The assignment unique key is branch + academic session + teacher + student (<code>uq_ats_teacher_student</code>). Each teacher records only their own list. A session is unique per teacher, day, recitation category, and tahfiz milestone (<code>uq_acs_milestone</code>). Saving the same portion again the same day is refused with the earlier date and time. A different ayah or category opens a new director review. When every assigned student has an entry from that teacher for that category’s day, the session moves <code>recording</code> → <code>pending_director</code> and the director (and superadmin) get a bell notice. Director approve moves it to <code>pending_admin</code> and notifies the teacher; reject notifies the teacher and the next complete save can resubmit. Admin acknowledge publishes that teacher’s scores on the parent and student dashboards and sends today’s WhatsApp digest for that teacher’s assigned students; reject notifies the director and the teacher. Other teachers’ work stays hidden until their own sessions are acknowledged. Muraja'a and Tarteel analysis stay inside the school. Parents receive the sealed clip after director approve and admin acknowledge — they do not see analysis bands or Tajweed reports.</p>
 
             <h3>Session lifecycle</h3>
-            <p>Each teacher has their own day. A student can sit on several teachers (Quran, Maths, English, and so on). Saving an assignment replaces only that teacher's list. One teacher's acknowledgement publishes only that teacher's scores for that date.</p>
+            <p>Each teacher has their own day. A student can sit on several teachers (Quran, Maths, English, and so on). Saving an assignment replaces only that teacher's list. One teacher's acknowledgement publishes only that teacher's scores for that date. Within Quran, each recitation category and each saved milestone is its own review row.</p>
             <div class="mermaid-wrapper">
                 <div class="mermaid">
 flowchart LR
@@ -461,7 +461,10 @@ flowchart LR
 flowchart TD
     assign["Admin, director, or superadmin ticks students and saves once"] --> list["That teacher's list for this academic session"]
     list --> record["Teacher logs a drill or tahfiz row for an assigned student"]
-    record --> check{"Every student on this teacher's list recorded today?"}
+    record --> same{"Same category, surah, and ayah range already saved today?"}
+    same -->|Yes| refuse["Refuse with earlier date and time"]
+    same -->|No| touch["Open or keep session for that category and milestone"]
+    touch --> check{"Every student on this teacher's list recorded today for this category?"}
     check -->|No| recording["recording"]
     recording --> record
     check -->|Yes| director["pending_director"]
@@ -479,9 +482,9 @@ flowchart TD
             </div>
             <ol>
                 <li><strong>Assign.</strong> On <code>academy_review/assign</code>, pick one teacher, filter by name or register number, Student Category, Section, Class, or Programme Category, tick many students, and save once. The same student can remain on other teachers. Unique key: <code>uq_ats_teacher_student</code> (branch, academic session, teacher, student).</li>
-                <li><strong>Record.</strong> The teacher saves only students on their own list. A student counts for today when this teacher wrote the drill (<code>evaluator_id</code>) or the tahfiz row (<code>instructor_id</code>). Status stays <code>recording</code> until the list is complete.</li>
-                <li><strong>Auto-submit.</strong> When the last assigned student is recorded, the day moves to <code>pending_director</code>. The director (role 9), superadmin (role 1), and the teacher get a bell notice (<code>academy_notice</code>).</li>
-                <li><strong>Director.</strong> Approve moves the day to <code>pending_admin</code> and notifies the teacher, admin (role 2), and superadmin. Reject sets <code>director_rejected</code> and notifies the teacher. The next time that teacher's list is complete, it resubmits.</li>
+                <li><strong>Record.</strong> The teacher saves only students on their own list. A student counts for today when this teacher wrote the drill (<code>evaluator_id</code>) or the tahfiz row (<code>instructor_id</code>). Status stays <code>recording</code> until the list is complete. The same facilitator cannot save the same category, surah, and ayah range twice in one day; the save returns the earlier <code>completed_at</code> and the session status.</li>
+                <li><strong>Auto-submit.</strong> When the last assigned student is recorded for that category milestone, the day moves to <code>pending_director</code>. The director (role 9), superadmin (role 1), and the teacher get a bell notice (<code>academy_notice</code>).</li>
+                <li><strong>Director.</strong> Session Review loads the weak clip for <code>pending_director</code>, <code>pending_admin</code>, and <code>acknowledged</code> rows so both director and admin can play, read the transcript, and read Tajweed mistakes before they decide. Approve moves the day to <code>pending_admin</code> and notifies the teacher, admin (role 2), and superadmin. Reject sets <code>director_rejected</code> and notifies the teacher. The next time that teacher's list is complete, it resubmits.</li>
                 <li><strong>Admin.</strong> Acknowledge on one row, or <strong>Release today's sealed sessions</strong>, sets the day to <code>acknowledged</code>. That teacher's portion and audio appear on the parent and student dashboards. The same step sends the <code>tahsin_sealed_digest</code> WhatsApp template for that teacher's assigned students when the session date is today. A parent with no phone is skipped. Director, superadmin, and the teacher are notified. Reject on a single row still sets <code>admin_rejected</code> and does not send WhatsApp. Academy → Broadcast → Send digests remains for a later resend.</li>
             </ol>
             <div class="table-container">
@@ -502,7 +505,9 @@ flowchart TD
                 <thead><tr><th>Route / controller</th><th>Purpose</th></tr></thead>
                 <tbody>
                     <tr><td><code>academy_review/assign</code> → <code>Academy_review</code></td><td>Assign Students. Admin, director, or superadmin. Bulk checkboxes for one teacher; filters above.</td></tr>
-                    <tr><td><code>academy_review</code> → <code>Academy_review</code></td><td>Session Review. Director approve or reject; admin acknowledge or reject. Staff bell reads <code>academy_notice</code>.</td></tr>
+                    <tr><td><code>academy_review</code> → <code>Academy_review</code></td><td>Session Review. Director approve or reject; admin acknowledge or reject. Action column shows the mushaf player for pending and already acknowledged rows. Staff bell reads <code>academy_notice</code>.</td></tr>
+                    <tr><td><code>academy_review/tarteel</code> → <code>Academy_review</code></td><td>Tarteel analysis. Director, admin, or superadmin only. Strength / Holding / Needs improving by student level, category rollup, Tajweed types, and each-session player. Internal assessment — not shown to parents.</td></tr>
+                    <tr><td><code>academy_review/tarteel_settings</code> → <code>Academy_review</code></td><td>Tarteel settings. Editable levels (Beginner, Medium, Advanced, or custom) with accuracy and mistake thresholds, plus which student sits on which level. Tables <code>academy_tarteel_band</code> and <code>academy_tarteel_student</code> are created on first open.</td></tr>
                     <tr><td><code>academy_students</code> → <code>Academy_students</code></td><td>Student hub (Barakah cards, activity ledger, media consent). Hosts the <strong>Log Surah</strong> modal for milestones. Teachers see only students assigned to them.</td></tr>
                     <tr><td><code>employee/view/3</code></td><td>Academy → Teachers. Opens the Facilitator employee list.</td></tr>
                     <tr><td><code>academy_performance</code> → <code>Academy_performance</code></td><td>Subject-pillar drills (Maths, English, Arabic, Quran, Skills, Core) with timed scores. A facilitator sees only assigned students.</td></tr>
@@ -524,20 +529,38 @@ flowchart TD
                     <tr><td><strong>Play saved audio</strong></td><td>Replay a clip already attached to a milestone in history.</td></tr>
                 </tbody>
             </table>
-            <p>Removed from the UI (not separate product jobs): Live Video, duplicate Start Live button, session-beep tool, footer book tool. Mushaf Paper/Night stays on the theme toggle. Proof playback bar still supports Download / Re-record after Record Voice.</p>
+            <p>Removed from the UI (not separate product jobs): Live Video, duplicate Start Live button, session-beep tool, footer book tool. Mushaf Paper/Night stays on the theme toggle. A <strong>Text</strong> menu next to Paper/Night redraws the same Uthmani ayah for Novice, Beginner, Medium, Advanced, or Muraja'a (letters only). Novice spaces letters and tints them; Beginner and Medium mark vowels in colour; Advanced keeps black letters and colours fatha, kasra, damma, shadda, and sukun; wasl alif (<code>ٱ</code>) and a joined <code>لّ</code> stay marked so the student can skip them when joining. The same Text menu sits on the Session Review and Tarteel analysis play popup (<code>assets/js/tarteel_playback.js</code>). Proof playback bar still supports Download / Re-record after Record Voice.</p>
 
             <h3>Tarteel engine</h3>
-            <p>Config: <code>application/config/tarteel.php</code> (not documented with secrets). Modes: <code>auto</code> (cloud then local), <code>cloud</code>, <code>local</code>. Local sidecar: <code>ws://127.0.0.1:8001/v1/recite/stream</code>. Start helper: <code>scripts/start-local-tarteel.ps1</code>; health at <code>http://127.0.0.1:8001/health</code>.</p>
-            <p>Quran text for the mushaf comes from <code>api.alquran.cloud</code> (uthmani). Uploaded proof clips land under <code>uploads/academy_tahfiz/</code>.</p>
+            <p>Config: <code>application/config/tarteel.php</code> (not documented with secrets). Modes: <code>auto</code> (cloud then local), <code>cloud</code>, <code>local</code>. Local sidecar: <code>ws://127.0.0.1:8001/v1/recite/stream</code> for live highlight, and <code>POST http://127.0.0.1:8001/v1/recite/final</code> for the full-clip FastConformer transcript after stop. Start helper: <code>scripts/start-local-tarteel.ps1</code>; health at <code>http://127.0.0.1:8001/health</code> reports both paths. Weights stay on the school machine (or a VPS), not in the GitHub repo and not on Hostinger Cloud PHP. Quran reference SQLite files from the Tarteel APK are for the phone mushaf only; this site and the local engine use Uthmani ayah JSON / <code>api.alquran.cloud</code>.</p>
+            <div class="mermaid-wrapper">
+                <div class="mermaid">
+flowchart TD
+    start["Green mic starts"] --> auto{"Engine auto"}
+    auto -->|Cloud socket opens| liveCloud["Live highlight on Tarteel cloud"]
+    auto -->|Cloud down| liveLocal["Live highlight on local stream :8001"]
+    liveCloud --> stop["Facilitator stops"]
+    liveLocal --> stop
+    stop --> final{"Local :8001 final ready?"}
+    final -->|Yes| save["Save transcript from full-clip FastConformer"]
+    final -->|No| keep["Keep the live transcript"]
+    save --> report["mistake_breakdown JSON: engine, transcript, correct, mistakes, states"]
+    keep --> report
+                </div>
+            </div>
+            <p>Quran text for the mushaf comes from <code>api.alquran.cloud</code> (uthmani). Uploaded proof clips land under <code>uploads/academy_tahfiz/</code>. The saved report stores engine label, transcript, correct words, Tajweed mistakes, and word timings (not the audio blob). Old clips without timings still open the mushaf popup; the highlight then walks the words evenly across the clip length.</p>
+
+            <h3>Tarteel analysis levels</h3>
+            <p>Verdicts on <code>academy_review/tarteel</code> use each student’s assigned band from Tarteel settings. Defaults: Beginner strength from 60% / at most 3 mistakes, improve below 40% or at 6 mistakes; Medium 75% / 1 and 60% / 4; Advanced 90% / 0 and 75% / 2. Unassigned students use Medium. Category rollups follow the per-session verdicts, not a fixed global percentage.</p>
 
             
             <h3>WhatsApp Cloud API (Broadcast)</h3>
             <p>Admin acknowledgement sends the parent digest itself through Meta Graph API (<code>application/libraries/Whatsapp_cloud.php</code>, <code>Academy_model::dispatchSealedDigests</code>). Configure under School Settings → WhatsApp (table <code>whatsapp_cloud_config</code>); file config is fallback only. The template body is student, teacher, portion, and the seal line. Optional native audio or video follows when the file is a public HTTPS link. <code>Academy_broadcast</code> still has a manual send for a resend, plus click-to-chat. Sends are stored in <code>academy_broadcast_log</code>. Migrations: <code>whatsapp_broadcast_log.sql</code>, <code>whatsapp_cloud_config.sql</code>.</p>
-            <p><strong>Production:</strong> After deploy, run <code>academy_session_review.sql</code> (the trailing statements drop the old one-student unique key and add the multi-teacher key), <code>parent_portal_approval.sql</code> (adds <code>login_credential.pwa_required</code>) and <code>whatsapp_cloud_config.sql</code> if needed, enter the permanent Meta system-user token and IDs in School Settings (never commit tokens). Install <code>ffmpeg</code> on the server so recitation uploads convert to MP3 for WhatsApp. Template name/lang must match an <strong>APPROVED</strong> Meta template. Use <code>tahsin_sealed_digest</code> / <code>en</code> (student, teacher, portion, "Sealed by the director"). Audio is attached after the template. Leave <code>tahsin_daily_digest</code> unused: it is the older drill-count wording and cannot be edited while PENDING. Acknowledgement sends only that teacher’s assigned students, and only when the session date is today. A later manual send uses the same acknowledged rows. <strong>Remove or HTTP-auth block</strong> root <code>test_whatsapp.php</code> on live — it is local diagnostics only and can write tokens to the database.</p>
+            <p><strong>Production:</strong> After deploy, run <code>academy_session_review.sql</code> (the trailing statements drop the old one-student unique key and add the multi-teacher key), <code>academy_session_by_category.sql</code> (category + milestone unique key), <code>parent_portal_approval.sql</code> (adds <code>login_credential.pwa_required</code>) and <code>whatsapp_cloud_config.sql</code> if needed, enter the permanent Meta system-user token and IDs in School Settings (never commit tokens). Install <code>ffmpeg</code> on the server so recitation uploads convert to MP3 for WhatsApp. Template name/lang must match an <strong>APPROVED</strong> Meta template. Use <code>tahsin_sealed_digest</code> / <code>en</code> (student, teacher, portion, "Sealed by the director"). Audio is attached after the template. Leave <code>tahsin_daily_digest</code> unused: it is the older drill-count wording and cannot be edited while PENDING. Acknowledgement sends only that teacher’s assigned students, and only when the session date is today. A later manual send uses the same acknowledged rows. <strong>Remove or HTTP-auth block</strong> root <code>test_whatsapp.php</code> on live — it is local diagnostics only and can write tokens to the database. Do not switch School Settings off the working test phone number ID until the school WABA template is Approved and a token is scoped to that WABA.</p>
 
             <h3>Recitation categories &amp; portion modes</h3>
             <p>Required before save (see <code>Academy_model::recitationCategories()</code>): Hifz Fauq, Hifz Taht, Talqeen, Murajaa Qareebah, Murajaa Baeedah, Musaffa, Qiyaamullail. Portion modes: Full Surah, Single Ayah, From–To Ayah, Summu'i, Rubbu'i, Safha.</p>
-            <p>Telemetry columns on <code>academy_tahfiz_record</code> (v2): <code>accuracy_score</code>, <code>mistake_word_count</code>, <code>mistake_breakdown</code>, <code>audio_url</code>, <code>video_url</code>, <code>tarteel_status</code>, <code>recitation_seconds</code>, plus <code>recitation_category</code>.</p>
+            <p>Telemetry columns on <code>academy_tahfiz_record</code> (v2): <code>accuracy_score</code>, <code>mistake_word_count</code>, <code>mistake_breakdown</code> (MEDIUMTEXT JSON report), <code>audio_url</code>, <code>video_url</code>, <code>tarteel_status</code>, <code>recitation_seconds</code>, plus <code>recitation_category</code>. Session columns: <code>recitation_category</code>, <code>milestone_id</code>.</p>
         </section>
 
         <section id="views" class="glass-panel">
@@ -600,10 +623,12 @@ erDiagram
             </div>
         
             <ul>
-                <li><code>academy_tahfiz_record</code> — surah milestones, proof audio URL, Tarteel accuracy fields, recitation category</li>
+                <li><code>academy_tahfiz_record</code> — surah milestones, proof audio URL, Tarteel accuracy fields, recitation category, JSON <code>mistake_breakdown</code></li>
+                <li><code>academy_class_session</code> — day review rows; unique on branch, teacher, date, recitation category, milestone (<code>uq_acs_milestone</code>)</li>
+                <li><code>academy_tarteel_band</code> / <code>academy_tarteel_student</code> — internal analysis levels and student assignment</li>
                 <li><code>academy_daily_drill</code> — timed pillar scores</li>
                 <li><code>student.media_consent</code> — media consent flag (engine v2)</li>
-                <li><code>login_credential</code> — shared auth for staff, parent, student</li>
+                <li><code>login_credential</code> — shared auth for staff, parent, student; <code>pwa_required</code> for parent first-install gate</li>
                 <li><code>enroll</code> — student ↔ class/section for the academic session</li>
             </ul>
 </section>
