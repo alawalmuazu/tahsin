@@ -1665,10 +1665,13 @@
   async function refineWithLocalFinal(blob) {
     if (!blob) return null;
     try {
-      var res = await fetch('http://127.0.0.1:8001/v1/recite/final', {
+      var url = (window.TARTEEL_CONFIG && window.TARTEEL_CONFIG.localFinal)
+        || 'http://127.0.0.1:8001/v1/recite/final';
+      var res = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'audio/wav' },
-        body: blob
+        body: blob,
+        credentials: 'same-origin'
       });
       if (!res.ok) return null;
       return await res.json();

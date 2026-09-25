@@ -358,6 +358,67 @@ class Academy_students extends Admin_Controller
         return null;
     }
 
+    /**
+     * Proxy full-clip FastConformer final to VPS (or local :8001 on localhost).
+     * Browser posts WAV here so HTTPS pages never hit http://VPS:8001 directly.
+     */
+    public function tarteel_final()
+    {
+        if (!is_loggedin() || is_student_loggedin() || is_parent_loggedin()) {
+            $this->output->set_status_header(403)->set_content_type('application/json');
+            echo json_encode(array('error' => 'forbidden'));
+            return;
+        }
+        if (!function_exists('curl_init')) {
+            $this->output->set_status_header(500)->set_content_type('application/json');
+            echo json_encode(array('error' => 'curl missing'));
+            return;
+        }
+
+        $this->config->load('tarteel', true);
+        $cfg = $this->config->item('tarteel', 'tarteel');
+        if (!is_array($cfg)) {
+            $cfg = array();
+        }
+        $host = isset($_SERVER['HTTP_HOST']) ? strtolower((string) $_SERVER['HTTP_HOST']) : '';
+        $isLocal = (strpos($host, 'localhost') !== false || strpos($host, '127.0.0.1') !== false);
+        $upstream = $isLocal
+            ? 'http://127.0.0.1:8001/v1/recite/final'
+            : (isset($cfg['local_final_upstream']) && $cfg['local_final_upstream'] !== ''
+                ? $cfg['local_final_upstream']
+                : 'http://72.62.232.120:8002/v1/recite/final');
+
+        $body = file_get_contents('php://input');
+        if ($body === false || strlen($body) < 44) {
+            $this->output->set_status_header(400)->set_content_type('application/json');
+            echo json_encode(array('error' => 'wav required'));
+            return;
+        }
+
+        $ch = curl_init($upstream);
+        curl_setopt_array($ch, array(
+            CURLOPT_POST => true,
+            CURLOPT_POSTFIELDS => $body,
+            CURLOPT_HTTPHEADER => array('Content-Type: audio/wav'),
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_CONNECTTIMEOUT => 12,
+            CURLOPT_TIMEOUT => 180,
+        ));
+        $resp = curl_exec($ch);
+        $code = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $err = curl_error($ch);
+        curl_close($ch);
+
+        $this->output->set_content_type('application/json');
+        if ($resp === false) {
+            $this->output->set_status_header(502);
+            echo json_encode(array('error' => 'upstream unreachable', 'detail' => $err));
+            return;
+        }
+        $this->output->set_status_header($code > 0 ? $code : 200);
+        echo $resp;
+    }
+
     private function _saveRecitationAudioB64($dataUrl)
     {
         if (!is_string($dataUrl) || strpos($dataUrl, 'base64,') === false) {

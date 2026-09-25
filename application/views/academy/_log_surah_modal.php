@@ -361,6 +361,8 @@ $tarteelPublic = array(
 	'userId' => isset($tarteelCfg['user_id']) ? $tarteelCfg['user_id'] : '',
 	'localWs' => isset($tarteelCfg['local_ws']) ? $tarteelCfg['local_ws'] : 'ws://127.0.0.1:8001/v1/recite/stream',
 	'localHealth' => isset($tarteelCfg['local_health']) ? $tarteelCfg['local_health'] : 'http://127.0.0.1:8001/health',
+	// Same-origin proxy → VPS (or local :8001) — avoids HTTPS mixed-content blocks
+	'localFinal' => base_url('academy_students/tarteel_final'),
 	'isDualModel' => !isset($tarteelCfg['is_dual_model']) || !empty($tarteelCfg['is_dual_model']),
 	'isDiacritized' => !isset($tarteelCfg['is_diacritized']) || !empty($tarteelCfg['is_diacritized']),
 	'debug' => !empty($tarteelCfg['debug']),

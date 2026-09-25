@@ -17,6 +17,10 @@ defined('BASEPATH') or exit('No direct script access allowed');
  *
  * Start local fallback:  powershell -File scripts/start-local-tarteel.ps1
  * Health check:          http://127.0.0.1:8001/health
+ *
+ * Full-clip final pass runs on the Hostinger VPS (CPU ONNX). Browsers never call
+ * the VPS directly (HTTPS mixed-content); academy_students/tarteel_final proxies.
+ * On localhost, the proxy targets 127.0.0.1:8001 instead.
  */
 $config['tarteel'] = array(
     'engine' => 'auto',
@@ -26,6 +30,9 @@ $config['tarteel'] = array(
     'app_version' => '5.32.0',
     'local_ws' => 'ws://127.0.0.1:8001/v1/recite/stream',
     'local_health' => 'http://127.0.0.1:8001/health',
+    // Server-side only — used by Academy_students::tarteel_final on production hosts
+    // VPS :8001 is another app; FastConformer listens on :8002
+    'local_final_upstream' => 'http://72.62.232.120:8002/v1/recite/final',
     'is_dual_model' => true,
     'is_diacritized' => true,
     'debug' => true,
