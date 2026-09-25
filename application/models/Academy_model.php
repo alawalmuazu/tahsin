@@ -342,7 +342,16 @@ class Academy_model extends MY_Model
         }
 
         $this->db->insert('academy_tahfiz_record', $row);
-        return $this->db->insert_id();
+        $newId = $this->db->insert_id();
+        if ($newId) {
+            $sync = $data;
+            $sync['surah_name'] = $row['surah_name'];
+            if (isset($row['recitation_category'])) {
+                $sync['recitation_category'] = $row['recitation_category'];
+            }
+            $this->syncQuranDrillFromTahfiz($sync);
+        }
+        return $newId;
     }
 
     /**
@@ -425,21 +434,21 @@ class Academy_model extends MY_Model
     }
 
     /**
-     * Simple Barakah snapshot for a student (0–100).
-     * Academics 30% (MATH+ENGLISH), Quran 30%, Vocational 20%, Arabic 20%.
+     * Barakah snapshot for a student (0–100).
+     * Quran-first: coverage + accuracy + QURAN drills; other pillars from daily drills when present.
+     * Academics 20%, Quran 50%, Vocational 15%, Arabic 15%.
      */
     public function barakahForStudent($student_id)
     {
-        if (!$this->drillsReady()) {
-            return array(
-                'score' => 0,
-                'parts' => array('academics' => 0, 'quran' => 0, 'vocational' => 0, 'arabic' => 0),
-                'total_surahs' => 0,
-                'total_drills' => 0,
-            );
-        }
         $sid = (int) $student_id;
+        $parts = array('academics' => 0, 'quran' => 0, 'vocational' => 0, 'arabic' => 0);
+        $surahCount = 0;
+        $drillCount = 0;
+
         $avgPct = function ($pillars) use ($sid) {
+            if (!$this->drillsReady() || empty($pillars)) {
+                return 0.0;
+            }
             $this->db->select('AVG((score / NULLIF(total_possible,0)) * 100) AS pct', false);
             $this->db->from('academy_daily_drill');
             $this->db->where('student_id', $sid);
@@ -452,60 +461,126 @@ class Academy_model extends MY_Model
         $academics = $avgPct(array('MATH', 'ENGLISH'));
         $arabic = $avgPct(array('ARABIC'));
         $vocational = $avgPct(array('VOCATIONAL', 'CORE_SKILLS'));
+        $quranDrill = $avgPct(array('QURAN'));
 
-        $quran = 0.0;
-        $surahCount = 0;
+        $surahCoverage = 0.0;
+        $accuracyAvg = 0.0;
+        $logBoost = 0.0;
         if ($this->tahfizReady()) {
             $this->db->select('COUNT(DISTINCT surah_number) AS n');
             $this->db->from('academy_tahfiz_record');
-            $this->db->where(array('student_id' => $sid, 'verified' => 1));
+            $this->db->where('student_id', $sid);
+            $this->db->group_start();
+            $this->db->where('verified', 1);
+            if ($this->db->field_exists('audio_url', 'academy_tahfiz_record')) {
+                $this->db->or_where("audio_url IS NOT NULL AND audio_url != ''", null, false);
+            }
+            $this->db->group_end();
             $surahCount = (int) $this->db->get()->row()->n;
-            $quran = min($surahCount * 3.33, 100);
+            // ~30 distinct surahs → full coverage component
+            $surahCoverage = min(($surahCount / 30.0) * 100.0, 100.0);
+
+            if ($this->db->field_exists('accuracy_score', 'academy_tahfiz_record')) {
+                $this->db->select('AVG(accuracy_score) AS a, COUNT(*) AS n', false);
+                $this->db->from('academy_tahfiz_record');
+                $this->db->where('student_id', $sid);
+                $this->db->where('accuracy_score IS NOT NULL', null, false);
+                $this->db->where('completed_at >=', date('Y-m-d', strtotime('-30 days')));
+                $accRow = $this->db->get()->row();
+                if ($accRow && $accRow->a !== null && (int) $accRow->n > 0) {
+                    $accuracyAvg = (float) $accRow->a;
+                }
+            }
+
+            $this->db->where('student_id', $sid);
+            $this->db->where('completed_at >=', date('Y-m-d', strtotime('-30 days')));
+            $recentLogs = (int) $this->db->count_all_results('academy_tahfiz_record');
+            // Up to 20 recent logs → +15 pts toward Quran component
+            $logBoost = min($recentLogs, 20) * 0.75;
         }
 
-        $this->db->where('student_id', $sid);
-        $drillCount = $this->drillsReady() ? (int) $this->db->count_all_results('academy_daily_drill') : 0;
+        if ($accuracyAvg <= 0 && $surahCoverage > 0) {
+            // Verified logs without Tarteel score still count as solid practice
+            $accuracyAvg = min(70.0, 40.0 + ($surahCount * 2.0));
+        }
+        $quran = min(
+            ($surahCoverage * 0.40) + ($accuracyAvg * 0.40) + ($quranDrill * 0.20) + $logBoost,
+            100.0
+        );
+
+        if ($this->drillsReady()) {
+            $this->db->where('student_id', $sid);
+            $drillCount = (int) $this->db->count_all_results('academy_daily_drill');
+        }
+
+        $parts['academics'] = (int) round($academics);
+        $parts['quran'] = (int) round($quran);
+        $parts['vocational'] = (int) round($vocational);
+        $parts['arabic'] = (int) round($arabic);
 
         $score = (int) round(min(
-            ($academics * 0.30) + ($quran * 0.30) + ($vocational * 0.20) + ($arabic * 0.20),
+            ($academics * 0.20) + ($quran * 0.50) + ($vocational * 0.15) + ($arabic * 0.15),
             100
         ));
 
         return array(
             'score' => $score,
-            'parts' => array(
-                'academics' => (int) round($academics),
-                'quran' => (int) round($quran),
-                'vocational' => (int) round($vocational),
-                'arabic' => (int) round($arabic),
-            ),
+            'parts' => $parts,
             'total_surahs' => $surahCount,
             'total_drills' => $drillCount,
         );
     }
 
+    /**
+     * Consecutive calendar days (ending today/yesterday) with a tahfiz log and/or a daily drill.
+     */
     public function drillStreak($student_id)
     {
-        if (!$this->drillsReady()) {
-            return 0;
-        }
-        $this->db->select('DATE(created_at) AS d', false);
-        $this->db->from('academy_daily_drill');
-        $this->db->where('student_id', (int) $student_id);
-        $this->db->group_by('DATE(created_at)');
-        $this->db->order_by('d', 'DESC');
-        $this->db->limit(60);
-        $rows = $this->db->get()->result();
-        if (empty($rows)) {
-            return 0;
-        }
+        $sid = (int) $student_id;
         $dates = array();
-        foreach ($rows as $r) {
-            $dates[$r->d] = true;
+
+        if ($this->tahfizReady()) {
+            $this->db->select('DATE(completed_at) AS d', false);
+            $this->db->from('academy_tahfiz_record');
+            $this->db->where('student_id', $sid);
+            $this->db->group_by('DATE(completed_at)');
+            $this->db->order_by('d', 'DESC');
+            $this->db->limit(90);
+            foreach ($this->db->get()->result() as $r) {
+                if (!empty($r->d)) {
+                    $dates[$r->d] = true;
+                }
+            }
         }
+
+        if ($this->drillsReady()) {
+            $this->db->select('DATE(created_at) AS d', false);
+            $this->db->from('academy_daily_drill');
+            $this->db->where('student_id', $sid);
+            $this->db->group_by('DATE(created_at)');
+            $this->db->order_by('d', 'DESC');
+            $this->db->limit(90);
+            foreach ($this->db->get()->result() as $r) {
+                if (!empty($r->d)) {
+                    $dates[$r->d] = true;
+                }
+            }
+        }
+
+        if (empty($dates)) {
+            return 0;
+        }
+
         $streak = 0;
         $cursor = new DateTime('today');
-        for ($i = 0; $i < 60; $i++) {
+        // Allow streak to start from yesterday if nothing logged yet today
+        if (!isset($dates[$cursor->format('Y-m-d')])) {
+            $cursor->modify('-1 day');
+            if (!isset($dates[$cursor->format('Y-m-d')])) {
+                return 0;
+            }
+        }
+        for ($i = 0; $i < 90; $i++) {
             $key = $cursor->format('Y-m-d');
             if (isset($dates[$key])) {
                 $streak++;
@@ -515,6 +590,86 @@ class Academy_model extends MY_Model
             }
         }
         return $streak;
+    }
+
+    /**
+     * Mirror a tahfiz save into a QURAN daily drill so Drills / Barakah / streak stay in sync.
+     */
+    public function syncQuranDrillFromTahfiz($data)
+    {
+        if (!$this->drillsReady()) {
+            return null;
+        }
+        $accuracy = isset($data['accuracy_score']) && $data['accuracy_score'] !== '' && $data['accuracy_score'] !== null
+            ? (float) $data['accuracy_score'] : null;
+        $score = $accuracy !== null ? (int) max(0, min(100, round($accuracy))) : 85;
+        $seconds = isset($data['recitation_seconds']) && $data['recitation_seconds'] !== ''
+            ? (int) $data['recitation_seconds'] : 0;
+        $sub = 'Recitation';
+        if (!empty($data['recitation_category'])) {
+            $cats = $this->recitationCategories();
+            $ck = strtoupper(trim((string) $data['recitation_category']));
+            if (isset($cats[$ck])) {
+                $sub = $cats[$ck];
+            }
+        } elseif (!empty($data['surah_name'])) {
+            $sub = (string) $data['surah_name'];
+        }
+        $notes = 'Auto from tahfiz log';
+        if (!empty($data['surah_number'])) {
+            $notes .= ' · surah ' . (int) $data['surah_number'];
+        }
+
+        return $this->saveDrill(array(
+            'branch_id' => (int) $data['branch_id'],
+            'student_id' => (int) $data['student_id'],
+            'evaluator_id' => isset($data['instructor_id']) ? (int) $data['instructor_id'] : 0,
+            'pillar' => 'QURAN',
+            'sub_category' => $sub,
+            'score' => $score,
+            'total_possible' => 100,
+            'time_seconds' => max(0, $seconds),
+            'notes' => $notes,
+        ));
+    }
+
+    /**
+     * One-time: create QURAN drills from existing tahfiz rows so Drills/Barakah light up for older logs.
+     */
+    public function backfillQuranDrillsFromTahfiz($student_id, $branch_id)
+    {
+        if (!$this->drillsReady() || !$this->tahfizReady()) {
+            return 0;
+        }
+        $sid = (int) $student_id;
+        $bid = (int) $branch_id;
+        $this->db->from('academy_daily_drill');
+        $this->db->where(array('student_id' => $sid, 'pillar' => 'QURAN'));
+        $this->db->like('notes', 'Auto from tahfiz', 'after');
+        if ((int) $this->db->count_all_results() > 0) {
+            return 0;
+        }
+
+        $this->db->from('academy_tahfiz_record');
+        $this->db->where('student_id', $sid);
+        $this->db->order_by('id', 'ASC');
+        $this->db->limit(40);
+        $rows = $this->db->get()->result();
+        $n = 0;
+        foreach ($rows as $r) {
+            $this->syncQuranDrillFromTahfiz(array(
+                'branch_id' => $bid > 0 ? $bid : (int) $r->branch_id,
+                'student_id' => $sid,
+                'instructor_id' => isset($r->instructor_id) ? (int) $r->instructor_id : 0,
+                'surah_number' => (int) $r->surah_number,
+                'surah_name' => isset($r->surah_name) ? $r->surah_name : '',
+                'recitation_category' => isset($r->recitation_category) ? $r->recitation_category : '',
+                'accuracy_score' => isset($r->accuracy_score) ? $r->accuracy_score : null,
+                'recitation_seconds' => isset($r->recitation_seconds) ? $r->recitation_seconds : 0,
+            ));
+            $n++;
+        }
+        return $n;
     }
 
     /**
@@ -632,6 +787,10 @@ class Academy_model extends MY_Model
 
             $enrollTs = !empty($s->admission_date) ? strtotime($s->admission_date) : 0;
             $lastActiveAt = max($enrollTs, $lastTahfizTs, $lastDrillTs);
+
+            if (!empty($tahfizRows) && $this->drillsReady()) {
+                $this->backfillQuranDrillsFromTahfiz($sid, (int) $branch_id);
+            }
 
             $barakah = $this->barakahForStudent($sid);
             $streak = $this->drillStreak($sid);

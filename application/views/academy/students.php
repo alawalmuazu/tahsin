@@ -229,7 +229,7 @@
 			</div>
 			<div class="academy-stat-streak">
 				<div class="academy-stat-v"><?php echo $st['streak'] > 0 ? '🔥 ' . (int) $st['streak'] : '—'; ?></div>
-				<div class="academy-stat-l"><?php echo $st['streak'] === 1 ? 'Day streak' : 'Day streak'; ?></div>
+				<div class="academy-stat-l">Day streak</div>
 			</div>
 		</div>
 		<?php if (!empty($st['today_goal'])): ?>
