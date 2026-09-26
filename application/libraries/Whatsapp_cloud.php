@@ -231,34 +231,46 @@ class Whatsapp_cloud
             return $this->fail('Media URL must be public HTTPS (not localhost)');
         }
 
-        // WhatsApp Cloud API rejects .wav files; auto-resolve to .mp3 if available or convert
-        if ($type === 'audio' && preg_match('/\.wav$/i', $url)) {
-            $mp3Url = preg_replace('/\.wav$/i', '.mp3', $url);
+        // WhatsApp audio bubbles need mp3/ogg/aac — not wav. Convert when possible.
+        if ($type === 'audio' && preg_match('/\.(wav|webm)$/i', $url)) {
+            $mp3Url = preg_replace('/\.(wav|webm)$/i', '.mp3', $url);
             $local = $this->localPathFromUrl($url);
             if ($local) {
-                $mp3Local = preg_replace('/\.wav$/i', '.mp3', $local);
-                if (file_exists($mp3Local)) {
+                $mp3Local = preg_replace('/\.(wav|webm)$/i', '.mp3', $local);
+                if (is_file($mp3Local) && filesize($mp3Local) > 100) {
                     $url = $mp3Url;
-                } elseif (file_exists($local)) {
+                } elseif (is_file($local)) {
                     $this->CI->load->model('academy_model');
                     if (method_exists($this->CI->academy_model, 'convertToMp3')) {
                         $converted = $this->CI->academy_model->convertToMp3($local);
-                        if (file_exists($converted) && preg_match('/\.mp3$/i', $converted)) {
+                        if (is_file($converted) && preg_match('/\.mp3$/i', $converted) && filesize($converted) > 100) {
                             $url = $mp3Url;
                         }
                     }
                 }
+            }
+            // Still wav/webm → send as document so the parent at least gets a downloadable clip
+            if (preg_match('/\.(wav|webm)$/i', $url)) {
+                $type = 'document';
+                $caption = $caption !== '' ? $caption : 'Recitation audio (tap to download)';
             }
         }
 
         $mediaObj = array('link' => $url);
         // Prefer uploaded media id when file is on this server
         $local = $this->localPathFromUrl($url);
-        if ($local) {
-            $up = $this->uploadMediaFile($local, $type);
+        if ($local && is_file($local)) {
+            $up = $this->uploadMediaFile($local, $type === 'document' ? 'document' : $type);
             if (!empty($up['ok']) && !empty($up['id'])) {
                 $mediaObj = array('id' => $up['id']);
+            } elseif ($type === 'audio' && preg_match('/\.(wav|webm)$/i', $url)) {
+                return $this->fail('Audio is WAV/WebM and ffmpeg could not convert to MP3. Install ffmpeg on the host, or re-save as MP3.');
             }
+        }
+
+        if ($type === 'document') {
+            $filename = basename(parse_url($url, PHP_URL_PATH) ?: 'recitation.wav');
+            $mediaObj['filename'] = $filename;
         }
 
         if ($caption !== '' && in_array($type, array('video', 'document', 'image'), true)) {
@@ -459,14 +471,14 @@ class Whatsapp_cloud
                 return $m;
             }
         }
+        if ($typeHint === 'document') {
+            return isset($map[$ext]) ? $map[$ext] : 'application/octet-stream';
+        }
         if ($typeHint === 'video') {
             return 'video/mp4';
         }
         if ($typeHint === 'image') {
             return 'image/jpeg';
-        }
-        if ($typeHint === 'document') {
-            return 'application/pdf';
         }
         return 'audio/mpeg';
     }
