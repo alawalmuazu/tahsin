@@ -306,10 +306,30 @@ function is_teacher_loggedin()
 function is_director_loggedin()
 {
     $CI = &get_instance();
-    if ($CI->session->userdata('loggedin_role_id') == 9) {
+    $roleId = (int) $CI->session->userdata('loggedin_role_id');
+    if ($roleId === 9) {
         return true;
     }
-    return false;
+    // Live DBs sometimes created "Director" with another id (e.g. 15) instead of system id 9
+    static $directorIds = null;
+    if ($directorIds === null) {
+        $directorIds = array(9);
+        if (isset($CI->db) && $CI->db) {
+            $rows = $CI->db->select('id')
+                ->from('roles')
+                ->group_start()
+                    ->where('prefix', 'director')
+                    ->or_where('name', 'Director')
+                ->group_end()
+                ->get()
+                ->result();
+            foreach ($rows as $r) {
+                $directorIds[] = (int) $r->id;
+            }
+            $directorIds = array_values(array_unique($directorIds));
+        }
+    }
+    return in_array($roleId, $directorIds, true);
 }
 
 // is accountant logged in @return boolean
