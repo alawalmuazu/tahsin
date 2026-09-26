@@ -1884,7 +1884,7 @@ class Academy_model extends MY_Model
      * Send today's sealed digest for one acknowledged teacher.
      * Called when an admin acknowledges, so Broadcast does not need a second click.
      */
-    public function dispatchSealedDigests($branchId, $teacherId, $date)
+    public function dispatchSealedDigests($branchId, $teacherId, $date, $groupId = 0)
     {
         if ($date !== date('Y-m-d')) {
             return 'WhatsApp sends today\'s sealed digest only. This session is ' . $date . '.';
@@ -1895,7 +1895,12 @@ class Academy_model extends MY_Model
         }
 
         $wanted = array();
-        if ($this->db->table_exists('academy_teacher_student')) {
+        $groupId = (int) $groupId;
+        if ($groupId > 0 && $this->groupsReady()) {
+            foreach ($this->groupMemberIds($groupId) as $sid) {
+                $wanted[$sid] = true;
+            }
+        } elseif ($this->db->table_exists('academy_teacher_student')) {
             $rows = $this->db->select('student_id')->get_where('academy_teacher_student', array(
                 'branch_id' => (int) $branchId,
                 'teacher_id' => (int) $teacherId,
@@ -2415,11 +2420,231 @@ class Academy_model extends MY_Model
         return true;
     }
 
+    public function groupsReady()
+    {
+        return $this->db->table_exists('academy_teacher_group')
+            && $this->db->table_exists('academy_teacher_group_member');
+    }
+
+    public function teacherGroups($branchId, $teacherId)
+    {
+        if (!$this->groupsReady()) {
+            return array();
+        }
+        $rows = $this->db->order_by('sort_order', 'ASC')->order_by('name', 'ASC')
+            ->get_where('academy_teacher_group', array(
+                'branch_id' => (int) $branchId,
+                'session_id' => (int) get_session_id(),
+                'teacher_id' => (int) $teacherId,
+            ))->result();
+        foreach ($rows as $g) {
+            $g->members = array();
+            $mem = $this->db->select('m.student_id, TRIM(CONCAT_WS(" ", s.first_name, NULLIF(s.other_name,""), s.last_name)) AS student_name')
+                ->from('academy_teacher_group_member m')
+                ->join('student s', 's.id = m.student_id', 'left')
+                ->where('m.group_id', (int) $g->id)
+                ->order_by('s.first_name', 'ASC')
+                ->get()->result();
+            foreach ($mem as $m) {
+                $g->members[] = array(
+                    'student_id' => (int) $m->student_id,
+                    'student_name' => $m->student_name,
+                );
+            }
+        }
+        return $rows;
+    }
+
     /**
-     * After a teacher logs a drill or tahfiz row, advance that category's class session.
-     * Each recitation category is its own session, so one student can have several in a day.
-     * When every assigned student has a row in that category, submit it to the director.
-     * An already acknowledged category stays closed. A different category opens a new review.
+     * First group for this student (convenience). Prefer studentGroupIds for multi-group.
+     * @return int group id or 0
+     */
+    public function studentGroupId($teacherId, $studentId, $branchId = null)
+    {
+        $ids = $this->studentGroupIds($teacherId, $studentId, $branchId);
+        return !empty($ids) ? (int) $ids[0] : 0;
+    }
+
+    /**
+     * All facilitator groups containing this student (e.g. Morning + Night).
+     * @return int[]
+     */
+    public function studentGroupIds($teacherId, $studentId, $branchId = null)
+    {
+        if (!$this->groupsReady()) {
+            return array();
+        }
+        $branchId = (int) ($branchId ? $branchId : (function_exists('get_loggedin_branch_id') ? get_loggedin_branch_id() : 1));
+        $rows = $this->db->select('g.id')
+            ->from('academy_teacher_group_member m')
+            ->join('academy_teacher_group g', 'g.id = m.group_id', 'inner')
+            ->where('m.student_id', (int) $studentId)
+            ->where('g.teacher_id', (int) $teacherId)
+            ->where('g.branch_id', $branchId)
+            ->where('g.session_id', (int) get_session_id())
+            ->order_by('g.sort_order', 'ASC')
+            ->order_by('g.name', 'ASC')
+            ->get()->result();
+        $ids = array();
+        foreach ($rows as $row) {
+            $ids[] = (int) $row->id;
+        }
+        return $ids;
+    }
+
+    public function groupMemberIds($groupId)
+    {
+        if (!$this->groupsReady() || (int) $groupId < 1) {
+            return array();
+        }
+        $ids = array();
+        foreach ($this->db->select('student_id')->get_where('academy_teacher_group_member', array('group_id' => (int) $groupId))->result() as $r) {
+            $ids[] = (int) $r->student_id;
+        }
+        return $ids;
+    }
+
+    public function createTeacherGroup($branchId, $teacherId, $name)
+    {
+        if (!$this->groupsReady()) {
+            return array('ok' => false, 'error' => 'Run academy_teacher_groups.sql first.');
+        }
+        $name = trim(mb_substr((string) $name, 0, 80));
+        if ($name === '') {
+            return array('ok' => false, 'error' => 'Group name required.');
+        }
+        $dup = $this->db->get_where('academy_teacher_group', array(
+            'branch_id' => (int) $branchId,
+            'session_id' => (int) get_session_id(),
+            'teacher_id' => (int) $teacherId,
+            'name' => $name,
+        ))->row();
+        if ($dup) {
+            return array('ok' => false, 'error' => 'That group name already exists.');
+        }
+        $this->db->insert('academy_teacher_group', array(
+            'branch_id' => (int) $branchId,
+            'session_id' => (int) get_session_id(),
+            'teacher_id' => (int) $teacherId,
+            'name' => $name,
+            'sort_order' => 0,
+        ));
+        return array('ok' => true, 'id' => (int) $this->db->insert_id());
+    }
+
+    public function deleteTeacherGroup($groupId, $teacherId)
+    {
+        if (!$this->groupsReady()) {
+            return array('ok' => false, 'error' => 'Groups not ready.');
+        }
+        $g = $this->db->get_where('academy_teacher_group', array(
+            'id' => (int) $groupId,
+            'teacher_id' => (int) $teacherId,
+        ))->row();
+        if (!$g) {
+            return array('ok' => false, 'error' => 'Group not found.');
+        }
+        $this->db->where('group_id', (int) $groupId)->delete('academy_teacher_group_member');
+        $this->db->where('id', (int) $groupId)->delete('academy_teacher_group');
+        return array('ok' => true);
+    }
+
+    public function saveTeacherGroupMembers($groupId, $teacherId, $branchId, $studentIds)
+    {
+        if (!$this->groupsReady()) {
+            return array('ok' => false, 'error' => 'Run academy_teacher_groups.sql first.');
+        }
+        $g = $this->db->get_where('academy_teacher_group', array(
+            'id' => (int) $groupId,
+            'teacher_id' => (int) $teacherId,
+            'branch_id' => (int) $branchId,
+            'session_id' => (int) get_session_id(),
+        ))->row();
+        if (!$g) {
+            return array('ok' => false, 'error' => 'Group not found.');
+        }
+        $assigned = array();
+        foreach ($this->db->select('student_id')->get_where('academy_teacher_student', array(
+            'branch_id' => (int) $branchId,
+            'session_id' => (int) get_session_id(),
+            'teacher_id' => (int) $teacherId,
+        ))->result() as $r) {
+            $assigned[(int) $r->student_id] = true;
+        }
+        $clean = array();
+        foreach ((array) $studentIds as $sid) {
+            $sid = (int) $sid;
+            if ($sid > 0 && isset($assigned[$sid])) {
+                $clean[$sid] = $sid;
+            }
+        }
+
+        // Multi-group allowed: only rewrite this group's roster; leave other groups alone.
+        $this->db->where('group_id', (int) $groupId)->delete('academy_teacher_group_member');
+        foreach ($clean as $sid) {
+            $this->db->insert('academy_teacher_group_member', array(
+                'group_id' => (int) $groupId,
+                'student_id' => $sid,
+            ));
+        }
+        $this->refreshOpenGroupSessions((int) $branchId, (int) $teacherId, (int) $groupId);
+        return array('ok' => true, 'count' => count($clean));
+    }
+
+    /**
+     * Recalculate recorded/total on open sessions after group membership changes.
+     * May auto-submit to director if the group is now complete.
+     */
+    public function refreshOpenGroupSessions($branchId, $teacherId, $groupId, $date = null)
+    {
+        if (!$this->reviewReady() || !$this->db->field_exists('group_id', 'academy_class_session')) {
+            return;
+        }
+        $date = $date ? $date : date('Y-m-d');
+        $ids = $this->groupMemberIds($groupId);
+        $open = array('recording', 'director_rejected', 'admin_rejected');
+        $rows = $this->db->get_where('academy_class_session', array(
+            'branch_id' => (int) $branchId,
+            'teacher_id' => (int) $teacherId,
+            'group_id' => (int) $groupId,
+            'session_date' => $date,
+        ))->result();
+        foreach ($rows as $row) {
+            if (!in_array($row->status, $open, true)) {
+                continue;
+            }
+            $cat = isset($row->recitation_category) ? $row->recitation_category : '';
+            $recordedIds = $this->recordedStudentIds($branchId, $ids, $date, $teacherId, $cat);
+            $recorded = count($recordedIds);
+            $total = count($ids);
+            $status = $row->status;
+            $submit = ($total > 0 && $recorded >= $total);
+            if ($submit) {
+                $status = 'pending_director';
+            }
+            $payload = array(
+                'student_total' => $total,
+                'recorded_count' => $recorded,
+                'status' => $status,
+            );
+            if ($submit) {
+                $payload['submitted_at'] = date('Y-m-d H:i:s');
+            }
+            $this->db->where('id', (int) $row->id)->update('academy_class_session', $payload);
+            if ($submit && $row->status !== 'pending_director') {
+                $gRow = $this->db->get_where('academy_teacher_group', array('id' => (int) $groupId))->row();
+                $gName = $gRow ? $gRow->name : 'group';
+                $teacherName = get_type_name_by_id('staff', $teacherId, 'name');
+                $body = $teacherName . ' finished ' . $gName . ' on ' . $date . ' (' . $recorded . '/' . $total . ' students).';
+                $this->notifyRoles(array(1, 9), $branchId, 'Academy session ready for review', $body, 'academy_review');
+                $this->pushNotice($teacherId, $branchId, 'Session sent to the director', $body, 'academy_review');
+            }
+        }
+    }
+
+    /**
+     * After a teacher logs a drill or tahfiz row, advance that category's class session
+     * for every facilitator group the student belongs to (Morning / Afternoon / Night, etc.).
      *
      * @return string|null status sentence for the flash message
      */
@@ -2437,21 +2662,62 @@ class Academy_model extends MY_Model
             return null;
         }
 
-        $assigned = $this->db->select('student_id')->get_where('academy_teacher_student', array(
-            'branch_id' => $branchId,
-            'session_id' => $sessionId,
-            'teacher_id' => $teacherId,
-        ))->result();
-        $ids = array();
-        foreach ($assigned as $a) {
-            $ids[] = (int) $a->student_id;
+        $groupIds = $this->studentGroupIds($teacherId, $studentId, $branchId);
+        $hasGroups = $this->groupsReady()
+            && $this->db->where(array(
+                'branch_id' => $branchId,
+                'session_id' => $sessionId,
+                'teacher_id' => $teacherId,
+            ))->count_all_results('academy_teacher_group') > 0;
+
+        if ($hasGroups && empty($groupIds)) {
+            return 'Put this student in a facilitator group first (Academy → My Groups), then record again.';
         }
+        if (empty($groupIds)) {
+            $groupIds = array(0); // legacy whole-roster session
+        }
+
+        $notes = array();
+        foreach ($groupIds as $groupId) {
+            $msg = $this->touchTeacherSessionForGroup($branchId, $studentId, $date, $teacherId, $category, $milestoneId, (int) $groupId);
+            if ($msg !== null && $msg !== '') {
+                $notes[$msg] = true;
+            }
+        }
+        return !empty($notes) ? implode(' ', array_keys($notes)) : null;
+    }
+
+    /**
+     * Advance one group (or group_id=0 whole roster) session for this save.
+     */
+    protected function touchTeacherSessionForGroup($branchId, $studentId, $date, $teacherId, $category, $milestoneId, $groupId)
+    {
+        $sessionId = (int) get_session_id();
+        $ids = array();
+        $groupLabel = '';
+        if ($groupId > 0) {
+            $ids = $this->groupMemberIds($groupId);
+            $gRow = $this->db->get_where('academy_teacher_group', array('id' => $groupId))->row();
+            $groupLabel = $gRow ? $gRow->name : ('Group #' . $groupId);
+        } else {
+            foreach ($this->db->select('student_id')->get_where('academy_teacher_student', array(
+                'branch_id' => $branchId,
+                'session_id' => $sessionId,
+                'teacher_id' => $teacherId,
+            ))->result() as $a) {
+                $ids[] = (int) $a->student_id;
+            }
+        }
+
         $cats = $this->recitationCategories();
         $category = strtoupper(trim((string) $category));
         if ($category !== '' && !isset($cats[$category])) {
             $category = '';
         }
         $categoryLabel = isset($cats[$category]) ? $cats[$category] : 'This session';
+        if ($groupLabel !== '') {
+            $categoryLabel .= ' · ' . $groupLabel;
+        }
 
         $total = count($ids);
         $recordedIds = $this->recordedStudentIds($branchId, $ids, $date, $teacherId, $category);
@@ -2463,6 +2729,9 @@ class Academy_model extends MY_Model
             'teacher_id' => $teacherId,
             'session_date' => $date,
         );
+        if ($this->db->field_exists('group_id', 'academy_class_session')) {
+            $where['group_id'] = $groupId;
+        }
         if ($this->db->field_exists('recitation_category', 'academy_class_session')) {
             $where['recitation_category'] = $category;
         }
@@ -2473,7 +2742,7 @@ class Academy_model extends MY_Model
 
         if ($row && !in_array($row->status, array('recording', 'director_rejected', 'admin_rejected'), true)) {
             $closed = str_replace('_', ' ', $row->status);
-            return $categoryLabel . ' is already ' . $closed . '. A different recitation category opens a new review.';
+            return $categoryLabel . ' is already ' . $closed . '.';
         }
 
         $status = $row ? $row->status : 'recording';
@@ -2491,6 +2760,9 @@ class Academy_model extends MY_Model
             'status' => $status,
             'academic_session_id' => $sessionId,
         );
+        if ($this->db->field_exists('group_id', 'academy_class_session')) {
+            $payload['group_id'] = $groupId;
+        }
         if ($this->db->field_exists('recitation_category', 'academy_class_session')) {
             $payload['recitation_category'] = $category;
         }
@@ -2509,13 +2781,11 @@ class Academy_model extends MY_Model
 
         if ($row) {
             $this->db->where('id', (int) $row->id)->update('academy_class_session', $payload);
-            $sessionRowId = (int) $row->id;
         } else {
             $payload['branch_id'] = $branchId;
             $payload['teacher_id'] = $teacherId;
             $payload['session_date'] = $date;
             $this->db->insert('academy_class_session', $payload);
-            $sessionRowId = (int) $this->db->insert_id();
         }
 
         $priorNote = '';
@@ -2543,7 +2813,7 @@ class Academy_model extends MY_Model
             }
         }
         $missingLabel = $this->missingStudentLabel($missing);
-        return 'Recorded ' . $recorded . ' of ' . $total . '.' . $missingLabel . $priorNote;
+        return 'Recorded ' . $recorded . ' of ' . $total . ' in ' . $categoryLabel . '.' . $missingLabel . $priorNote;
     }
 
     public function decideSession($id, $branchId, $actorId, $step, $approve, $note)
@@ -2600,7 +2870,12 @@ class Academy_model extends MY_Model
                 ));
                 $this->notifyRoles(array(1, 9), $branchId, 'Admin acknowledged an academy session', $teacherName . ' · ' . $when . ' is live for parents. The WhatsApp digest is sending.', 'academy_review');
                 $this->pushNotice((int) $row->teacher_id, $branchId, 'Admin acknowledged your session', $when . ' is live for parents. The WhatsApp digest is sending.', 'academy_review');
-                $this->digestNotices[] = $this->dispatchSealedDigests($branchId, (int) $row->teacher_id, $when);
+                $this->digestNotices[] = $this->dispatchSealedDigests(
+                    $branchId,
+                    (int) $row->teacher_id,
+                    $when,
+                    $this->db->field_exists('group_id', 'academy_class_session') ? (int) $row->group_id : 0
+                );
                 return null;
             }
             $this->db->where('id', (int) $row->id)->update('academy_class_session', array(
@@ -2623,9 +2898,12 @@ class Academy_model extends MY_Model
         if (!$this->reviewReady()) {
             return array();
         }
-        $this->db->select('cs.*, st.name AS teacher_name');
+        $this->db->select('cs.*, st.name AS teacher_name' . ($this->groupsReady() ? ', tg.name AS group_name' : ', NULL AS group_name'));
         $this->db->from('academy_class_session cs');
         $this->db->join('staff st', 'st.id = cs.teacher_id', 'left');
+        if ($this->groupsReady() && $this->db->field_exists('group_id', 'academy_class_session')) {
+            $this->db->join('academy_teacher_group tg', 'tg.id = cs.group_id', 'left');
+        }
         $this->db->where('cs.branch_id', (int) $branchId);
         if (function_exists('is_teacher_loggedin') && is_teacher_loggedin()) {
             $this->db->where('cs.teacher_id', (int) $viewerId);

@@ -20,7 +20,7 @@ $labels = array(
 				<?php elseif (empty($sessions)): ?>
 					<p class="text-muted">No class sessions yet. A session appears when a teacher records an assigned student. It is sent to the director only after every assigned student has a drill or tahfiz entry that day.</p>
 				<?php else: ?>
-					<p class="text-muted">Each recitation category is its own session. The director listens, then approves or rejects. Approval waits for the admin to release that category. Another category with the same student opens a new review.</p>
+					<p class="text-muted">Each recitation category is its own session. If the facilitator uses groups, each group submits separately when all of its students are recorded. The director listens, then approves or rejects. Approval waits for the admin to release that category.</p>
 					<?php if (!empty($can_admin) && !empty($pending_admin_today)): ?>
 						<?php echo form_open('academy_review', array('style' => 'margin-bottom:1rem')); ?>
 							<button class="btn btn-primary" name="release_today" value="1" type="submit">Release today’s sealed sessions (<?php echo (int) $pending_admin_today; ?>)</button>
@@ -32,6 +32,7 @@ $labels = array(
 							<tr>
 								<th>Date</th>
 								<th>Teacher</th>
+								<th>Group</th>
 								<th>Category</th>
 								<th>Recorded</th>
 								<th>Status</th>
@@ -44,6 +45,7 @@ $labels = array(
 							<tr>
 								<td><?php echo html_escape($row->session_date); ?></td>
 								<td><?php echo html_escape($row->teacher_name); ?></td>
+								<td><?php echo !empty($row->group_name) ? html_escape($row->group_name) : '<span class="text-muted">All assigned</span>'; ?></td>
 								<td><?php
 									$cats = $this->academy_model->recitationCategories();
 									$ck = isset($row->recitation_category) ? strtoupper((string) $row->recitation_category) : '';
