@@ -1613,7 +1613,7 @@ class Academy_model extends MY_Model
 
     /**
      * Turn relative upload paths into absolute URLs parents can open on their phones.
-     * localhost URLs only work on the same machine — use the public Hostinger URL in production.
+     * Rewrites stored localhost links to the current host (or PUBLIC_SITE_URL when live).
      */
     public function absoluteMediaUrl($url)
     {
@@ -1621,13 +1621,112 @@ class Academy_model extends MY_Model
         if ($url === '') {
             return '';
         }
-        if (preg_match('#^https?://#i', $url)) {
+
+        $rel = '';
+        if (preg_match('#/(uploads/.+)$#i', $url, $m)) {
+            $rel = $m[1];
+        } elseif (preg_match('#^(uploads/.+)$#i', $url, $m)) {
+            $rel = $m[1];
+        } elseif (preg_match('#^https?://#i', $url)) {
+            // External absolute URL — leave alone unless it is localhost
+            if (!preg_match('#^https?://(localhost|127\.0\.0\.1)#i', $url)) {
+                return $url;
+            }
+            return $url;
+        } else {
+            $rel = ltrim($url, '/');
+        }
+
+        if ($rel === '') {
             return $url;
         }
-        if ($url[0] === '/') {
-            return rtrim(base_url(), '/') . $url;
+
+        $base = rtrim(base_url(), '/');
+        // When this request is on localhost but a public site is configured, keep local
+        // play links on localhost; WhatsApp send path publicizes separately.
+        return $base . '/' . ltrim($rel, '/');
+    }
+
+    /**
+     * After a localhost Save, POST the clip to PUBLIC_SITE_URL so Meta/parents can fetch it.
+     *
+     * @return array{ok:bool,skipped?:string,error?:string,url?:string}
+     */
+    public function syncAudioToPublicSite($relativeOrUrl)
+    {
+        $relativeOrUrl = trim((string) $relativeOrUrl);
+        if ($relativeOrUrl === '') {
+            return array('ok' => false, 'error' => 'empty path');
         }
-        return rtrim(base_url(), '/') . '/' . ltrim($url, '/');
+        if (!defined('PUBLIC_SITE_URL') || PUBLIC_SITE_URL === '') {
+            return array('ok' => true, 'skipped' => 'no PUBLIC_SITE_URL');
+        }
+        if (!defined('ACADEMY_MEDIA_SYNC_SECRET') || ACADEMY_MEDIA_SYNC_SECRET === '') {
+            return array('ok' => true, 'skipped' => 'no sync secret');
+        }
+        if (!function_exists('curl_init')) {
+            return array('ok' => false, 'error' => 'curl missing');
+        }
+
+        $publicHost = strtolower((string) parse_url(PUBLIC_SITE_URL, PHP_URL_HOST));
+        $currentHost = isset($_SERVER['HTTP_HOST']) ? strtolower((string) $_SERVER['HTTP_HOST']) : '';
+        $currentHost = preg_replace('/:\d+$/', '', $currentHost);
+        if ($publicHost !== '' && $currentHost !== '' && $currentHost === $publicHost) {
+            return array('ok' => true, 'skipped' => 'already on public host');
+        }
+
+        $rel = '';
+        if (preg_match('#/(uploads/academy_tahfiz/.+)$#i', $relativeOrUrl, $m)) {
+            $rel = $m[1];
+        } elseif (preg_match('#^(uploads/academy_tahfiz/.+)$#i', $relativeOrUrl, $m)) {
+            $rel = $m[1];
+        }
+        if ($rel === '') {
+            return array('ok' => false, 'error' => 'not an academy_tahfiz path');
+        }
+
+        $local = FCPATH . str_replace(array('/', '\\'), DIRECTORY_SEPARATOR, $rel);
+        if (!is_file($local) || !is_readable($local)) {
+            return array('ok' => false, 'error' => 'local file missing');
+        }
+
+        $endpoint = rtrim(PUBLIC_SITE_URL, '/') . '/academy_media/receive';
+        $cfile = class_exists('CURLFile')
+            ? new CURLFile($local, 'application/octet-stream', basename($local))
+            : '@' . $local;
+
+        $ch = curl_init($endpoint);
+        curl_setopt_array($ch, array(
+            CURLOPT_POST => true,
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_CONNECTTIMEOUT => 12,
+            CURLOPT_TIMEOUT => 90,
+            CURLOPT_HTTPHEADER => array(
+                'X-Tahsin-Media-Sync: ' . ACADEMY_MEDIA_SYNC_SECRET,
+            ),
+            CURLOPT_POSTFIELDS => array(
+                'sync_secret' => ACADEMY_MEDIA_SYNC_SECRET,
+                'filename' => basename($local),
+                'audio' => $cfile,
+            ),
+        ));
+        $body = curl_exec($ch);
+        $code = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $err = curl_error($ch);
+        curl_close($ch);
+
+        if ($body === false || $err !== '') {
+            return array('ok' => false, 'error' => $err !== '' ? $err : 'curl failed');
+        }
+        $json = json_decode((string) $body, true);
+        if ($code >= 200 && $code < 300 && is_array($json) && !empty($json['ok'])) {
+            return array(
+                'ok' => true,
+                'url' => isset($json['url']) ? $json['url'] : null,
+            );
+        }
+        $msg = is_array($json) && !empty($json['error']) ? $json['error'] : ('HTTP ' . $code);
+        return array('ok' => false, 'error' => $msg);
     }
 
     /**
@@ -1839,6 +1938,7 @@ class Academy_model extends MY_Model
         $mediaSent = 0;
         $mediaFailed = 0;
         $firstError = '';
+        $firstMediaError = '';
 
         foreach ($reports as $r) {
             $phones = array();
@@ -1863,6 +1963,24 @@ class Academy_model extends MY_Model
             }
 
             $params = $this->digestTemplateParams($r);
+            // Always look for clips for {{4}}. Utility templates cannot follow with free-form audio.
+            $mediaItems = $this->digestMediaPayloads($r, $this->whatsapp_cloud->mediaMaxPerStudent());
+            $listenUrl = '';
+            if (!empty($mediaItems[0]['url'])) {
+                $candidate = $this->whatsapp_cloud->publicizeMediaUrl($mediaItems[0]['url']);
+                // Prefer MP3 when both exist (phones play it more reliably than WAV)
+                if (preg_match('/\.(wav|webm)$/i', $candidate)) {
+                    $mp3 = preg_replace('/\.(wav|webm)$/i', '.mp3', $candidate);
+                    if ($this->whatsapp_cloud->isPublicHttpsUrl($mp3) && $this->whatsapp_cloud->urlIsReachable($mp3)) {
+                        $candidate = $mp3;
+                    }
+                }
+                if ($this->whatsapp_cloud->isPublicHttpsUrl($candidate) && $this->whatsapp_cloud->urlIsReachable($candidate)) {
+                    $listenUrl = $candidate;
+                    $params[3] = $listenUrl;
+                }
+            }
+
             foreach (array_keys($phones) as $phone) {
                 $r['parent_contact'] = $phone;
                 $result = $this->whatsapp_cloud->sendTemplate($phone, $params);
@@ -1876,6 +1994,17 @@ class Academy_model extends MY_Model
                         isset($result['wamid']) ? $result['wamid'] : null,
                         null
                     );
+                    if ($listenUrl !== '' && $this->whatsapp_cloud->isPublicHttpsUrl($listenUrl)) {
+                        $mediaSent++;
+                        $this->logBroadcastSend($branchId, $r, 'whatsapp_cloud_media', 'sent', null, 'Listen URL in template {{4}}: ' . $listenUrl);
+                    } elseif (!empty($mediaItems)) {
+                        $mediaFailed++;
+                        $merr = 'Clip not on public HTTPS (sync uploads to ' . (defined('PUBLIC_SITE_URL') ? PUBLIC_SITE_URL : 'production') . '). Free-form audio after a utility template cannot deliver.';
+                        if ($firstMediaError === '') {
+                            $firstMediaError = $merr;
+                        }
+                        $this->logBroadcastSend($branchId, $r, 'whatsapp_cloud_media', 'failed', null, $merr);
+                    }
                 } else {
                     $failed++;
                     $err = isset($result['error']) ? $result['error'] : 'Send failed';
@@ -1886,28 +2015,7 @@ class Academy_model extends MY_Model
                     usleep(150000);
                     continue;
                 }
-
-                if ($this->whatsapp_cloud->wantsMediaAfterTemplate()) {
-                    $mediaItems = $this->digestMediaPayloads($r, $this->whatsapp_cloud->mediaMaxPerStudent());
-                    foreach ($mediaItems as $item) {
-                        $mres = $this->whatsapp_cloud->sendMediaByUrl(
-                            $phone,
-                            $item['type'],
-                            $item['url'],
-                            isset($item['caption']) ? $item['caption'] : ''
-                        );
-                        if (!empty($mres['ok'])) {
-                            $mediaSent++;
-                            $this->logBroadcastSend($branchId, $r, 'whatsapp_cloud_media', 'sent', isset($mres['wamid']) ? $mres['wamid'] : null, null);
-                        } else {
-                            $mediaFailed++;
-                            $merr = isset($mres['error']) ? $mres['error'] : 'Media send failed';
-                            $this->logBroadcastSend($branchId, $r, 'whatsapp_cloud_media', 'failed', null, $merr);
-                        }
-                        usleep(200000);
-                    }
-                }
-                usleep(200000);
+                usleep(250000);
             }
         }
 
@@ -1920,26 +2028,31 @@ class Academy_model extends MY_Model
             $parts[] = $skipped . ' skipped (no phone)';
         }
         if ($mediaSent || $mediaFailed) {
-            $parts[] = $mediaSent . ' media ok';
+            $parts[] = $mediaSent . ' listen link' . ($mediaSent === 1 ? '' : 's') . ' in template';
             if ($mediaFailed) {
-                $parts[] = $mediaFailed . ' media failed';
+                $parts[] = $mediaFailed . ' clip link missing';
             }
+        } elseif ($sent && $this->whatsapp_cloud->wantsMediaAfterTemplate()) {
+            $parts[] = '0 media links (no clip URLs on reports)';
         }
         $message = implode(' · ', $parts) . '.';
         if ($firstError !== '') {
             $message .= ' ' . $firstError;
+        }
+        if ($firstMediaError !== '') {
+            $message .= ' Media: ' . $firstMediaError;
         }
         return $message;
     }
 
     public function digestTemplateParams($report)
     {
-        // Meta template labels (approved): Student, Date, Recitation, Media
+        // Meta template labels (approved): Student, Date, Recitation, Media/URL
         $name = isset($report['student_name']) && $report['student_name'] !== '' ? $report['student_name'] : 'Student';
         $teacher = isset($report['teacher_name']) && $report['teacher_name'] !== '' ? $report['teacher_name'] : 'Teacher';
         $portion = isset($report['portion']) && $report['portion'] !== '' ? $report['portion'] : 'Session sealed';
         $date = date('j M Y');
-        $mediaLine = 'With ' . $teacher . ' · audio follows when saved';
+        $mediaLine = 'With ' . $teacher;
         return array($name, $date, $portion, $mediaLine);
     }
 

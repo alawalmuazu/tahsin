@@ -56,12 +56,12 @@
 			<strong>WhatsApp Cloud API:</strong>
 	<span class="label label-<?php echo $waReady ? 'success' : 'default'; ?>"><?php echo html_escape($waStatus); ?></span>
 	<?php if ($waReady): ?>
-		Template body is student, teacher, portion, and “Sealed by the director”. <?php echo $waMedia ? 'The clip is attached after that message (needs a Meta chat window or a public HTTPS file).' : 'Turn on “Attach media after digest” so the clip is sent with the sentence.'; ?>
+		Template body is student, date, portion/summary, and media. <?php echo $waMedia ? 'The clip must be a public HTTPS file URL in {{4}} (utility templates cannot follow with free-form audio).' : 'Turn on “Attach media after digest” to put the listen URL in {{4}}.'; ?>
 	<?php else: ?>
 		Configure under <a href="<?php echo base_url('school_settings/whatsapp_setting'); ?>">Settings → WhatsApp</a> (Cloud API panel). Until then, use click-to-chat below.
 	<?php endif; ?>
 	<br style="margin-top:.35rem">
-	<strong>Links always work</strong> on the public site — <code>localhost</code> audio URLs will not open for parents.
+	<strong>Links always work</strong> on the public site — clips saved as <code>localhost</code> URLs are uploaded to Meta from disk when the file exists on this server.
 </div>
 
 <div class="bcast-kpis">

@@ -49,10 +49,12 @@ class Academy_students extends Admin_Controller
                 }
                 $audioUrl = $this->input->post('audio_url');
                 $uploadError = null;
+                $syncNote = null;
                 if (!empty($_FILES['audio_file']['name'])) {
                     $uploaded = $this->_uploadRecitationAudio();
                     if ($uploaded) {
                         $audioUrl = $uploaded;
+                        $syncNote = $this->_syncMilestoneAudio($audioUrl);
                     } else {
                         $uploadError = method_exists($this, 'upload') || isset($this->upload)
                             ? $this->upload->display_errors('', '')
@@ -66,6 +68,7 @@ class Academy_students extends Admin_Controller
                     if ($uploaded) {
                         $audioUrl = $uploaded;
                         $uploadError = null;
+                        $syncNote = $this->_syncMilestoneAudio($audioUrl);
                     } elseif (!$uploadError) {
                         $uploadError = 'Could not decode attached audio.';
                     }
@@ -130,7 +133,7 @@ class Academy_students extends Admin_Controller
                         set_alert('error', 'Could not attach audio to that milestone.');
                         redirect(base_url('academy_students'));
                     }
-                    set_alert('success', 'Audio attached to milestone. Click the history chip (🔊) to play it.');
+                    set_alert('success', 'Audio attached to milestone. Click the history chip (🔊) to play it.' . ($syncNote ? ' ' . $syncNote : ''));
                     redirect(base_url('academy_students'));
                 }
 
@@ -184,6 +187,9 @@ class Academy_students extends Admin_Controller
                     $msg .= ' (Audio upload skipped: ' . trim(strip_tags($uploadError)) . ')';
                 } elseif (!$audioUrl) {
                     $msg .= ' No audio file was attached — record first, then Save.';
+                }
+                if ($syncNote) {
+                    $msg .= ' ' . $syncNote;
                 }
                 $progress = $this->academy_model->touchTeacherSession($branchID, (int) $this->input->post('student_id'), null, null, $catKey, (int) $newId);
                 if ($progress) {
@@ -355,9 +361,27 @@ class Academy_students extends Admin_Controller
 
         if ($file) {
             $finalFile = $this->academy_model->convertToMp3($file, true);
-            return base_url('uploads/academy_tahfiz/' . basename($finalFile));
+            // Store host-agnostic path so WhatsApp can resolve the file on any server
+            return 'uploads/academy_tahfiz/' . basename($finalFile);
         }
         return null;
+    }
+
+    /**
+     * Push a freshly saved clip to PUBLIC_SITE_URL so WhatsApp parents can open it.
+     * @return string|null short status note for the success toast
+     */
+    private function _syncMilestoneAudio($relativePath)
+    {
+        $result = $this->academy_model->syncAudioToPublicSite($relativePath);
+        if (!empty($result['skipped'])) {
+            return null;
+        }
+        if (!empty($result['ok'])) {
+            return 'Also copied to the public site for WhatsApp.';
+        }
+        $err = isset($result['error']) ? $result['error'] : 'unknown error';
+        return 'Public sync failed (' . $err . ') — WhatsApp listen link may 404 until you deploy/sync.';
     }
 
     /**
@@ -458,6 +482,6 @@ class Academy_students extends Admin_Controller
             return null;
         }
         $finalFile = $this->academy_model->convertToMp3($rawPath, true);
-        return base_url('uploads/academy_tahfiz/' . basename($finalFile));
+        return 'uploads/academy_tahfiz/' . basename($finalFile);
     }
 }

@@ -118,6 +118,75 @@ class Whatsapp_cloud
         return true;
     }
 
+    /**
+     * HEAD/GET check so we do not put a 404 listen link into the parent template.
+     */
+    public function urlIsReachable($url, $timeoutSec = 8)
+    {
+        $url = trim((string) $url);
+        if ($url === '' || !function_exists('curl_init')) {
+            return false;
+        }
+        $ch = curl_init($url);
+        curl_setopt_array($ch, array(
+            CURLOPT_NOBODY => true,
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_FOLLOWLOCATION => true,
+            CURLOPT_CONNECTTIMEOUT => (int) $timeoutSec,
+            CURLOPT_TIMEOUT => (int) $timeoutSec,
+            CURLOPT_USERAGENT => 'TahsinAcademy-WhatsApp/1.0',
+        ));
+        curl_exec($ch);
+        $code = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $err = curl_errno($ch);
+        curl_close($ch);
+        if (!$err && $code >= 200 && $code < 400) {
+            return true;
+        }
+        // Some hosts reject HEAD — try a tiny GET range
+        $ch = curl_init($url);
+        curl_setopt_array($ch, array(
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_FOLLOWLOCATION => true,
+            CURLOPT_CONNECTTIMEOUT => (int) $timeoutSec,
+            CURLOPT_TIMEOUT => (int) $timeoutSec,
+            CURLOPT_HTTPHEADER => array('Range: bytes=0-1'),
+            CURLOPT_USERAGENT => 'TahsinAcademy-WhatsApp/1.0',
+        ));
+        curl_exec($ch);
+        $code = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $err = curl_errno($ch);
+        curl_close($ch);
+        return !$err && $code >= 200 && $code < 400;
+    }
+
+    /**
+     * Rewrite localhost / relative upload URLs to a public HTTPS URL Meta can fetch.
+     */
+    public function publicizeMediaUrl($url)
+    {
+        $url = trim((string) $url);
+        if ($url === '') {
+            return '';
+        }
+        if (!preg_match('#/(uploads/.+)$#i', $url, $m) && !preg_match('#^(uploads/.+)$#i', $url, $m)) {
+            return $url;
+        }
+        $rel = ltrim($m[1], '/');
+        $public = '';
+        if (defined('PUBLIC_SITE_URL') && PUBLIC_SITE_URL !== '') {
+            $public = rtrim((string) PUBLIC_SITE_URL, '/');
+        }
+        if ($public === '' || !preg_match('#^https://#i', $public)) {
+            $public = rtrim((string) base_url(), '/');
+        }
+        if (!$this->isPublicHttpsUrl($public . '/' . $rel)) {
+            // Last resort: known live host
+            $public = 'https://tahsinacademy.ng';
+        }
+        return $public . '/' . $rel;
+    }
+
     public function reloadConfig()
     {
         $this->mergeDbConfig();
@@ -128,9 +197,10 @@ class Whatsapp_cloud
      * @param string[] $bodyParams ordered template variables
      * @param string|null $templateName override template name if provided
      * @param string|null $templateLang override template language code if provided
+     * @param array|null $headerMedia optional {type:document|image|video, id?:string, link?:string, filename?:string}
      * @return array{ok:bool,wamid:?string,error:?string,raw?:mixed}
      */
-    public function sendTemplate($toE164, $bodyParams, $templateName = null, $templateLang = null)
+    public function sendTemplate($toE164, $bodyParams, $templateName = null, $templateLang = null, $headerMedia = null)
     {
         $to = $this->normalizePhone($toE164);
         if ($to === '') {
@@ -144,6 +214,29 @@ class Whatsapp_cloud
         $lng = !empty($templateLang) ? (string) $templateLang : (string) $this->cfgValue('template_lang', 'en');
 
         $components = array();
+        if (is_array($headerMedia) && !empty($headerMedia['type'])) {
+            $hType = strtolower((string) $headerMedia['type']);
+            if (in_array($hType, array('document', 'image', 'video'), true)) {
+                $mediaParam = array('type' => $hType);
+                $mediaObj = array();
+                if (!empty($headerMedia['id'])) {
+                    $mediaObj['id'] = (string) $headerMedia['id'];
+                } elseif (!empty($headerMedia['link']) && $this->isPublicHttpsUrl($headerMedia['link'])) {
+                    $mediaObj['link'] = (string) $headerMedia['link'];
+                }
+                if ($hType === 'document' && !empty($headerMedia['filename'])) {
+                    $mediaObj['filename'] = (string) $headerMedia['filename'];
+                }
+                if (!empty($mediaObj)) {
+                    $mediaParam[$hType] = $mediaObj;
+                    $components[] = array(
+                        'type' => 'header',
+                        'parameters' => array($mediaParam),
+                    );
+                }
+            }
+        }
+
         $params = array();
         foreach ((array) $bodyParams as $p) {
             $text = $this->sanitizeTemplateText($p);
@@ -230,17 +323,25 @@ class Whatsapp_cloud
         if (!$this->isConfigured()) {
             return $this->fail('WhatsApp Cloud API is not configured');
         }
-        if (!$this->isPublicHttpsUrl($url)) {
-            return $this->fail('Media URL must be public HTTPS (not localhost)');
+
+        $url = trim((string) $url);
+        if ($url === '') {
+            return $this->fail('Missing media URL');
         }
+
+        // Resolve disk path first — localhost URLs are fine if the file is on this server.
+        $local = $this->localPathFromUrl($url);
+        $publicUrl = $this->isPublicHttpsUrl($url) ? $url : $this->publicizeMediaUrl($url);
 
         // WhatsApp audio bubbles need mp3/ogg/aac — not wav. Convert when possible.
         $forcedLocal = null;
         if ($type === 'audio' && preg_match('/\.(wav|webm)$/i', $url)) {
-            $converted = $this->ensureMp3PublicUrl($url);
+            $converted = $this->ensureMp3PublicUrl($local && is_file($local) ? $url : $publicUrl);
             if (!empty($converted['ok'])) {
                 if (!empty($converted['url'])) {
-                    $url = $converted['url'];
+                    $publicUrl = $this->isPublicHttpsUrl($converted['url'])
+                        ? $converted['url']
+                        : $this->publicizeMediaUrl($converted['url']);
                 }
                 if (!empty($converted['local'])) {
                     $forcedLocal = $converted['local'];
@@ -251,25 +352,38 @@ class Whatsapp_cloud
                 $type = 'document';
                 $caption = $caption !== '' ? $caption : 'Recitation audio (tap to download)';
             } elseif ($forcedLocal && preg_match('/\.mp3$/i', $forcedLocal)) {
-                // Prefer Meta media-id upload from converted bytes (public .mp3 may not exist yet)
-                $url = preg_replace('/\.(wav|webm)$/i', '.mp3', $url);
+                $publicUrl = preg_replace('/\.(wav|webm)$/i', '.mp3', $publicUrl);
             }
         }
 
-        $mediaObj = array('link' => $url);
-        // Prefer uploaded media id when file is on this server (or temp convert path)
-        $local = $forcedLocal ? $forcedLocal : $this->localPathFromUrl($url);
+        $local = $forcedLocal ? $forcedLocal : ($local && is_file($local) ? $local : $this->localPathFromUrl($publicUrl));
+        $mediaObj = null;
+        $uploadError = '';
+
+        // Prefer Meta media-id upload (works even when DB still has localhost links)
         if ($local && is_file($local)) {
             $up = $this->uploadMediaFile($local, $type === 'document' ? 'document' : $type);
             if (!empty($up['ok']) && !empty($up['id'])) {
                 $mediaObj = array('id' => $up['id']);
-            } elseif ($type === 'audio' && preg_match('/\.(wav|webm)$/i', (string) $url)) {
-                return $this->fail('Audio is WAV/WebM and could not convert to MP3.');
+            } else {
+                $uploadError = isset($up['error']) ? $up['error'] : 'Upload failed';
+                if ($type === 'audio' && preg_match('/\.(wav|webm)$/i', (string) $url)) {
+                    return $this->fail('Audio is WAV/WebM and could not convert to MP3. ' . $uploadError);
+                }
             }
         }
 
+        // Fallback: public HTTPS link Meta can fetch
+        if ($mediaObj === null) {
+            if (!$this->isPublicHttpsUrl($publicUrl)) {
+                $why = $uploadError !== '' ? $uploadError : 'file not on this server';
+                return $this->fail('Media needs a public HTTPS URL or a local uploads file (' . $why . ')');
+            }
+            $mediaObj = array('link' => $publicUrl);
+        }
+
         if ($type === 'document') {
-            $filename = basename(parse_url($url, PHP_URL_PATH) ?: 'recitation.wav');
+            $filename = basename(parse_url($publicUrl !== '' ? $publicUrl : $url, PHP_URL_PATH) ?: 'recitation.mp3');
             $mediaObj['filename'] = $filename;
         }
 
@@ -515,9 +629,18 @@ class Whatsapp_cloud
 
     protected function localPathFromUrl($url)
     {
+        $url = trim((string) $url);
+        if ($url === '') {
+            return null;
+        }
+        // Already a relative uploads path
+        if (preg_match('#^(uploads[\\\\/].+)$#i', str_replace('\\', '/', $url), $m)) {
+            $full = FCPATH . str_replace(array('/', '\\'), DIRECTORY_SEPARATOR, $m[1]);
+            return is_file($full) ? $full : null;
+        }
         $path = parse_url($url, PHP_URL_PATH);
         if (!$path) {
-            return null;
+            $path = $url;
         }
         // Expect /tahsin/uploads/... or /uploads/...
         if (preg_match('#/(uploads/.+)$#i', $path, $m)) {

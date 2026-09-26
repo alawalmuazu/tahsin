@@ -21,6 +21,10 @@ define('U2FA', 'r_2FA');
 define('SCHOOL_ID', 1);
 define('SCHOOL_NAME', 'Tahsin Academy');
 define('SCHOOL_MOTTO', 'Excellence In Deen & Duniya');
+/** Public HTTPS origin Meta can fetch when audio was saved under localhost. */
+define('PUBLIC_SITE_URL', 'https://tahsinacademy.ng');
+/** Shared secret: localhost Save milestone pushes the clip to PUBLIC_SITE_URL/academy_media/receive */
+define('ACADEMY_MEDIA_SYNC_SECRET', 'tahsin_media_sync_k7Qx9mP2_2026');
 define('DEFAULT_PAY_VIA', 4); // Bank Transfer (offline) — see payment_types.id
 define('SCHOOL_FEE_AMOUNT', 2500000);
 define('DEFAULT_PASSWORD_STAFF', 'TahsinStaff@1');

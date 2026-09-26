@@ -137,7 +137,7 @@ if (!empty($whatsapp['backend_enable_chat']) && $whatsapp['backend_enable_chat']
                         <label class="col-md-3 control-label">Template name <span class="required">*</span></label>
                         <div class="col-md-6">
                             <input type="text" class="form-control" name="template_name" value="<?php echo html_escape(isset($cloud['template_name']) ? $cloud['template_name'] : 'tahsin_sealed_digest'); ?>" />
-                            <span class="help-block mb-none">Use <code>tahsin_sealed_digest</code> / <code>en</code>. Body: “Your child {{1}} completed today's recitation with {{2}}. The portion heard in class was {{3}}. This session is {{4}}…” Audio is the next message. The older <code>tahsin_daily_digest</code> template is the drill-count wording and should not be used.</span>
+                            <span class="help-block mb-none">Prefer <code>tahsin_daily_digest</code> / <code>en</code> when you want a tap-able listen URL in {{4}}. <code>tahsin_sealed_digest</code> says “audio in the next message,” but Meta only delivers free-form audio inside a 24h window after the parent messages you — so that follow-up never arrives on cold sends. Put the public HTTPS clip URL in {{4}}, and keep files under <code>uploads/academy_tahfiz/</code> on Hostinger.</span>
                             <span class="error"></span>
                         </div>
                     </div>
@@ -155,7 +155,7 @@ if (!empty($whatsapp['backend_enable_chat']) && $whatsapp['backend_enable_chat']
                                 <input class="switch_menu" id="send_media_after_template" name="send_media_after_template" type="checkbox" <?php echo $cloudMedia; ?> />
                                 <label for="send_media_after_template" class="label-primary"></label>
                             </div>
-                            <p class="help-block mb-none">Tries native audio/video via Cloud API (needs open chat window or public HTTPS files).</p>
+                            <p class="help-block mb-none">Puts a public HTTPS listen URL into template {{4}}. Free-form audio after a utility template is accepted by Meta then dropped unless the parent already messaged you (24h window).</p>
                         </div>
                     </div>
                     <div class="form-group mb-md">
