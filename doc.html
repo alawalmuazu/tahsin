@@ -403,7 +403,7 @@ flowchart TD
             <h3>Parent portal</h3>
             <p>Guardian Details on Student → Add and Parents → Add/Edit write the same <code>parent</code> row. Role 6 is that guardian’s portal login. Extra phone numbers are stored on <code>parent.extra_phones</code> from both forms.</p>
             <p>A new parent row in <code>Parents_model::save()</code> also inserts <code>login_credential</code> role 6 with <code>active = 0</code>. The username is the parent email. Login stays off until a superadmin, admin, or director opens the parents list and approves it (<code>parents/approve</code> → <code>Parents_model::approvePortal()</code>). Approval sets <code>active = 1</code> and <code>must_change_password = 1</code>. An unapproved login is told to wait for a director or an admin.</p>
-            <p>The first successful sign-in is sent to <code>profile/password</code> and cannot open the rest of the portal. After the new password is saved, the session is destroyed and the parent returns to <code>authentication/index/changed</code>. That password change sets <code>login_credential.pwa_required = 1</code> (column from <code>application/migrations/parent_portal_approval.sql</code>). The next sign-in is held on <code>profile/install_app</code> until the browser is standalone or the app install event fires, which calls <code>profile/pwa_done</code> and clears the flag. <code>Admin_Controller</code> and <code>User_Controller</code> both enforce this gate.</p>
+            <p>The first successful sign-in is sent to <code>profile/password</code> and cannot open the rest of the portal. After the new password is saved, the session is destroyed and the parent returns to <code>authentication/index/changed</code>. That password change sets <code>login_credential.pwa_required = 1</code> (column from <code>application/migrations/parent_portal_approval.sql</code>). The next sign-in is held on <code>profile/install_app</code> until the browser is standalone or the app install event fires, which calls <code>profile/pwa_done</code> and clears the flag. <code>Admin_Controller</code> and <code>User_Controller</code> both enforce this gate. After that, the parent dashboard and sidebar link to <strong>Living Mushaf</strong> (<code>userrole/mushaf</code>) for the selected child’s sealed ayahs.</p>
             <div class="mermaid-wrapper">
                 <div class="mermaid">
 flowchart TD
@@ -533,10 +533,28 @@ flowchart TD
                     <tr><td><code>academy_performance</code> → <code>Academy_performance</code></td><td>Subject-pillar drills (Maths, English, Arabic, Quran, Skills, Core) with timed scores. A facilitator sees only assigned students.</td></tr>
                     <tr><td><code>tahfiz</code> → <code>Tahfiz</code></td><td>Tahfiz Tracker ledger (portion modes + recitation categories). A facilitator sees assigned students’ rows, including milestones logged by someone else.</td></tr>
                     <tr><td><code>academy_genome</code> → <code>Academy_genome</code></td><td>Genome overview aggregates.</td></tr>
-                    <tr><td><code>academy_review/mushaf</code> and <code>userrole/mushaf</code></td><td>Voice mushaf. Sealed tahfiz clips for one student, grouped by surah, in ayah order. Staff pick a student. A student or a selected child opens their own.</td></tr>
+                    <tr><td><code>academy_review/mushaf</code> and <code>userrole/mushaf</code></td><td><strong>Living Mushaf</strong>. Sealed-by-Tahsin ayah grid for one student: filled cells play that child’s released clip; empty cells wait. Surah list shows fill percent. Staff pick a student; parent or student open their own. Staff get Continue from last seal → Log next ayah.</td></tr>
                     <tr><td><code>academy_broadcast</code> → <code>Academy_broadcast</code></td><td>Daily parent broadcast preview/log; AJAX Cloud API resend (batch or one student); optional akhlaq telemetry cleanup.</td></tr>
                 </tbody>
             </table>
+
+            <h3>Living Mushaf</h3>
+            <p>Sidebar label <strong>Living Mushaf</strong> (was Voice mushaf). View <code>application/views/academy/mushaf.php</code>. Data: <code>Academy_model::sealedPins</code> (acknowledged sessions only), <code>sealedSurahs</code> (fill counts), <code>livingMushafSurah</code> (per-ayah cells), <code>sealedContinueGoal</code> / <code>sealedFrontierPin</code> (next ayah after the furthest sealed portion). Badge copy: Sealed by Tahsin. Parents never see Tarteel Strength / Holding / Needs improving here — only portion, seal date, teacher, and play.</p>
+            <p>Staff Continue links to <code>academy_students?open_log=1&amp;student_id=…&amp;surah=…&amp;from=…&amp;to=…</code>. <code>assets/js/academy_recitation.js</code> opens Log Surah on that portion.</p>
+            <div class="mermaid-wrapper">
+                <div class="mermaid">
+flowchart TD
+    record["Facilitator records and saves a milestone"] --> review["Director then admin seal the group session"]
+    review --> pin["sealedPins joins tahfiz to acknowledged class session"]
+    pin --> index["Living Mushaf surah list with fill percent"]
+    index --> grid["livingMushafSurah ayah grid"]
+    grid --> tap{"Parent or staff taps a teal ayah"}
+    tap --> play["Play that child's sealed clip"]
+    grid --> empty["Grey ayah: not sealed yet"]
+    index --> cont["Continue from last seal"]
+    cont --> log["Staff: open_log deep-link into Log Surah"]
+                </div>
+            </div>
 
             <h3>Log Surah audio roles</h3>
             <p>UI: <code>application/views/academy/_log_surah_modal.php</code> + <code>assets/js/academy_recitation.js</code> (+ <code>assets/js/tarteel_cloud_client.js</code>). Four audio actions only:</p>
