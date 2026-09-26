@@ -205,7 +205,7 @@ class Academy_review extends Admin_Controller
     }
 
     /**
-     * Staff view of a student's sealed recitation pins.
+     * Staff view of a student's Living Mushaf (sealed ayah grid).
      */
     public function mushaf()
     {
@@ -220,7 +220,13 @@ class Academy_review extends Admin_Controller
         $this->data['student_id'] = $studentId;
         $this->data['surah'] = $surah;
         $this->data['surahs'] = $studentId > 0 ? $this->academy_model->sealedSurahs($branchID, $studentId) : array();
-        $this->data['pins'] = ($studentId > 0 && $surah !== '') ? $this->academy_model->sealedPins($branchID, $studentId, $surah) : array();
+        $this->data['living'] = ($studentId > 0 && $surah !== '')
+            ? $this->academy_model->livingMushafSurah($branchID, $studentId, $surah)
+            : null;
+        $this->data['continue_goal'] = $studentId > 0
+            ? $this->academy_model->sealedContinueGoal($branchID, $studentId)
+            : null;
+        $this->data['pins'] = array(); // legacy unused; living grid replaces list
         $studentName = '';
         if ($studentId > 0) {
             $stu = $this->db->select('first_name, last_name')->where('id', $studentId)->get('student')->row();
@@ -230,7 +236,9 @@ class Academy_review extends Admin_Controller
         }
         $this->data['student_name'] = $studentName;
         $this->data['mushaf_base'] = 'academy_review/mushaf';
-        $this->data['title'] = 'Voice mushaf';
+        $this->data['log_surah_base'] = 'academy_students';
+        $this->data['is_staff_mushaf'] = true;
+        $this->data['title'] = 'Living Mushaf';
         $this->data['sub_page'] = 'academy/mushaf';
         $this->data['main_menu'] = 'academy';
         $this->load->view('layout/index', $this->data);

@@ -19,7 +19,7 @@
                     </li>
                     <li class="<?php if ($sub_page == 'academy/mushaf') echo 'nav-active'; ?>">
                         <a href="<?=base_url('userrole/mushaf')?>">
-                            <i class="fas fa-book-open"></i><span>Voice mushaf</span>
+                            <i class="fas fa-book-open"></i><span>Living Mushaf</span>
                         </a>
                     </li>
 <?php } elseif (is_parent_loggedin()) {  ?>
@@ -42,7 +42,7 @@
                                 </li>
                                 <li class="<?php if ($sub_page == 'academy/mushaf') echo 'nav-active'; ?>">
                                     <a href="<?=base_url('userrole/mushaf'); ?>">
-                                        <i class="fas fa-book-open"></i><span>Voice mushaf</span>
+                                        <i class="fas fa-book-open"></i><span>Living Mushaf</span>
                                     </a>
                                 </li>
                             <?php endif; ?>

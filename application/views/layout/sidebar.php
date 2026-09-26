@@ -438,7 +438,7 @@
                             <?php } ?>
                             <li class="<?php if ($_ac_sub == 'academy/mushaf') echo 'nav-active'; ?>">
                                 <a href="<?php echo base_url('academy_review/mushaf'); ?>">
-                                    <span><i class="fas fa-caret-right"></i>Voice mushaf</span>
+                                    <span><i class="fas fa-caret-right"></i>Living Mushaf</span>
                                 </a>
                             </li>
                             <li class="<?php if ($_ac_sub == 'academy/students') echo 'nav-active'; ?>">

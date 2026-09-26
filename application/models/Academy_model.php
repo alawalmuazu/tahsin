@@ -863,6 +863,7 @@ class Academy_model extends MY_Model
                 'verses_logged' => $metrics['verses_logged'],
                 'today_goal' => $goal['label'],
                 'today_goal_detail' => $goal,
+                'sealed_continue' => null,
             );
         }
 
@@ -3580,26 +3581,211 @@ class Academy_model extends MY_Model
     }
 
     /**
-     * Surahs that have at least one sealed pin, with a count.
+     * Surahs that have at least one sealed pin, with fill progress for Living Mushaf.
      *
-     * @return array<int,array{name:string,count:int}>
+     * @return array<int,array{name:string,count:int,surah_number:int,ayah_count:int,filled:int,percent:int}>
      */
     public function sealedSurahs($branchId, $studentId)
     {
         $pins = $this->sealedPins($branchId, $studentId, null);
-        $counts = array();
+        $byName = array();
         foreach ($pins as $pin) {
             $name = isset($pin->surah_name) && $pin->surah_name !== '' ? $pin->surah_name : 'Surah';
-            if (!isset($counts[$name])) {
-                $counts[$name] = 0;
+            if (!isset($byName[$name])) {
+                $byName[$name] = array();
             }
-            $counts[$name]++;
+            $byName[$name][] = $pin;
         }
+        $counts = $this->surahAyahCounts();
         $out = array();
-        foreach ($counts as $name => $n) {
-            $out[] = array('name' => $name, 'count' => $n);
+        foreach ($byName as $name => $group) {
+            $sn = $this->resolveSurahNumber($name, $group);
+            $ayahCount = isset($counts[$sn]) ? (int) $counts[$sn] : 0;
+            $filledMap = array();
+            foreach ($group as $pin) {
+                foreach ($this->ayahsCoveredByPin($pin, $ayahCount) as $a) {
+                    $filledMap[$a] = true;
+                }
+            }
+            $filled = count($filledMap);
+            $out[] = array(
+                'name' => $name,
+                'count' => count($group),
+                'surah_number' => $sn,
+                'ayah_count' => $ayahCount,
+                'filled' => $filled,
+                'percent' => $ayahCount > 0 ? (int) round(100 * $filled / $ayahCount) : 0,
+            );
+        }
+        usort($out, function ($a, $b) {
+            return $a['surah_number'] - $b['surah_number'];
+        });
+        return $out;
+    }
+
+    /**
+     * Living Mushaf page for one surah: every ayah cell, sealed or empty.
+     *
+     * @return array{surah_number:int,surah_name:string,ayah_count:int,filled:int,percent:int,ayahs:array,continue:array}
+     */
+    public function livingMushafSurah($branchId, $studentId, $surahName)
+    {
+        $pins = $this->sealedPins($branchId, $studentId, $surahName);
+        $sn = $this->resolveSurahNumber($surahName, $pins);
+        $counts = $this->surahAyahCounts();
+        $names = $this->surahList();
+        $total = isset($counts[$sn]) ? (int) $counts[$sn] : 0;
+        $name = $surahName !== '' ? $surahName : (isset($names[$sn]) ? $names[$sn] : 'Surah');
+
+        $byAyah = array();
+        foreach ($pins as $pin) {
+            foreach ($this->ayahsCoveredByPin($pin, $total) as $a) {
+                if (!isset($byAyah[$a]) || $this->livingPinPreferred($pin, $byAyah[$a])) {
+                    $byAyah[$a] = $pin;
+                }
+            }
+        }
+
+        $ayahs = array();
+        for ($i = 1; $i <= $total; $i++) {
+            $pin = isset($byAyah[$i]) ? $byAyah[$i] : null;
+            $ayahs[] = array(
+                'n' => $i,
+                'sealed' => $pin !== null,
+                'play_url' => ($pin && !empty($pin->play_url)) ? $pin->play_url : '',
+                'label' => $pin ? (string) $pin->portion_label : '',
+                'date' => $pin ? (string) $pin->session_date : '',
+                'teacher' => ($pin && !empty($pin->teacher_name)) ? (string) $pin->teacher_name : '',
+                'category' => ($pin && !empty($pin->category_label)) ? (string) $pin->category_label : '',
+            );
+        }
+
+        $frontier = $this->sealedFrontierPin($branchId, $studentId);
+        return array(
+            'surah_number' => $sn,
+            'surah_name' => $name,
+            'ayah_count' => $total,
+            'filled' => count($byAyah),
+            'percent' => $total > 0 ? (int) round(100 * count($byAyah) / $total) : 0,
+            'ayahs' => $ayahs,
+            'continue' => $this->nextGoalFromMilestone($frontier),
+            'seal_label' => 'Sealed by Tahsin',
+        );
+    }
+
+    /**
+     * Next ayah after the furthest sealed portion (curriculum frontier).
+     */
+    public function sealedContinueGoal($branchId, $studentId)
+    {
+        return $this->nextGoalFromMilestone($this->sealedFrontierPin($branchId, $studentId));
+    }
+
+    /**
+     * Furthest sealed pin by surah number then ayah (not merely latest date).
+     */
+    public function sealedFrontierPin($branchId, $studentId)
+    {
+        $pins = $this->sealedPins($branchId, $studentId, null);
+        if (empty($pins)) {
+            return null;
+        }
+        $counts = $this->surahAyahCounts();
+        $best = null;
+        $bestScore = -1;
+        foreach ($pins as $pin) {
+            $sn = isset($pin->surah_number) ? (int) $pin->surah_number : 0;
+            if ($sn < 1) {
+                $sn = $this->resolveSurahNumber(isset($pin->surah_name) ? $pin->surah_name : '', array($pin));
+            }
+            $to = 0;
+            if (!empty($pin->portion_mode) && $pin->portion_mode === 'FULL_SURAH') {
+                $to = isset($counts[$sn]) ? (int) $counts[$sn] : 0;
+            } elseif (isset($pin->ayah_to) && $pin->ayah_to !== '' && $pin->ayah_to !== null) {
+                $to = (int) $pin->ayah_to;
+            } elseif (isset($pin->ayah_from) && $pin->ayah_from !== '' && $pin->ayah_from !== null) {
+                $to = (int) $pin->ayah_from;
+            }
+            $score = ($sn * 1000) + $to;
+            if ($score > $bestScore) {
+                $bestScore = $score;
+                $best = $pin;
+                $best->surah_number = $sn;
+                if ($to > 0) {
+                    $best->ayah_to = $to;
+                }
+            }
+        }
+        return $best;
+    }
+
+    /**
+     * @param object[] $pins
+     * @return int
+     */
+    protected function resolveSurahNumber($surahName, $pins = array())
+    {
+        foreach ((array) $pins as $pin) {
+            if (isset($pin->surah_number) && (int) $pin->surah_number > 0) {
+                return (int) $pin->surah_number;
+            }
+        }
+        $names = $this->surahList();
+        $want = strtolower(trim((string) $surahName));
+        if ($want === '') {
+            return 1;
+        }
+        foreach ($names as $num => $label) {
+            if (strtolower($label) === $want) {
+                return (int) $num;
+            }
+        }
+        return 1;
+    }
+
+    /**
+     * @return int[]
+     */
+    protected function ayahsCoveredByPin($pin, $surahAyahs)
+    {
+        $mode = isset($pin->portion_mode) ? (string) $pin->portion_mode : '';
+        $from = isset($pin->ayah_from) && $pin->ayah_from !== '' && $pin->ayah_from !== null ? (int) $pin->ayah_from : 0;
+        $to = isset($pin->ayah_to) && $pin->ayah_to !== '' && $pin->ayah_to !== null ? (int) $pin->ayah_to : $from;
+        $out = array();
+        if ($mode === 'FULL_SURAH' && $surahAyahs > 0) {
+            for ($i = 1; $i <= $surahAyahs; $i++) {
+                $out[] = $i;
+            }
+            return $out;
+        }
+        if ($from < 1) {
+            return $out;
+        }
+        if ($to < $from) {
+            $to = $from;
+        }
+        if ($surahAyahs > 0 && $to > $surahAyahs) {
+            $to = $surahAyahs;
+        }
+        for ($i = $from; $i <= $to; $i++) {
+            $out[] = $i;
         }
         return $out;
+    }
+
+    /**
+     * Prefer a pin with audio, then a later seal date.
+     */
+    protected function livingPinPreferred($candidate, $current)
+    {
+        $cAudio = !empty($candidate->play_url);
+        $curAudio = !empty($current->play_url);
+        if ($cAudio !== $curAudio) {
+            return $cAudio;
+        }
+        $cDate = isset($candidate->session_date) ? (string) $candidate->session_date : '';
+        $curDate = isset($current->session_date) ? (string) $current->session_date : '';
+        return strcmp($cDate, $curDate) >= 0;
     }
 
     public function unreadNotices($userId, $limit = 6)

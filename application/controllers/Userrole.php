@@ -33,7 +33,7 @@ class Userrole extends User_Controller
     }
 
     /**
-     * Sealed recitation pins for the logged-in student or the selected child.
+     * Living Mushaf for the logged-in student or the selected child.
      */
     public function mushaf()
     {
@@ -65,10 +65,16 @@ class Userrole extends User_Controller
         $this->data['student_id'] = $studentId;
         $this->data['surah'] = $surah;
         $this->data['surahs'] = $this->academy_model->sealedSurahs($branchID, $studentId);
-        $this->data['pins'] = $surah !== '' ? $this->academy_model->sealedPins($branchID, $studentId, $surah) : array();
+        $this->data['living'] = $surah !== ''
+            ? $this->academy_model->livingMushafSurah($branchID, $studentId, $surah)
+            : null;
+        $this->data['continue_goal'] = $this->academy_model->sealedContinueGoal($branchID, $studentId);
+        $this->data['pins'] = array();
         $this->data['student_name'] = $stu ? trim($stu->first_name . ' ' . $stu->last_name) : '';
         $this->data['mushaf_base'] = 'userrole/mushaf';
-        $this->data['title'] = 'Voice mushaf';
+        $this->data['log_surah_base'] = '';
+        $this->data['is_staff_mushaf'] = false;
+        $this->data['title'] = 'Living Mushaf';
         $this->data['sub_page'] = 'academy/mushaf';
         $this->data['main_menu'] = 'dashboard';
         $this->load->view('layout/index', $this->data);

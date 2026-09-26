@@ -99,7 +99,7 @@ else :
 								<?php endif; ?>
 							</div>
 						<?php endforeach; ?>
-						<p style="margin:.25rem 0 0"><a href="<?=base_url('userrole/mushaf')?>">Voice mushaf</a></p>
+						<p style="margin:.25rem 0 0"><a href="<?=base_url('userrole/mushaf')?>">Living Mushaf</a> — hear sealed ayahs in this child’s voice</p>
 					<?php endif; ?>
 				</div>
 			</section>

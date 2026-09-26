@@ -1874,10 +1874,22 @@
     } else {
       showPicker();
     }
-    // Prefer continue-from-latest instead of always resetting to full Al-Fatihah
+    // Prefer sealed-frontier continue when roster provides it; else latest milestone
     var st = findStudent(state.studentId);
+    var sealed = st && st.sealed_continue ? st.sealed_continue : null;
     var latest = st && st.tahfiz_records && st.tahfiz_records[0];
-    var next = latest ? nextAyahSuggestion(latest) : null;
+    var next = null;
+    if (sealed && sealed.surah_number) {
+      next = {
+        surah: Number(sealed.surah_number),
+        from: Number(sealed.ayah_from || 1),
+        to: Number(sealed.ayah_to || sealed.ayah_from || 1),
+        label: sealed.label || '',
+        portion: sealed.portion_mode || 'AYAH'
+      };
+    } else {
+      next = latest ? nextAyahSuggestion(latest) : null;
+    }
     if (next) {
       setSurah(next.surah, next.from, next.to, next.portion);
       if (byId('ls_portion_mode')) byId('ls_portion_mode').value = next.portion;
@@ -2104,6 +2116,30 @@
       openModal(id);
     };
     window.academyOpenLogBlank = function () { openModal(null); };
+
+    // Deep-link from Living Mushaf "Log next ayah"
+    try {
+      var params = new URLSearchParams(window.location.search || '');
+      if (params.get('open_log') === '1') {
+        var sid = Number(params.get('student_id') || 0) || null;
+        var sn = Number(params.get('surah') || 0);
+        var from = Number(params.get('from') || 1) || 1;
+        var to = Number(params.get('to') || from) || from;
+        setTimeout(function () {
+          openModal(sid);
+          if (sn > 0) {
+            setSurah(sn, from, to, 'AYAH');
+            if (byId('ls_portion_mode')) byId('ls_portion_mode').value = 'AYAH';
+            state.portion = 'AYAH';
+          }
+          var status = byId('ls_rec_status');
+          if (status) {
+            status.textContent = 'Continue from last seal — record this ayah, then Save.';
+            status.style.color = '#0f766e';
+          }
+        }, 80);
+      }
+    } catch (e) {}
   }
 
   document.addEventListener('DOMContentLoaded', wire);
