@@ -44,6 +44,9 @@ class Whatsapp_cloud
         $this->cfg['template_lang'] = !empty($row['template_lang']) ? $row['template_lang'] : 'en';
         $this->cfg['send_media_after_template'] = !empty($row['send_media_after_template']);
         $this->cfg['media_max_per_student'] = isset($row['media_max_per_student']) ? (int) $row['media_max_per_student'] : 3;
+        if (!empty($row['media_convert_url'])) {
+            $this->cfg['media_convert_url'] = (string) $row['media_convert_url'];
+        }
     }
 
     public function isEnabled()
@@ -233,21 +236,9 @@ class Whatsapp_cloud
 
         // WhatsApp audio bubbles need mp3/ogg/aac — not wav. Convert when possible.
         if ($type === 'audio' && preg_match('/\.(wav|webm)$/i', $url)) {
-            $mp3Url = preg_replace('/\.(wav|webm)$/i', '.mp3', $url);
-            $local = $this->localPathFromUrl($url);
-            if ($local) {
-                $mp3Local = preg_replace('/\.(wav|webm)$/i', '.mp3', $local);
-                if (is_file($mp3Local) && filesize($mp3Local) > 100) {
-                    $url = $mp3Url;
-                } elseif (is_file($local)) {
-                    $this->CI->load->model('academy_model');
-                    if (method_exists($this->CI->academy_model, 'convertToMp3')) {
-                        $converted = $this->CI->academy_model->convertToMp3($local);
-                        if (is_file($converted) && preg_match('/\.mp3$/i', $converted) && filesize($converted) > 100) {
-                            $url = $mp3Url;
-                        }
-                    }
-                }
+            $converted = $this->ensureMp3PublicUrl($url);
+            if (!empty($converted['ok']) && !empty($converted['url'])) {
+                $url = $converted['url'];
             }
             // Still wav/webm → send as document so the parent at least gets a downloadable clip
             if (preg_match('/\.(wav|webm)$/i', $url)) {
@@ -264,7 +255,7 @@ class Whatsapp_cloud
             if (!empty($up['ok']) && !empty($up['id'])) {
                 $mediaObj = array('id' => $up['id']);
             } elseif ($type === 'audio' && preg_match('/\.(wav|webm)$/i', $url)) {
-                return $this->fail('Audio is WAV/WebM and ffmpeg could not convert to MP3. Install ffmpeg on the host, or re-save as MP3.');
+                return $this->fail('Audio is WAV/WebM and could not convert to MP3.');
             }
         }
 
@@ -285,6 +276,67 @@ class Whatsapp_cloud
             $type => $mediaObj,
         );
         return $this->postMessages($payload);
+    }
+
+    /**
+     * Prefer sibling .mp3, local ffmpeg, then VPS convert endpoint.
+     * @return array{ok:bool,url:?string,error:?string}
+     */
+    public function ensureMp3PublicUrl($url)
+    {
+        $url = trim((string) $url);
+        if ($url === '' || !preg_match('/\.(wav|webm)$/i', $url)) {
+            return array('ok' => true, 'url' => $url, 'error' => null);
+        }
+        $mp3Url = preg_replace('/\.(wav|webm)$/i', '.mp3', $url);
+        $local = $this->localPathFromUrl($url);
+        $mp3Local = $local ? preg_replace('/\.(wav|webm)$/i', '.mp3', $local) : '';
+
+        if ($mp3Local && is_file($mp3Local) && filesize($mp3Local) > 100) {
+            return array('ok' => true, 'url' => $mp3Url, 'error' => null);
+        }
+
+        if ($local && is_file($local)) {
+            $this->CI->load->model('academy_model');
+            if (method_exists($this->CI->academy_model, 'convertToMp3')) {
+                $converted = $this->CI->academy_model->convertToMp3($local);
+                if (is_file($converted) && preg_match('/\.mp3$/i', $converted) && filesize($converted) > 100) {
+                    return array('ok' => true, 'url' => $mp3Url, 'error' => null);
+                }
+            }
+        }
+
+        // Hostinger Cloud PHP often has no ffmpeg — convert on the VPS engine
+        $convertUrl = trim((string) $this->cfgValue('media_convert_url', 'http://72.62.232.120:8002/v1/media/to-mp3'));
+        if ($convertUrl === '' || !function_exists('curl_init')) {
+            return array('ok' => false, 'url' => null, 'error' => 'No convert URL');
+        }
+        $ch = curl_init($convertUrl);
+        curl_setopt_array($ch, array(
+            CURLOPT_POST => true,
+            CURLOPT_POSTFIELDS => json_encode(array('url' => $url)),
+            CURLOPT_HTTPHEADER => array('Content-Type: application/json'),
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_CONNECTTIMEOUT => 12,
+            CURLOPT_TIMEOUT => 120,
+        ));
+        $body = curl_exec($ch);
+        $code = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $err = curl_error($ch);
+        curl_close($ch);
+        if ($body === false || $code < 200 || $code >= 300 || strlen($body) < 100) {
+            // JSON error from VPS
+            $j = json_decode((string) $body, true);
+            $msg = is_array($j) && !empty($j['error']) ? $j['error'] : ($err !== '' ? $err : 'VPS convert failed');
+            return array('ok' => false, 'url' => null, 'error' => $msg);
+        }
+        if ($mp3Local) {
+            @file_put_contents($mp3Local, $body);
+            if (is_file($mp3Local) && filesize($mp3Local) > 100) {
+                return array('ok' => true, 'url' => $mp3Url, 'error' => null);
+            }
+        }
+        return array('ok' => false, 'url' => null, 'error' => 'Could not save converted MP3');
     }
 
     /**

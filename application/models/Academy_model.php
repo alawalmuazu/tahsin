@@ -1934,10 +1934,13 @@ class Academy_model extends MY_Model
 
     public function digestTemplateParams($report)
     {
+        // Meta template labels (approved): Student, Date, Recitation, Media
         $name = isset($report['student_name']) && $report['student_name'] !== '' ? $report['student_name'] : 'Student';
         $teacher = isset($report['teacher_name']) && $report['teacher_name'] !== '' ? $report['teacher_name'] : 'Teacher';
         $portion = isset($report['portion']) && $report['portion'] !== '' ? $report['portion'] : 'Session sealed';
-        return array($name, $teacher, $portion, 'Sealed by the director');
+        $date = date('j M Y');
+        $mediaLine = 'With ' . $teacher . ' · audio follows when saved';
+        return array($name, $date, $portion, $mediaLine);
     }
 
     /**

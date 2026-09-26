@@ -7,14 +7,12 @@ defined('BASEPATH') or exit('No direct script access allowed');
  * Prefer School Settings → WhatsApp → “WhatsApp Business Cloud API”
  * (table whatsapp_cloud_config). This file is only a fallback when no DB row exists.
  *
- * Template tahsin_sealed_digest (en), body variables:
- *   {{1}} student name
- *   {{2}} teacher name
- *   {{3}} portion (category and ayah range)
- *   {{4}} Sealed by the director
+ * Template tahsin_sealed_digest (en) — match Meta labels:
+ *   {{1}} Student
+ *   {{2}} Date
+ *   {{3}} Recitation / portion
+ *   {{4}} Media note (teacher + audio follows)
  * Audio is a follow-up media message, not a body variable.
- * Meta will not edit a template while it is PENDING, so the old
- * tahsin_daily_digest body was left in review and this new name was submitted.
  */
 $config['whatsapp'] = array(
     'enabled' => false,
@@ -28,4 +26,6 @@ $config['whatsapp'] = array(
     'send_media_after_template' => true,
     'media_max_per_student' => 3,
     'request_timeout' => 45,
+    // Hostinger Cloud PHP often lacks ffmpeg — convert WAV via VPS then upload MP3 to Meta
+    'media_convert_url' => 'http://72.62.232.120:8002/v1/media/to-mp3',
 );
