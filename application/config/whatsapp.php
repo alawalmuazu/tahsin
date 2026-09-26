@@ -25,6 +25,8 @@ $config['whatsapp'] = array(
     'template_lang' => 'en',
     'send_media_after_template' => true,
     'media_max_per_student' => 3,
+    // DOCUMENT-header utility template (in-chat clip). Falls back to body URL if PENDING.
+    'template_with_media' => 'tahsin_digest_with_audio',
     'request_timeout' => 45,
     // Hostinger Cloud PHP often lacks ffmpeg — convert WAV via VPS then upload MP3 to Meta
     'media_convert_url' => 'http://72.62.232.120:8002/v1/media/to-mp3',

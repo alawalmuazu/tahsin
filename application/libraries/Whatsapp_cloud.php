@@ -47,6 +47,10 @@ class Whatsapp_cloud
         if (!empty($row['media_convert_url'])) {
             $this->cfg['media_convert_url'] = (string) $row['media_convert_url'];
         }
+        // Optional DOCUMENT-header template (in-chat playable clip on cold sends)
+        if (!empty($row['template_with_media'])) {
+            $this->cfg['template_with_media'] = (string) $row['template_with_media'];
+        }
     }
 
     public function isEnabled()
@@ -76,6 +80,47 @@ class Whatsapp_cloud
     public function wantsMediaAfterTemplate()
     {
         return !empty($this->cfg['send_media_after_template']);
+    }
+
+    /** Template name that includes a DOCUMENT header for the recitation clip. */
+    public function templateWithMediaName()
+    {
+        $n = trim((string) $this->cfgValue('template_with_media', 'tahsin_digest_with_audio'));
+        return $n !== '' ? $n : 'tahsin_digest_with_audio';
+    }
+
+    /**
+     * Resolve a local uploads file for Meta upload (prefer .mp3 sibling).
+     */
+    public function resolveLocalMediaFile($url)
+    {
+        $url = trim((string) $url);
+        if ($url === '') {
+            return null;
+        }
+        $local = $this->localPathFromUrl($url);
+        if ($local && is_file($local) && preg_match('/\.(wav|webm)$/i', $local)) {
+            $converted = $this->ensureMp3PublicUrl($url);
+            if (!empty($converted['local']) && is_file($converted['local'])) {
+                return $converted['local'];
+            }
+            $mp3 = preg_replace('/\.(wav|webm)$/i', '.mp3', $local);
+            if ($mp3 && is_file($mp3)) {
+                return $mp3;
+            }
+        }
+        if ($local && is_file($local)) {
+            return $local;
+        }
+        $public = $this->publicizeMediaUrl($url);
+        if (preg_match('/\.(wav|webm)$/i', $public)) {
+            $mp3Public = preg_replace('/\.(wav|webm)$/i', '.mp3', $public);
+            $mp3Local = $this->localPathFromUrl($mp3Public);
+            if ($mp3Local && is_file($mp3Local)) {
+                return $mp3Local;
+            }
+        }
+        return $this->localPathFromUrl($public);
     }
 
     public function mediaMaxPerStudent()

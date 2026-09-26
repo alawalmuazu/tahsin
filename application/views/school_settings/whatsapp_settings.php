@@ -137,7 +137,7 @@ if (!empty($whatsapp['backend_enable_chat']) && $whatsapp['backend_enable_chat']
                         <label class="col-md-3 control-label">Template name <span class="required">*</span></label>
                         <div class="col-md-6">
                             <input type="text" class="form-control" name="template_name" value="<?php echo html_escape(isset($cloud['template_name']) ? $cloud['template_name'] : 'tahsin_sealed_digest'); ?>" />
-                            <span class="help-block mb-none">Prefer <code>tahsin_daily_digest</code> / <code>en</code> when you want a tap-able listen URL in {{4}}. <code>tahsin_sealed_digest</code> says “audio in the next message,” but Meta only delivers free-form audio inside a 24h window after the parent messages you — so that follow-up never arrives on cold sends. Put the public HTTPS clip URL in {{4}}, and keep files under <code>uploads/academy_tahfiz/</code> on Hostinger.</span>
+                            <span class="help-block mb-none">Body-only templates put a listen URL in {{4}}. For an in-chat playable file we submitted <code>tahsin_digest_with_audio</code> (DOCUMENT header) to Meta — when it shows APPROVED, digests attach the MP3 in the message. Meta does not allow green voice-note bubbles on cold utility sends.</span>
                             <span class="error"></span>
                         </div>
                     </div>

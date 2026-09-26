@@ -1963,12 +1963,13 @@ class Academy_model extends MY_Model
             }
 
             $params = $this->digestTemplateParams($r);
-            // Always look for clips for {{4}}. Utility templates cannot follow with free-form audio.
             $mediaItems = $this->digestMediaPayloads($r, $this->whatsapp_cloud->mediaMaxPerStudent());
             $listenUrl = '';
+            $headerMedia = null;
+            $clipLocal = null;
             if (!empty($mediaItems[0]['url'])) {
+                $clipLocal = $this->whatsapp_cloud->resolveLocalMediaFile($mediaItems[0]['url']);
                 $candidate = $this->whatsapp_cloud->publicizeMediaUrl($mediaItems[0]['url']);
-                // Prefer MP3 when both exist (phones play it more reliably than WAV)
                 if (preg_match('/\.(wav|webm)$/i', $candidate)) {
                     $mp3 = preg_replace('/\.(wav|webm)$/i', '.mp3', $candidate);
                     if ($this->whatsapp_cloud->isPublicHttpsUrl($mp3) && $this->whatsapp_cloud->urlIsReachable($mp3)) {
@@ -1977,13 +1978,57 @@ class Academy_model extends MY_Model
                 }
                 if ($this->whatsapp_cloud->isPublicHttpsUrl($candidate) && $this->whatsapp_cloud->urlIsReachable($candidate)) {
                     $listenUrl = $candidate;
-                    $params[3] = $listenUrl;
+                }
+                // Native in-chat attachment: DOCUMENT header on tahsin_digest_with_audio
+                if ($clipLocal && is_file($clipLocal)) {
+                    $hint = preg_match('/\.(mp3|ogg|opus|m4a|aac)$/i', $clipLocal) ? 'audio' : 'document';
+                    $up = $this->whatsapp_cloud->uploadMediaFile($clipLocal, $hint);
+                    if (!empty($up['ok']) && !empty($up['id'])) {
+                        $fname = basename($clipLocal);
+                        if (!preg_match('/\.mp3$/i', $fname)) {
+                            $fname = preg_replace('/\.[^.]+$/', '', $fname) . '.mp3';
+                        }
+                        $headerMedia = array(
+                            'type' => 'document',
+                            'id' => $up['id'],
+                            'filename' => $fname,
+                        );
+                    }
                 }
             }
 
             foreach (array_keys($phones) as $phone) {
                 $r['parent_contact'] = $phone;
-                $result = $this->whatsapp_cloud->sendTemplate($phone, $params);
+                $result = null;
+                $usedNativeClip = false;
+
+                if ($headerMedia) {
+                    $body3 = array(
+                        isset($params[0]) ? $params[0] : 'Student',
+                        isset($params[1]) ? $params[1] : date('j M Y'),
+                        isset($params[2]) ? $params[2] : 'Session sealed',
+                    );
+                    $result = $this->whatsapp_cloud->sendTemplate(
+                        $phone,
+                        $body3,
+                        $this->whatsapp_cloud->templateWithMediaName(),
+                        'en',
+                        $headerMedia
+                    );
+                    if (!empty($result['ok'])) {
+                        $usedNativeClip = true;
+                    }
+                }
+
+                // Fallback: body-only template with public listen URL in {{4}}
+                if ($result === null || empty($result['ok'])) {
+                    $fallbackParams = $params;
+                    if ($listenUrl !== '') {
+                        $fallbackParams[3] = $listenUrl;
+                    }
+                    $result = $this->whatsapp_cloud->sendTemplate($phone, $fallbackParams);
+                }
+
                 if (!empty($result['ok'])) {
                     $sent++;
                     $this->logBroadcastSend(
@@ -1992,14 +2037,17 @@ class Academy_model extends MY_Model
                         'whatsapp_cloud',
                         'sent',
                         isset($result['wamid']) ? $result['wamid'] : null,
-                        null
+                        $usedNativeClip ? 'native document clip' : null
                     );
-                    if ($listenUrl !== '' && $this->whatsapp_cloud->isPublicHttpsUrl($listenUrl)) {
+                    if ($usedNativeClip) {
+                        $mediaSent++;
+                        $this->logBroadcastSend($branchId, $r, 'whatsapp_cloud_media', 'sent', isset($result['wamid']) ? $result['wamid'] : null, 'DOCUMENT header clip');
+                    } elseif ($listenUrl !== '') {
                         $mediaSent++;
                         $this->logBroadcastSend($branchId, $r, 'whatsapp_cloud_media', 'sent', null, 'Listen URL in template {{4}}: ' . $listenUrl);
                     } elseif (!empty($mediaItems)) {
                         $mediaFailed++;
-                        $merr = 'Clip not on public HTTPS (sync uploads to ' . (defined('PUBLIC_SITE_URL') ? PUBLIC_SITE_URL : 'production') . '). Free-form audio after a utility template cannot deliver.';
+                        $merr = 'Clip could not be attached (template tahsin_digest_with_audio may still be PENDING) and no public HTTPS listen URL.';
                         if ($firstMediaError === '') {
                             $firstMediaError = $merr;
                         }
@@ -2028,9 +2076,9 @@ class Academy_model extends MY_Model
             $parts[] = $skipped . ' skipped (no phone)';
         }
         if ($mediaSent || $mediaFailed) {
-            $parts[] = $mediaSent . ' listen link' . ($mediaSent === 1 ? '' : 's') . ' in template';
+            $parts[] = $mediaSent . ' clip' . ($mediaSent === 1 ? '' : 's') . ' attached/linked';
             if ($mediaFailed) {
-                $parts[] = $mediaFailed . ' clip link missing';
+                $parts[] = $mediaFailed . ' clip missing';
             }
         } elseif ($sent && $this->whatsapp_cloud->wantsMediaAfterTemplate()) {
             $parts[] = '0 media links (no clip URLs on reports)';
