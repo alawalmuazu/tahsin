@@ -235,26 +235,35 @@ class Whatsapp_cloud
         }
 
         // WhatsApp audio bubbles need mp3/ogg/aac — not wav. Convert when possible.
+        $forcedLocal = null;
         if ($type === 'audio' && preg_match('/\.(wav|webm)$/i', $url)) {
             $converted = $this->ensureMp3PublicUrl($url);
-            if (!empty($converted['ok']) && !empty($converted['url'])) {
-                $url = $converted['url'];
+            if (!empty($converted['ok'])) {
+                if (!empty($converted['url'])) {
+                    $url = $converted['url'];
+                }
+                if (!empty($converted['local'])) {
+                    $forcedLocal = $converted['local'];
+                }
             }
             // Still wav/webm → send as document so the parent at least gets a downloadable clip
-            if (preg_match('/\.(wav|webm)$/i', $url)) {
+            if (preg_match('/\.(wav|webm)$/i', $url) && !$forcedLocal) {
                 $type = 'document';
                 $caption = $caption !== '' ? $caption : 'Recitation audio (tap to download)';
+            } elseif ($forcedLocal && preg_match('/\.mp3$/i', $forcedLocal)) {
+                // Prefer Meta media-id upload from converted bytes (public .mp3 may not exist yet)
+                $url = preg_replace('/\.(wav|webm)$/i', '.mp3', $url);
             }
         }
 
         $mediaObj = array('link' => $url);
-        // Prefer uploaded media id when file is on this server
-        $local = $this->localPathFromUrl($url);
+        // Prefer uploaded media id when file is on this server (or temp convert path)
+        $local = $forcedLocal ? $forcedLocal : $this->localPathFromUrl($url);
         if ($local && is_file($local)) {
             $up = $this->uploadMediaFile($local, $type === 'document' ? 'document' : $type);
             if (!empty($up['ok']) && !empty($up['id'])) {
                 $mediaObj = array('id' => $up['id']);
-            } elseif ($type === 'audio' && preg_match('/\.(wav|webm)$/i', $url)) {
+            } elseif ($type === 'audio' && preg_match('/\.(wav|webm)$/i', (string) $url)) {
                 return $this->fail('Audio is WAV/WebM and could not convert to MP3.');
             }
         }
@@ -280,20 +289,22 @@ class Whatsapp_cloud
 
     /**
      * Prefer sibling .mp3, local ffmpeg, then VPS convert endpoint.
-     * @return array{ok:bool,url:?string,error:?string}
+     * Returns public URL when saved under uploads/, and always a local path for Meta upload when possible.
+     *
+     * @return array{ok:bool,url:?string,local:?string,error:?string}
      */
     public function ensureMp3PublicUrl($url)
     {
         $url = trim((string) $url);
         if ($url === '' || !preg_match('/\.(wav|webm)$/i', $url)) {
-            return array('ok' => true, 'url' => $url, 'error' => null);
+            return array('ok' => true, 'url' => $url, 'local' => null, 'error' => null);
         }
         $mp3Url = preg_replace('/\.(wav|webm)$/i', '.mp3', $url);
         $local = $this->localPathFromUrl($url);
         $mp3Local = $local ? preg_replace('/\.(wav|webm)$/i', '.mp3', $local) : '';
 
         if ($mp3Local && is_file($mp3Local) && filesize($mp3Local) > 100) {
-            return array('ok' => true, 'url' => $mp3Url, 'error' => null);
+            return array('ok' => true, 'url' => $mp3Url, 'local' => $mp3Local, 'error' => null);
         }
 
         if ($local && is_file($local)) {
@@ -301,7 +312,7 @@ class Whatsapp_cloud
             if (method_exists($this->CI->academy_model, 'convertToMp3')) {
                 $converted = $this->CI->academy_model->convertToMp3($local);
                 if (is_file($converted) && preg_match('/\.mp3$/i', $converted) && filesize($converted) > 100) {
-                    return array('ok' => true, 'url' => $mp3Url, 'error' => null);
+                    return array('ok' => true, 'url' => $mp3Url, 'local' => $converted, 'error' => null);
                 }
             }
         }
@@ -309,7 +320,7 @@ class Whatsapp_cloud
         // Hostinger Cloud PHP often has no ffmpeg — convert on the VPS engine
         $convertUrl = trim((string) $this->cfgValue('media_convert_url', 'http://72.62.232.120:8002/v1/media/to-mp3'));
         if ($convertUrl === '' || !function_exists('curl_init')) {
-            return array('ok' => false, 'url' => null, 'error' => 'No convert URL');
+            return array('ok' => false, 'url' => null, 'local' => null, 'error' => 'No convert URL');
         }
         $ch = curl_init($convertUrl);
         curl_setopt_array($ch, array(
@@ -325,18 +336,41 @@ class Whatsapp_cloud
         $err = curl_error($ch);
         curl_close($ch);
         if ($body === false || $code < 200 || $code >= 300 || strlen($body) < 100) {
-            // JSON error from VPS
             $j = json_decode((string) $body, true);
             $msg = is_array($j) && !empty($j['error']) ? $j['error'] : ($err !== '' ? $err : 'VPS convert failed');
-            return array('ok' => false, 'url' => null, 'error' => $msg);
+            return array('ok' => false, 'url' => null, 'local' => null, 'error' => $msg);
         }
+
+        $saved = null;
         if ($mp3Local) {
-            @file_put_contents($mp3Local, $body);
-            if (is_file($mp3Local) && filesize($mp3Local) > 100) {
-                return array('ok' => true, 'url' => $mp3Url, 'error' => null);
+            $dir = dirname($mp3Local);
+            if (is_dir($dir) && is_writable($dir) && @file_put_contents($mp3Local, $body) !== false) {
+                if (is_file($mp3Local) && filesize($mp3Local) > 100) {
+                    $saved = $mp3Local;
+                }
             }
         }
-        return array('ok' => false, 'url' => null, 'error' => 'Could not save converted MP3');
+        if (!$saved) {
+            $tmpDir = rtrim(sys_get_temp_dir(), '/\\') . DIRECTORY_SEPARATOR . 'tahsin_wa';
+            if (!is_dir($tmpDir)) {
+                @mkdir($tmpDir, 0755, true);
+            }
+            $tmp = $tmpDir . DIRECTORY_SEPARATOR . basename(parse_url($mp3Url, PHP_URL_PATH) ?: ('rec_' . md5($url) . '.mp3'));
+            if (@file_put_contents($tmp, $body) !== false && is_file($tmp) && filesize($tmp) > 100) {
+                $saved = $tmp;
+            }
+        }
+        if ($saved) {
+            // Public URL only if sibling file under uploads exists
+            $publicOk = ($mp3Local && $saved === $mp3Local);
+            return array(
+                'ok' => true,
+                'url' => $publicOk ? $mp3Url : $url,
+                'local' => $saved,
+                'error' => null,
+            );
+        }
+        return array('ok' => false, 'url' => null, 'local' => null, 'error' => 'Could not save converted MP3');
     }
 
     /**
