@@ -515,7 +515,7 @@ flowchart TD
                     <tr><td><code>tahfiz</code> → <code>Tahfiz</code></td><td>Tahfiz Tracker ledger (portion modes + recitation categories). A facilitator sees assigned students’ rows, including milestones logged by someone else.</td></tr>
                     <tr><td><code>academy_genome</code> → <code>Academy_genome</code></td><td>Genome overview aggregates.</td></tr>
                     <tr><td><code>academy_review/mushaf</code> and <code>userrole/mushaf</code></td><td>Voice mushaf. Sealed tahfiz clips for one student, grouped by surah, in ayah order. Staff pick a student. A student or a selected child opens their own.</td></tr>
-                    <tr><td><code>academy_broadcast</code> → <code>Academy_broadcast</code></td><td>Daily parent broadcast preview/log; optional akhlaq telemetry cleanup.</td></tr>
+                    <tr><td><code>academy_broadcast</code> → <code>Academy_broadcast</code></td><td>Daily parent broadcast preview/log; AJAX Cloud API resend (batch or one student); optional akhlaq telemetry cleanup.</td></tr>
                 </tbody>
             </table>
 
@@ -556,7 +556,7 @@ flowchart TD
 
             
             <h3>WhatsApp Cloud API (Broadcast)</h3>
-            <p>Admin acknowledgement sends the parent digest itself through Meta Graph API (<code>application/libraries/Whatsapp_cloud.php</code>, <code>Academy_model::dispatchSealedDigests</code> → <code>deliverCloudDigests</code>). Configure under School Settings → WhatsApp (table <code>whatsapp_cloud_config</code>); file config is fallback only. The template body is student, teacher, portion, and the seal line. Optional native audio or video follows when the file is a public HTTPS link. <code>Academy_broadcast</code> still has a manual send for a resend, plus click-to-chat. Sends are stored in <code>academy_broadcast_log</code> (one log row per phone). Migrations: <code>whatsapp_broadcast_log.sql</code>, <code>whatsapp_cloud_config.sql</code>, <code>parent_extra_phones.sql</code>.</p>
+            <p>Admin acknowledgement sends the parent digest itself through Meta Graph API (<code>application/libraries/Whatsapp_cloud.php</code>, <code>Academy_model::dispatchSealedDigests</code> → <code>deliverCloudDigests</code>). Configure under School Settings → WhatsApp (table <code>whatsapp_cloud_config</code>); file config is fallback only. The template body is student, teacher, portion, and the seal line. Optional native audio or video follows when the file is a public HTTPS link. WAV clips are converted to MP3 via sibling file, local <code>ffmpeg</code>, or the VPS convert endpoint (<code>media_convert_url</code>, default <code>:8002/v1/media/to-mp3</code>); Meta can also receive a temp upload when <code>uploads/</code> is not writable. <code>Academy_broadcast</code> has a manual resend plus click-to-chat. Sends are stored in <code>academy_broadcast_log</code> (one log row per phone). Migrations: <code>whatsapp_broadcast_log.sql</code>, <code>whatsapp_cloud_config.sql</code>, <code>parent_extra_phones.sql</code>.</p>
             <p>Guardian and parent are the same <code>parent</code> row (role 6). Student → Add Guardian Details and Parents → Add/Profile share the same <strong>+</strong> extra-phone fields (<code>application/views/parents/_extra_phones.php</code>). <code>Academy_model::parentPhoneList()</code> builds the send list from primary + extras.</p>
             <div class="mermaid-wrapper">
                 <div class="mermaid">
@@ -566,13 +566,25 @@ flowchart TD
     phones --> each{"Each unique E.164 number"}
     each --> tpl["Send tahsin_sealed_digest template"]
     tpl --> media{"Media after template on?"}
-    media -->|Yes| clip["Send audio or video URL to that same number"]
+    media -->|Yes| mp3["ensureMp3PublicUrl then send clip"]
     media -->|No| next["Next number"]
-    clip --> next
+    mp3 --> next
     next --> each
                 </div>
             </div>
-            <p><strong>Production:</strong> After deploy, run <code>academy_session_review.sql</code> (the trailing statements drop the old one-student unique key and add the multi-teacher key), <code>academy_session_by_category.sql</code> (category + milestone unique key), <code>parent_extra_phones.sql</code> (adds <code>parent.extra_phones</code>), <code>parent_portal_approval.sql</code> (adds <code>login_credential.pwa_required</code>) and <code>whatsapp_cloud_config.sql</code> if needed, enter the permanent Meta system-user token and IDs in School Settings (never commit tokens). Install <code>ffmpeg</code> on the server so recitation uploads convert to MP3 for WhatsApp. Template name/lang must match an <strong>APPROVED</strong> Meta template. Use <code>tahsin_sealed_digest</code> / <code>en</code> (student, teacher, portion, "Sealed by the director"). Audio is attached after the template. Leave <code>tahsin_daily_digest</code> unused: it is the older drill-count wording and cannot be edited while PENDING. Acknowledgement sends only that teacher’s assigned students, and only when the session date is today. A later manual send uses the same acknowledged rows. <strong>Remove or HTTP-auth block</strong> root <code>test_whatsapp.php</code> on live — it is local diagnostics only and can write tokens to the database. Do not switch School Settings off the working test phone number ID until the school WABA template is Approved and a token is scoped to that WABA.</p>
+            <p><strong>Manual resend (Broadcast page):</strong> <strong>Send digests via WhatsApp API</strong> (batch) and per-student <strong>Send API</strong> POST to <code>academy_broadcast</code> with <code>ajax=1</code>. The browser confirms, shows a spinner, and reads a JSON result toast — no <code>Location</code> redirect (browser Redirect Blocker extensions were swallowing the old PRG redirect and looked like “nothing happened”). Non-AJAX POST falls through and renders the same page with an inline result banner. Same <code>deliverCloudDigests</code> path as acknowledgement.</p>
+            <div class="mermaid-wrapper">
+                <div class="mermaid">
+flowchart TD
+    click["Staff clicks Send digests or Send API"] --> confirm["SweetAlert confirm"]
+    confirm -->|Cancel| stop["Stay on page"]
+    confirm -->|Yes| post["fetch POST ajax=1 send_cloud_api or send_cloud_one"]
+    post --> deliver["Academy_broadcast then deliverCloudDigests"]
+    deliver --> json["JSON ok plus message"]
+    json --> toast["Toast on page — no redirect"]
+                </div>
+            </div>
+            <p><strong>Production:</strong> After deploy, run <code>academy_session_review.sql</code> (the trailing statements drop the old one-student unique key and add the multi-teacher key), <code>academy_session_by_category.sql</code> (category + milestone unique key), <code>parent_extra_phones.sql</code> (adds <code>parent.extra_phones</code>), <code>parent_portal_approval.sql</code> (adds <code>login_credential.pwa_required</code>) and <code>whatsapp_cloud_config.sql</code> if needed, enter the permanent Meta system-user token and IDs in School Settings (never commit tokens). Prefer VPS <code>:8002/v1/media/to-mp3</code> when Cloud PHP has no <code>ffmpeg</code>. Template name/lang must match an <strong>APPROVED</strong> Meta template. Use <code>tahsin_sealed_digest</code> / <code>en</code> (student, teacher, portion, "Sealed by the director"). Audio is attached after the template. Leave <code>tahsin_daily_digest</code> unused: it is the older drill-count wording and cannot be edited while PENDING. Acknowledgement sends only that teacher’s assigned students, and only when the session date is today. A later manual send uses the same acknowledged rows. <strong>Remove or HTTP-auth block</strong> root <code>test_whatsapp.php</code> on live — it is local diagnostics only and can write tokens to the database. Do not switch School Settings off the working test phone number ID until the school WABA template is Approved and a token is scoped to that WABA.</p>
 
             <h3>Recitation categories &amp; portion modes</h3>
             <p>Required before save (see <code>Academy_model::recitationCategories()</code>): Hifz Fauq, Hifz Taht, Talqeen, Murajaa Qareebah, Murajaa Baeedah, Musaffa, Qiyaamullail. Portion modes: Full Surah, Single Ayah, From–To Ayah, Summu'i, Rubbu'i, Safha.</p>
