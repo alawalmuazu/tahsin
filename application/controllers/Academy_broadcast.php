@@ -33,20 +33,32 @@ class Academy_broadcast extends Admin_Controller
         }
 
         if ($this->input->post('send_cloud_api')) {
-            $this->_sendCloudApi($branchID, $broadcast, null);
-            redirect(base_url('academy_broadcast'));
+            $result = $this->_sendCloudApi($branchID, $broadcast, null);
+            if ($this->_wantsJson()) {
+                $this->_jsonSendResult($result);
+                return;
+            }
+            // Avoid Location redirect — browser Redirect Blocker extensions swallow it and look like "nothing happened".
+            $this->data['send_result'] = $result;
         }
 
         if ($this->input->post('send_cloud_one')) {
             $sid = (int) $this->input->post('student_id');
-            $this->_sendCloudApi($branchID, $broadcast, $sid);
-            redirect(base_url('academy_broadcast'));
+            $result = $this->_sendCloudApi($branchID, $broadcast, $sid);
+            if ($this->_wantsJson()) {
+                $this->_jsonSendResult($result);
+                return;
+            }
+            $this->data['send_result'] = $result;
         }
 
         $this->data['broadcast'] = $broadcast;
         $this->data['wa_ready'] = $waReady;
         $this->data['wa_status'] = $this->whatsapp_cloud->statusLabel();
         $this->data['wa_send_media'] = $this->whatsapp_cloud->wantsMediaAfterTemplate();
+        if (!isset($this->data['send_result'])) {
+            $this->data['send_result'] = null;
+        }
         $this->data['title'] = 'Academy Broadcast';
         $this->data['sub_page'] = 'academy/broadcast';
         $this->data['main_menu'] = 'academy';
@@ -55,13 +67,17 @@ class Academy_broadcast extends Admin_Controller
 
     /**
      * @param int|null $onlyStudentId
+     * @return array{ok:bool,type:string,message:string}
      */
     protected function _sendCloudApi($branchID, $broadcast, $onlyStudentId = null)
     {
         $this->load->library('whatsapp_cloud');
         if (!$this->whatsapp_cloud->isConfigured()) {
-            set_alert('error', 'WhatsApp Cloud API is not configured. Set credentials in application/config/whatsapp.php and enable it.');
-            return;
+            return array(
+                'ok' => false,
+                'type' => 'error',
+                'message' => 'WhatsApp Cloud API is not configured. Set credentials in application/config/whatsapp.php and enable it.',
+            );
         }
 
         $reports = isset($broadcast['reports']) ? $broadcast['reports'] : array();
@@ -72,11 +88,30 @@ class Academy_broadcast extends Admin_Controller
         }
         $message = $this->academy_model->deliverCloudDigests($branchID, $reports);
         if (strpos($message, 'failed') !== false || strpos($message, 'not configured') !== false) {
-            set_alert('error', $message);
-        } elseif (strpos($message, '0 WhatsApp') === 0) {
-            set_alert('error', $message);
-        } else {
-            set_alert('success', $message);
+            return array('ok' => false, 'type' => 'error', 'message' => $message);
         }
+        if (strpos($message, '0 WhatsApp') === 0) {
+            return array('ok' => false, 'type' => 'error', 'message' => $message);
+        }
+        return array('ok' => true, 'type' => 'success', 'message' => $message);
+    }
+
+    protected function _wantsJson()
+    {
+        if ($this->input->post('ajax')) {
+            return true;
+        }
+        return $this->input->is_ajax_request();
+    }
+
+    /**
+     * @param array{ok:bool,type:string,message:string} $result
+     */
+    protected function _jsonSendResult($result)
+    {
+        $this->output
+            ->set_status_header(200)
+            ->set_content_type('application/json', 'utf-8')
+            ->set_output(json_encode($result));
     }
 }

@@ -24,7 +24,8 @@
 	</div>
 	<div>
 		<?php if (!empty($wa_ready)): ?>
-		<?php echo form_open(base_url('academy_broadcast'), array('style' => 'display:inline', 'onsubmit' => "return confirm('Send today\\'s digests to all parents with a phone number via WhatsApp Cloud API?');")); ?>
+		<?php echo form_open(base_url('academy_broadcast'), array('style' => 'display:inline', 'class' => 'bcast-wa-send-form', 'data-confirm' => "Send today's digests to all parents with a phone number via WhatsApp Cloud API?")); ?>
+		<input type="hidden" name="ajax" value="1">
 		<button type="submit" name="send_cloud_api" value="1" class="btn btn-success"><i class="fab fa-whatsapp"></i> Send digests via WhatsApp API</button>
 		<?php echo form_close(); ?>
 		<?php endif; ?>
@@ -39,6 +40,12 @@
 		<a href="<?php echo base_url('academy_students'); ?>" class="btn btn-default"><i class="fas fa-user-graduate"></i> Students</a>
 	</div>
 </div>
+
+<?php if (!empty($send_result) && is_array($send_result)): ?>
+<div class="alert alert-<?php echo !empty($send_result['ok']) ? 'success' : 'danger'; ?>" role="alert" style="margin-bottom:1rem">
+	<?php echo html_escape(isset($send_result['message']) ? $send_result['message'] : ''); ?>
+</div>
+<?php endif; ?>
 
 <div class="bcast-note">
 	<?php
@@ -136,7 +143,8 @@ $cohortWa = $cohortMsg !== '' ? ('https://api.whatsapp.com/send?text=' . rawurle
 			</a>
 			<?php endif; ?>
 			<?php if (!empty($wa_ready) && !empty($r['parent_contact'])): ?>
-			<?php echo form_open(base_url('academy_broadcast'), array('style' => 'display:inline', 'onsubmit' => "return confirm('Send this parent\\'s digest via WhatsApp API?');")); ?>
+			<?php echo form_open(base_url('academy_broadcast'), array('style' => 'display:inline', 'class' => 'bcast-wa-send-form', 'data-confirm' => "Send this parent's digest via WhatsApp API?")); ?>
+			<input type="hidden" name="ajax" value="1">
 			<input type="hidden" name="student_id" value="<?php echo (int) $r['student_id']; ?>">
 			<button type="submit" name="send_cloud_one" value="1" class="btn btn-primary btn-xs" style="margin-left:4px" title="Cloud API">
 				<i class="fab fa-whatsapp"></i> Send API
@@ -176,6 +184,92 @@ window.BCAST_COHORT = <?php echo json_encode($cohortMsg); ?>;
 (function () {
 	var status = document.getElementById('bcast_action_status');
 	function setStatus(t) { if (status) status.textContent = t; }
+
+	function showSendResult(ok, message) {
+		var title = message || (ok ? 'Sent.' : 'Send failed.');
+		if (typeof swal === 'function') {
+			swal({
+				toast: true,
+				position: 'top-end',
+				type: ok ? 'success' : 'error',
+				title: title,
+				confirmButtonClass: 'btn btn-default',
+				buttonsStyling: false,
+				timer: 10000
+			});
+		} else {
+			alert(title);
+		}
+		setStatus(title);
+	}
+
+	function confirmSend(message, onYes) {
+		if (typeof swal === 'function') {
+			swal({
+				title: 'Send digests?',
+				text: message,
+				type: 'warning',
+				showCancelButton: true,
+				confirmButtonClass: 'btn btn-success',
+				cancelButtonClass: 'btn btn-default',
+				confirmButtonText: 'Yes, send',
+				cancelButtonText: 'Cancel',
+				buttonsStyling: false
+			}).then(function (result) {
+				if (result && (result.value || result === true)) {
+					onYes();
+				}
+			});
+			return;
+		}
+		if (window.confirm(message)) {
+			onYes();
+		}
+	}
+
+	document.querySelectorAll('.bcast-wa-send-form').forEach(function (form) {
+		form.addEventListener('submit', function (e) {
+			e.preventDefault();
+			var btn = form.querySelector('button[type="submit"]');
+			var confirmMsg = form.getAttribute('data-confirm') || 'Send via WhatsApp Cloud API?';
+			confirmSend(confirmMsg, function () {
+				var fd = new FormData(form);
+				if (btn && btn.name) {
+					fd.append(btn.name, btn.value || '1');
+				}
+				if (btn) {
+					btn.disabled = true;
+					btn.dataset._label = btn.innerHTML;
+					btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending…';
+				}
+				setStatus('Sending via WhatsApp API…');
+				fetch(form.action || window.location.href, {
+					method: 'POST',
+					body: fd,
+					credentials: 'same-origin',
+					headers: { 'X-Requested-With': 'XMLHttpRequest' }
+				}).then(function (res) {
+					return res.text().then(function (text) {
+						var data = null;
+						try { data = JSON.parse(text); } catch (err) { data = null; }
+						if (!data || typeof data.message === 'undefined') {
+							throw new Error(text && text.length < 200 ? text : 'Unexpected server response');
+						}
+						return data;
+					});
+				}).then(function (data) {
+					showSendResult(!!data.ok, data.message || '');
+				}).catch(function (err) {
+					showSendResult(false, (err && err.message) ? err.message : 'Send failed');
+				}).then(function () {
+					if (btn) {
+						btn.disabled = false;
+						if (btn.dataset._label) btn.innerHTML = btn.dataset._label;
+					}
+				});
+			});
+		});
+	});
 
 	var openBtn = document.getElementById('bcast_open_all');
 	if (openBtn) {
