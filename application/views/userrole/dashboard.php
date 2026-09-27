@@ -101,6 +101,24 @@ else :
 						<?php endforeach; ?>
 						<p style="margin:.25rem 0 0"><a href="<?=base_url('userrole/mushaf')?>">Living Mushaf</a> — hear sealed ayahs in this child’s voice</p>
 					<?php endif; ?>
+					<?php $meetings = $CI->academy_model->onlineMeetingsForStudent((int) $student_id); ?>
+					<?php if (!empty($meetings)): ?>
+						<div style="margin-top:.85rem">
+							<strong>Online class</strong>
+							<?php foreach ($meetings as $meet): ?>
+								<div style="margin:.4rem 0 .2rem">
+									<?php echo html_escape($meet['name']); ?>
+									<?php if (!empty($meet['teacher'])): ?> · <?php echo html_escape($meet['teacher']); ?><?php endif; ?>
+									<div class="text-muted"><?php echo html_escape($meet['local']); ?><?php if (!empty($meet['lagos'])): ?> · <?php echo html_escape($meet['lagos']); ?><?php endif; ?></div>
+									<?php if (!empty($meet['open'])): ?>
+										<a class="btn btn-primary btn-sm" style="margin-top:.3rem" href="<?php echo html_escape($meet['url']); ?>" target="_blank" rel="noopener">Join</a>
+									<?php else: ?>
+										<span class="text-muted">Join opens during this slot.</span>
+									<?php endif; ?>
+								</div>
+							<?php endforeach; ?>
+						</div>
+					<?php endif; ?>
 				</div>
 			</section>
 		</div>

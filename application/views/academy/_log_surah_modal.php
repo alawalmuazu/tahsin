@@ -169,6 +169,7 @@
 				<input type="hidden" name="page_from" id="ls_page_from" value="">
 				<input type="hidden" name="page_to" id="ls_page_to" value="">
 				<input type="file" name="audio_file" id="ls_audio_file" accept="audio/*,video/*" style="display:none">
+				<input type="hidden" name="proof_kind" id="ls_proof_kind" value="audio">
 				<input type="hidden" name="audio_file_b64" id="ls_audio_b64" value="">
 
 				<div class="ls-grid">
@@ -251,13 +252,13 @@
 					<div>
 						<div class="ls-card">
 							<div class="ls-title"><svg class="ls-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0"/><path d="M12 18v3"/><path d="M8 21h8"/></svg> Proof recording</div>
-							<p class="ls-muted">Record Voice stores proof of recitation with the milestone (no AI). Live check = green mic below.</p>
+							<p class="ls-muted">Record Voice stores sound. Record Video stores the child’s face for this portion (online classes). Live check = green mic below.</p>
 							<div class="ls-actions">
 								<button type="button" class="btn btn-default btn-sm ls-btn-with-ico" id="ls_btn_start_audio"><svg class="ls-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0"/><path d="M12 18v3"/><path d="M8 21h8"/></svg> Record Voice</button>
+								<button type="button" class="btn btn-default btn-sm ls-btn-with-ico" id="ls_btn_start_video"><svg class="ls-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M23 7l-7 5 7 5V7z"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg> Record Video</button>
 								<button type="button" class="btn btn-danger btn-sm ls-btn-with-ico" id="ls_btn_stop" style="display:none"><svg class="ls-ico" viewBox="0 0 24 24" fill="currentColor" stroke="none"><rect x="6" y="6" width="12" height="12" rx="1"/></svg> Stop</button>
 							</div>
-							<video id="ls_video_preview" playsinline style="display:none"></video>
-							<button type="button" id="ls_btn_start_video" style="display:none" aria-hidden="true" tabindex="-1"></button>
+							<video id="ls_video_preview" playsinline muted style="display:none"></video>
 							<button type="button" id="ls_btn_live" style="display:none" aria-hidden="true" tabindex="-1"></button>
 							<button type="button" id="ls_btn_session_sound" style="display:none" aria-hidden="true" tabindex="-1"></button>
 							<div id="ls_playback_bar" class="ls-playback-bar" style="display:none">

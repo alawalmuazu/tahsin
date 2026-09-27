@@ -1461,6 +1461,16 @@
     state.audioBlob = blob;
     var url = URL.createObjectURL(blob);
     showAudioPlayer(url, 'new recording (not saved yet)');
+    if (blob && blob.type && blob.type.indexOf('video') !== -1) {
+      var preview = byId('ls_video_preview');
+      if (preview) {
+        preview.style.display = '';
+        preview.controls = true;
+        preview.muted = false;
+        preview.srcObject = null;
+        preview.src = url;
+      }
+    }
     var fileInput = byId('ls_audio_file');
     if (fileInput && window.DataTransfer) {
       try {
@@ -1797,6 +1807,8 @@
       state.mediaRecorder.start(250);
       state.recording = true;
       state.liveMode = 'media';
+      var kind = byId('ls_proof_kind');
+      if (kind) kind.value = withVideo ? 'video' : 'audio';
       startTimer();
       playSessionTone('start');
       syncLiveFab();
@@ -1848,7 +1860,7 @@
       byId('ls_rec_status').textContent = 'Proof recording saved — review then Save milestone.';
       setBtnVisible('ls_btn_stop', false);
       setBtnVisible('ls_btn_start_audio', true);
-      setBtnVisible('ls_btn_start_video', false);
+      setBtnVisible('ls_btn_start_video', true);
       setBtnVisible('ls_btn_live', false);
     }
   }

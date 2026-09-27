@@ -63,6 +63,27 @@ foreach ((isset($groups) ? $groups : array()) as $g) {
 									<span class="text-muted"><?php echo count($inGroup); ?> student<?php echo count($inGroup) === 1 ? '' : 's'; ?></span>
 								</div>
 								<div class="panel-body">
+									<?php if ($this->db->field_exists('meeting_url', 'academy_teacher_group')): ?>
+									<?php echo form_open('academy_groups', array('style' => 'margin-bottom:1rem')); ?>
+										<input type="hidden" name="teacher_id" value="<?php echo (int) $teacher_id; ?>">
+										<input type="hidden" name="group_id" value="<?php echo (int) $g->id; ?>">
+										<div style="display:flex;flex-wrap:wrap;gap:.5rem;align-items:flex-end">
+											<div>
+												<label class="text-muted" style="display:block;font-size:.75rem">Starts (Lagos)</label>
+												<input type="time" name="starts_at_lagos" class="form-control" value="<?php echo !empty($g->starts_at_lagos) ? html_escape(substr((string) $g->starts_at_lagos, 0, 5)) : ''; ?>">
+											</div>
+											<div>
+												<label class="text-muted" style="display:block;font-size:.75rem">Minutes</label>
+												<input type="number" name="duration_minutes" class="form-control" min="10" max="180" value="<?php echo (int) (!empty($g->duration_minutes) ? $g->duration_minutes : 45); ?>" style="width:90px">
+											</div>
+											<div style="flex:1;min-width:220px">
+												<label class="text-muted" style="display:block;font-size:.75rem">Meet or Zoom link</label>
+												<input type="url" name="meeting_url" class="form-control" placeholder="https://" value="<?php echo html_escape(isset($g->meeting_url) ? $g->meeting_url : ''); ?>">
+											</div>
+											<button type="submit" name="save_schedule" value="1" class="btn btn-default btn-sm">Save meeting</button>
+										</div>
+									<?php echo form_close(); ?>
+									<?php endif; ?>
 									<?php echo form_open('academy_groups'); ?>
 										<input type="hidden" name="teacher_id" value="<?php echo (int) $teacher_id; ?>">
 										<input type="hidden" name="group_id" value="<?php echo (int) $g->id; ?>">
@@ -82,6 +103,9 @@ foreach ((isset($groups) ? $groups : array()) as $g) {
 												<label style="font-weight:500">
 													<input type="checkbox" name="student_ids[]" value="<?php echo $sid; ?>" <?php echo !empty($inGroup[$sid]) ? 'checked' : ''; ?>>
 													<?php echo html_escape($st->student_name); ?>
+													<?php if (!empty($st->instruction_mode) && $st->instruction_mode === 'online'): ?>
+														<small class="text-info">(Online)</small>
+													<?php endif; ?>
 													<?php if (!empty($alsoIn)): ?>
 														<small class="text-muted">(also in <?php echo html_escape(implode(', ', $alsoIn)); ?>)</small>
 													<?php endif; ?>

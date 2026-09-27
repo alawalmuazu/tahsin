@@ -2533,6 +2533,109 @@ class Academy_model extends MY_Model
         return array('ok' => true, 'id' => (int) $this->db->insert_id());
     }
 
+    public function saveTeacherGroupSchedule($groupId, $teacherId, $startsAt, $duration, $meetingUrl)
+    {
+        if (!$this->groupsReady() || !$this->db->field_exists('meeting_url', 'academy_teacher_group')) {
+            return array('ok' => false, 'error' => 'Run application/migrations/online_students.sql first.');
+        }
+        $g = $this->db->get_where('academy_teacher_group', array(
+            'id' => (int) $groupId,
+            'teacher_id' => (int) $teacherId,
+        ))->row();
+        if (!$g) {
+            return array('ok' => false, 'error' => 'Group not found.');
+        }
+        $starts = trim((string) $startsAt);
+        $time = null;
+        if ($starts !== '' && preg_match('/^\d{2}:\d{2}/', $starts)) {
+            $time = substr($starts, 0, 5) . ':00';
+        }
+        $url = trim((string) $meetingUrl);
+        if ($url !== '' && !preg_match('#^https://#i', $url)) {
+            return array('ok' => false, 'error' => 'Meeting link must start with https://');
+        }
+        $mins = (int) $duration;
+        if ($mins < 10) {
+            $mins = 45;
+        }
+        if ($mins > 180) {
+            $mins = 180;
+        }
+        $this->db->where('id', (int) $groupId)->update('academy_teacher_group', array(
+            'starts_at_lagos' => $time,
+            'duration_minutes' => $mins,
+            'meeting_url' => $url !== '' ? mb_substr($url, 0, 500) : null,
+        ));
+        return array('ok' => true);
+    }
+
+    /**
+     * Groups this student belongs to that have a meeting link, labelled in the student's timezone.
+     * Join is open during the Lagos window, or always when no start time is set.
+     */
+    public function onlineMeetingsForStudent($studentId)
+    {
+        if (!$this->groupsReady() || !$this->db->field_exists('meeting_url', 'academy_teacher_group') || (int) $studentId < 1) {
+            return array();
+        }
+        $stu = $this->db->select('timezone')->where('id', (int) $studentId)->get('student')->row();
+        $tzName = ($stu && !empty($stu->timezone)) ? $stu->timezone : 'Africa/Lagos';
+        try {
+            $studentTz = new DateTimeZone($tzName);
+        } catch (Exception $e) {
+            $studentTz = new DateTimeZone('Africa/Lagos');
+            $tzName = 'Africa/Lagos';
+        }
+        $lagos = new DateTimeZone('Africa/Lagos');
+        $rows = $this->db->select('g.name, g.starts_at_lagos, g.duration_minutes, g.meeting_url, st.name AS teacher_name')
+            ->from('academy_teacher_group_member m')
+            ->join('academy_teacher_group g', 'g.id = m.group_id', 'inner')
+            ->join('staff st', 'st.id = g.teacher_id', 'left')
+            ->where('m.student_id', (int) $studentId)
+            ->where('g.session_id', (int) get_session_id())
+            ->where('g.meeting_url IS NOT NULL', null, false)
+            ->where('g.meeting_url !=', '')
+            ->order_by('g.starts_at_lagos', 'ASC')
+            ->get()->result();
+        $now = new DateTime('now', $lagos);
+        $out = array();
+        foreach ($rows as $row) {
+            $mins = (int) $row->duration_minutes;
+            if ($mins < 1) {
+                $mins = 45;
+            }
+            $open = true;
+            $local = 'Anytime — Lagos time not set';
+            $lagosLabel = '';
+            if (!empty($row->starts_at_lagos)) {
+                $start = DateTime::createFromFormat('Y-m-d H:i:s', $now->format('Y-m-d') . ' ' . $row->starts_at_lagos, $lagos);
+                if (!$start) {
+                    $start = DateTime::createFromFormat('Y-m-d H:i', $now->format('Y-m-d') . ' ' . substr((string) $row->starts_at_lagos, 0, 5), $lagos);
+                }
+                if ($start) {
+                    $end = clone $start;
+                    $end->modify('+' . $mins . ' minutes');
+                    $open = ($now >= $start && $now <= $end);
+                    $lagosLabel = $start->format('g:i A') . ' Lagos';
+                    $localStart = clone $start;
+                    $localStart->setTimezone($studentTz);
+                    $localEnd = clone $end;
+                    $localEnd->setTimezone($studentTz);
+                    $local = $localStart->format('g:i A') . '–' . $localEnd->format('g:i A') . ' your time';
+                }
+            }
+            $out[] = array(
+                'name' => $row->name,
+                'teacher' => $row->teacher_name,
+                'url' => $row->meeting_url,
+                'local' => $local,
+                'lagos' => $lagosLabel,
+                'open' => $open,
+            );
+        }
+        return $out;
+    }
+
     public function deleteTeacherGroup($groupId, $teacherId)
     {
         if (!$this->groupsReady()) {
@@ -3575,7 +3678,10 @@ class Academy_model extends MY_Model
             $row->portion_label = $this->formatTahfizMilestoneLabel($row);
             $ck = isset($row->recitation_category) ? strtoupper((string) $row->recitation_category) : '';
             $row->category_label = isset($cats[$ck]) ? $cats[$ck] : '';
-            $row->play_url = $this->absoluteMediaUrl(isset($row->audio_url) ? $row->audio_url : '');
+            $audio = $this->absoluteMediaUrl(isset($row->audio_url) ? $row->audio_url : '');
+            $video = $this->absoluteMediaUrl(isset($row->video_url) ? $row->video_url : '');
+            $row->play_url = $video !== '' ? $video : $audio;
+            $row->play_kind = $video !== '' ? 'video' : 'audio';
         }
         return $rows;
     }

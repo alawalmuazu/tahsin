@@ -105,31 +105,49 @@
 							<div class="lm-player-title" id="lm_player_title"></div>
 							<div class="lm-player-meta" id="lm_player_meta"></div>
 							<audio id="lm_audio" controls preload="none"></audio>
+							<video id="lm_video" controls playsinline preload="none" style="display:none;width:100%;max-height:280px;background:#000;border-radius:10px"></video>
 						</div>
 						<script>
 						(function () {
 							var grid = document.getElementById('lm_grid');
 							var player = document.getElementById('lm_player');
 							var audio = document.getElementById('lm_audio');
+							var film = document.getElementById('lm_video');
 							var title = document.getElementById('lm_player_title');
 							var meta = document.getElementById('lm_player_meta');
-							if (!grid || !audio) return;
-							grid.addEventListener('click', function (e) {
-								var btn = e.target.closest ? e.target.closest('.lm-ayah') : null;
-								if (!btn || btn.disabled) return;
-								var url = btn.getAttribute('data-url') || '';
-								if (!url) return;
-								var actives = grid.querySelectorAll('.lm-ayah.is-active');
-								for (var i = 0; i < actives.length; i++) {
-									actives[i].classList.remove('is-active');
-								}
-								btn.classList.add('is-active');
-								title.textContent = btn.getAttribute('data-label') || ('Ayah ' + btn.getAttribute('data-n'));
-								meta.textContent = btn.getAttribute('data-meta') || 'Sealed by Tahsin';
-								player.style.display = 'block';
-								audio.src = url;
-								audio.play().catch(function () {});
-							});
+								if (!grid || !audio) return;
+								grid.addEventListener('click', function (e) {
+									var btn = e.target.closest ? e.target.closest('.lm-ayah') : null;
+									if (!btn || btn.disabled) return;
+									var url = btn.getAttribute('data-url') || '';
+									if (!url) return;
+									var actives = grid.querySelectorAll('.lm-ayah.is-active');
+									for (var i = 0; i < actives.length; i++) {
+										actives[i].classList.remove('is-active');
+									}
+									btn.classList.add('is-active');
+									title.textContent = btn.getAttribute('data-label') || ('Ayah ' + btn.getAttribute('data-n'));
+									meta.textContent = btn.getAttribute('data-meta') || 'Sealed by Tahsin';
+									player.style.display = 'block';
+									var isVideo = /\.(webm|mp4)(\?|$)/i.test(url);
+									if (isVideo && film) {
+										audio.pause();
+										audio.removeAttribute('src');
+										audio.style.display = 'none';
+										film.style.display = 'block';
+										film.src = url;
+										film.play().catch(function () {});
+									} else {
+										if (film) {
+											film.pause();
+											film.removeAttribute('src');
+											film.style.display = 'none';
+										}
+										audio.style.display = '';
+										audio.src = url;
+										audio.play().catch(function () {});
+									}
+								});
 						})();
 						</script>
 					<?php elseif (empty($surahs)): ?>

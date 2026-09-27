@@ -228,6 +228,7 @@ $category = $this->student_fields_model->getStatus('category', $branchID);
 								</div>
 							</div>
 <?php } ?>
+							<?php $this->load->view('student/_instruction_mode', array('student' => $student)); ?>
 						</div>
 						<div class="row mb-md">
 							<div class="col-md-3 mb-sm">

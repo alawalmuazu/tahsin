@@ -125,6 +125,7 @@ endif;
 						</div>
 					</div>
 					<?php } ?>
+					<?php $this->load->view('student/_instruction_mode', array('student' => array())); ?>
 				</div>
 
 				<!-- student details -->

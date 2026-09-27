@@ -39,6 +39,18 @@ class Academy_groups extends Admin_Controller
             redirect(base_url('academy_groups' . (!is_teacher_loggedin() ? ('?teacher_id=' . $teacherId) : '')));
         }
 
+        if ($this->input->post('save_schedule') && $teacherId > 0) {
+            $res = $this->academy_model->saveTeacherGroupSchedule(
+                (int) $this->input->post('group_id'),
+                $teacherId,
+                $this->input->post('starts_at_lagos'),
+                $this->input->post('duration_minutes'),
+                $this->input->post('meeting_url')
+            );
+            set_alert(!empty($res['ok']) ? 'success' : 'error', !empty($res['ok']) ? 'Meeting time saved.' : (isset($res['error']) ? $res['error'] : 'Could not save the meeting.'));
+            redirect(base_url('academy_groups' . (!is_teacher_loggedin() ? ('?teacher_id=' . $teacherId) : '')));
+        }
+
         if ($this->input->post('save_members') && $teacherId > 0) {
             $ids = $this->input->post('student_ids');
             $res = $this->academy_model->saveTeacherGroupMembers(
@@ -63,9 +75,11 @@ class Academy_groups extends Admin_Controller
 
         $assigned = array();
         if ($teacherId > 0 && $this->db->table_exists('academy_teacher_student')) {
-            $assigned = $this->db->select('ats.student_id, TRIM(CONCAT_WS(" ", s.first_name, NULLIF(s.other_name,""), s.last_name)) AS student_name')
+            $assigned = $this->db->select('ats.student_id, TRIM(CONCAT_WS(" ", s.first_name, NULLIF(s.other_name,""), s.last_name)) AS student_name'
+                . ($this->db->field_exists('instruction_mode', 'enroll') ? ', e.instruction_mode' : ', NULL AS instruction_mode'))
                 ->from('academy_teacher_student ats')
                 ->join('student s', 's.id = ats.student_id', 'left')
+                ->join('enroll e', 'e.student_id = ats.student_id AND e.session_id = ats.session_id AND e.branch_id = ats.branch_id', 'left')
                 ->where('ats.branch_id', (int) $branchID)
                 ->where('ats.session_id', (int) get_session_id())
                 ->where('ats.teacher_id', $teacherId)

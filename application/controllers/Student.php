@@ -316,6 +316,9 @@ class Student extends Admin_Controller
                     'session_id' => $post['year_id'],
                     'branch_id' => $branchID,
                 );
+                if ($this->db->field_exists('instruction_mode', 'enroll')) {
+                    $arrayEnroll['instruction_mode'] = ($this->input->post('instruction_mode') === 'online') ? 'online' : 'campus';
+                }
                 $this->db->insert('enroll', $arrayEnroll);
                 $enrollID = $this->db->insert_id();
 
@@ -760,6 +763,9 @@ class Student extends Admin_Controller
                     'session_id' => $this->input->post('year_id'),
                     'branch_id' => $this->data['branch_id'],
                 );
+                if ($this->db->field_exists('instruction_mode', 'enroll')) {
+                    $arrayEnroll['instruction_mode'] = ($this->input->post('instruction_mode') === 'online') ? 'online' : 'campus';
+                }
                 $this->db->where('id', $getStudent['enrollid']);
                 $this->db->update('enroll', $arrayEnroll);
 

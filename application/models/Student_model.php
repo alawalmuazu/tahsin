@@ -64,6 +64,13 @@ class Student_model extends MY_Model
                 ? (int) $data['pwd_category_id']
                 : null;
         }
+        if ($this->db->field_exists('country', 'student')) {
+            $inser_data1['country'] = mb_substr(trim((string) $this->input->post('country')), 0, 80);
+        }
+        if ($this->db->field_exists('timezone', 'student')) {
+            $tz = trim((string) $this->input->post('timezone'));
+            $inser_data1['timezone'] = $tz !== '' ? mb_substr($tz, 0, 64) : 'Africa/Lagos';
+        }
 
         // moderator guardian all information
         if (!isset($data['student_id']) && empty($data['student_id'])) {
@@ -351,7 +358,8 @@ class Student_model extends MY_Model
 
     public function getSingleStudent($id = '', $enroll = false)
     {
-        $this->db->select('s.*,l.username,l.active,e.class_id,e.section_id,e.id as enrollid,e.roll,e.branch_id,e.session_id,c.name as class_name,se.name as section_name,sc.name as category_name');
+        $this->db->select('s.*,l.username,l.active,e.class_id,e.section_id,e.id as enrollid,e.roll,e.branch_id,e.session_id,c.name as class_name,se.name as section_name,sc.name as category_name'
+            . ($this->db->field_exists('instruction_mode', 'enroll') ? ',e.instruction_mode' : ''));
         $this->db->from('enroll as e');
         $this->db->join('student as s', 'e.student_id = s.id', 'left');
         $this->db->join('login_credential as l', 'l.user_id = s.id and l.role = 7', 'inner');

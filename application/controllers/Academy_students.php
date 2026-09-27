@@ -48,13 +48,25 @@ class Academy_students extends Admin_Controller
                     redirect(base_url('academy_students'));
                 }
                 $audioUrl = $this->input->post('audio_url');
+                $videoUrl = trim((string) $this->input->post('video_url'));
                 $uploadError = null;
                 $syncNote = null;
+                $proofVideo = ($this->input->post('proof_kind') === 'video');
                 if (!empty($_FILES['audio_file']['name'])) {
-                    $uploaded = $this->_uploadRecitationAudio();
+                    $uploaded = $this->_uploadRecitationAudio($proofVideo);
                     if ($uploaded) {
-                        $audioUrl = $uploaded;
-                        $syncNote = $this->_syncMilestoneAudio($audioUrl);
+                        if ($proofVideo) {
+                            $videoUrl = $uploaded;
+                            $syncNote = $this->_syncMilestoneAudio($videoUrl);
+                            $audioFromVideo = $this->_audioFromVideo($uploaded);
+                            if ($audioFromVideo) {
+                                $audioUrl = $audioFromVideo;
+                                $this->_syncMilestoneAudio($audioUrl);
+                            }
+                        } else {
+                            $audioUrl = $uploaded;
+                            $syncNote = $this->_syncMilestoneAudio($audioUrl);
+                        }
                     } else {
                         $uploadError = method_exists($this, 'upload') || isset($this->upload)
                             ? $this->upload->display_errors('', '')
@@ -63,14 +75,24 @@ class Academy_students extends Admin_Controller
                 }
                 // Prefer raw POST for large base64 (CI input can be awkward on big payloads)
                 $b64 = isset($_POST['audio_file_b64']) ? $_POST['audio_file_b64'] : $this->input->post('audio_file_b64');
-                if (!$audioUrl && !empty($b64)) {
-                    $uploaded = $this->_saveRecitationAudioB64($b64);
+                if ((!$audioUrl && !$videoUrl) && !empty($b64)) {
+                    $uploaded = $this->_saveRecitationAudioB64($b64, $proofVideo);
                     if ($uploaded) {
-                        $audioUrl = $uploaded;
+                        if ($proofVideo) {
+                            $videoUrl = $uploaded;
+                            $syncNote = $this->_syncMilestoneAudio($videoUrl);
+                            $audioFromVideo = $this->_audioFromVideo($uploaded);
+                            if ($audioFromVideo) {
+                                $audioUrl = $audioFromVideo;
+                                $this->_syncMilestoneAudio($audioUrl);
+                            }
+                        } else {
+                            $audioUrl = $uploaded;
+                            $syncNote = $this->_syncMilestoneAudio($audioUrl);
+                        }
                         $uploadError = null;
-                        $syncNote = $this->_syncMilestoneAudio($audioUrl);
                     } elseif (!$uploadError) {
-                        $uploadError = 'Could not decode attached audio.';
+                        $uploadError = 'Could not decode the recording.';
                     }
                 }
                 $accuracy = $this->input->post('accuracy_score');
@@ -120,7 +142,7 @@ class Academy_students extends Admin_Controller
                         $branchID,
                         array(
                             'audio_url' => $audioUrl,
-                            'video_url' => $this->input->post('video_url'),
+                            'video_url' => $videoUrl,
                             'akhlaq_note' => $this->input->post('akhlaq_note'),
                             'recitation_category' => $this->input->post('recitation_category'),
                             'accuracy_score' => $accuracy,
@@ -171,7 +193,7 @@ class Academy_students extends Admin_Controller
                     'mistake_word_count' => $this->input->post('mistake_word_count'),
                     'mistake_breakdown' => $this->input->post('mistake_breakdown'),
                     'audio_url' => $audioUrl,
-                    'video_url' => $this->input->post('video_url'),
+                    'video_url' => $videoUrl,
                     'tarteel_status' => $accuracy !== '' && $accuracy !== null ? 'VERIFIED' : 'UNVERIFIED',
                     'recitation_seconds' => $this->input->post('recitation_seconds'),
                 ));
@@ -180,8 +202,8 @@ class Academy_students extends Admin_Controller
                     set_alert('error', 'Could not save milestone' . (!empty($dbErr['message']) ? ': ' . $dbErr['message'] : '.'));
                     redirect(base_url('academy_students'));
                 }
-                $msg = $audioUrl
-                    ? 'Surah milestone saved with audio. Re-open and click the 🔊 chip to play.'
+                $msg = ($videoUrl || $audioUrl)
+                    ? ($videoUrl ? 'Surah milestone saved with video.' : 'Surah milestone saved with audio. Re-open and click the 🔊 chip to play.')
                     : 'Surah milestone saved.';
                 if ($uploadError) {
                     $msg .= ' (Audio upload skipped: ' . trim(strip_tags($uploadError)) . ')';
@@ -328,7 +350,7 @@ class Academy_students extends Admin_Controller
         echo json_encode($parsed);
     }
 
-    private function _uploadRecitationAudio()
+    private function _uploadRecitationAudio($keepVideo = false)
     {
         $dir = FCPATH . 'uploads/academy_tahfiz/';
         if (!is_dir($dir)) {
@@ -340,17 +362,17 @@ class Academy_students extends Admin_Controller
         $config = array(
             'upload_path' => $dir,
             'allowed_types' => 'mp3|wav|ogg|webm|m4a|mp4|mpeg|opus',
-            'max_size' => 40960,
+            'max_size' => 81920,
             'encrypt_name' => true,
             'detect_mime' => true,
         );
         $this->load->library('upload');
+        $this->upload->initialize($config);
         $file = null;
         if ($this->upload->do_upload('audio_file')) {
             $data = $this->upload->data();
             $file = $data['full_path'];
         } else {
-            // Retry without strict mime sniff (Chrome audio/webm often fails CI mime map)
             $config['detect_mime'] = false;
             $this->upload->initialize($config);
             if ($this->upload->do_upload('audio_file')) {
@@ -360,11 +382,32 @@ class Academy_students extends Admin_Controller
         }
 
         if ($file) {
+            if ($keepVideo) {
+                return 'uploads/academy_tahfiz/' . basename($file);
+            }
             $finalFile = $this->academy_model->convertToMp3($file, true);
-            // Store host-agnostic path so WhatsApp can resolve the file on any server
             return 'uploads/academy_tahfiz/' . basename($finalFile);
         }
         return null;
+    }
+
+    /**
+     * Copy an audio track from a stored video proof. Leaves the video file in place.
+     */
+    private function _audioFromVideo($relativeVideo)
+    {
+        $full = FCPATH . str_replace(array('/', '\\'), DIRECTORY_SEPARATOR, $relativeVideo);
+        if (!is_file($full)) {
+            return null;
+        }
+        $mp3 = $this->academy_model->convertToMp3($full, false);
+        if (!is_file($mp3) || strtolower(pathinfo($mp3, PATHINFO_EXTENSION)) !== 'mp3') {
+            return null;
+        }
+        if (realpath($mp3) === realpath($full)) {
+            return null;
+        }
+        return 'uploads/academy_tahfiz/' . basename($mp3);
     }
 
     /**
@@ -445,7 +488,7 @@ class Academy_students extends Admin_Controller
         echo $resp;
     }
 
-    private function _saveRecitationAudioB64($dataUrl)
+    private function _saveRecitationAudioB64($dataUrl, $keepVideo = false)
     {
         if (!is_string($dataUrl) || strpos($dataUrl, 'base64,') === false) {
             return null;
@@ -466,6 +509,8 @@ class Academy_students extends Admin_Controller
                 $ext = 'm4a';
             } elseif ($ext === 'ogg' || $ext === 'opus') {
                 $ext = 'ogg';
+            } elseif (strpos($ext, 'webm') !== false) {
+                $ext = 'webm';
             }
         }
         $allowed = array('mp3', 'wav', 'ogg', 'webm', 'm4a', 'mp4', 'opus');
@@ -480,6 +525,9 @@ class Academy_students extends Admin_Controller
         $rawPath = $dir . $name;
         if (@file_put_contents($rawPath, $bin) === false) {
             return null;
+        }
+        if ($keepVideo) {
+            return 'uploads/academy_tahfiz/' . $name;
         }
         $finalFile = $this->academy_model->convertToMp3($rawPath, true);
         return 'uploads/academy_tahfiz/' . basename($finalFile);
