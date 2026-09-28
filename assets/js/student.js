@@ -298,8 +298,13 @@
 			if ($(this).prop('readonly')) {
 				return;
 			}
-			var raw = String($(this).val() || '').replace(/,/g, '');
-			$(this).val(raw);
+			$(this).val(String($(this).val() || '').replace(/,/g, ''));
+			var el = this;
+			window.setTimeout(function () {
+				if (el.scrollIntoView) {
+					el.scrollIntoView({ block: 'center', inline: 'nearest' });
+				}
+			}, 280);
 		});
 
 		function refreshSchoolFeeFromSettings() {

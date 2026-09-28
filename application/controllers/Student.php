@@ -324,7 +324,9 @@ class Student extends Admin_Controller
 
                 $tuition_plan = ($post['tuition_plan'] === 'full') ? 'full' : 'installment';
                 $tuition_amount = parse_money_input($post['tuition_amount']);
-                if ($tuition_plan === 'full' || $tuition_amount >= $schoolFee) {
+                if ($tuition_plan === 'installment' && $tuition_amount <= 0) {
+                    $tuition_amount = 0;
+                } elseif ($tuition_plan === 'full' || ($schoolFee > 0 && $tuition_amount >= $schoolFee)) {
                     $tuition_plan = 'full';
                     $tuition_amount = $schoolFee;
                 }
@@ -869,8 +871,8 @@ class Student extends Admin_Controller
         $branchID = $this->application_model->get_branch_id();
         $fee = $this->student_model->schoolFeeAmount($section_id, $category_id, $pwd_category_id, $branchID);
         $amount = parse_money_input($amount);
-        if ($amount <= 0) {
-            $this->form_validation->set_message('valid_tuition_now', 'Enter the amount being paid now.');
+        if ($amount < 0) {
+            $this->form_validation->set_message('valid_tuition_now', 'Amount cannot be negative.');
             return false;
         }
         if ($plan === 'full') {
@@ -903,7 +905,7 @@ class Student extends Admin_Controller
             ajax_access_denied();
         }
         $this->form_validation->set_rules('enroll_id', translate('student'), 'trim|required|numeric');
-        $this->form_validation->set_rules('tuition_amount', 'Amount Paying Now', 'trim|required|numeric|greater_than[0]');
+        $this->form_validation->set_rules('tuition_amount', 'Amount Paying Now', 'trim|required|numeric|greater_than_equal_to[0]');
         $this->form_validation->set_rules('tuition_pay_via', translate('payment_method'), 'trim|required|callback_valid_enabled_pay_via');
         $this->form_validation->set_rules('tuition_date', translate('date'), 'trim|required');
         if ($this->form_validation->run() == true) {
@@ -919,11 +921,14 @@ class Student extends Admin_Controller
                 $fee = (float) $summary['fee'];
                 if ($summary['paid'] > 0) {
                     $plan = 'installment';
-                } elseif ($plan === 'full' || $amount >= $fee) {
+                } elseif ($plan === 'full' || ($fee > 0 && $amount >= $fee)) {
                     $plan = 'full';
                     $amount = $fee;
                 } else {
                     $plan = 'installment';
+                    if ($amount < 0) {
+                        $amount = 0;
+                    }
                 }
                 if ($plan === 'installment' && $summary['paid'] <= 0 && $amount >= $fee) {
                     $array = array('status' => 'fail', 'error' => array('tuition_amount' => 'For installments, enter an amount less than the full school fees.'));

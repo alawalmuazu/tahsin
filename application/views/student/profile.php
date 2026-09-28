@@ -729,8 +729,7 @@ if ($previous_school_details['status']) {
 								</div>
 							</div>
 							<?php endif; ?>
-							<div class="form-group">
-								<label class="col-md-3 control-label">Amount Paying Now <span class="required">*</span></label>
+							<div class="form-group tuition-amount-group">
 								<div class="col-md-6">
 									<input type="number" step="0.01" min="0" max="<?=$tuition['paid'] > 0 ? $tuition['balance'] : $tuition['fee']?>" class="form-control" name="tuition_amount" id="tuition_amount" data-school-fee="<?=$tuition['fee']?>" data-already-paid="<?=$tuition['paid']?>" value="<?=$tuition['paid'] > 0 ? '' : $tuition['fee']?>" placeholder="0.00">
 									<span class="error"></span>

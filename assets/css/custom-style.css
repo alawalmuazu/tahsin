@@ -3901,6 +3901,20 @@ span.error{
 	padding: 0;
 }
 
+.tuition-amount-group span.error,
+.tuition-amount-group #tuition_balance_hint {
+	display: block;
+	max-width: 100%;
+	white-space: normal;
+	overflow-wrap: anywhere;
+	line-height: 1.35;
+}
+
+.tuition-amount-group #tuition_balance_hint {
+	margin-top: 4px;
+	color: #777;
+}
+
 span.error p{
 	margin: 2px 0 2px !important;
 }
