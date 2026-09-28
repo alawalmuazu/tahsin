@@ -812,6 +812,9 @@ class School_settings extends Admin_Controller
         $this->_ensureWhatsappWebhook($branchID);
         $this->data['whatsapp_cloud'] = $this->_getWhatsappCloudConfig($branchID);
         $this->data['whatsapp_webhook_events'] = $this->_whatsappWebhookEvents();
+        $this->data['whatsapp_webhook_probe'] = $this->_probeWhatsappWebhook(
+            isset($this->data['whatsapp_cloud']['webhook_verify_token']) ? $this->data['whatsapp_cloud']['webhook_verify_token'] : ''
+        );
         $this->data['sub_page'] = 'school_settings/whatsapp_settings';
         $this->data['main_menu'] = 'school_m';
         $this->data['title'] = translate('whatsapp_settings');
@@ -950,16 +953,23 @@ class School_settings extends Admin_Controller
             );
         }
         $row = $this->db->get_where('whatsapp_cloud_config', array('branch_id' => (int) $branchID))->row_array();
-        if (empty($row) || !empty($row['webhook_verify_token'])) {
+        if (empty($row)) {
+            return;
+        }
+        if (!$this->db->field_exists('webhook_token_version', 'whatsapp_cloud_config')) {
+            $this->db->query('ALTER TABLE `whatsapp_cloud_config` ADD COLUMN `webhook_token_version` TINYINT UNSIGNED NOT NULL DEFAULT 0');
+            $row['webhook_token_version'] = 0;
+        }
+        $version = isset($row['webhook_token_version']) ? (int) $row['webhook_token_version'] : 0;
+        if ($version >= 2 && !empty($row['webhook_verify_token'])) {
             return;
         }
         $token = bin2hex(random_bytes(16));
         $this->db->where('id', (int) $row['id']);
-        $this->db->group_start();
-        $this->db->where('webhook_verify_token', null);
-        $this->db->or_where('webhook_verify_token', '');
-        $this->db->group_end();
-        $this->db->update('whatsapp_cloud_config', array('webhook_verify_token' => $token));
+        $this->db->update('whatsapp_cloud_config', array(
+            'webhook_verify_token' => $token,
+            'webhook_token_version' => 2,
+        ));
     }
 
     protected function _whatsappWebhookEvents()
@@ -968,6 +978,28 @@ class School_settings extends Admin_Controller
             return array();
         }
         return $this->db->order_by('id', 'DESC')->limit(12)->get('whatsapp_webhook_event')->result_array();
+    }
+
+    protected function _probeWhatsappWebhook($token)
+    {
+        $token = trim((string) $token);
+        if ($token === '') {
+            return 'missing';
+        }
+        $url = site_url('whatsapp_webhook') . '?hub.mode=subscribe&hub.verify_token=' . rawurlencode($token) . '&hub.challenge=ping';
+        $ch = curl_init($url);
+        curl_setopt_array($ch, array(
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_TIMEOUT => 20,
+            CURLOPT_FOLLOWLOCATION => false,
+        ));
+        $body = curl_exec($ch);
+        $code = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+        if ($body === 'ping' && $code === 200) {
+            return 'ok';
+        }
+        return 'fail';
     }
 
     public function saveWhatsappConfig()

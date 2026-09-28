@@ -190,16 +190,22 @@ if (!empty($whatsapp['backend_enable_chat']) && $whatsapp['backend_enable_chat']
                 </p>
                 <div class="form-group">
                     <label class="col-md-3 control-label">Callback URL</label>
-                    <div class="col-md-6">
+                    <div class="col-md-8">
                         <input type="text" class="form-control" readonly value="<?php echo html_escape(site_url('whatsapp_webhook')); ?>" onclick="this.select()" />
                     </div>
                 </div>
                 <div class="form-group">
                     <label class="col-md-3 control-label">Verify token</label>
-                    <div class="col-md-6">
-                        <input type="text" class="form-control" readonly value="<?php echo html_escape(!empty($whatsapp_cloud['webhook_verify_token']) ? $whatsapp_cloud['webhook_verify_token'] : ''); ?>" onclick="this.select()" placeholder="Open this page once after Cloud API is saved" />
+                    <div class="col-md-8">
+                        <input type="text" class="form-control" readonly value="<?php echo html_escape(!empty($whatsapp_cloud['webhook_verify_token']) ? $whatsapp_cloud['webhook_verify_token'] : ''); ?>" onclick="this.select()" />
+                        <span class="help-block mb-none">Click this box, select all of it, and copy. Replace whatever is already in Meta. The old token will not verify.</span>
                     </div>
                 </div>
+                <?php if (isset($whatsapp_webhook_probe) && $whatsapp_webhook_probe === 'ok'): ?>
+                <p class="text-success" style="clear:both">This token answers Meta’s check.</p>
+                <?php elseif (isset($whatsapp_webhook_probe) && $whatsapp_webhook_probe === 'fail'): ?>
+                <p class="text-danger" style="clear:both">This token did not answer the check yet. Reload this page once, then copy the token again.</p>
+                <?php endif; ?>
                 <?php $hookEvents = isset($whatsapp_webhook_events) && is_array($whatsapp_webhook_events) ? $whatsapp_webhook_events : array(); ?>
                 <?php if (!empty($hookEvents)): ?>
                 <div class="table-responsive" style="clear:both">
