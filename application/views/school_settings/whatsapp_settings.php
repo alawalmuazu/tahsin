@@ -181,6 +181,70 @@ if (!empty($whatsapp['backend_enable_chat']) && $whatsapp['backend_enable_chat']
 
         <section class="panel">
             <header class="panel-heading">
+                <h4 class="panel-title"><i class="fas fa-plug"></i> WhatsApp webhook</h4>
+            </header>
+            <div class="panel-body">
+                <p class="text-muted" style="margin-top:0">
+                    Paste this into Meta → WhatsApp → Configuration → Webhook, then subscribe to <strong>messages</strong> and <strong>message_template_status_update</strong>.
+                    Delivery updates (including Meta code 131049) rewrite the broadcast log. Template review updates are listed here.
+                </p>
+                <div class="form-group">
+                    <label class="col-md-3 control-label">Callback URL</label>
+                    <div class="col-md-6">
+                        <input type="text" class="form-control" readonly value="<?php echo html_escape(site_url('whatsapp_webhook')); ?>" onclick="this.select()" />
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="col-md-3 control-label">Verify token</label>
+                    <div class="col-md-6">
+                        <input type="text" class="form-control" readonly value="<?php echo html_escape(!empty($whatsapp_cloud['webhook_verify_token']) ? $whatsapp_cloud['webhook_verify_token'] : ''); ?>" onclick="this.select()" placeholder="Open this page once after Cloud API is saved" />
+                    </div>
+                </div>
+                <?php $hookEvents = isset($whatsapp_webhook_events) && is_array($whatsapp_webhook_events) ? $whatsapp_webhook_events : array(); ?>
+                <?php if (!empty($hookEvents)): ?>
+                <div class="table-responsive" style="clear:both">
+                    <table class="table table-bordered table-condensed mb-none">
+                        <thead>
+                            <tr>
+                                <th>When</th>
+                                <th>Field</th>
+                                <th>Status</th>
+                                <th>Detail</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        <?php foreach ($hookEvents as $ev): ?>
+                            <tr>
+                                <td><?php echo html_escape(isset($ev['created_at']) ? $ev['created_at'] : ''); ?></td>
+                                <td><?php echo html_escape(isset($ev['event_field']) ? $ev['event_field'] : ''); ?></td>
+                                <td><?php
+                                    $st = !empty($ev['delivery_status']) ? $ev['delivery_status'] : (isset($ev['template_event']) ? $ev['template_event'] : '');
+                                    echo html_escape($st);
+                                ?></td>
+                                <td><?php
+                                    $bits = array();
+                                    if (!empty($ev['template_name'])) {
+                                        $bits[] = $ev['template_name'];
+                                    }
+                                    if (!empty($ev['error_code'])) {
+                                        $bits[] = $ev['error_code'] . (!empty($ev['error_title']) ? ' ' . $ev['error_title'] : '');
+                                    }
+                                    if (!empty($ev['recipient'])) {
+                                        $bits[] = $ev['recipient'];
+                                    }
+                                    echo html_escape(implode(' · ', $bits));
+                                ?></td>
+                            </tr>
+                        <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                </div>
+                <?php endif; ?>
+            </div>
+        </section>
+
+        <section class="panel">
+            <header class="panel-heading">
                 <h4 class="panel-title"><i class="fas fa-users"></i> <?=translate('whatsapp_agent') ?></h4>
             <?php if (get_permission('whatsapp_config', 'is_add')) { ?>
 				<div class="panel-btn">

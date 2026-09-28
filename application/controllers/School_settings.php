@@ -809,7 +809,9 @@ class School_settings extends Admin_Controller
             ),
         );
         $this->data['whatsapp'] = $this->school_model->get('whatsapp_chat', array('branch_id' => $branchID), true);
+        $this->_ensureWhatsappWebhook($branchID);
         $this->data['whatsapp_cloud'] = $this->_getWhatsappCloudConfig($branchID);
+        $this->data['whatsapp_webhook_events'] = $this->_whatsappWebhookEvents();
         $this->data['sub_page'] = 'school_settings/whatsapp_settings';
         $this->data['main_menu'] = 'school_m';
         $this->data['title'] = translate('whatsapp_settings');
@@ -900,6 +902,7 @@ class School_settings extends Admin_Controller
             'template_lang' => 'en',
             'send_media_after_template' => 1,
             'media_max_per_student' => 3,
+            'webhook_verify_token' => '',
             'has_token' => false,
         );
         if (!$this->db->table_exists('whatsapp_cloud_config')) {
@@ -913,6 +916,54 @@ class School_settings extends Admin_Controller
         // Never echo raw token into HTML value — leave blank; keep flag for UI
         $row['access_token'] = '';
         return array_merge($defaults, $row);
+    }
+
+    /**
+     * Add the webhook column if the table is old, and keep a verify token ready to paste into Meta.
+     */
+    protected function _ensureWhatsappWebhook($branchID)
+    {
+        if (!$this->db->table_exists('whatsapp_cloud_config')) {
+            return;
+        }
+        if (!$this->db->field_exists('webhook_verify_token', 'whatsapp_cloud_config')) {
+            $this->db->query('ALTER TABLE `whatsapp_cloud_config` ADD COLUMN `webhook_verify_token` VARCHAR(80) DEFAULT NULL');
+        }
+        if (!$this->db->table_exists('whatsapp_webhook_event')) {
+            $this->db->query(
+                'CREATE TABLE IF NOT EXISTS `whatsapp_webhook_event` (
+                  `id` int(11) NOT NULL AUTO_INCREMENT,
+                  `branch_id` int(11) NOT NULL DEFAULT 1,
+                  `event_field` varchar(64) NOT NULL,
+                  `wamid` varchar(120) DEFAULT NULL,
+                  `delivery_status` varchar(20) DEFAULT NULL,
+                  `error_code` varchar(16) DEFAULT NULL,
+                  `error_title` varchar(255) DEFAULT NULL,
+                  `template_name` varchar(120) DEFAULT NULL,
+                  `template_event` varchar(64) DEFAULT NULL,
+                  `recipient` varchar(32) DEFAULT NULL,
+                  `created_at` datetime NOT NULL DEFAULT current_timestamp(),
+                  PRIMARY KEY (`id`),
+                  KEY `idx_wa_hook_wamid` (`wamid`),
+                  KEY `idx_wa_hook_created` (`created_at`)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci'
+            );
+        }
+        $row = $this->db->get_where('whatsapp_cloud_config', array('branch_id' => (int) $branchID))->row_array();
+        if (empty($row) || !empty($row['webhook_verify_token'])) {
+            return;
+        }
+        $token = bin2hex(random_bytes(16));
+        $this->db->where('id', (int) $row['id']);
+        $this->db->update('whatsapp_cloud_config', array('webhook_verify_token' => $token));
+    }
+
+    protected function _whatsappWebhookEvents()
+    {
+        if (!$this->db->table_exists('whatsapp_webhook_event')) {
+            return array();
+        }
+        return $this->db->order_by('id', 'DESC')->limit(12)->get('whatsapp_webhook_event')->result_array();
     }
 
     public function saveWhatsappConfig()
