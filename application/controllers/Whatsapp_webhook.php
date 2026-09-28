@@ -29,19 +29,11 @@ class Whatsapp_webhook extends CI_Controller
         $token = $this->hubParam('verify_token');
         $challenge = $this->hubParam('challenge');
         if ($mode === '' && $token === '' && $challenge === '') {
-            $this->plain(200, 'WhatsApp webhook is ready. v2');
+            $this->plain(200, 'WhatsApp webhook is ready.');
             return;
         }
-        $reason = '';
-        if ($challenge === '') {
-            $reason = 'missing-challenge';
-        } elseif (!$this->tokenMatches($token)) {
-            $reason = 'bad-token ' . $this->tokenDebug();
-        } elseif ($mode !== '' && $mode !== 'subscribe') {
-            $reason = 'bad-mode';
-        }
-        if ($reason !== '') {
-            $this->plain(403, $reason);
+        if ($challenge === '' || !$this->tokenMatches($token) || ($mode !== '' && $mode !== 'subscribe')) {
+            $this->plain(403, 'Forbidden');
             return;
         }
         header('Content-Type: text/plain; charset=utf-8');
@@ -208,22 +200,6 @@ class Whatsapp_webhook extends CI_Controller
             }
         }
         return false;
-    }
-
-    /**
-     * Lengths and hash prefixes only, while Meta's handshake is failing.
-     */
-    protected function tokenDebug()
-    {
-        if (!$this->db->table_exists('whatsapp_cloud_config') || !$this->db->field_exists('webhook_verify_token', 'whatsapp_cloud_config')) {
-            return 'no-column';
-        }
-        $rows = $this->db->query('SELECT id, branch_id, CHAR_LENGTH(webhook_verify_token) AS n, LEFT(SHA2(TRIM(webhook_verify_token), 256), 12) AS h FROM whatsapp_cloud_config')->result_array();
-        $bits = array();
-        foreach ($rows as $row) {
-            $bits[] = $row['id'] . ':' . $row['branch_id'] . ':len' . $row['n'] . ':' . $row['h'];
-        }
-        return $bits ? implode(',', $bits) : 'no-rows';
     }
 
     /**

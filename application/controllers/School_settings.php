@@ -955,6 +955,10 @@ class School_settings extends Admin_Controller
         }
         $token = bin2hex(random_bytes(16));
         $this->db->where('id', (int) $row['id']);
+        $this->db->group_start();
+        $this->db->where('webhook_verify_token', null);
+        $this->db->or_where('webhook_verify_token', '');
+        $this->db->group_end();
         $this->db->update('whatsapp_cloud_config', array('webhook_verify_token' => $token));
     }
 
