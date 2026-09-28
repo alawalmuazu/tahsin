@@ -85,8 +85,8 @@ class Whatsapp_cloud
     /** Template name that includes a DOCUMENT header for the recitation clip. */
     public function templateWithMediaName()
     {
-        $n = trim((string) $this->cfgValue('template_with_media', 'tahsin_digest_with_audio'));
-        return $n !== '' ? $n : 'tahsin_digest_with_audio';
+        $n = trim((string) $this->cfgValue('template_with_media', 'tahsin_recitation_record'));
+        return $n !== '' ? $n : 'tahsin_recitation_record';
     }
 
     /**

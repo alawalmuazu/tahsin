@@ -137,7 +137,7 @@ if (!empty($whatsapp['backend_enable_chat']) && $whatsapp['backend_enable_chat']
                         <label class="col-md-3 control-label">Template name <span class="required">*</span></label>
                         <div class="col-md-6">
                             <input type="text" class="form-control" name="template_name" value="<?php echo html_escape(isset($cloud['template_name']) ? $cloud['template_name'] : 'tahsin_sealed_digest'); ?>" />
-                            <span class="help-block mb-none">Body-only templates put a listen URL in {{4}}. For an in-chat playable file we submitted <code>tahsin_digest_with_audio</code> (DOCUMENT header) to Meta — when it shows APPROVED, digests attach the MP3 in the message. Meta does not allow green voice-note bubbles on cold utility sends.</span>
+                            <span class="help-block mb-none">Body-only templates put a listen URL in {{4}}. Digests with a recitation file use the Utility template <code>tahsin_recitation_record</code> (document header, three body fields). Leave this box as the text fallback. Meta does not allow green voice-note bubbles on cold utility sends. “Loading PDF…” in WhatsApp Manager is the document placeholder, not the parent chat.</span>
                             <span class="error"></span>
                         </div>
                     </div>

@@ -1985,7 +1985,7 @@ class Academy_model extends MY_Model
                 if ($this->whatsapp_cloud->isPublicHttpsUrl($candidate) && $this->whatsapp_cloud->urlIsReachable($candidate)) {
                     $listenUrl = $candidate;
                 }
-                // Native in-chat attachment: DOCUMENT header on tahsin_digest_with_audio
+                // Native in-chat attachment: DOCUMENT header on tahsin_recitation_record
                 if ($clipLocal && is_file($clipLocal)) {
                     $hint = preg_match('/\.(mp3|ogg|opus|m4a|aac)$/i', $clipLocal) ? 'audio' : 'document';
                     $up = $this->whatsapp_cloud->uploadMediaFile($clipLocal, $hint);
@@ -2053,7 +2053,7 @@ class Academy_model extends MY_Model
                         $this->logBroadcastSend($branchId, $r, 'whatsapp_cloud_media', 'sent', null, 'Listen URL in template {{4}}: ' . $listenUrl);
                     } elseif (!empty($mediaItems)) {
                         $mediaFailed++;
-                        $merr = 'Clip could not be attached (template tahsin_digest_with_audio may still be PENDING) and no public HTTPS listen URL.';
+                        $merr = 'Clip could not be attached (template ' . $this->whatsapp_cloud->templateWithMediaName() . ' was not accepted) and no public HTTPS listen URL.';
                         if ($firstMediaError === '') {
                             $firstMediaError = $merr;
                         }
