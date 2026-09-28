@@ -32,8 +32,7 @@ class Whatsapp_webhook extends CI_Controller
             $this->plain(200, 'WhatsApp webhook is ready.');
             return;
         }
-        $expected = $this->verifyToken();
-        if ($expected === '' || $mode !== 'subscribe' || !hash_equals($expected, $token)) {
+        if ($challenge === '' || !$this->tokenMatches($token) || ($mode !== '' && $mode !== 'subscribe')) {
             $this->plain(403, 'Forbidden');
             return;
         }
@@ -184,33 +183,46 @@ class Whatsapp_webhook extends CI_Controller
         return null;
     }
 
-    protected function verifyToken()
+    /**
+     * Accept the verify token saved on any school row. The settings page shows the logged-in branch.
+     */
+    protected function tokenMatches($token)
     {
-        if (!$this->db->table_exists('whatsapp_cloud_config') || !$this->db->field_exists('webhook_verify_token', 'whatsapp_cloud_config')) {
-            return '';
+        $token = trim((string) $token);
+        if ($token === '' || !$this->db->table_exists('whatsapp_cloud_config') || !$this->db->field_exists('webhook_verify_token', 'whatsapp_cloud_config')) {
+            return false;
         }
-        $row = $this->db->select('webhook_verify_token')->order_by('id', 'ASC')->limit(1)->get('whatsapp_cloud_config')->row_array();
-        return !empty($row['webhook_verify_token']) ? (string) $row['webhook_verify_token'] : '';
+        $rows = $this->db->select('webhook_verify_token')->get('whatsapp_cloud_config')->result_array();
+        foreach ($rows as $row) {
+            $saved = isset($row['webhook_verify_token']) ? trim((string) $row['webhook_verify_token']) : '';
+            if ($saved !== '' && hash_equals($saved, $token)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**
-     * PHP turns hub.challenge into hub_challenge. Accept both spellings.
+     * PHP turns hub.challenge into hub_challenge. Read the raw query string as well.
      */
     protected function hubParam($name)
     {
-        $dotted = 'hub.' . $name;
         $under = 'hub_' . $name;
-        $val = $this->input->get($under, true);
-        if ($val === null || $val === '') {
-            $val = $this->input->get($dotted, true);
+        $dotted = 'hub.' . $name;
+        if (isset($_GET[$under]) && is_string($_GET[$under]) && $_GET[$under] !== '') {
+            return $_GET[$under];
         }
-        if (($val === null || $val === '') && isset($_GET[$under])) {
-            $val = $_GET[$under];
+        if (isset($_GET[$dotted]) && is_string($_GET[$dotted]) && $_GET[$dotted] !== '') {
+            return $_GET[$dotted];
         }
-        if (($val === null || $val === '') && isset($_GET[$dotted])) {
-            $val = $_GET[$dotted];
+        $parsed = array();
+        if (!empty($_SERVER['QUERY_STRING'])) {
+            parse_str((string) $_SERVER['QUERY_STRING'], $parsed);
         }
-        return is_string($val) ? $val : '';
+        if (isset($parsed[$under]) && is_string($parsed[$under]) && $parsed[$under] !== '') {
+            return $parsed[$under];
+        }
+        return '';
     }
 
     protected function plain($code, $body)
