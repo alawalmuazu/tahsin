@@ -29,11 +29,19 @@ class Whatsapp_webhook extends CI_Controller
         $token = $this->hubParam('verify_token');
         $challenge = $this->hubParam('challenge');
         if ($mode === '' && $token === '' && $challenge === '') {
-            $this->plain(200, 'WhatsApp webhook is ready.');
+            $this->plain(200, 'WhatsApp webhook is ready. v2');
             return;
         }
-        if ($challenge === '' || !$this->tokenMatches($token) || ($mode !== '' && $mode !== 'subscribe')) {
-            $this->plain(403, 'Forbidden');
+        $reason = '';
+        if ($challenge === '') {
+            $reason = 'missing-challenge';
+        } elseif (!$this->tokenMatches($token)) {
+            $reason = 'bad-token';
+        } elseif ($mode !== '' && $mode !== 'subscribe') {
+            $reason = 'bad-mode';
+        }
+        if ($reason !== '') {
+            $this->plain(403, $reason);
             return;
         }
         header('Content-Type: text/plain; charset=utf-8');
