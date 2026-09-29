@@ -38,7 +38,7 @@
 		</div>
 	</aside>
 	<div class="qpl-stage">
-		<p>This is the page the parent opens from WhatsApp. Press play on a sealed recitation.</p>
+		<p>This is the page the parent opens from WhatsApp. Play all, shuffle, or open one recording. The Arabic highlights as it plays.</p>
 		<iframe id="qpl_frame" title="Parent Quran playlist" src="<?php echo html_escape($current['url']); ?>"></iframe>
 	</div>
 </div>

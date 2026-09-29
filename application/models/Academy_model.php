@@ -2012,6 +2012,7 @@ class Academy_model extends MY_Model
         $this->db->order_by('t.id', 'DESC');
         $rows = $this->db->get()->result();
         $out = array();
+        $names = $this->surahList();
         foreach ($rows as $row) {
             $audio = $this->absoluteMediaUrl(isset($row->audio_url) ? $row->audio_url : '');
             if ($audio === '') {
@@ -2025,12 +2026,41 @@ class Academy_model extends MY_Model
                     $teacher = $name;
                 }
             }
+            $surah = isset($row->surah_number) ? (int) $row->surah_number : 0;
+            if ($surah < 1 || $surah > 114) {
+                $surah = 0;
+                $want = isset($row->surah_name) ? strtolower(trim((string) $row->surah_name)) : '';
+                if ($want !== '') {
+                    foreach ($names as $i => $n) {
+                        if (strtolower($n) === $want) {
+                            $surah = (int) $i;
+                            break;
+                        }
+                    }
+                }
+            }
+            $from = isset($row->ayah_from) && $row->ayah_from !== '' && $row->ayah_from !== null ? (int) $row->ayah_from : 1;
+            $to = isset($row->ayah_to) && $row->ayah_to !== '' && $row->ayah_to !== null ? (int) $row->ayah_to : $from;
+            if ($to < 1) {
+                $to = $from;
+            }
+            if ($from < 1) {
+                $from = 1;
+            }
+            if ($from > $to) {
+                $swap = $from;
+                $from = $to;
+                $to = $swap;
+            }
             $out[] = array(
                 'portion' => $this->sealedDigestLine(array($row), array())['portion'],
                 'date' => date('j M Y', $when),
                 'time' => date('g:i A', $when),
                 'teacher' => $teacher,
                 'audio' => $audio,
+                'surah' => $surah,
+                'from' => $from,
+                'to' => $to,
             );
         }
         return $out;
