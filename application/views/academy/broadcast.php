@@ -75,16 +75,16 @@
 </div>
 
 <?php
+$cohortReports = isset($broadcast['reports']) ? $broadcast['reports'] : array();
 $cohortMsg = isset($broadcast['cohort_message']) ? $broadcast['cohort_message'] : '';
-$cohortWa = $cohortMsg !== '' ? ('https://api.whatsapp.com/send?text=' . rawurlencode($cohortMsg)) : '';
 ?>
-<?php if ($cohortMsg !== ''): ?>
+<?php if (!empty($cohortReports)): ?>
 <div class="bcast-cohort">
-	<h5>📣 Cohort / Group digest</h5>
-	<p class="text-muted" style="margin:0 0 .65rem;font-size:.82rem">Opens WhatsApp without a phone number — pick a <strong>group</strong> or contact, then send.</p>
+	<h5>Share cohort</h5>
+	<p class="text-muted" style="margin:0 0 .65rem;font-size:.82rem">Opens your WhatsApp so you pick the group. One message, with each child’s sealed record written in it.</p>
 	<pre class="bcast-msg" style="margin-bottom:.75rem"><?php echo html_escape($cohortMsg); ?></pre>
-	<a href="<?php echo $cohortWa; ?>" target="_blank" class="btn btn-success btn-sm"><i class="fab fa-whatsapp"></i> Share cohort to WhatsApp group</a>
-	<button type="button" class="btn btn-default btn-sm" id="bcast_copy_cohort"><i class="fas fa-copy"></i> Copy cohort message</button>
+	<a href="<?php echo 'https://api.whatsapp.com/send?text=' . rawurlencode($cohortMsg); ?>" target="_blank" class="btn btn-success btn-sm"><i class="fab fa-whatsapp"></i> Share cohort</a>
+	<button type="button" class="btn btn-default btn-sm" id="bcast_copy_cohort"><i class="fas fa-copy"></i> Copy records</button>
 </div>
 <?php endif; ?>
 

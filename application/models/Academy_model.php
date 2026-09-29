@@ -1536,6 +1536,10 @@ class Academy_model extends MY_Model
             $lines[] = '— Sent with love from Tahsin Academy 💚';
 
             $media = array();
+            $currentAudio = '';
+            if (!empty($tahfizToday)) {
+                $currentAudio = $this->absoluteMediaUrl(isset($tahfizToday[0]->audio_url) ? $tahfizToday[0]->audio_url : '');
+            }
             foreach ($tahfizToday as $t) {
                 $label = $this->formatTahfizMilestoneLabel($t);
                 $audio = $this->absoluteMediaUrl(isset($t->audio_url) ? $t->audio_url : '');
@@ -1557,6 +1561,8 @@ class Academy_model extends MY_Model
                 'teacher_name' => $sealed['teacher'],
                 'portion' => $sealed['portion'],
                 'sealed_at' => $sealed['sealed_at'],
+                'current_audio' => $currentAudio,
+                'photo' => isset($st['photo']) ? $st['photo'] : '',
                 'playlist_token' => $this->quranPlaylistToken($st['id']),
                 'parent_contact' => $st['parent_contact'],
                 'parent_phones' => !empty($st['parent_phones']) ? $st['parent_phones'] : array(),
@@ -1579,29 +1585,15 @@ class Academy_model extends MY_Model
             }
         }
 
-        // Cohort summary for WhatsApp groups (no phone = pick chat/group in WhatsApp)
-        $cohortLines = array(
-            '📊 *Tahsin Academy — Cohort Digest*',
-            'Date: ' . date('l, j F Y'),
-            '',
-            'Students: ' . count($roster),
-            'Drills today: ' . $withDrills,
-            'Tahfiz today: ' . $withTahfiz,
-            'With audio/video: ' . $withMedia,
-            '',
-        );
-        foreach ($reports as $r) {
-            if (empty($r['tahfiz_count']) && empty($r['drill_count'])) {
-                continue;
+        // Separate sealed-record text for each student. One click sends them one by one.
+        $cohortLines = array();
+        if (!empty($reports)) {
+            $blocks = array();
+            foreach ($reports as $r) {
+                $blocks[] = $this->sealedRecordShareBlock($r);
             }
-            $cohortLines[] = '• *' . $r['student_name'] . '* — '
-                . (int) $r['drill_count'] . ' drill(s), '
-                . (int) $r['tahfiz_count'] . ' milestone(s)'
-                . (!empty($r['media']) ? ', media attached in individual report' : '');
+            $cohortLines[] = implode("\n\n", $blocks);
         }
-        $cohortLines[] = '';
-        $cohortLines[] = 'Parents: open your child\'s personal WhatsApp for audio links.';
-        $cohortLines[] = '— Tahsin Academy 💚';
 
         return array(
             'total_students' => count($roster),
@@ -1842,9 +1834,38 @@ class Academy_model extends MY_Model
     }
 
     /**
+     * Plain-text twin of the tahsin_sealed_record card, for the group share.
+     * The playlist link stands in for the Previous recitations button.
+     */
+    public function sealedRecordShareBlock($report)
+    {
+        $when = !empty($report['sealed_at']) ? strtotime($report['sealed_at']) : time();
+        if (!$when) {
+            $when = time();
+        }
+        $name = isset($report['student_name']) && $report['student_name'] !== '' ? $report['student_name'] : 'Student';
+        $teacher = isset($report['teacher_name']) && $report['teacher_name'] !== '' ? $report['teacher_name'] : 'Facilitator';
+        $portion = isset($report['portion']) && $report['portion'] !== '' ? $report['portion'] : 'Session sealed';
+        $token = isset($report['playlist_token']) ? (string) $report['playlist_token'] : '';
+        $lines = array(
+            'Assalamu alaikum. Tahsin Academy sealed a recitation record for your child.',
+            'Student: ' . $name,
+            'Facilitator: ' . $teacher,
+            'Date: ' . date('j M Y', $when),
+            'Time: ' . date('g:i A', $when),
+            'Portion: ' . $portion,
+        );
+        if ($token !== '') {
+            $base = defined('PUBLIC_SITE_URL') && PUBLIC_SITE_URL !== '' ? rtrim(PUBLIC_SITE_URL, '/') : rtrim(base_url(), '/');
+            $lines[] = 'Previous recitations: ' . $base . '/quran/' . $token;
+        }
+        return implode("\n", $lines);
+    }
+
+    /**
      * One portion line and the teacher who sealed it, from today's acknowledged rows.
      *
-     * @return array{teacher:string,portion:string}
+     * @return array{teacher:string,portion:string,sealed_at:string}
      */
     public function sealedDigestLine($tahfizRows, $drillRows)
     {
@@ -2170,6 +2191,7 @@ class Academy_model extends MY_Model
                 $report['playlist_token'] = $this->quranPlaylistToken($sid);
                 $label = $this->formatTahfizMilestoneLabel($row);
                 $audio = $this->absoluteMediaUrl(isset($row->audio_url) ? $row->audio_url : '');
+                $report['current_audio'] = $audio;
                 $video = $this->absoluteMediaUrl(isset($row->video_url) ? $row->video_url : '');
                 if ($audio || $video) {
                     $report['media'] = array(array(
@@ -2202,8 +2224,11 @@ class Academy_model extends MY_Model
         $skipped = 0;
         $mediaSent = 0;
         $mediaFailed = 0;
+        $photoSent = 0;
+        $photoFailed = 0;
         $firstError = '';
         $firstMediaError = '';
+        $firstPhotoError = '';
 
         foreach ($reports as $r) {
             $phones = array();
@@ -2232,9 +2257,11 @@ class Academy_model extends MY_Model
             $listenUrl = '';
             $headerMedia = null;
             $clipLocal = null;
-            if (!empty($mediaItems[0]['url'])) {
-                $clipLocal = $this->whatsapp_cloud->resolveLocalMediaFile($mediaItems[0]['url']);
-                $candidate = $this->whatsapp_cloud->publicizeMediaUrl($mediaItems[0]['url']);
+            $clipUrl = isset($r['current_audio']) ? trim((string) $r['current_audio']) : '';
+            $photoRel = $this->studentPhotoRel($r);
+            if ($clipUrl !== '') {
+                $clipLocal = $this->whatsapp_cloud->resolveLocalMediaFile($clipUrl);
+                $candidate = $this->whatsapp_cloud->publicizeMediaUrl($clipUrl);
                 if (preg_match('/\.(wav|webm)$/i', $candidate)) {
                     $mp3 = preg_replace('/\.(wav|webm)$/i', '.mp3', $candidate);
                     if ($this->whatsapp_cloud->isPublicHttpsUrl($mp3) && $this->whatsapp_cloud->urlIsReachable($mp3)) {
@@ -2249,14 +2276,10 @@ class Academy_model extends MY_Model
                     $hint = preg_match('/\.(mp3|ogg|opus|m4a|aac)$/i', $clipLocal) ? 'audio' : 'document';
                     $up = $this->whatsapp_cloud->uploadMediaFile($clipLocal, $hint);
                     if (!empty($up['ok']) && !empty($up['id'])) {
-                        $fname = basename($clipLocal);
-                        if (!preg_match('/\.mp3$/i', $fname)) {
-                            $fname = preg_replace('/\.[^.]+$/', '', $fname) . '.mp3';
-                        }
                         $headerMedia = array(
                             'type' => 'document',
                             'id' => $up['id'],
-                            'filename' => $fname,
+                            'filename' => $this->sealedClipFilename($r),
                         );
                     }
                 }
@@ -2318,6 +2341,22 @@ class Academy_model extends MY_Model
 
                 if (!empty($result['ok'])) {
                     $sent++;
+                    if ($photoRel !== '') {
+                        $img = $this->whatsapp_cloud->sendMediaByUrl(
+                            $phone,
+                            'image',
+                            $photoRel,
+                            isset($r['student_name']) ? $r['student_name'] : ''
+                        );
+                        if (!empty($img['ok'])) {
+                            $photoSent++;
+                        } else {
+                            $photoFailed++;
+                            if ($firstPhotoError === '') {
+                                $firstPhotoError = isset($img['error']) ? $img['error'] : 'Student photo was not delivered';
+                            }
+                        }
+                    }
                     $this->logBroadcastSend(
                         $branchId,
                         $r,
@@ -2370,6 +2409,12 @@ class Academy_model extends MY_Model
         } elseif ($sent && $this->whatsapp_cloud->wantsMediaAfterTemplate()) {
             $parts[] = '0 media links (no clip URLs on reports)';
         }
+        if ($photoSent || $photoFailed) {
+            $parts[] = $photoSent . ' student photo' . ($photoSent === 1 ? '' : 's');
+            if ($photoFailed) {
+                $parts[] = $photoFailed . ' photo missing';
+            }
+        }
         $message = implode(' · ', $parts) . '.';
         if ($firstError !== '') {
             $message .= ' ' . $firstError;
@@ -2377,7 +2422,46 @@ class Academy_model extends MY_Model
         if ($firstMediaError !== '') {
             $message .= ' Media: ' . $firstMediaError;
         }
+        if ($firstPhotoError !== '') {
+            $message .= ' Photo: ' . $firstPhotoError;
+        }
         return $message;
+    }
+
+    /**
+     * Real student portrait for the WhatsApp card. The placeholder is not sent.
+     */
+    public function studentPhotoRel($report)
+    {
+        $file = isset($report['photo']) ? trim((string) $report['photo']) : '';
+        if (($file === '' || strcasecmp($file, 'defualt.png') === 0) && !empty($report['student_id'])) {
+            $row = $this->db->select('photo')->where('id', (int) $report['student_id'])->get('student')->row();
+            $file = $row ? trim((string) $row->photo) : '';
+        }
+        if ($file === '' || strcasecmp($file, 'defualt.png') === 0) {
+            return '';
+        }
+        $rel = 'uploads/images/student/' . $file;
+        return is_file(FCPATH . $rel) ? $rel : '';
+    }
+
+    /**
+     * Filename shown on the sealed-record document. This session's clip, not an older one.
+     */
+    public function sealedClipFilename($report)
+    {
+        $student = isset($report['student_name']) ? (string) $report['student_name'] : 'Student';
+        $portion = isset($report['portion']) ? (string) $report['portion'] : 'Recitation';
+        $base = $student . ' - ' . $portion;
+        $base = preg_replace('/[\\\\\/:\*\?"<>\|]+/u', '', $base);
+        $base = trim(preg_replace('/\s+/u', ' ', $base));
+        if ($base === '') {
+            $base = 'Recitation';
+        }
+        if (mb_strlen($base) > 80) {
+            $base = mb_substr($base, 0, 80);
+        }
+        return $base . '.mp3';
     }
 
     public function digestTemplateParams($report)
