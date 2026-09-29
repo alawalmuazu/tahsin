@@ -1,5 +1,7 @@
 <?php
 $install = isset($install) ? $install : array('name' => 'Quran', 'short_name' => 'Quran', 'photo' => '', 'student_name' => 'Student', 'school_name' => 'Tahsin Academy', 'school_logo' => base_url('uploads/app_image/logo.png'));
+$openPhoto = isset($install['photo']) ? $install['photo'] : '';
+$showOpenPhoto = $openPhoto !== '' && strpos($openPhoto, 'defualt.png') === false;
 $clips = isset($clips) ? $clips : array();
 $manifest = isset($manifest) ? $manifest : '';
 $token = isset($token) ? $token : '';
@@ -78,12 +80,15 @@ html[data-theme="dark"] .transport button.on{color:var(--accent);border-color:va
 .clip.on{border-color:#0f766e;background:var(--soft)}
 html[data-theme="dark"] .clip.on{border-color:var(--accent)}
 .clip strong{display:block}
-.open{position:fixed;inset:0;z-index:40;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.2rem;padding:2rem 1.5rem;background:#10241e;color:#fff;text-align:center}
-.open.off{opacity:0;pointer-events:none;transition:opacity .35s ease}
-.open-logo{width:min(168px,42vw);height:auto;object-fit:contain}
-.open-school{margin:.45rem 0 .85rem;font-size:1.05rem;font-weight:700;letter-spacing:.01em}
-.open-photo{width:92px;height:92px;border-radius:22px;object-fit:cover;background:#24332d}
-.open-student{margin:.65rem 0 0;font-size:1.55rem;font-weight:800}
+.open{position:fixed;inset:0;z-index:40;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:2.5rem 1.75rem;background:radial-gradient(ellipse at 50% 36%, rgba(212,175,106,.16), transparent 48%), #10241e;color:#f6f1e6;text-align:center}
+.open.off{opacity:0;pointer-events:none;transition:opacity .45s ease}
+.open-logo{width:min(188px,44vw);height:auto;object-fit:contain;filter:drop-shadow(0 16px 26px rgba(0,0,0,.38));animation:open-rise .65s ease both}
+.open-school{max-width:16rem;margin:1.05rem 0 0;font-size:.74rem;font-weight:700;letter-spacing:.22em;text-transform:uppercase;color:#e4c98a;line-height:1.5;animation:open-rise .65s ease .08s both}
+.open-rule{width:46px;height:1px;margin:1.05rem 0 1.15rem;background:linear-gradient(90deg, transparent, #e4c98a, transparent);animation:open-rise .65s ease .12s both}
+.open-photo{width:86px;height:86px;margin:0 0 .9rem;border-radius:50%;object-fit:cover;border:2px solid #e4c98a;box-shadow:0 12px 26px rgba(0,0,0,.32);animation:open-rise .65s ease .16s both}
+.open-student{max-width:18rem;margin:0;font-size:1.85rem;font-weight:700;letter-spacing:.01em;line-height:1.15;animation:open-rise .65s ease .2s both}
+.open-sub{margin:.6rem 0 0;font-size:.84rem;color:#b7c4bb;letter-spacing:.04em;animation:open-rise .65s ease .26s both}
+@keyframes open-rise{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
 html.no-open .open{display:none}
 </style>
 </head>
@@ -91,8 +96,12 @@ html.no-open .open{display:none}
 <div id="open_screen" class="open">
 	<img class="open-logo" src="<?php echo html_escape($install['school_logo']); ?>" alt="">
 	<p class="open-school"><?php echo html_escape($install['school_name']); ?></p>
-	<img class="open-photo" src="<?php echo html_escape($install['photo']); ?>" alt="">
+	<div class="open-rule"></div>
+	<?php if ($showOpenPhoto): ?>
+	<img class="open-photo" src="<?php echo html_escape($openPhoto); ?>" alt="">
+	<?php endif; ?>
 	<h1 class="open-student"><?php echo html_escape($install['student_name']); ?></h1>
+	<p class="open-sub">Sealed recitations</p>
 </div>
 <script>
 (function () {
@@ -104,7 +113,7 @@ html.no-open .open{display:none}
 		setTimeout(function () { if (el.parentNode) el.parentNode.removeChild(el); }, 400);
 	}
 	el.addEventListener('click', close);
-	setTimeout(close, 2200);
+	setTimeout(close, 2600);
 })();
 </script>
 <div class="wrap">
