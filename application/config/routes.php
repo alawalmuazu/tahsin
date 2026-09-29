@@ -132,6 +132,7 @@ $route['credential_approvals/check_pending_ajax'] = 'credential_approvals/check_
 $route['authentication'] = 'authentication/index';
 $route['manifest.webmanifest'] = 'pwa/manifest';
 $route['quran/(:any)/manifest.webmanifest'] = 'quran/manifest/$1';
+$route['quran/(:any)/icon-(192|512).png'] = 'quran/icon/$1/$2';
 $route['quran/(:any)'] = 'quran/playlist/$1';
 $route['home'] = 'home/index';
 $route['admission'] = 'home/admission';

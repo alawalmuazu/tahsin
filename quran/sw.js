@@ -1,3 +1,4 @@
+/* Quran playlist install, icon sizes are real PNGs. */
 self.addEventListener('install', function () {
   self.skipWaiting();
 });

@@ -36,7 +36,8 @@ class Quran extends CI_Controller
         $install = $this->academy_model->quranInstallName($studentId);
         $start = site_url('quran/' . $token);
         $scope = rtrim(site_url('quran'), '/') . '/';
-        $icon = $install['photo'];
+        $icon192 = site_url('quran/' . $token . '/icon-192.png');
+        $icon512 = site_url('quran/' . $token . '/icon-512.png');
         $manifest = array(
             'id' => $start,
             'name' => $install['name'],
@@ -49,16 +50,28 @@ class Quran extends CI_Controller
             'theme_color' => '#10241e',
             'icons' => array(
                 array(
-                    'src' => $icon,
+                    'src' => $icon192,
                     'sizes' => '192x192',
                     'type' => 'image/png',
                     'purpose' => 'any',
                 ),
                 array(
-                    'src' => $icon,
+                    'src' => $icon512,
                     'sizes' => '512x512',
                     'type' => 'image/png',
                     'purpose' => 'any',
+                ),
+                array(
+                    'src' => $icon192,
+                    'sizes' => '192x192',
+                    'type' => 'image/png',
+                    'purpose' => 'maskable',
+                ),
+                array(
+                    'src' => $icon512,
+                    'sizes' => '512x512',
+                    'type' => 'image/png',
+                    'purpose' => 'maskable',
                 ),
             ),
         );
@@ -66,6 +79,82 @@ class Quran extends CI_Controller
             ->set_content_type('application/manifest+json', 'utf-8')
             ->set_header('Cache-Control: no-store')
             ->set_output(json_encode($manifest, JSON_UNESCAPED_SLASHES));
+    }
+
+    /**
+     * A real 192 or 512 PNG. Chrome refuses to install when the photo is only labeled as that size.
+     */
+    public function icon($token = '', $size = 192)
+    {
+        $this->load->model('academy_model');
+        $studentId = $this->academy_model->quranPlaylistStudentId($token);
+        if ($studentId < 1) {
+            show_404();
+            return;
+        }
+        $size = ((int) $size === 512) ? 512 : 192;
+        if (!function_exists('imagecreatetruecolor')) {
+            $fallback = FCPATH . 'assets/images/pwa/icon-' . $size . '.png';
+            if (!is_file($fallback)) {
+                show_404();
+                return;
+            }
+            $this->output
+                ->set_content_type('image/png')
+                ->set_header('Cache-Control: public, max-age=86400')
+                ->set_output(file_get_contents($fallback));
+            return;
+        }
+        $install = $this->academy_model->quranInstallName($studentId);
+        $png = $this->squarePng(isset($install['photo']) ? $install['photo'] : '', $size);
+        $this->output
+            ->set_content_type('image/png')
+            ->set_header('Cache-Control: public, max-age=86400')
+            ->set_output($png);
+    }
+
+    protected function squarePng($photoUrl, $size)
+    {
+        $size = (int) $size;
+        $canvas = imagecreatetruecolor($size, $size);
+        $green = imagecolorallocate($canvas, 16, 36, 30);
+        imagefilledrectangle($canvas, 0, 0, $size, $size, $green);
+        $photo = $this->loadLocalImage($photoUrl);
+        if ($photo) {
+            $width = imagesx($photo);
+            $height = imagesy($photo);
+            $side = min($width, $height);
+            $sx = (int) (($width - $side) / 2);
+            $sy = (int) (($height - $side) / 2);
+            imagecopyresampled($canvas, $photo, 0, 0, $sx, $sy, $size, $size, $side, $side);
+            imagedestroy($photo);
+        }
+        ob_start();
+        imagepng($canvas);
+        $png = ob_get_clean();
+        imagedestroy($canvas);
+        return $png;
+    }
+
+    protected function loadLocalImage($photoUrl)
+    {
+        if (!function_exists('imagecreatefromstring')) {
+            return null;
+        }
+        $path = parse_url((string) $photoUrl, PHP_URL_PATH);
+        if (!$path || !preg_match('#/(uploads/.+)$#', rawurldecode($path), $match)) {
+            return null;
+        }
+        $file = FCPATH . str_replace('/', DIRECTORY_SEPARATOR, $match[1]);
+        if (!is_file($file)) {
+            return null;
+        }
+        $data = @file_get_contents($file);
+        if ($data === false || $data === '') {
+            return null;
+        }
+        $image = @imagecreatefromstring($data);
+        return $image ? $image : null;
     }
 
     protected function academy_model_id($token)

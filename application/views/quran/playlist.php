@@ -15,7 +15,7 @@ $clipsJson = json_encode($clips, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | J
 <meta name="theme-color" content="#10241e">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="<?php echo html_escape($install['short_name']); ?>">
-<link rel="apple-touch-icon" href="<?php echo html_escape($install['photo']); ?>">
+<link rel="apple-touch-icon" href="<?php echo site_url('quran/' . $token . '/icon-192.png'); ?>">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Scheherazade+New:wght@400;700&display=swap">
 <script>
 (function () {
@@ -124,8 +124,13 @@ document.getElementById('theme_toggle').addEventListener('click', function () {
 	applyTheme(document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark');
 });
 document.getElementById('install_quran').addEventListener('click', function () {
+	if (window.top !== window.self) {
+		window.open(window.location.href, '_blank', 'noopener');
+		document.getElementById('install_note').textContent = 'Install opens in the new tab. Press Install Quran there. The academy page itself cannot add the app.';
+		return;
+	}
 	if (!deferredPrompt) {
-		document.getElementById('install_note').textContent = 'If the button does not install, use the browser menu: Add to Home Screen. On iPhone that is Share, then Add to Home Screen.';
+		document.getElementById('install_note').textContent = 'If the button does not install, use the install icon in the address bar. On iPhone, tap Share, then Add to Home Screen.';
 		return;
 	}
 	deferredPrompt.prompt();
