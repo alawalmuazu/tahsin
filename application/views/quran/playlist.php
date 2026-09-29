@@ -25,6 +25,11 @@ window.addEventListener('beforeinstallprompt', function (event) {
 	window.__quranInstall = event;
 	var waiters = window.__quranInstallWait.splice(0);
 	waiters.forEach(function (fn) { fn(event); });
+	if (typeof window.__quranInstallReady === 'function') window.__quranInstallReady();
+});
+window.addEventListener('appinstalled', function () {
+	var note = document.getElementById('install_note');
+	if (note) note.textContent = 'Quran is on this phone. Open the home screen and look for Quran.';
 });
 (function () {
 	var saved = '';
@@ -83,7 +88,7 @@ html[data-theme="dark"] .clip.on{border-color:var(--accent)}
 	</div>
 	<div class="install">
 		<button type="button" id="install_quran">Install <?php echo html_escape($install['name']); ?></button>
-		<p id="install_note">Adds Quran to your home screen. The icon is this student's photo.</p>
+		<p id="install_note">Tap Install Quran, then confirm the question Chrome shows. The icon is this student's photo.</p>
 		<p>One child installs as <strong>Quran</strong>. Each other child in the same family installs as <strong>Quran</strong> plus that child's first name<?php if ($install['name'] !== 'Quran'): ?>, so this one is <strong><?php echo html_escape($install['name']); ?></strong><?php endif; ?>.</p>
 	</div>
 	<?php if (empty($clips)): ?>
@@ -112,22 +117,33 @@ html[data-theme="dark"] .clip.on{border-color:var(--accent)}
 </div>
 <script>
 if ('serviceWorker' in navigator) {
-	navigator.serviceWorker.register('<?php echo base_url('quran/sw.js'); ?>?v=4', { scope: '<?php echo base_url('quran/'); ?>' }).then(function (reg) {
+	var quranSwScope = '<?php echo base_url('quran/'); ?>';
+	navigator.serviceWorker.register('<?php echo base_url('quran/sw.js'); ?>?v=5', { scope: quranSwScope, updateViaCache: 'none' }).then(function (reg) {
 		return navigator.serviceWorker.ready.then(function () {
-			var worker = (reg.active || navigator.serviceWorker.controller);
-			if (worker) {
-				worker.postMessage({ type: 'cache', url: window.location.href });
+			var worker = reg.active || navigator.serviceWorker.controller;
+			if (!worker) return;
+			var ctrl = navigator.serviceWorker.controller;
+			if (!ctrl || ctrl.scriptURL.indexOf('quran/sw.js') === -1) {
+				worker.postMessage({ type: 'claim' });
 			}
-			var controlled = navigator.serviceWorker.controller
-				&& navigator.serviceWorker.controller.scriptURL.indexOf('quran/sw.js') !== -1;
 			var warmed = false;
-			try { warmed = sessionStorage.getItem('quran-sw-ready') === '1'; } catch (e) {}
-			if (!controlled && !warmed) {
-				try { sessionStorage.setItem('quran-sw-ready', '1'); } catch (e2) {}
-				navigator.serviceWorker.addEventListener('controllerchange', function () {
-					window.location.reload();
-				});
+			try { warmed = sessionStorage.getItem('quran-sw-v5') === '1'; } catch (e) {}
+			if (warmed) return;
+			var channel = new MessageChannel();
+			var settled = false;
+			function finish(reload) {
+				if (settled) return;
+				settled = true;
+				var marked = false;
+				try {
+					sessionStorage.setItem('quran-sw-v5', '1');
+					marked = sessionStorage.getItem('quran-sw-v5') === '1';
+				} catch (e2) {}
+				if (reload && marked) window.location.reload();
 			}
+			channel.port1.onmessage = function () { finish(true); };
+			worker.postMessage({ type: 'cache', url: window.location.href }, [channel.port2]);
+			setTimeout(function () { finish(false); }, 5000);
 		});
 	}).catch(function () {});
 }
@@ -145,15 +161,33 @@ document.getElementById('theme_toggle').addEventListener('click', function () {
 });
 function quranInstallHelp() {
 	var ios = /iphone|ipad|ipod/i.test(navigator.userAgent || '');
-	if (ios) {
-		return 'On iPhone, tap Share, then Add to Home Screen.';
-	}
-	return 'Tap the three dots at the top of Chrome, then Install app or Add to Home screen.';
+	if (ios) return 'On iPhone, tap Share, then Add to Home Screen. Quran appears on the home screen after you confirm.';
+	return 'Nothing was added yet. Tap the three dots at the top right, then Install app or Add to Home screen, and confirm. Look for Quran on the home screen. Turn VPN off if the icon does not appear.';
 }
 function quranRunInstall(event) {
-	event.prompt();
-	event.userChoice.then(function () { window.__quranInstall = null; });
+	var note = document.getElementById('install_note');
+	note.textContent = 'Confirm the question Chrome shows. Quran is added only after you confirm.';
+	var pending;
+	try { pending = event.prompt(); } catch (e) { pending = Promise.reject(e); }
+	Promise.resolve(pending).then(function () {
+		return event.userChoice;
+	}).then(function (result) {
+		window.__quranInstall = null;
+		if (result && result.outcome === 'accepted') {
+			note.textContent = 'Quran is being added. Open the home screen in a minute and look for Quran. Turn VPN off and tap Install Quran again if it does not show up.';
+			return;
+		}
+		note.textContent = 'Install was cancelled. Tap Install Quran to try again.';
+	}).catch(function () {
+		window.__quranInstall = event;
+		note.textContent = 'Tap Install Quran again, then confirm the question Chrome shows.';
+	});
 }
+window.__quranInstallReady = function () {
+	var note = document.getElementById('install_note');
+	if (!note || window.__quranInstallPrompted) return;
+	note.textContent = 'Chrome is ready. Tap Install Quran, then confirm.';
+};
 document.getElementById('install_quran').addEventListener('click', function () {
 	var note = document.getElementById('install_note');
 	if (window.top !== window.self) {
@@ -166,21 +200,13 @@ document.getElementById('install_quran').addEventListener('click', function () {
 		return;
 	}
 	if (window.__quranInstall) {
+		window.__quranInstallPrompted = true;
 		quranRunInstall(window.__quranInstall);
 		return;
 	}
-	note.textContent = 'Preparing install…';
-	var done = false;
-	var timer = setTimeout(function () {
-		if (done) return;
-		done = true;
-		note.textContent = quranInstallHelp();
-	}, 4000);
-	window.__quranInstallWait.push(function (event) {
-		if (done) return;
-		done = true;
-		clearTimeout(timer);
-		quranRunInstall(event);
+	note.textContent = quranInstallHelp();
+	window.__quranInstallWait.push(function () {
+		note.textContent = 'Chrome is ready. Tap Install Quran again, then confirm.';
 	});
 });
 </script>

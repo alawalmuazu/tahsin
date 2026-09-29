@@ -7,6 +7,19 @@ defined('BASEPATH') or exit('No direct script access allowed');
  */
 class Quran extends CI_Controller
 {
+    public function __construct()
+    {
+        parent::__construct();
+        // PHP's session sends Cache-Control: no-store. Android will not install a page with that header.
+        if (!headers_sent()) {
+            header_remove('Pragma');
+            header('Cache-Control: public, max-age=300');
+            header('Expires: ' . gmdate('D, d M Y H:i:s', time() + 300) . ' GMT');
+        }
+        $this->output->set_header('Cache-Control: public, max-age=300');
+        $this->output->set_header('Expires: ' . gmdate('D, d M Y H:i:s', time() + 300) . ' GMT');
+    }
+
     public function playlist($token = '')
     {
         $studentId = $this->academy_model_id($token);
@@ -77,7 +90,7 @@ class Quran extends CI_Controller
         );
         $this->output
             ->set_content_type('application/manifest+json', 'utf-8')
-            ->set_header('Cache-Control: no-store')
+            ->set_header('Cache-Control: public, max-age=300')
             ->set_output(json_encode($manifest, JSON_UNESCAPED_SLASHES));
     }
 
