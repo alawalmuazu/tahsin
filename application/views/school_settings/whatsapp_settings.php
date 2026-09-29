@@ -137,7 +137,7 @@ if (!empty($whatsapp['backend_enable_chat']) && $whatsapp['backend_enable_chat']
                         <label class="col-md-3 control-label">Template name <span class="required">*</span></label>
                         <div class="col-md-6">
                             <input type="text" class="form-control" name="template_name" value="<?php echo html_escape(isset($cloud['template_name']) ? $cloud['template_name'] : 'tahsin_sealed_digest'); ?>" />
-                            <span class="help-block mb-none">Body-only templates put a listen URL in {{4}}. Digests with a recitation file use the Utility template <code>tahsin_recitation_record</code> (document header, three body fields). Leave this box as the text fallback. Meta does not allow green voice-note bubbles on cold utility sends. “Loading PDF…” in WhatsApp Manager is the document placeholder, not the parent chat.</span>
+                            <span class="help-block mb-none">Body-only templates put a listen URL in {{4}}. A clip uses <code>tahsin_sealed_record</code> once Meta marks it Active (facilitator, time, portion, and a Previous recitations button). Until then the digest keeps <code>tahsin_recitation_record</code>. Leave this box as the text fallback.</span>
                             <span class="error"></span>
                         </div>
                     </div>

@@ -25,6 +25,8 @@ define('SCHOOL_MOTTO', 'Excellence In Deen & Duniya');
 define('PUBLIC_SITE_URL', 'https://tahsinacademy.ng');
 /** Shared secret: localhost Save milestone pushes the clip to PUBLIC_SITE_URL/academy_media/receive */
 define('ACADEMY_MEDIA_SYNC_SECRET', 'tahsin_media_sync_k7Qx9mP2_2026');
+/** Signs the public Quran playlist link sent to parents. */
+define('QURAN_PLAYLIST_KEY', 'tahsin_quran_playlist_4kP9mQ2v_2026');
 define('DEFAULT_PAY_VIA', 4); // Bank Transfer (offline) — see payment_types.id
 define('SCHOOL_FEE_AMOUNT', 2500000);
 define('DEFAULT_PASSWORD_STAFF', 'TahsinStaff@1');

@@ -338,6 +338,35 @@ class Academy_students extends Admin_Controller
         $this->load->view('layout/index', $this->data);
     }
 
+    /**
+     * Staff preview of the parent Quran playlist. The player is the public page, unchanged.
+     */
+    public function playlist()
+    {
+        if (!is_loggedin() || is_student_loggedin() || is_parent_loggedin()) {
+            access_denied();
+        }
+        $branchID = $this->application_model->get_branch_id();
+        $students = $this->academy_model->quranPlaylistRoster($branchID);
+        $selected = (int) $this->input->get('student');
+        $current = null;
+        foreach ($students as $st) {
+            if ($selected > 0 && (int) $st['id'] === $selected) {
+                $current = $st;
+                break;
+            }
+        }
+        if ($current === null && !empty($students)) {
+            $current = $students[0];
+        }
+        $this->data['students'] = $students;
+        $this->data['current'] = $current;
+        $this->data['title'] = 'Quran playlist';
+        $this->data['sub_page'] = 'academy/playlist';
+        $this->data['main_menu'] = 'academy';
+        $this->load->view('layout/index', $this->data);
+    }
+
     public function parse_voice()
     {
         if (!is_loggedin()) {

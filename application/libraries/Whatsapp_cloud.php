@@ -82,6 +82,12 @@ class Whatsapp_cloud
         return !empty($this->cfg['send_media_after_template']);
     }
 
+    /** Richer Utility template: facilitator, time, portion, and a playlist button. */
+    public function templateSealedName()
+    {
+        return 'tahsin_sealed_record';
+    }
+
     /** Template name that includes a DOCUMENT header for the recitation clip. */
     public function templateWithMediaName()
     {
@@ -243,9 +249,10 @@ class Whatsapp_cloud
      * @param string|null $templateName override template name if provided
      * @param string|null $templateLang override template language code if provided
      * @param array|null $headerMedia optional {type:document|image|video, id?:string, link?:string, filename?:string}
+     * @param string|null $urlButtonSuffix path appended to the template's URL button
      * @return array{ok:bool,wamid:?string,error:?string,raw?:mixed}
      */
-    public function sendTemplate($toE164, $bodyParams, $templateName = null, $templateLang = null, $headerMedia = null)
+    public function sendTemplate($toE164, $bodyParams, $templateName = null, $templateLang = null, $headerMedia = null, $urlButtonSuffix = null)
     {
         $to = $this->normalizePhone($toE164);
         if ($to === '') {
@@ -294,6 +301,17 @@ class Whatsapp_cloud
             $components[] = array(
                 'type' => 'body',
                 'parameters' => $params,
+            );
+        }
+        $suffix = trim((string) $urlButtonSuffix);
+        if ($suffix !== '') {
+            $components[] = array(
+                'type' => 'button',
+                'sub_type' => 'url',
+                'index' => '0',
+                'parameters' => array(
+                    array('type' => 'text', 'text' => $suffix),
+                ),
             );
         }
 

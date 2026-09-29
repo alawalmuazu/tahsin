@@ -1446,6 +1446,9 @@ class Academy_model extends MY_Model
                     $this->db->where_in('instructor_id', $ackTeachers);
                 }
                 $tahfizToday = $this->db->get()->result();
+                usort($tahfizToday, function ($a, $b) {
+                    return strcmp((string) (isset($b->completed_at) ? $b->completed_at : ''), (string) (isset($a->completed_at) ? $a->completed_at : ''));
+                });
             }
 
             if (!empty($st['parent_phones']) || $st['parent_contact']) {
@@ -1553,6 +1556,8 @@ class Academy_model extends MY_Model
                 'student_name' => $st['fullname'],
                 'teacher_name' => $sealed['teacher'],
                 'portion' => $sealed['portion'],
+                'sealed_at' => $sealed['sealed_at'],
+                'playlist_token' => $this->quranPlaylistToken($st['id']),
                 'parent_contact' => $st['parent_contact'],
                 'parent_phones' => !empty($st['parent_phones']) ? $st['parent_phones'] : array(),
                 'message' => implode("\n", $lines),
@@ -1843,7 +1848,11 @@ class Academy_model extends MY_Model
     {
         $teacher = 'Teacher';
         $portion = 'Session sealed';
+        $sealedAt = date('Y-m-d H:i:s');
         if (!empty($tahfizRows)) {
+            usort($tahfizRows, function ($a, $b) {
+                return strcmp((string) (isset($b->completed_at) ? $b->completed_at : ''), (string) (isset($a->completed_at) ? $a->completed_at : ''));
+            });
             $t = $tahfizRows[0];
             $label = $this->formatTahfizMilestoneLabel($t);
             if (!$label && isset($t->surah_name)) {
@@ -1856,6 +1865,9 @@ class Academy_model extends MY_Model
                 $cat = isset($cats[$ck]) ? $cats[$ck] : $ck;
             }
             $portion = trim(($cat !== '' ? $cat . ' · ' : '') . ($label ? $label : 'Quran'));
+            if (!empty($t->completed_at)) {
+                $sealedAt = $t->completed_at;
+            }
             if (!empty($t->instructor_id) && function_exists('get_type_name_by_id')) {
                 $name = get_type_name_by_id('staff', $t->instructor_id, 'name');
                 if ($name) {
@@ -1874,7 +1886,7 @@ class Academy_model extends MY_Model
                 }
             }
         }
-        return array('teacher' => $teacher, 'portion' => $portion);
+        return array('teacher' => $teacher, 'portion' => $portion, 'sealed_at' => $sealedAt);
     }
 
     /**
@@ -1882,10 +1894,194 @@ class Academy_model extends MY_Model
      * Order: student, teacher, portion, seal. Audio is a later media message.
      */
     /**
+     * The milestone the facilitator saved for this seal, not an earlier row from the same day.
+     */
+    public function digestMilestoneRow($studentId, $teacherId, $date, $milestoneId = 0)
+    {
+        if (!$this->tahfizReady()) {
+            return null;
+        }
+        $milestoneId = (int) $milestoneId;
+        if ($milestoneId > 0) {
+            $row = $this->db->get_where('academy_tahfiz_record', array(
+                'id' => $milestoneId,
+                'student_id' => (int) $studentId,
+            ))->row();
+            if ($row) {
+                return $row;
+            }
+        }
+        $this->db->from('academy_tahfiz_record');
+        $this->db->where('student_id', (int) $studentId);
+        $this->db->where('DATE(completed_at)', $date);
+        if ((int) $teacherId > 0) {
+            $this->db->where('instructor_id', (int) $teacherId);
+        }
+        $this->db->order_by('completed_at', 'DESC');
+        $this->db->order_by('id', 'DESC');
+        $this->db->limit(1);
+        $row = $this->db->get()->row();
+        return $row ? $row : null;
+    }
+
+    public function quranPlaylistToken($studentId)
+    {
+        $id = (int) $studentId;
+        $key = defined('QURAN_PLAYLIST_KEY') ? QURAN_PLAYLIST_KEY : 'tahsin-quran';
+        $sig = substr(hash_hmac('sha256', 'quran:' . $id, $key), 0, 20);
+        return $id . '-' . $sig;
+    }
+
+    public function quranPlaylistStudentId($token)
+    {
+        $token = (string) $token;
+        if (!preg_match('/^(\d+)-([a-f0-9]{20})$/', $token, $m)) {
+            return 0;
+        }
+        $key = defined('QURAN_PLAYLIST_KEY') ? QURAN_PLAYLIST_KEY : 'tahsin-quran';
+        $expect = substr(hash_hmac('sha256', 'quran:' . $m[1], $key), 0, 20);
+        if (!hash_equals($expect, $m[2])) {
+            return 0;
+        }
+        return (int) $m[1];
+    }
+
+    /**
+     * Home-screen name. One child is "Quran". Each extra child is "Quran · first name".
+     *
+     * @return array{name:string,short_name:string,photo:string,student_name:string}
+     */
+    public function quranInstallName($studentId)
+    {
+        $empty = array(
+            'name' => 'Quran',
+            'short_name' => 'Quran',
+            'photo' => function_exists('get_image_url') ? get_image_url('student', '') : '',
+            'student_name' => 'Student',
+        );
+        $student = $this->db->select('id, first_name, last_name, parent_id, photo')->where('id', (int) $studentId)->get('student')->row();
+        if (!$student) {
+            return $empty;
+        }
+        $full = trim($student->first_name . ' ' . $student->last_name);
+        $empty['student_name'] = $full !== '' ? $full : 'Student';
+        $empty['photo'] = get_image_url('student', $student->photo);
+        $children = 1;
+        if (!empty($student->parent_id)) {
+            $children = (int) $this->db->where('parent_id', (int) $student->parent_id)->count_all_results('student');
+        }
+        $first = trim((string) $student->first_name);
+        if ($children <= 1 || $first === '') {
+            return $empty;
+        }
+        $sameFirst = 1;
+        if (!empty($student->parent_id)) {
+            $sameFirst = (int) $this->db->where('parent_id', (int) $student->parent_id)->where('first_name', $student->first_name)->count_all_results('student');
+        }
+        $who = $first;
+        if ($sameFirst > 1 && trim((string) $student->last_name) !== '') {
+            $who .= ' ' . mb_substr(trim($student->last_name), 0, 1);
+        }
+        $name = 'Quran · ' . $who;
+        $short = $name;
+        if (mb_strlen($short) > 12) {
+            $short = 'Quran ' . mb_substr($who, 0, 6);
+        }
+        $empty['name'] = $name;
+        $empty['short_name'] = $short;
+        return $empty;
+    }
+
+    public function quranPlaylistClips($studentId)
+    {
+        if (!$this->tahfizReady()) {
+            return array();
+        }
+        $this->db->from('academy_tahfiz_record t');
+        $this->db->where('t.student_id', (int) $studentId);
+        $this->db->where('t.audio_url IS NOT NULL', null, false);
+        $this->db->where('t.audio_url !=', '');
+        if ($this->db->table_exists('academy_class_session')) {
+            $this->db->where(
+                'EXISTS (SELECT 1 FROM academy_class_session cs WHERE cs.status = "acknowledged" AND cs.branch_id = t.branch_id AND cs.teacher_id = t.instructor_id AND (cs.milestone_id = t.id OR (cs.milestone_id = 0 AND cs.session_date = DATE(t.completed_at))))',
+                null,
+                false
+            );
+        }
+        $this->db->order_by('t.completed_at', 'DESC');
+        $this->db->order_by('t.id', 'DESC');
+        $rows = $this->db->get()->result();
+        $out = array();
+        foreach ($rows as $row) {
+            $audio = $this->absoluteMediaUrl(isset($row->audio_url) ? $row->audio_url : '');
+            if ($audio === '') {
+                continue;
+            }
+            $when = !empty($row->completed_at) ? strtotime($row->completed_at) : time();
+            $teacher = 'Facilitator';
+            if (!empty($row->instructor_id) && function_exists('get_type_name_by_id')) {
+                $name = get_type_name_by_id('staff', $row->instructor_id, 'name');
+                if ($name) {
+                    $teacher = $name;
+                }
+            }
+            $out[] = array(
+                'portion' => $this->sealedDigestLine(array($row), array())['portion'],
+                'date' => date('j M Y', $when),
+                'time' => date('g:i A', $when),
+                'teacher' => $teacher,
+                'audio' => $audio,
+            );
+        }
+        return $out;
+    }
+
+    /**
+     * Students a staff member may preview, with the same playlist URL the parent receives.
+     *
+     * @return array<int, array{id:int,name:string,photo:string,class_name:string,url:string}>
+     */
+    public function quranPlaylistRoster($branchId)
+    {
+        $assigned = $this->assignedStudentIds($branchId);
+        if (is_array($assigned) && empty($assigned)) {
+            return array();
+        }
+        $sessionID = get_session_id();
+        $this->db->select('s.id, s.photo, TRIM(CONCAT_WS(" ", s.first_name, NULLIF(s.other_name,""), s.last_name)) AS fullname, c.name AS class_name', false);
+        $this->db->from('enroll e');
+        $this->db->join('student s', 's.id = e.student_id', 'inner');
+        $this->db->join('class c', 'c.id = e.class_id', 'left');
+        $this->db->where('e.branch_id', (int) $branchId);
+        if ($sessionID) {
+            $this->db->where('e.session_id', (int) $sessionID);
+        }
+        if (is_array($assigned)) {
+            $this->db->where_in('s.id', $assigned);
+        }
+        $this->db->group_by('s.id');
+        $this->db->order_by('s.first_name', 'ASC');
+        $rows = $this->db->get()->result();
+        $out = array();
+        foreach ($rows as $row) {
+            $token = $this->quranPlaylistToken($row->id);
+            $name = trim((string) $row->fullname);
+            $out[] = array(
+                'id' => (int) $row->id,
+                'name' => $name !== '' ? $name : 'Student',
+                'photo' => get_image_url('student', $row->photo),
+                'class_name' => $row->class_name ? $row->class_name : '',
+                'url' => site_url('quran/' . $token),
+            );
+        }
+        return $out;
+    }
+
+    /**
      * Send today's sealed digest for one acknowledged teacher.
      * Called when an admin acknowledges, so Broadcast does not need a second click.
      */
-    public function dispatchSealedDigests($branchId, $teacherId, $date, $groupId = 0)
+    public function dispatchSealedDigests($branchId, $teacherId, $date, $groupId = 0, $milestoneId = 0)
     {
         if ($date !== date('Y-m-d')) {
             return 'WhatsApp sends today\'s sealed digest only. This session is ' . $date . '.';
@@ -1918,9 +2114,28 @@ class Academy_model extends MY_Model
         $reports = array();
         foreach ((isset($broadcast['reports']) ? $broadcast['reports'] : array()) as $report) {
             $sid = (int) $report['student_id'];
-            if (isset($wanted[$sid])) {
-                $reports[] = $report;
+            if (!isset($wanted[$sid])) {
+                continue;
             }
+            $row = $this->digestMilestoneRow($sid, (int) $teacherId, $date, (int) $milestoneId);
+            if ($row) {
+                $line = $this->sealedDigestLine(array($row), array());
+                $report['teacher_name'] = $line['teacher'];
+                $report['portion'] = $line['portion'];
+                $report['sealed_at'] = $line['sealed_at'];
+                $report['playlist_token'] = $this->quranPlaylistToken($sid);
+                $label = $this->formatTahfizMilestoneLabel($row);
+                $audio = $this->absoluteMediaUrl(isset($row->audio_url) ? $row->audio_url : '');
+                $video = $this->absoluteMediaUrl(isset($row->video_url) ? $row->video_url : '');
+                if ($audio || $video) {
+                    $report['media'] = array(array(
+                        'label' => $label ? $label : (isset($row->surah_name) ? $row->surah_name : 'Recitation'),
+                        'audio_url' => $audio,
+                        'video_url' => $video,
+                    ));
+                }
+            }
+            $reports[] = $report;
         }
         if (empty($reports)) {
             return 'No parent digest to send for this session.';
@@ -2009,18 +2224,37 @@ class Academy_model extends MY_Model
                 $usedNativeClip = false;
 
                 if ($headerMedia) {
-                    $body3 = array(
+                    $when = !empty($r['sealed_at']) ? strtotime($r['sealed_at']) : time();
+                    $body5 = array(
                         isset($params[0]) ? $params[0] : 'Student',
-                        isset($params[1]) ? $params[1] : date('j M Y'),
+                        isset($r['teacher_name']) && $r['teacher_name'] !== '' ? $r['teacher_name'] : 'Facilitator',
+                        date('j M Y', $when),
+                        date('g:i A', $when),
                         isset($params[2]) ? $params[2] : 'Session sealed',
                     );
+                    $token = isset($r['playlist_token']) ? $r['playlist_token'] : '';
                     $result = $this->whatsapp_cloud->sendTemplate(
                         $phone,
-                        $body3,
-                        $this->whatsapp_cloud->templateWithMediaName(),
+                        $body5,
+                        $this->whatsapp_cloud->templateSealedName(),
                         'en',
-                        $headerMedia
+                        $headerMedia,
+                        $token
                     );
+                    if (empty($result['ok'])) {
+                        $body3 = array(
+                            isset($params[0]) ? $params[0] : 'Student',
+                            date('j M Y', $when),
+                            isset($params[2]) ? $params[2] : 'Session sealed',
+                        );
+                        $result = $this->whatsapp_cloud->sendTemplate(
+                            $phone,
+                            $body3,
+                            $this->whatsapp_cloud->templateWithMediaName(),
+                            'en',
+                            $headerMedia
+                        );
+                    }
                     if (!empty($result['ok'])) {
                         $usedNativeClip = true;
                     }
@@ -2029,7 +2263,10 @@ class Academy_model extends MY_Model
                 // Fallback: body-only template with public listen URL in {{4}}
                 if ($result === null || empty($result['ok'])) {
                     $fallbackParams = $params;
-                    if ($listenUrl !== '') {
+                    if (!empty($r['playlist_token'])) {
+                        $base = defined('PUBLIC_SITE_URL') ? rtrim(PUBLIC_SITE_URL, '/') : rtrim(base_url(), '/');
+                        $fallbackParams[3] = $base . '/quran/' . $r['playlist_token'];
+                    } elseif ($listenUrl !== '') {
                         $fallbackParams[3] = $listenUrl;
                     }
                     $result = $this->whatsapp_cloud->sendTemplate($phone, $fallbackParams);
@@ -2978,7 +3215,8 @@ class Academy_model extends MY_Model
                     $branchId,
                     (int) $row->teacher_id,
                     $when,
-                    $this->db->field_exists('group_id', 'academy_class_session') ? (int) $row->group_id : 0
+                    $this->db->field_exists('group_id', 'academy_class_session') ? (int) $row->group_id : 0,
+                    isset($row->milestone_id) ? (int) $row->milestone_id : 0
                 );
                 return null;
             }
