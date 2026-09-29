@@ -18,6 +18,14 @@ $clipsJson = json_encode($clips, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | J
 <link rel="apple-touch-icon" href="<?php echo site_url('quran/' . $token . '/icon-192.png'); ?>">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Scheherazade+New:wght@400;700&display=swap">
 <script>
+window.__quranInstall = null;
+window.__quranInstallWait = [];
+window.addEventListener('beforeinstallprompt', function (event) {
+	event.preventDefault();
+	window.__quranInstall = event;
+	var waiters = window.__quranInstallWait.splice(0);
+	waiters.forEach(function (fn) { fn(event); });
+});
 (function () {
 	var saved = '';
 	try { saved = localStorage.getItem('quran-theme') || ''; } catch (e) {}
@@ -75,7 +83,7 @@ html[data-theme="dark"] .clip.on{border-color:var(--accent)}
 	</div>
 	<div class="install">
 		<button type="button" id="install_quran">Install <?php echo html_escape($install['name']); ?></button>
-		<p id="install_note">On iPhone, tap Share, then Add to Home Screen. The icon is this student's photo.</p>
+		<p id="install_note">Adds Quran to your home screen. The icon is this student's photo.</p>
 		<p>One child installs as <strong>Quran</strong>. Each other child in the same family installs as <strong>Quran</strong> plus that child's first name<?php if ($install['name'] !== 'Quran'): ?>, so this one is <strong><?php echo html_escape($install['name']); ?></strong><?php endif; ?>.</p>
 	</div>
 	<?php if (empty($clips)): ?>
@@ -104,13 +112,25 @@ html[data-theme="dark"] .clip.on{border-color:var(--accent)}
 </div>
 <script>
 if ('serviceWorker' in navigator) {
-	navigator.serviceWorker.register('<?php echo base_url('quran/sw.js'); ?>', { scope: '<?php echo base_url('quran/'); ?>' });
+	navigator.serviceWorker.register('<?php echo base_url('quran/sw.js'); ?>?v=4', { scope: '<?php echo base_url('quran/'); ?>' }).then(function (reg) {
+		return navigator.serviceWorker.ready.then(function () {
+			var worker = (reg.active || navigator.serviceWorker.controller);
+			if (worker) {
+				worker.postMessage({ type: 'cache', url: window.location.href });
+			}
+			var controlled = navigator.serviceWorker.controller
+				&& navigator.serviceWorker.controller.scriptURL.indexOf('quran/sw.js') !== -1;
+			var warmed = false;
+			try { warmed = sessionStorage.getItem('quran-sw-ready') === '1'; } catch (e) {}
+			if (!controlled && !warmed) {
+				try { sessionStorage.setItem('quran-sw-ready', '1'); } catch (e2) {}
+				navigator.serviceWorker.addEventListener('controllerchange', function () {
+					window.location.reload();
+				});
+			}
+		});
+	}).catch(function () {});
 }
-var deferredPrompt = null;
-window.addEventListener('beforeinstallprompt', function (event) {
-	event.preventDefault();
-	deferredPrompt = event;
-});
 function applyTheme(theme) {
 	document.documentElement.setAttribute('data-theme', theme);
 	var meta = document.querySelector('meta[name="theme-color"]');
@@ -123,18 +143,45 @@ applyTheme(document.documentElement.getAttribute('data-theme') || 'light');
 document.getElementById('theme_toggle').addEventListener('click', function () {
 	applyTheme(document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark');
 });
+function quranInstallHelp() {
+	var ios = /iphone|ipad|ipod/i.test(navigator.userAgent || '');
+	if (ios) {
+		return 'On iPhone, tap Share, then Add to Home Screen.';
+	}
+	return 'Tap the three dots at the top of Chrome, then Install app or Add to Home screen.';
+}
+function quranRunInstall(event) {
+	event.prompt();
+	event.userChoice.then(function () { window.__quranInstall = null; });
+}
 document.getElementById('install_quran').addEventListener('click', function () {
+	var note = document.getElementById('install_note');
 	if (window.top !== window.self) {
 		window.open(window.location.href, '_blank', 'noopener');
-		document.getElementById('install_note').textContent = 'Install opens in the new tab. Press Install Quran there. The academy page itself cannot add the app.';
+		note.textContent = 'Install opens in the new tab. Press Install Quran there.';
 		return;
 	}
-	if (!deferredPrompt) {
-		document.getElementById('install_note').textContent = 'If the button does not install, use the install icon in the address bar. On iPhone, tap Share, then Add to Home Screen.';
+	if (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone) {
+		note.textContent = 'Quran is already on this home screen.';
 		return;
 	}
-	deferredPrompt.prompt();
-	deferredPrompt.userChoice.then(function () { deferredPrompt = null; });
+	if (window.__quranInstall) {
+		quranRunInstall(window.__quranInstall);
+		return;
+	}
+	note.textContent = 'Preparing install…';
+	var done = false;
+	var timer = setTimeout(function () {
+		if (done) return;
+		done = true;
+		note.textContent = quranInstallHelp();
+	}, 4000);
+	window.__quranInstallWait.push(function (event) {
+		if (done) return;
+		done = true;
+		clearTimeout(timer);
+		quranRunInstall(event);
+	});
 });
 </script>
 <?php if (!empty($clips)): ?>
