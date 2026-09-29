@@ -22,16 +22,42 @@ $clipsJson = json_encode($clips, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | J
 <script>
 window.__quranInstall = null;
 window.__quranInstallWait = [];
+window.__quranToken = <?php echo json_encode($token); ?>;
+window.__quranStart = <?php echo json_encode(site_url('quran/' . $token)); ?>;
+window.__quranManifest = <?php echo json_encode($manifest); ?>;
+function quranIsStandalone() {
+	return (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) || window.navigator.standalone === true;
+}
+function quranInstallKey() {
+	return 'quran-app-' + window.__quranToken;
+}
+function quranMarkInstalled() {
+	try { localStorage.setItem(quranInstallKey(), '1'); } catch (e) {}
+	document.documentElement.classList.add('quran-installed');
+}
+function quranClearInstalled() {
+	try { localStorage.removeItem(quranInstallKey()); } catch (e) {}
+	if (!quranIsStandalone()) document.documentElement.classList.remove('quran-installed');
+}
+(function () {
+	if (quranIsStandalone()) {
+		quranMarkInstalled();
+		return;
+	}
+	try {
+		if (localStorage.getItem(quranInstallKey()) === '1') document.documentElement.classList.add('quran-installed');
+	} catch (e) {}
+})();
 window.addEventListener('beforeinstallprompt', function (event) {
 	event.preventDefault();
+	if (!quranIsStandalone()) quranClearInstalled();
 	window.__quranInstall = event;
 	var waiters = window.__quranInstallWait.splice(0);
 	waiters.forEach(function (fn) { fn(event); });
 	if (typeof window.__quranInstallReady === 'function') window.__quranInstallReady();
 });
 window.addEventListener('appinstalled', function () {
-	var note = document.getElementById('install_note');
-	if (note) note.textContent = 'Quran is on this phone. Open the home screen and look for Quran.';
+	quranMarkInstalled();
 });
 (function () {
 	var saved = '';
@@ -109,6 +135,7 @@ html[data-theme="dark"] .clip.on{border-color:var(--accent)}
 .open-bar span{width:100%}
 }
 html.no-open .open{display:none}
+html.quran-installed .install{display:none}
 </style>
 </head>
 <body>
@@ -239,7 +266,7 @@ function quranRunInstall(event) {
 	}).then(function (result) {
 		window.__quranInstall = null;
 		if (result && result.outcome === 'accepted') {
-			note.textContent = 'Quran is being added. Open the home screen in a minute and look for Quran. Turn VPN off and tap Install Quran again if it does not show up.';
+			quranMarkInstalled();
 			return;
 		}
 		note.textContent = 'Install was cancelled. Tap Install Quran to try again.';
@@ -253,6 +280,16 @@ window.__quranInstallReady = function () {
 	if (!note || window.__quranInstallPrompted) return;
 	note.textContent = 'Chrome is ready. Tap Install Quran, then confirm.';
 };
+if (navigator.getInstalledRelatedApps) {
+	navigator.getInstalledRelatedApps().then(function (apps) {
+		if (quranIsStandalone()) return;
+		var found = false;
+		for (var i = 0; i < apps.length; i++) {
+			if (apps[i].platform === 'webapp' && (apps[i].id === window.__quranStart || apps[i].url === window.__quranManifest)) found = true;
+		}
+		if (found) quranMarkInstalled();
+	}).catch(function () {});
+}
 document.getElementById('install_quran').addEventListener('click', function () {
 	var note = document.getElementById('install_note');
 	if (window.top !== window.self) {

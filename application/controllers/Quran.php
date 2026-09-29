@@ -61,6 +61,14 @@ class Quran extends CI_Controller
             'display' => 'standalone',
             'background_color' => '#10241e',
             'theme_color' => '#10241e',
+            'prefer_related_applications' => false,
+            'related_applications' => array(
+                array(
+                    'platform' => 'webapp',
+                    'url' => site_url('quran/' . $token . '/manifest.webmanifest'),
+                    'id' => $start,
+                ),
+            ),
             'icons' => array(
                 array(
                     'src' => $icon192,
