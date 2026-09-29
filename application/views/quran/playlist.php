@@ -98,7 +98,7 @@ html[data-theme="dark"] .clip.on{border-color:var(--accent)}
 		<button type="button" id="btn_all" class="playall">Play all</button>
 	</div>
 	<div class="queue" id="queue"></div>
-	<audio id="qpl_audio" preload="none"></audio>
+	<audio id="qpl_audio" preload="metadata"></audio>
 	<script type="application/json" id="qpl_data"><?php echo $clipsJson; ?></script>
 	<?php endif; ?>
 </div>
@@ -355,7 +355,7 @@ document.getElementById('install_quran').addEventListener('click', function () {
 
 	function highlight(t) {
 		if (!words.length) return;
-		var index = wordAt(t);
+		var index = (!audio.paused || t > 0.05) ? wordAt(t) : -1;
 		if (index === active) return;
 		if (active >= 0 && words[active]) words[active].classList.remove('on');
 		active = index;
@@ -468,6 +468,11 @@ document.getElementById('install_quran').addEventListener('click', function () {
 		audio.currentTime = (Number(seek.value) / 1000) * duration;
 	});
 
+	audio.addEventListener('loadedmetadata', function () {
+		if (audio.duration && isFinite(audio.duration)) {
+			document.getElementById('time_end').textContent = clock(audio.duration);
+		}
+	});
 	audio.addEventListener('timeupdate', function () {
 		var duration = audio.duration;
 		if (duration && isFinite(duration) && !seeking) {
@@ -518,6 +523,7 @@ document.getElementById('install_quran').addEventListener('click', function () {
 	renderText(clips[0]);
 	renderQueue();
 	paintButtons();
+	audio.src = clips[0].audio;
 })();
 </script>
 <?php endif; ?>

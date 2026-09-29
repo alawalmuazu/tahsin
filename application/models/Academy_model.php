@@ -1634,11 +1634,13 @@ class Academy_model extends MY_Model
         } elseif (preg_match('#^(uploads/.+)$#i', $url, $m)) {
             $rel = $m[1];
         } elseif (preg_match('#^https?://#i', $url)) {
-            // External absolute URL — leave alone unless it is localhost
-            if (!preg_match('#^https?://(localhost|127\.0\.0\.1)#i', $url)) {
+            if (!preg_match('#^https?://(localhost|127\.0\.0\.1)(:\d+)?#i', $url)) {
                 return $url;
             }
-            return $url;
+            if (!preg_match('#/(uploads/.+)$#i', $url, $m)) {
+                return $url;
+            }
+            $rel = $m[1];
         } else {
             $rel = ltrim($url, '/');
         }
