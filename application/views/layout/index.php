@@ -2,10 +2,11 @@
 <html class="fixed sidebar-left-sm <?php echo ($theme_config['dark_skin'] == 'true' ? 'dark' : 'sidebar-light');?>">
 <!-- html header -->
 <?php $this->load->view('layout/header.php');?>
+<?php $_ac_body = (isset($sub_page) && strpos((string) $sub_page, 'academy/') === 0) ? ' academy-phone' : ''; ?>
 
 <!-- <body class="loading-overlay-showing" data-loading-overlay> -->
 <?php if ($global_config['preloader_backend'] == 1) { ?>
-<body class="loading-overlay-showing" data-loading-overlay>
+<body class="loading-overlay-showing<?php echo $_ac_body; ?>" data-loading-overlay>
 	<!-- page preloader -->
 	<div class="loading-overlay dark">
 		<div class="ring-loader">
@@ -13,7 +14,7 @@
 		</div>
 	</div>
 <?php } else { ?>
-<body>
+<body class="<?php echo trim($_ac_body); ?>">
 <?php } ?>
 	<section class="body">
 		<!-- top navbar-->
@@ -204,5 +205,8 @@
         </div>
     </div>
     <?php } ?>
+	<?php if (!empty($_ac_body)): ?>
+	<script src="<?php echo base_url('assets/js/academy-mobile.js?v=' . (is_file(FCPATH . 'assets/js/academy-mobile.js') ? filemtime(FCPATH . 'assets/js/academy-mobile.js') : version_combine())); ?>"></script>
+	<?php endif; ?>
 </body>
 </html>

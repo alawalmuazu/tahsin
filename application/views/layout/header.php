@@ -32,6 +32,9 @@
 	?>
 	<!-- ramom css -->
 	<link rel="stylesheet" href="<?php echo base_url('assets/css/ramom.css?v=' . (is_file(FCPATH . 'assets/css/ramom.css') ? filemtime(FCPATH . 'assets/css/ramom.css') : version_combine()));?>">
+	<?php if (isset($sub_page) && strpos((string) $sub_page, 'academy/') === 0): ?>
+	<link rel="stylesheet" href="<?php echo base_url('assets/css/academy-mobile.css?v=' . (is_file(FCPATH . 'assets/css/academy-mobile.css') ? filemtime(FCPATH . 'assets/css/academy-mobile.css') : version_combine())); ?>">
+	<?php endif; ?>
 	<?php if ($theme_config["border_mode"] == 'false'): ?>
 		<link rel="stylesheet" href="<?php echo base_url('assets/css/skins/square-borders.css?v=' . version_combine());?>">
 	<?php endif; ?>

@@ -1,0 +1,281 @@
+/* Academy phone layout. Desktop and tablet rules live in the page styles and stay in force from 768px up. */
+
+@media (min-width: 768px) and (max-width: 991px) {
+	body.academy-phone .content-body .panel-body,
+	body.academy-phone .content-body .table-responsive {
+		overflow-x: auto;
+		-webkit-overflow-scrolling: touch;
+	}
+}
+
+@media (max-width: 767px) {
+	body.academy-phone .content-body {
+		padding-left: 10px;
+		padding-right: 10px;
+		overflow-x: hidden;
+	}
+	body.academy-phone .page-header {
+		margin-left: -10px;
+		margin-right: -10px;
+	}
+	body.academy-phone .page-header h2 {
+		font-size: 1.2rem;
+		line-height: 1.3;
+	}
+	body.academy-phone .session-trust-bar .trust-inner {
+		display: flex;
+		flex-wrap: wrap;
+		gap: .25rem .4rem;
+	}
+	body.academy-phone .panel-body {
+		padding: 12px;
+	}
+	body.academy-phone .panel-title {
+		white-space: normal;
+		line-height: 1.35;
+		padding-right: 0;
+	}
+
+	body.academy-phone .academy-hub-header,
+	body.academy-phone .bcast-hub-header,
+	body.academy-phone .perf-hub-header,
+	body.academy-phone .genome-hub-header,
+	body.academy-phone .lm-head,
+	body.academy-phone .lm-continue {
+		flex-direction: column;
+		align-items: stretch;
+	}
+	body.academy-phone .academy-hub-header > div:last-child,
+	body.academy-phone .bcast-hub-header > div:last-child,
+	body.academy-phone .perf-hub-header > div:last-child,
+	body.academy-phone .genome-hub-header > div:last-child {
+		display: flex;
+		flex-direction: column;
+		align-items: stretch;
+		width: 100%;
+	}
+	body.academy-phone .academy-hub-header .btn,
+	body.academy-phone .bcast-hub-header .btn,
+	body.academy-phone .perf-hub-header .btn,
+	body.academy-phone .genome-hub-header .btn,
+	body.academy-phone .bcast-actions .btn {
+		width: 100%;
+		margin: 0 0 .5rem;
+		min-height: 44px;
+		white-space: normal;
+	}
+	body.academy-phone .bcast-hub-header form,
+	body.academy-phone .bcast-actions form,
+	body.academy-phone .content-body form[style*="inline"] {
+		display: block !important;
+		width: 100%;
+		margin: 0 0 .5rem;
+	}
+
+	body.academy-phone .academy-kpis,
+	body.academy-phone .bcast-kpis,
+	body.academy-phone .genome-kpis,
+	body.academy-phone .perf-kpis {
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+	}
+	body.academy-phone .academy-cards {
+		grid-template-columns: 1fr;
+	}
+	body.academy-phone .academy-stats {
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+		gap: .45rem;
+	}
+	body.academy-phone .academy-filters,
+	body.academy-phone .academy-lb-tabs,
+	body.academy-phone .academy-period-tabs {
+		display: flex;
+		flex-wrap: wrap;
+		width: 100%;
+	}
+	body.academy-phone .academy-filters input,
+	body.academy-phone .academy-filters select {
+		max-width: none;
+		width: 100%;
+	}
+	body.academy-phone .academy-period-tabs button,
+	body.academy-phone .academy-lb-tabs button,
+	body.academy-phone .ls-chip {
+		min-height: 40px;
+	}
+
+	body.academy-phone .content-body .form-inline {
+		display: block;
+	}
+	body.academy-phone .content-body .form-inline .form-control,
+	body.academy-phone .content-body .form-control,
+	body.academy-phone .content-body select.form-control,
+	body.academy-phone .content-body textarea.form-control,
+	body.academy-phone .select2-container {
+		width: 100% !important;
+		max-width: 100% !important;
+		min-width: 0 !important;
+		height: auto;
+		min-height: 44px;
+		font-size: 16px !important;
+		margin-bottom: .45rem;
+	}
+	body.academy-phone .content-body input[type="search"],
+	body.academy-phone .content-body input[type="text"],
+	body.academy-phone .content-body input[type="number"],
+	body.academy-phone .content-body input[type="date"] {
+		font-size: 16px;
+		min-height: 44px;
+	}
+	body.academy-phone .content-body [style*="min-width"] {
+		min-width: 0 !important;
+	}
+	body.academy-phone .panel-body > .btn,
+	body.academy-phone .panel-body > form > .btn,
+	body.academy-phone .panel-body > form > button {
+		width: 100%;
+		min-height: 44px;
+		white-space: normal;
+		margin-bottom: .45rem;
+	}
+
+	body.academy-phone .content-body .dataTables_wrapper,
+	body.academy-phone .content-body .dataTables_scroll,
+	body.academy-phone .content-body .dataTables_scrollBody {
+		width: 100% !important;
+		overflow: visible !important;
+	}
+	body.academy-phone .content-body .dataTables_scrollHead {
+		display: none !important;
+	}
+	body.academy-phone .content-body table.table {
+		border: 0 !important;
+		width: 100% !important;
+	}
+	body.academy-phone .content-body table.table thead {
+		position: absolute;
+		width: 1px;
+		height: 1px;
+		overflow: hidden;
+		clip: rect(0, 0, 0, 0);
+	}
+	body.academy-phone .content-body table.table,
+	body.academy-phone .content-body table.table tbody,
+	body.academy-phone .content-body table.table tr,
+	body.academy-phone .content-body table.table td {
+		display: block !important;
+		float: none !important;
+		width: 100% !important;
+		box-sizing: border-box;
+	}
+	body.academy-phone .content-body table.table tr {
+		background: #fff;
+		border: 1px solid #e2e8f0 !important;
+		border-radius: 14px;
+		margin: 0 0 .85rem;
+		padding: .25rem .8rem .45rem;
+	}
+	body.academy-phone .content-body table.table td {
+		border: 0 !important;
+		border-bottom: 1px solid #f1f5f9 !important;
+		padding: .6rem 0 .6rem 42% !important;
+		position: relative;
+		text-align: left !important;
+		white-space: normal !important;
+		min-width: 0 !important;
+	}
+	body.academy-phone .content-body table.table td:last-child {
+		border-bottom: 0 !important;
+	}
+	body.academy-phone .content-body table.table td::before {
+		content: attr(data-label);
+		position: absolute;
+		left: 0;
+		top: .65rem;
+		width: 40%;
+		padding-right: .4rem;
+		font-size: .68rem;
+		font-weight: 700;
+		letter-spacing: .03em;
+		text-transform: uppercase;
+		color: #64748b;
+		white-space: normal;
+	}
+	body.academy-phone .content-body table.table td[data-label=""] {
+		padding-left: 0 !important;
+	}
+	body.academy-phone .content-body table.table td[data-label=""]::before {
+		content: none;
+	}
+	body.academy-phone .content-body table.table td .btn,
+	body.academy-phone .content-body table.table td button,
+	body.academy-phone .content-body table.table td .form-control {
+		width: 100%;
+		min-height: 44px;
+		margin: 0 0 .4rem;
+		white-space: normal;
+	}
+	body.academy-phone .content-body table.table td form {
+		display: block !important;
+		width: 100%;
+		margin: 0;
+	}
+
+	body.academy-phone .content-body img,
+	body.academy-phone .content-body video,
+	body.academy-phone .content-body audio,
+	body.academy-phone .content-body iframe,
+	body.academy-phone .ta-text {
+		max-width: 100%;
+	}
+	body.academy-phone .ta-text {
+		font-size: 1.15rem !important;
+		overflow-wrap: anywhere;
+	}
+	body.academy-phone audio,
+	body.academy-phone video {
+		width: 100% !important;
+	}
+
+	body.academy-phone .qpl {
+		flex-direction: column;
+		min-height: 0;
+		gap: .65rem;
+	}
+	body.academy-phone .qpl-side {
+		width: 100%;
+		flex: none;
+		max-height: 220px;
+	}
+	body.academy-phone .qpl-student {
+		min-height: 48px;
+	}
+	body.academy-phone .qpl-stage iframe {
+		min-height: 72vh;
+		height: 72vh;
+	}
+	body.academy-phone .lm-meta {
+		white-space: normal;
+	}
+	body.academy-phone .lm-player {
+		bottom: calc(8px + env(safe-area-inset-bottom));
+	}
+	body.academy-phone .modal-dialog,
+	body.academy-phone .ls-modal .modal-dialog {
+		width: calc(100% - 1rem) !important;
+		max-width: none;
+		margin: .5rem auto;
+	}
+	body.academy-phone .modal-body {
+		max-height: calc(100vh - 7rem);
+		overflow: auto;
+	}
+	body.academy-phone .ls-btn-live {
+		min-width: 0 !important;
+		width: 100%;
+	}
+	body.academy-phone .sidebar-left .nav-children a {
+		white-space: normal;
+		line-height: 1.35;
+		min-height: 44px;
+	}
+}
