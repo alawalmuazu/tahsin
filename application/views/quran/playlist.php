@@ -80,21 +80,44 @@ html[data-theme="dark"] .transport button.on{color:var(--accent);border-color:va
 .clip.on{border-color:#0f766e;background:var(--soft)}
 html[data-theme="dark"] .clip.on{border-color:var(--accent)}
 .clip strong{display:block}
-.open{position:fixed;inset:0;z-index:40;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:2.5rem 1.75rem;background:radial-gradient(ellipse at 50% 36%, rgba(212,175,106,.16), transparent 48%), #10241e;color:#f6f1e6;text-align:center}
-.open.off{opacity:0;pointer-events:none;transition:opacity .45s ease}
-.open-logo{width:min(188px,44vw);height:auto;object-fit:contain;filter:drop-shadow(0 16px 26px rgba(0,0,0,.38));animation:open-rise .65s ease both}
-.open-school{max-width:16rem;margin:1.05rem 0 0;font-size:.74rem;font-weight:700;letter-spacing:.22em;text-transform:uppercase;color:#e4c98a;line-height:1.5;animation:open-rise .65s ease .08s both}
-.open-rule{width:46px;height:1px;margin:1.05rem 0 1.15rem;background:linear-gradient(90deg, transparent, #e4c98a, transparent);animation:open-rise .65s ease .12s both}
-.open-photo{width:86px;height:86px;margin:0 0 .9rem;border-radius:50%;object-fit:cover;border:2px solid #e4c98a;box-shadow:0 12px 26px rgba(0,0,0,.32);animation:open-rise .65s ease .16s both}
-.open-student{max-width:18rem;margin:0;font-size:1.85rem;font-weight:700;letter-spacing:.01em;line-height:1.15;animation:open-rise .65s ease .2s both}
-.open-sub{margin:.6rem 0 0;font-size:.84rem;color:#b7c4bb;letter-spacing:.04em;animation:open-rise .65s ease .26s both}
-@keyframes open-rise{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+.open{position:fixed;inset:0;z-index:40;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:2.5rem 1.75rem calc(4.5rem + env(safe-area-inset-bottom));overflow:hidden;background:#10241e;color:#f6f1e6;text-align:center}
+.open.off{opacity:0;pointer-events:none;transition:opacity .5s ease}
+.open-glow{position:absolute;top:30%;left:50%;width:min(340px,86vw);height:min(340px,86vw);border-radius:50%;background:radial-gradient(circle, rgba(228,201,138,.28), transparent 68%);pointer-events:none;animation:open-breathe 4.2s ease-in-out infinite}
+.open-crest{position:relative;display:flex;align-items:center;justify-content:center;animation:open-float 4.4s ease-in-out 1.05s infinite}
+.open-ring{position:absolute;width:78%;aspect-ratio:1;border-radius:50%;border:1px solid rgba(228,201,138,.75);animation:open-ring 1.25s ease .2s both}
+.open-logo{position:relative;width:min(188px,44vw);height:auto;object-fit:contain;filter:drop-shadow(0 16px 26px rgba(0,0,0,.38));animation:open-logo .9s cubic-bezier(.2,.75,.2,1) both}
+.open-school{max-width:16rem;margin:1.05rem 0 0;font-size:.74rem;font-weight:700;letter-spacing:.22em;text-transform:uppercase;color:#e4c98a;line-height:1.5;animation:open-track .85s ease .4s both}
+.open-rule{width:72px;height:1px;margin:1.05rem 0 1.15rem;transform-origin:center;background:linear-gradient(90deg, transparent, #e4c98a, transparent);animation:open-draw .7s ease .62s both}
+.open-photo{width:86px;height:86px;margin:0 0 .9rem;border-radius:50%;object-fit:cover;border:2px solid #e4c98a;box-shadow:0 12px 26px rgba(0,0,0,.32);animation:open-pop .7s cubic-bezier(.2,.8,.2,1) .72s both}
+.open-student{max-width:18rem;margin:0;font-size:1.85rem;font-weight:700;letter-spacing:.01em;line-height:1.15;animation:open-name .75s ease .82s both}
+.open-sub{margin:.6rem 0 0;font-size:.84rem;color:#b7c4bb;letter-spacing:.04em;animation:open-rise .6s ease .98s both}
+.open-hint{margin:1.35rem 0 0;font-size:.68rem;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:rgba(228,201,138,.8);animation:open-rise .6s ease 1.2s both}
+.open-bar{position:absolute;left:22%;right:22%;bottom:calc(1.35rem + env(safe-area-inset-bottom));height:2px;border-radius:99px;background:rgba(228,201,138,.18);overflow:hidden}
+.open-bar span{display:block;height:100%;width:0;background:#e4c98a;animation:open-bar 3.6s linear both}
+@keyframes open-breathe{0%,100%{opacity:.45;transform:translate(-50%,-42%) scale(.9)}50%{opacity:1;transform:translate(-50%,-42%) scale(1.08)}}
+@keyframes open-float{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+@keyframes open-ring{0%{opacity:0;transform:scale(.45)}35%{opacity:1}100%{opacity:0;transform:scale(1.45)}}
+@keyframes open-logo{from{opacity:0;transform:scale(.72) translateY(18px)}to{opacity:1;transform:none}}
+@keyframes open-track{from{opacity:0;letter-spacing:.48em}to{opacity:1;letter-spacing:.22em}}
+@keyframes open-draw{from{opacity:0;transform:scaleX(0)}to{opacity:1;transform:scaleX(1)}}
+@keyframes open-pop{from{opacity:0;transform:scale(.72)}to{opacity:1;transform:none}}
+@keyframes open-name{from{opacity:0;transform:translateY(16px);filter:blur(6px)}to{opacity:1;transform:none;filter:none}}
+@keyframes open-rise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+@keyframes open-bar{to{width:100%}}
+@media (prefers-reduced-motion:reduce){
+.open-glow,.open-crest,.open-ring,.open-logo,.open-school,.open-rule,.open-photo,.open-student,.open-sub,.open-hint,.open-bar span{animation:none}
+.open-bar span{width:100%}
+}
 html.no-open .open{display:none}
 </style>
 </head>
 <body>
 <div id="open_screen" class="open">
-	<img class="open-logo" src="<?php echo html_escape($install['school_logo']); ?>" alt="">
+	<div class="open-glow"></div>
+	<div class="open-crest">
+		<span class="open-ring"></span>
+		<img class="open-logo" src="<?php echo html_escape($install['school_logo']); ?>" alt="">
+	</div>
 	<p class="open-school"><?php echo html_escape($install['school_name']); ?></p>
 	<div class="open-rule"></div>
 	<?php if ($showOpenPhoto): ?>
@@ -102,6 +125,8 @@ html.no-open .open{display:none}
 	<?php endif; ?>
 	<h1 class="open-student"><?php echo html_escape($install['student_name']); ?></h1>
 	<p class="open-sub">Sealed recitations</p>
+	<p class="open-hint">Tap to continue</p>
+	<div class="open-bar" aria-hidden="true"><span></span></div>
 </div>
 <script>
 (function () {
@@ -113,7 +138,8 @@ html.no-open .open{display:none}
 		setTimeout(function () { if (el.parentNode) el.parentNode.removeChild(el); }, 400);
 	}
 	el.addEventListener('click', close);
-	setTimeout(close, 2600);
+	var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+	setTimeout(close, reduce ? 1400 : 3600);
 })();
 </script>
 <div class="wrap">
