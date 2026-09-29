@@ -1960,6 +1960,8 @@ class Academy_model extends MY_Model
             'short_name' => 'Quran',
             'photo' => function_exists('get_image_url') ? get_image_url('student', '') : '',
             'student_name' => 'Student',
+            'school_name' => $this->quranSchoolName(),
+            'school_logo' => base_url('uploads/app_image/logo.png'),
         );
         $student = $this->db->select('id, first_name, last_name, parent_id, photo')->where('id', (int) $studentId)->get('student')->row();
         if (!$student) {
@@ -1992,6 +1994,16 @@ class Academy_model extends MY_Model
         $empty['name'] = $name;
         $empty['short_name'] = $short;
         return $empty;
+    }
+
+    public function quranSchoolName()
+    {
+        $name = defined('SCHOOL_NAME') ? SCHOOL_NAME : 'Tahsin Academy';
+        $row = $this->db->select('institute_name')->where('id', 1)->get('global_settings')->row();
+        if ($row && trim((string) $row->institute_name) !== '') {
+            $name = trim($row->institute_name);
+        }
+        return $name;
     }
 
     public function quranPlaylistClips($studentId)

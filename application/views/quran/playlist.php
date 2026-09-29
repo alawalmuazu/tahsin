@@ -1,5 +1,5 @@
 <?php
-$install = isset($install) ? $install : array('name' => 'Quran', 'short_name' => 'Quran', 'photo' => '', 'student_name' => 'Student');
+$install = isset($install) ? $install : array('name' => 'Quran', 'short_name' => 'Quran', 'photo' => '', 'student_name' => 'Student', 'school_name' => 'Tahsin Academy', 'school_logo' => base_url('uploads/app_image/logo.png'));
 $clips = isset($clips) ? $clips : array();
 $manifest = isset($manifest) ? $manifest : '';
 $token = isset($token) ? $token : '';
@@ -39,6 +39,10 @@ window.addEventListener('appinstalled', function () {
 		: (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
 	document.documentElement.setAttribute('data-theme', theme);
 })();
+(function () {
+	var installed = (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) || window.navigator.standalone;
+	if (!installed) document.documentElement.classList.add('no-open');
+})();
 </script>
 <style>
 html[data-theme="light"]{color-scheme:light;--bg:#f4f7f5;--text:#10241e;--muted:#3d5c50;--card:#fff;--line:#d7e3dc;--mushaf:#fffdf8;--mushaf-line:#eadfc4;--mark:#b7ebc6;--num:#7a5b22;--num-line:#c4a15a;--soft:#f0fdfa;--photo:#d7e3dc;--accent:#0f766e;--bar:#f4f7f5}
@@ -74,9 +78,35 @@ html[data-theme="dark"] .transport button.on{color:var(--accent);border-color:va
 .clip.on{border-color:#0f766e;background:var(--soft)}
 html[data-theme="dark"] .clip.on{border-color:var(--accent)}
 .clip strong{display:block}
+.open{position:fixed;inset:0;z-index:40;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.2rem;padding:2rem 1.5rem;background:#10241e;color:#fff;text-align:center}
+.open.off{opacity:0;pointer-events:none;transition:opacity .35s ease}
+.open-logo{width:min(168px,42vw);height:auto;object-fit:contain}
+.open-school{margin:.45rem 0 .85rem;font-size:1.05rem;font-weight:700;letter-spacing:.01em}
+.open-photo{width:92px;height:92px;border-radius:22px;object-fit:cover;background:#24332d}
+.open-student{margin:.65rem 0 0;font-size:1.55rem;font-weight:800}
+html.no-open .open{display:none}
 </style>
 </head>
 <body>
+<div id="open_screen" class="open">
+	<img class="open-logo" src="<?php echo html_escape($install['school_logo']); ?>" alt="">
+	<p class="open-school"><?php echo html_escape($install['school_name']); ?></p>
+	<img class="open-photo" src="<?php echo html_escape($install['photo']); ?>" alt="">
+	<h1 class="open-student"><?php echo html_escape($install['student_name']); ?></h1>
+</div>
+<script>
+(function () {
+	var el = document.getElementById('open_screen');
+	if (!el || document.documentElement.classList.contains('no-open')) return;
+	function close() {
+		if (!el || el.classList.contains('off')) return;
+		el.classList.add('off');
+		setTimeout(function () { if (el.parentNode) el.parentNode.removeChild(el); }, 400);
+	}
+	el.addEventListener('click', close);
+	setTimeout(close, 2200);
+})();
+</script>
 <div class="wrap">
 	<div class="head">
 		<img src="<?php echo html_escape($install['photo']); ?>" alt="">
