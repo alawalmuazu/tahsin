@@ -115,12 +115,19 @@ html[data-theme="dark"] .transport button.on{color:var(--accent);border-color:va
 .transport .go{background:#0f766e;color:#fff;border-color:#0f766e;min-width:4.2rem}
 .playall{display:block;width:100%;margin-top:.55rem}
 .share-rec{display:block;width:100%;margin-top:.45rem;background:transparent;color:var(--text);border:1px solid #0f766e;border-radius:999px;padding:.7rem 1.1rem;font-weight:700;font-size:1rem}
+.share-full{display:block;width:100%;margin-top:.4rem;background:transparent;color:var(--muted);border:1px solid var(--line);border-radius:999px;padding:.65rem 1.1rem;font-weight:700;font-size:.95rem}
+.share-rec:disabled,.share-full:disabled{opacity:.72}
+.share-canvas{position:fixed;right:0;bottom:0;width:180px;height:320px;opacity:0;pointer-events:none;z-index:-1}
 .share-note{margin:.4rem 0 0;font-size:.78rem;color:var(--muted);text-align:center}
 .share-film{position:fixed;inset:0;z-index:60;display:none;align-items:center;justify-content:center;padding:1.25rem;background:rgba(16,24,22,.94);color:#f6f1e6;text-align:center}
 .share-film.on{display:flex}
 .share-film canvas{width:min(260px,70vw);height:auto;border-radius:18px;margin-bottom:.85rem;box-shadow:0 16px 40px rgba(0,0,0,.35)}
 .share-film strong{display:block;font-size:1.05rem}
+.share-film .pct{margin:.2rem 0 0;font-size:2.15rem;font-weight:800;letter-spacing:-.03em;color:#f6f1e6}
+.share-meter{height:8px;width:min(220px,62vw);margin:.55rem auto 0;border-radius:999px;background:#1c332b;overflow:hidden}
+.share-meter span{display:block;height:100%;width:0;background:#1f6b4a}
 .share-film p{margin:.35rem 0 0;color:#b7c4bb;font-size:.85rem}
+.share-go{margin-top:.85rem;background:#1f6b4a;color:#f6f1e6;border:0;border-radius:999px;padding:.75rem 1.4rem;font-weight:700;font-size:1rem}
 .queue{margin-top:.25rem}
 .clip{display:block;width:100%;text-align:left;background:var(--card);border-radius:14px;padding:.85rem 1rem;margin:0 0 .55rem;border:1px solid var(--line);font:inherit;color:inherit;cursor:pointer}
 .clip.on{border-color:#0f766e;background:var(--soft)}
@@ -227,7 +234,7 @@ html.hear .hear-go.gone{display:none}
 	<div id="mushaf" class="mushaf empty">Choose a recording. Its ayahs appear here and light up as it plays.</div>
 	<div class="player">
 		<div class="now-title" id="now_title"><?php echo html_escape($clips[0]['portion']); ?></div>
-		<div class="meta" id="now_meta"><?php echo html_escape($clips[0]['date'] . ' · ' . $clips[0]['time'] . ' · ' . $clips[0]['teacher']); ?></div>
+		<div class="meta" id="now_meta"><?php echo html_escape($clips[0]['date'] . ' · ' . $clips[0]['time'] . ' · Contact us 08021211053'); ?></div>
 		<input id="seek" class="seek" type="range" min="0" max="1000" value="0" aria-label="Position in this recording">
 		<div class="times"><span id="time_now">0:00</span><span id="time_end">0:00</span></div>
 		<div class="transport">
@@ -239,16 +246,20 @@ html.hear .hear-go.gone{display:none}
 			<button type="button" id="btn_speed">Speed 1×</button>
 		</div>
 		<button type="button" id="btn_all" class="playall">Play all</button>
-		<button type="button" id="btn_share" class="share-rec">Share recitation</button>
-		<p id="share_note" class="share-note">Makes a video of this recitation, then opens WhatsApp Status and your other apps.</p>
+		<button type="button" id="btn_share" class="share-rec" disabled>Status 0%</button>
+		<button type="button" id="btn_full" class="share-full" disabled>Full video</button>
+		<p id="share_note" class="share-note">Share for Status is a short video. Share full keeps the whole recitation.</p>
 	</div>
 	<div class="queue" id="queue"></div>
 	<audio id="qpl_audio" preload="metadata"></audio>
+	<canvas id="share_canvas" class="share-canvas" width="720" height="1280" aria-hidden="true"></canvas>
 	<div id="share_film" class="share-film" aria-live="polite">
 		<div>
-			<canvas id="share_canvas" width="720" height="1280"></canvas>
 			<strong id="share_film_title">Making the video</strong>
-			<p id="share_film_note">The ayah highlights while the recitation plays.</p>
+			<p id="share_film_pct" class="pct">0%</p>
+			<div class="share-meter"><span id="share_film_bar"></span></div>
+			<p id="share_film_note">Please wait. Your apps open at 100%.</p>
+			<button type="button" id="share_film_go" class="share-go" hidden>Share video</button>
 		</div>
 	</div>
 	<script type="application/json" id="qpl_data"><?php echo $clipsJson; ?></script>
@@ -518,6 +529,7 @@ document.getElementById('install_quran').addEventListener('click', function () {
 	var timings = null;
 	var timingToken = 0;
 	var timingCache = {};
+	var audioBufCache = {};
 	var audioCtx = null;
 	var seeking = false;
 	var frame = 0;
@@ -545,7 +557,7 @@ document.getElementById('install_quran').addEventListener('click', function () {
 			btn.className = 'clip' + (place === pos ? ' on' : '');
 			btn.innerHTML = '<strong></strong><div class="meta"></div>';
 			btn.querySelector('strong').textContent = clip.portion;
-			btn.querySelector('.meta').textContent = clip.date + ' · ' + clip.time + ' · ' + clip.teacher;
+			btn.querySelector('.meta').textContent = clip.date + ' · ' + clip.time + ' · Contact us 08021211053';
 			btn.addEventListener('click', function () {
 				pos = place;
 				playClip(true);
@@ -565,13 +577,12 @@ document.getElementById('install_quran').addEventListener('click', function () {
 	}
 
 	var pendingShareFile = null;
+	var shareKey = '';
 	function showMeta(clip) {
 		document.getElementById('now_title').textContent = clip.portion;
-		document.getElementById('now_meta').textContent = (pos + 1) + ' of ' + order.length + ' · ' + clip.date + ' · ' + clip.time + ' · ' + clip.teacher;
+		document.getElementById('now_meta').textContent = (pos + 1) + ' of ' + order.length + ' · ' + clip.date + ' · ' + clip.time + ' · Contact us 08021211053';
 		paintAyahRow(clip);
-		pendingShareFile = null;
-		var shareBtn = document.getElementById('btn_share');
-		if (shareBtn) shareBtn.textContent = 'Share recitation';
+		if (shareKey !== clip.audio) startShareJobs(clip);
 	}
 
 	function paintAyahRow(clip) {
@@ -664,23 +675,72 @@ document.getElementById('install_quran').addEventListener('click', function () {
 		});
 	}
 
-	function timeAt(cum, abs, target) {
-		var lo = 0;
-		var hi = cum.length - 1;
-		while (lo < hi) {
-			var mid = (lo + hi) >> 1;
-			if (cum[mid] < target) lo = mid + 1;
-			else hi = mid;
-		}
-		return abs[Math.min(lo, abs.length - 1)];
+	function arabicWeight(word) {
+		var bare = String(word || '').replace(/[\u064B-\u0652\u0670\u0640\u06D6-\u06ED]/g, '');
+		var letters = bare.replace(/[^\u0621-\u064A]/g, '');
+		return Math.max(1, letters.length || String(word || '').trim().length || 1);
 	}
 
-	function buildTimings(buffer, wordCount) {
+	function apportionBursts(count, weights) {
+		var total = 0;
+		var i;
+		for (i = 0; i < weights.length; i++) total += weights[i];
+		if (!total) total = weights.length;
+		var raw = [];
+		var counts = [];
+		var used = 0;
+		for (i = 0; i < weights.length; i++) {
+			raw.push(count * weights[i] / total);
+			counts.push(Math.floor(raw[i]));
+			used += counts[i];
+		}
+		if (count >= weights.length) {
+			for (i = 0; i < counts.length; i++) {
+				if (counts[i] < 1) {
+					counts[i] = 1;
+					used++;
+				}
+			}
+			while (used > count) {
+				var victim = -1;
+				var surplus = -1;
+				for (i = 0; i < counts.length; i++) {
+					if (counts[i] <= 1) continue;
+					var over = counts[i] - raw[i];
+					if (over > surplus) {
+						victim = i;
+						surplus = over;
+					}
+				}
+				if (victim < 0) break;
+				counts[victim]--;
+				used--;
+			}
+		}
+		var order = [];
+		for (i = 0; i < weights.length; i++) order.push(i);
+		order.sort(function (a, b) { return (raw[b] - Math.floor(raw[b])) - (raw[a] - Math.floor(raw[a])); });
+		var guard = 0;
+		while (used < count && guard < count * 4) {
+			counts[order[guard % order.length]]++;
+			used++;
+			guard++;
+		}
+		return counts;
+	}
+
+	function buildTimings(buffer, wordsOrCount) {
+		var texts = Array.isArray(wordsOrCount) ? wordsOrCount : [];
+		var wordCount = texts.length || (typeof wordsOrCount === 'number' ? wordsOrCount : 0);
+		if (!buffer || wordCount < 1) return null;
+		var weights = [];
+		var i;
+		for (i = 0; i < wordCount; i++) weights.push(texts.length ? arabicWeight(texts[i]) : 1);
 		var channel = buffer.getChannelData(0);
-		var hop = Math.max(1, Math.floor(buffer.sampleRate * 0.02));
+		var rate = buffer.sampleRate || 44100;
+		var hop = Math.max(1, Math.floor(rate * 0.02));
 		var energies = [];
 		var times = [];
-		var i;
 		for (i = 0; i + hop < channel.length; i += hop) {
 			var sum = 0;
 			var j;
@@ -688,48 +748,124 @@ document.getElementById('install_quran').addEventListener('click', function () {
 				var sample = channel[i + j];
 				sum += sample * sample;
 			}
-			energies.push(sum / hop);
-			times.push(i / buffer.sampleRate);
+			energies.push(Math.sqrt(sum / hop));
+			times.push(i / rate);
 		}
-		if (!energies.length || wordCount < 1) return null;
-		var sorted = energies.slice().sort(function (a, b) { return a - b; });
-		var noise = sorted[Math.floor(sorted.length * 0.35)] || 0;
-		var thresh = Math.max(noise * 3, (sorted[Math.floor(sorted.length * 0.6)] || 0) * 0.35);
-		var cum = [0];
-		var abs = [times[0]];
+		if (!energies.length) return null;
+		var smooth = [];
 		for (i = 0; i < energies.length; i++) {
-			var voice = energies[i] > thresh ? energies[i] - thresh : 0;
-			cum.push(cum[cum.length - 1] + voice);
-			abs.push(times[i] + (hop / buffer.sampleRate));
+			var left = energies[Math.max(0, i - 2)];
+			var mid = energies[i];
+			var right = energies[Math.min(energies.length - 1, i + 2)];
+			smooth.push((left + mid + right) / 3);
 		}
-		if (cum[cum.length - 1] <= 0) return null;
-		var total = cum[cum.length - 1];
+		var sorted = smooth.slice().sort(function (a, b) { return a - b; });
+		function atPct(p) { return sorted[Math.min(sorted.length - 1, Math.floor(sorted.length * p))] || 0; }
+		var floor = atPct(0.2);
+		var loud = atPct(0.98);
+		var thresh = Math.max(0.015, Math.min(loud * 0.18, Math.max(floor * 1.35, 0.015)));
+		var runs = [];
+		var start = -1;
+		for (i = 0; i < smooth.length; i++) {
+			if (smooth[i] >= thresh) {
+				if (start < 0) start = i;
+			} else if (start >= 0) {
+				runs.push({ a: start, b: i });
+				start = -1;
+			}
+		}
+		if (start >= 0) runs.push({ a: start, b: smooth.length - 1 });
+		var merged = [];
+		for (i = 0; i < runs.length; i++) {
+			var run = { a: runs[i].a, b: runs[i].b };
+			var dur = times[Math.min(run.b, times.length - 1)] - times[run.a];
+			if (dur < 0.08) continue;
+			if (merged.length) {
+				var prev = merged[merged.length - 1];
+				var gap = times[run.a] - times[Math.min(prev.b, times.length - 1)];
+				if (gap < 0.22) {
+					prev.b = run.b;
+					continue;
+				}
+			}
+			merged.push(run);
+		}
+		if (!merged.length) return null;
+		var pieces = merged.map(function (run) {
+			return {
+				start: times[run.a],
+				end: times[Math.min(run.b, times.length - 1)] + (hop / rate)
+			};
+		});
+		if (pieces.length > wordCount) {
+			var counts = apportionBursts(pieces.length, weights);
+			var grouped = [];
+			var cursor = 0;
+			for (i = 0; i < wordCount; i++) {
+				var take = Math.max(1, counts[i] || 1);
+				var group = pieces.slice(cursor, cursor + take);
+				if (!group.length) group = [pieces[Math.min(cursor, pieces.length - 1)]];
+				cursor += take;
+				grouped.push({ start: group[0].start, end: group[group.length - 1].end });
+			}
+			pieces = grouped;
+		} else if (pieces.length < wordCount) {
+			var cuts = pieces.map(function (piece) { return { start: piece.start, end: piece.end, parts: 1 }; });
+			while (cuts.reduce(function (n, cut) { return n + cut.parts; }, 0) < wordCount) {
+				var longest = 0;
+				for (i = 1; i < cuts.length; i++) {
+					var each = (cuts[i].end - cuts[i].start) / cuts[i].parts;
+					var best = (cuts[longest].end - cuts[longest].start) / cuts[longest].parts;
+					if (each > best) longest = i;
+				}
+				cuts[longest].parts += 1;
+			}
+			var flat = [];
+			for (i = 0; i < cuts.length; i++) {
+				var step = (cuts[i].end - cuts[i].start) / cuts[i].parts;
+				var k;
+				for (k = 0; k < cuts[i].parts; k++) {
+					flat.push({ start: cuts[i].start + step * k, end: cuts[i].start + step * (k + 1) });
+				}
+			}
+			pieces = flat;
+		}
 		var built = [];
 		for (i = 0; i < wordCount; i++) {
-			built.push({
-				start: timeAt(cum, abs, total * (i / wordCount)),
-				end: timeAt(cum, abs, total * ((i + 1) / wordCount))
-			});
+			var piece = pieces[Math.min(i, pieces.length - 1)];
+			var endAt = (i + 1 < wordCount && pieces[i + 1]) ? pieces[i + 1].start : piece.end;
+			if (endAt <= piece.start) endAt = piece.start + 0.05;
+			built.push({ start: piece.start, end: endAt });
 		}
 		return built;
 	}
 
-	function decodeTimings(url, wordCount) {
-		var key = url + '|' + wordCount;
-		if (timingCache[key]) return timingCache[key];
+	function loadAudioBuffer(url) {
+		if (audioBufCache[url]) return audioBufCache[url];
 		if (!audioCtx) {
 			var Ctx = window.AudioContext || window.webkitAudioContext;
 			if (!Ctx) {
-				timingCache[key] = Promise.resolve(null);
-				return timingCache[key];
+				audioBufCache[url] = Promise.resolve(null);
+				return audioBufCache[url];
 			}
 			audioCtx = new Ctx();
 		}
-		timingCache[key] = fetch(url)
+		audioBufCache[url] = fetch(url)
 			.then(function (res) { return res.arrayBuffer(); })
 			.then(function (buf) { return audioCtx.decodeAudioData(buf); })
-			.then(function (decoded) { return buildTimings(decoded, wordCount); })
 			.catch(function () { return null; });
+		return audioBufCache[url];
+	}
+
+	function decodeTimings(url, wordsOrCount) {
+		var texts = Array.isArray(wordsOrCount) ? wordsOrCount : [];
+		var wordCount = texts.length || (typeof wordsOrCount === 'number' ? wordsOrCount : 0);
+		var key = url + '|v2|' + (texts.length ? texts.join('\u0001') : String(wordCount));
+		if (timingCache[key]) return timingCache[key];
+		timingCache[key] = loadAudioBuffer(url).then(function (decoded) {
+			if (!decoded) return null;
+			return buildTimings(decoded, texts.length ? texts : wordCount);
+		});
 		return timingCache[key];
 	}
 
@@ -738,7 +874,10 @@ document.getElementById('install_quran').addEventListener('click', function () {
 		var count = words.length;
 		timings = null;
 		if (!count) return;
-		decodeTimings(clip.audio, count).then(function (built) {
+		var texts = [];
+		var wi;
+		for (wi = 0; wi < words.length; wi++) texts.push((words[wi].textContent || '').trim());
+		decodeTimings(clip.audio, texts).then(function (built) {
 			if (token !== timingToken || clips[currentIndex()] !== clip) return;
 			timings = built;
 			highlight(audio.currentTime || 0);
@@ -877,7 +1016,7 @@ document.getElementById('install_quran').addEventListener('click', function () {
 		var width = 0;
 		var i;
 		for (i = 0; i < list.length; i++) {
-			var wordWidth = ctx.measureText(list[i] + ' ').width;
+			var wordWidth = ctx.measureText(list[i]).width + 16;
 			if (width + wordWidth > maxWidth && line.length) {
 				lines.push(line);
 				line = [];
@@ -912,7 +1051,83 @@ document.getElementById('install_quran').addEventListener('click', function () {
 		var sy = (img.height - sh) / 2;
 		ctx.drawImage(img, sx, sy, sw, sh, dx, dy, dw, dh);
 	}
-	function recordShareVideo(clip, recAudio, onProgress) {
+	function phrasePieces(buffer) {
+		if (!buffer) return [];
+		var channel = buffer.getChannelData(0);
+		var rate = buffer.sampleRate || 44100;
+		var hop = Math.max(1, Math.floor(rate * 0.02));
+		var energies = [];
+		var times = [];
+		var i;
+		var j;
+		for (i = 0; i + hop < channel.length; i += hop) {
+			var sum = 0;
+			for (j = 0; j < hop; j++) {
+				var sample = channel[i + j];
+				sum += sample * sample;
+			}
+			energies.push(Math.sqrt(sum / hop));
+			times.push(i / rate);
+		}
+		if (!energies.length) return [];
+		var sorted = energies.slice().sort(function (a, b) { return a - b; });
+		var floor = sorted[Math.floor(sorted.length * 0.2)] || 0;
+		var loud = sorted[Math.min(sorted.length - 1, Math.floor(sorted.length * 0.98))] || 0;
+		var thresh = Math.max(0.015, Math.min(loud * 0.18, Math.max(floor * 1.35, 0.015)));
+		var runs = [];
+		var start = -1;
+		for (i = 0; i < energies.length; i++) {
+			if (energies[i] >= thresh) {
+				if (start < 0) start = i;
+			} else if (start >= 0) {
+				runs.push({ a: start, b: i });
+				start = -1;
+			}
+		}
+		if (start >= 0) runs.push({ a: start, b: energies.length - 1 });
+		var merged = [];
+		for (i = 0; i < runs.length; i++) {
+			var dur = times[Math.min(runs[i].b, times.length - 1)] - times[runs[i].a];
+			if (dur < 0.12) continue;
+			var endAt = times[Math.min(runs[i].b, times.length - 1)];
+			if (merged.length && times[runs[i].a] - merged[merged.length - 1].end < 0.35) {
+				merged[merged.length - 1].end = endAt;
+				continue;
+			}
+			merged.push({ start: times[runs[i].a], end: endAt });
+		}
+		return merged;
+	}
+
+	function statusSpan(buffer) {
+		var duration = buffer && isFinite(buffer.duration) ? buffer.duration : 0;
+		if (!duration || duration <= 14) return { start: 0, end: duration || 0 };
+		var pieces = phrasePieces(buffer);
+		if (!pieces.length) return { start: 0, end: Math.min(12, duration) };
+		var best = null;
+		var i;
+		var j;
+		for (i = 0; i < pieces.length; i++) {
+			var startAt = pieces[i].start;
+			var voice = 0;
+			var endAt = startAt;
+			for (j = i; j < pieces.length; j++) {
+				if (pieces[j].end - startAt > 13.5) break;
+				endAt = pieces[j].end;
+				voice += Math.max(0, pieces[j].end - pieces[j].start);
+				var span = endAt - startAt;
+				if (span < 6) continue;
+				var score = voice - Math.abs(span - 12) * 0.2;
+				if (!best || score > best.score) best = { start: startAt, end: endAt, score: score };
+			}
+		}
+		if (!best) best = { start: pieces[0].start, end: Math.min(duration, pieces[0].start + 12) };
+		if (best.end - best.start < 8) best.end = Math.min(duration, best.start + 12);
+		if (best.end - best.start > 14) best.end = best.start + 12;
+		return { start: Math.max(0, best.start), end: Math.min(duration, best.end) };
+	}
+
+	function recordShareVideo(clip, mode, onProgress, alive) {
 		var mime = shareMime();
 		if (!mime || !HTMLCanvasElement.prototype.captureStream) {
 			return Promise.reject(new Error('mp4'));
@@ -947,9 +1162,14 @@ document.getElementById('install_quran').addEventListener('click', function () {
 					ayahOf.push(num);
 				});
 			});
-			var timingPromise = arabic.length ? decodeTimings(clip.audio, arabic.length) : Promise.resolve(null);
+			var timingPromise = arabic.length ? decodeTimings(clip.audio, arabic) : Promise.resolve(null);
 			return timingPromise.then(function (marks) {
-				return { logo: logo, photo: photo, arabic: arabic, ayahOf: ayahOf, marks: marks, who: who, school: school };
+				return loadAudioBuffer(clip.audio).then(function (buffer) {
+					var duration = buffer && isFinite(buffer.duration) ? buffer.duration : 0;
+					var span = (mode === 'full' || !duration || duration <= 14) ? { start: 0, end: duration } : statusSpan(buffer);
+					if (!span.end || span.end - span.start < 1) span = { start: 0, end: duration || 12 };
+					return { logo: logo, photo: photo, arabic: arabic, ayahOf: ayahOf, marks: marks, who: who, school: school, span: span };
+				});
 			});
 		}).then(function (pack) {
 			return new Promise(function (resolve, reject) {
@@ -957,13 +1177,13 @@ document.getElementById('install_quran').addEventListener('click', function () {
 				var ctx = canvas.getContext('2d');
 				var ctxAudio = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
 				audioCtx = ctxAudio;
-				recAudio.pause();
-				recAudio.muted = false;
-				try { recAudio.currentTime = 0; } catch (e) {}
+				var span = pack.span || { start: 0, end: 0 };
+				var recAudio = new Audio();
+				recAudio.preload = 'auto';
+				recAudio.volume = 1;
 				var source = ctxAudio.createMediaElementSource(recAudio);
 				var dest = ctxAudio.createMediaStreamDestination();
 				source.connect(dest);
-				source.connect(ctxAudio.destination);
 				var mixed = new MediaStream();
 				canvas.captureStream(30).getVideoTracks().forEach(function (track) { mixed.addTrack(track); });
 				dest.stream.getAudioTracks().forEach(function (track) { mixed.addTrack(track); });
@@ -978,9 +1198,11 @@ document.getElementById('install_quran').addEventListener('click', function () {
 				}
 				var chunks = [];
 				var settled = false;
+				var waitUnlock = null;
 				function finish(err, blob) {
 					if (settled) return;
 					settled = true;
+					if (waitUnlock) document.removeEventListener('pointerdown', waitUnlock);
 					try { source.disconnect(); } catch (e) {}
 					try { recAudio.pause(); } catch (e2) {}
 					if (err) reject(err);
@@ -993,13 +1215,15 @@ document.getElementById('install_quran').addEventListener('click', function () {
 					if (blob.size < 1000) finish(new Error('empty'));
 					else finish(null, blob);
 				};
-				function paint(t, duration) {
+				function paint(t) {
 					var w = canvas.width;
 					var h = canvas.height;
+					var slice = Math.max(0.01, (span.end || 0) - (span.start || 0));
+					var stampLeft = (span.end || 0) - t;
+					var stampP = stampLeft <= 1.2 ? Math.max(0, Math.min(1, 1 - (stampLeft / 1.2))) : 0;
+					var stampWhere = null;
 					ctx.fillStyle = '#10241e';
 					ctx.fillRect(0, 0, w, h);
-					ctx.fillStyle = '#e4c98a';
-					ctx.fillRect(0, 0, w, 10);
 					var y = 56;
 					if (pack.logo) {
 						var lw = 84;
@@ -1040,25 +1264,22 @@ document.getElementById('install_quran').addEventListener('click', function () {
 						ctx.fillText(portionLines[p], w / 2, y);
 						y += 36;
 					}
-					y += 8;
+					y += 28;
 					var size = pack.arabic.length > 40 ? 30 : (pack.arabic.length > 16 ? 40 : 54);
 					ctx.font = '700 ' + size + 'px "Scheherazade New", serif';
-					var lines = layoutShareWords(ctx, pack.arabic, w - 80);
-					var lineH = size + 22;
+					ctx.textAlign = 'left';
+					ctx.textBaseline = 'alphabetic';
+					var sample = ctx.measureText(pack.arabic[0] || 'ب');
+					var ascent = sample.actualBoundingBoxAscent || size * 0.92;
+					var descent = sample.actualBoundingBoxDescent || size * 0.35;
+					var lines = layoutShareWords(ctx, pack.arabic, w - 180);
+					var lineH = ascent + descent + 26;
 					var lit = shareWordIndex(t, duration, pack.arabic.length, pack.marks);
-					var shownAyah = (lit >= 0 && pack.ayahOf[lit]) ? pack.ayahOf[lit] : (pack.ayahOf[0] || 0);
-					if (shownAyah) {
-						ctx.textAlign = 'center';
-						ctx.fillStyle = '#f6f1e6';
-						ctx.font = '600 26px Outfit, sans-serif';
-						ctx.fillText('Ayah ' + shownAyah, w / 2, y);
-						y += 42;
-						ctx.font = '700 ' + size + 'px "Scheherazade New", serif';
-					}
+					y += ascent;
 					var li;
 					var wi;
 					var viewTop = y;
-					var maxY = h - 160;
+					var maxY = h - 220;
 					var anchor = 0;
 					var seen = 0;
 					for (li = 0; li < lines.length; li++) {
@@ -1075,146 +1296,270 @@ document.getElementById('install_quran').addEventListener('click', function () {
 					var drawY = viewTop - shift;
 					for (li = 0; li < lines.length; li++) {
 						if (drawY > maxY) break;
-						if (drawY >= viewTop) {
-						var line = lines[li];
-						var lineWidth = 0;
-						for (wi = 0; wi < line.length; wi++) lineWidth += line[wi].width;
-						var x = (w + lineWidth) / 2;
-						for (wi = 0; wi < line.length; wi++) {
-							var word = line[wi];
-							x -= word.width;
-							if (word.index === lit) {
-								ctx.fillStyle = '#1f6b4a';
-								ctx.fillRect(x - 4, drawY - size, word.width, lineH - 6);
+						if (drawY >= viewTop - 4) {
+							var line = lines[li];
+							var lineWidth = 0;
+							for (wi = 0; wi < line.length; wi++) lineWidth += line[wi].width;
+							var x = (w + lineWidth) / 2;
+							var leftEdge = x - lineWidth;
+							for (wi = 0; wi < line.length; wi++) {
+								var word = line[wi];
+								x -= word.width;
+								var metric = ctx.measureText(word.text);
+								var inkLeft = x - (metric.actualBoundingBoxLeft || 0);
+								var inkRight = x + (metric.actualBoundingBoxRight || (word.width - 16));
+								if (word.index === lit) {
+									var boxTop = drawY - (metric.actualBoundingBoxAscent || ascent) - 6;
+									var boxBot = drawY + (metric.actualBoundingBoxDescent || descent) + 6;
+									ctx.fillStyle = '#1f6b4a';
+									ctx.fillRect(inkLeft - 4, boxTop, Math.max(8, inkRight - inkLeft) + 8, boxBot - boxTop);
+								}
+								ctx.fillStyle = word.index === lit ? '#f6f1e6' : '#d7e3db';
+								ctx.textAlign = 'left';
+								ctx.textBaseline = 'alphabetic';
+								ctx.font = '700 ' + size + 'px "Scheherazade New", serif';
+								ctx.fillText(word.text, x, drawY);
 							}
-							ctx.fillStyle = word.index === lit ? '#f6f1e6' : '#d7e3db';
-							ctx.textAlign = 'left';
-							ctx.fillText(word.text, x, drawY);
-						}
+							var ayahNum = pack.ayahOf[line[line.length - 1].index] || 0;
+							if (ayahNum) {
+								var badgeX = leftEdge - 28;
+								var badgeY = drawY - ascent * 0.35;
+								ctx.beginPath();
+								ctx.arc(badgeX, badgeY, 15, 0, Math.PI * 2);
+								ctx.strokeStyle = '#e4c98a';
+								ctx.lineWidth = 2;
+								ctx.stroke();
+								ctx.fillStyle = '#f6f1e6';
+								ctx.font = '600 16px Outfit, sans-serif';
+								ctx.textAlign = 'center';
+								ctx.textBaseline = 'middle';
+								ctx.fillText(String(ayahNum), badgeX, badgeY);
+								ctx.textBaseline = 'alphabetic';
+								var lineLit = false;
+								for (wi = 0; wi < line.length; wi++) if (line[wi].index === lit) lineLit = true;
+								if (lineLit || !stampWhere) stampWhere = { x: badgeX, y: badgeY };
+							}
 						}
 						drawY += lineH;
 					}
 					ctx.textAlign = 'center';
-					var barY = h - 120;
+					ctx.textBaseline = 'alphabetic';
+					if (stampP > 0 && stampWhere) {
+						ctx.beginPath();
+						ctx.arc(stampWhere.x, stampWhere.y, 24, -Math.PI / 2, -Math.PI / 2 + stampP * Math.PI * 2);
+						ctx.strokeStyle = '#e4c98a';
+						ctx.lineWidth = 4;
+						ctx.stroke();
+						if (stampP > 0.45) {
+							ctx.globalAlpha = Math.min(1, (stampP - 0.45) / 0.35);
+							ctx.fillStyle = '#e4c98a';
+							ctx.font = '700 34px Outfit, sans-serif';
+							ctx.fillText('Sealed', w / 2, Math.min(h - 188, stampWhere.y + 78));
+							ctx.globalAlpha = 1;
+						}
+					}
+					var barY = h - 176;
 					ctx.fillStyle = '#1c332b';
-					ctx.fillRect(48, barY, w - 96, 8);
-					var ratio = duration ? Math.min(1, t / duration) : 0;
+					ctx.fillRect(120, barY, w - 240, 8);
+					var ratio = Math.max(0, Math.min(1, ((t || 0) - (span.start || 0)) / slice));
 					ctx.fillStyle = '#1f6b4a';
-					ctx.fillRect(48, barY, (w - 96) * ratio, 8);
+					ctx.fillRect(120, barY, (w - 240) * ratio, 8);
+					var sealLine = 'Sealed · ' + (clip.date || '');
+					var mistakeCount = Number(clip.mistakes);
+					if (isFinite(mistakeCount) && mistakeCount > 0) {
+						sealLine += ' · ' + mistakeCount + (mistakeCount === 1 ? ' mistake' : ' mistakes');
+					}
 					ctx.fillStyle = '#b7c4bb';
 					ctx.font = '500 24px Outfit, sans-serif';
-					ctx.fillText([clip.date, clip.time, clip.teacher].filter(Boolean).join(' · '), w / 2, h - 64);
+					ctx.fillText(sealLine, w / 2, h - 140);
+					ctx.fillStyle = '#e4c98a';
+					ctx.font = '600 26px Outfit, sans-serif';
+					ctx.fillText('Contact us 08021211053', w / 2, h - 104);
+					var arm = 78;
+					var thick = 8;
+					var pad = 22;
+					ctx.fillStyle = '#e4c98a';
+					ctx.fillRect(pad, pad, arm, thick);
+					ctx.fillRect(pad, pad, thick, arm);
+					ctx.fillRect(w - pad - arm, pad, arm, thick);
+					ctx.fillRect(w - pad - thick, pad, thick, arm);
+					ctx.fillRect(pad, h - pad - thick, arm, thick);
+					ctx.fillRect(pad, h - pad - arm, thick, arm);
+					ctx.fillRect(w - pad - arm, h - pad - thick, arm, thick);
+					ctx.fillRect(w - pad - thick, h - pad - arm, thick, arm);
 				}
-				paint(0, 0);
-				recorder.start(1000);
-				if (ctxAudio.resume) ctxAudio.resume();
-				recAudio.ontimeupdate = function () {
-					if (onProgress) onProgress(recAudio.currentTime || 0, recAudio.duration || 0);
-				};
-				function frame() {
-					if (recAudio.ended) return;
-					paint(recAudio.currentTime || 0, recAudio.duration || 0);
-					requestAnimationFrame(frame);
+				function beginTake() {
+					if (alive && !alive()) {
+						finish(new Error('cancel'));
+						return;
+					}
+					var resume = ctxAudio.resume ? ctxAudio.resume() : null;
+					var startRec = function () {
+						if (alive && !alive()) {
+							finish(new Error('cancel'));
+							return;
+						}
+						paint(span.start || 0);
+						recorder.start(500);
+						var started = recAudio.play();
+						var cap = setTimeout(function () {
+							if (recorder.state === 'recording') recorder.stop();
+						}, (Math.max(1, (span.end || 12) - (span.start || 0)) + 4) * 1000);
+						function tick() {
+							if (alive && !alive()) {
+								clearTimeout(cap);
+								try { recAudio.pause(); } catch (e) {}
+								if (recorder.state === 'recording') recorder.stop();
+								return;
+							}
+							var now = recAudio.currentTime || span.start || 0;
+							if (span.end && now >= span.end - 0.04) {
+								clearTimeout(cap);
+								paint(span.end);
+								if (onProgress) onProgress(1);
+								try { recAudio.pause(); } catch (e2) {}
+								setTimeout(function () {
+									if (recorder.state !== 'inactive') recorder.stop();
+								}, 220);
+								return;
+							}
+							paint(now);
+							if (onProgress) onProgress(((now - (span.start || 0)) / Math.max(0.01, (span.end || now) - (span.start || 0))));
+							requestAnimationFrame(tick);
+						}
+						if (started && started.then) {
+							started.then(tick).catch(function (err) {
+								clearTimeout(cap);
+								try { if (recorder.state === 'recording') recorder.stop(); } catch (e) {}
+								finish(err);
+							});
+						} else {
+							tick();
+						}
+					};
+					var go = function () {
+						if (span.start > 0.05) {
+							var onSeek = function () {
+								recAudio.removeEventListener('seeked', onSeek);
+								startRec();
+							};
+							recAudio.addEventListener('seeked', onSeek);
+							try { recAudio.currentTime = span.start; } catch (e) { startRec(); }
+						} else {
+							startRec();
+						}
+					};
+					if (ctxAudio.state === 'running') go();
+					else {
+						var unlock = function () {
+							if (ctxAudio.resume) ctxAudio.resume();
+							if (ctxAudio.state === 'running') {
+								document.removeEventListener('pointerdown', unlock);
+								go();
+							}
+						};
+						waitUnlock = unlock;
+						document.addEventListener('pointerdown', unlock);
+						if (resume && resume.then) resume.then(function () { if (ctxAudio.state === 'running') unlock(); });
+					}
 				}
-				recAudio.onended = function () {
-					paint(recAudio.duration || 0, recAudio.duration || 0);
-					setTimeout(function () {
-						if (recorder.state !== 'inactive') recorder.stop();
-					}, 250);
-				};
-				var started = recAudio.play();
-				var cap = setTimeout(function () {
-					if (recorder.state === 'recording') recorder.stop();
-				}, (((recAudio.duration && isFinite(recAudio.duration)) ? recAudio.duration : 180) + 4) * 1000);
 				recAudio.onloadedmetadata = function () {
-					clearTimeout(cap);
-					cap = setTimeout(function () {
-						if (recorder.state === 'recording') recorder.stop();
-					}, ((recAudio.duration || 180) + 4) * 1000);
-					if (onProgress) onProgress(0, recAudio.duration || 0);
+					if (!span.end || !isFinite(span.end)) {
+						var full = recAudio.duration || 12;
+						span.start = 0;
+						span.end = mode === 'full' || full <= 14 ? full : Math.min(12, full);
+					}
+					beginTake();
 				};
-				if (started && started.then) {
-					started.then(frame).catch(function (err) {
-						try { if (recorder.state === 'recording') recorder.stop(); } catch (e) {}
-						finish(err);
-					});
-				} else {
-					frame();
-				}
+				recAudio.src = clip.audio;
 			});
 		});
 	}
-	document.getElementById('btn_share').addEventListener('click', function () {
-		var clip = clips[currentIndex()];
+	var shareToken = 0;
+	var shareReady = { status: null, full: null };
+	function shareBaseName(clip, mode) {
+		var who = (window.__quranStudent || 'Student').trim();
+		var base = (who + ' - ' + (clip.portion || 'Recitation')).replace(/[\\/:*?"<>|]+/g, ' ').replace(/\s+/g, ' ').trim();
+		if (base.length > 70) base = base.slice(0, 70);
+		return (base || 'Recitation') + (mode === 'full' ? ' full' : '') + '.mp4';
+	}
+	function setShareButton(id, label, ready) {
+		var el = document.getElementById(id);
+		if (!el) return;
+		el.textContent = label;
+		el.disabled = !ready;
+	}
+	function openShareFile(file, clip) {
 		var note = document.getElementById('share_note');
-		var btn = document.getElementById('btn_share');
-		var film = document.getElementById('share_film');
-		var filmNote = document.getElementById('share_film_note');
-		if (!clip || !clip.audio) return;
 		var who = (window.__quranStudent || 'Student').trim();
 		var school = (window.__quranSchool || 'Tahsin Academy').trim();
 		var text = who + ' recited ' + clip.portion + ' at ' + school + '. ' + clip.date + '.';
 		var title = who + ' — ' + clip.portion;
-		function openShare(file) {
-			if (!navigator.share) {
-				if (note) note.textContent = 'This phone cannot open the share list.';
-				return;
-			}
-			var payload = { files: [file], title: title, text: text };
-			if (navigator.canShare && !navigator.canShare(payload)) payload = { files: [file] };
-			if (navigator.canShare && !navigator.canShare(payload)) {
-				if (note) note.textContent = 'This phone cannot share the video file.';
-				return;
-			}
-			navigator.share(payload).then(function () {
-				if (note) note.textContent = 'Choose WhatsApp Status, WhatsApp, or another app.';
-			}).catch(function (err) {
-				if (err && err.name === 'AbortError') return;
-				pendingShareFile = file;
-				btn.textContent = 'Share video';
-				if (note) note.textContent = 'Video is ready. Tap Share video, then pick WhatsApp Status.';
-			});
-		}
-		if (pendingShareFile) {
-			openShare(pendingShareFile);
+		if (!navigator.share) {
+			if (note) note.textContent = 'This phone cannot open the share list.';
 			return;
 		}
+		var payload = { files: [file], title: title, text: text };
+		if (navigator.canShare && !navigator.canShare(payload)) payload = { files: [file] };
+		if (navigator.canShare && !navigator.canShare(payload)) {
+			if (note) note.textContent = 'This phone cannot share the video file.';
+			return;
+		}
+		navigator.share(payload).then(function () {
+			if (note) note.textContent = 'Choose WhatsApp Status, WhatsApp, or another app.';
+		}).catch(function (err) {
+			if (err && err.name === 'AbortError') return;
+			if (note) note.textContent = 'Tap the button again and choose an app.';
+		});
+	}
+	function runShareJob(clip, mode, token) {
+		var btnId = mode === 'full' ? 'btn_full' : 'btn_share';
+		var label = mode === 'full' ? 'Full' : 'Status';
+		setShareButton(btnId, label + ' 0%', false);
+		return recordShareVideo(clip, mode, function (frac) {
+			if (token !== shareToken) return;
+			var pct = Math.max(1, Math.min(99, Math.round((frac || 0) * 100)));
+			setShareButton(btnId, label + ' ' + pct + '%', false);
+		}, function () { return token === shareToken; }).then(function (blob) {
+			if (token !== shareToken) return;
+			shareReady[mode] = new File([blob], shareBaseName(clip, mode), { type: 'video/mp4' });
+			setShareButton(btnId, mode === 'full' ? 'Share full' : 'Share for Status', true);
+		}).catch(function (err) {
+			if (token !== shareToken) return;
+			if (err && err.message === 'cancel') return;
+			shareReady[mode] = false;
+			setShareButton(btnId, mode === 'full' ? 'Share full' : 'Share for Status', false);
+			var note = document.getElementById('share_note');
+			if (note) note.textContent = 'The video could not be made. Open this recitation again.';
+		});
+	}
+	function startShareJobs(clip) {
+		if (!clip || !clip.audio) return;
+		shareToken++;
+		var token = shareToken;
+		shareKey = clip.audio;
+		shareReady.status = null;
+		shareReady.full = null;
+		var note = document.getElementById('share_note');
 		if (!shareMime()) {
+			setShareButton('btn_share', 'Share for Status', false);
+			setShareButton('btn_full', 'Share full', false);
 			if (note) note.textContent = 'This phone cannot make an MP4 video.';
 			return;
 		}
-		audio.pause();
-		paintButtons();
-		var Ctx = window.AudioContext || window.webkitAudioContext;
-		if (!audioCtx && Ctx) audioCtx = new Ctx();
-		if (audioCtx && audioCtx.resume) audioCtx.resume();
-		var recAudio = new Audio(clip.audio);
-		recAudio.preload = 'auto';
-		recAudio.muted = true;
-		var unlock = recAudio.play();
-		if (unlock && unlock.catch) unlock.catch(function () {});
-		btn.disabled = true;
-		btn.textContent = 'Making video…';
-		if (film) film.classList.add('on');
-		if (filmNote) filmNote.textContent = 'Loading the ayah and the recording…';
-		recordShareVideo(clip, recAudio, function (t, duration) {
-			if (filmNote) filmNote.textContent = clock(t) + ' / ' + clock(duration);
-		}).then(function (blob) {
-			var base = (who + ' - ' + (clip.portion || 'Recitation')).replace(/[\\/:*?"<>|]+/g, ' ').replace(/\s+/g, ' ').trim();
-			if (base.length > 80) base = base.slice(0, 80);
-			pendingShareFile = new File([blob], (base || 'Recitation') + '.mp4', { type: 'video/mp4' });
-			if (film) film.classList.remove('on');
-			btn.disabled = false;
-			btn.textContent = 'Share video';
-			openShare(pendingShareFile);
-		}).catch(function () {
-			try { recAudio.pause(); } catch (e) {}
-			if (film) film.classList.remove('on');
-			btn.disabled = false;
-			btn.textContent = 'Share recitation';
-			if (note) note.textContent = 'The video could not be made. Tap Share recitation to try again.';
+		if (note) note.textContent = 'Share for Status is a short video. Share full keeps the whole recitation.';
+		runShareJob(clip, 'status', token).then(function () {
+			if (token !== shareToken) return;
+			return runShareJob(clip, 'full', token);
 		});
-	});
+	}
+	function shareReadyFile(mode) {
+		var clip = clips[currentIndex()];
+		var file = shareReady[mode];
+		if (file && typeof file !== 'boolean') openShareFile(file, clip);
+	}
+	document.getElementById('btn_share').addEventListener('click', function () { shareReadyFile('status'); });
+	document.getElementById('btn_full').addEventListener('click', function () { shareReadyFile('full'); });
 	document.getElementById('btn_next').addEventListener('click', function () { step(1); });
 	document.getElementById('btn_prev').addEventListener('click', function () { step(-1); });
 	document.getElementById('btn_shuffle').addEventListener('click', function () {

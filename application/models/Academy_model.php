@@ -2352,6 +2352,8 @@ class Academy_model extends MY_Model
                 'surah' => $surah,
                 'from' => $from,
                 'to' => $to,
+                'mistakes' => (isset($row->mistake_word_count) && $row->mistake_word_count !== null && $row->mistake_word_count !== '')
+                    ? (int) $row->mistake_word_count : null,
             );
         }
         return $out;
