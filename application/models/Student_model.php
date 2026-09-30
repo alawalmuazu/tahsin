@@ -557,8 +557,9 @@ class Student_model extends MY_Model
         $field_select = (empty($field_sel_array)) ? "" : "," . implode(',', $field_sel_array);
         $custom_fields_column_order = (empty($field_val_array)) ? "" : "," . implode(',', $field_val_array);
 
+        $guardianExtraSelect = $this->db->field_exists('extra_phones', 'parent') ? ',parent.extra_phones as guardian_extra_phones' : '';
         // Database query
-        $this->datatables->select('enroll.*,TRIM(CONCAT_WS(" ",student.first_name, NULLIF(student.other_name,""), student.last_name)) as fullname,student.photo,student.mobileno,student.admission_date,student.gender,student.register_no,student.birthday,enroll.roll,class.name as class_name,student.parent_id,section.name as section_name,student_category.name as category,parent.name as guardian_name,parent.mobileno as guardian_mobileno' . $field_select);
+        $this->datatables->select('enroll.*,TRIM(CONCAT_WS(" ",student.first_name, NULLIF(student.other_name,""), student.last_name)) as fullname,student.photo,student.mobileno,student.admission_date,student.gender,student.register_no,student.birthday,enroll.roll,class.name as class_name,student.parent_id,section.name as section_name,student_category.name as category,parent.name as guardian_name,parent.mobileno as guardian_mobileno' . $guardianExtraSelect . $field_select);
         $this->datatables->from('enroll');
         $this->datatables->join('student', 'student.id = enroll.student_id', 'inner');
         $this->datatables->join('class', 'class.id = enroll.class_id', 'left');
@@ -624,6 +625,7 @@ class Student_model extends MY_Model
             if (get_permission('student', 'is_delete')) {
                 $actions .= btn_delete('student/delete_data/' . $record->id . '/' . $record->student_id);
             }
+            $actions .= $this->quranShareAction($record);
             // dt-data array 
             $row   = array();
             $row[] = "<div class='checked-area'><div class='checkbox-replace'>
@@ -673,6 +675,35 @@ if ($validArr['roll']) {
             "data"                => $data,
         );
         return json_encode($json_data);
+    }
+
+    /**
+     * Opens WhatsApp with this child's Quran install link, to the parent number when one is saved.
+     */
+    protected function quranShareAction($record)
+    {
+        $studentId = isset($record->student_id) ? (int) $record->student_id : 0;
+        if ($studentId < 1) {
+            return '';
+        }
+        $this->load->model('academy_model');
+        $base = defined('PUBLIC_SITE_URL') && PUBLIC_SITE_URL !== '' ? rtrim(PUBLIC_SITE_URL, '/') : rtrim(base_url(), '/');
+        $url = $base . '/quran/' . $this->academy_model->quranPlaylistToken($studentId);
+        $name = trim((string) $record->fullname);
+        if ($name === '') {
+            $name = 'your child';
+        }
+        $text = "Assalamu alaikum. Install " . $name . "'s Quran app from Tahsin Academy. Open this link, then tap Install Quran:\n" . $url;
+        $phones = $this->academy_model->parentPhoneList(
+            isset($record->guardian_mobileno) ? $record->guardian_mobileno : '',
+            isset($record->guardian_extra_phones) ? $record->guardian_extra_phones : '',
+            isset($record->mobileno) ? $record->mobileno : ''
+        );
+        $share = 'https://api.whatsapp.com/send?text=' . rawurlencode($text);
+        if (!empty($phones)) {
+            $share = 'https://api.whatsapp.com/send?phone=' . rawurlencode($phones[0]) . '&text=' . rawurlencode($text);
+        }
+        return '<a href="' . htmlspecialchars($share, ENT_QUOTES, 'UTF-8') . '" class="btn btn-circle icon btn-default" style="color:#128C7E" data-toggle="tooltip" data-original-title="Share Quran app" target="_blank" rel="noopener"><i class="fab fa-whatsapp"></i></a>';
     }
 
     public function schoolFeeAmount($section_id = 0, $programme_category_id = 0, $pwd_category_id = 0, $branch_id = null)
