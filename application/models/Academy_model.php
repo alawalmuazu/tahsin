@@ -2035,6 +2035,33 @@ class Academy_model extends MY_Model
     }
 
     /**
+     * Stop alerts for this child on this phone. A sibling on the same phone keeps theirs.
+     */
+    public function removeQuranPushSubscription($studentId, $endpoint)
+    {
+        $studentId = (int) $studentId;
+        if ($studentId < 1 || !$this->ensureQuranPushTables()) {
+            return false;
+        }
+        $endpoint = trim((string) $endpoint);
+        if (!preg_match('#^https://#i', $endpoint) || strlen($endpoint) > 2000) {
+            return false;
+        }
+        $existing = $this->db->get_where('quran_push_subscription', array(
+            'endpoint_hash' => hash('sha256', $endpoint),
+        ))->row();
+        if (!$existing) {
+            return true;
+        }
+        $this->db->where('subscription_id', (int) $existing->id)->where('student_id', $studentId)->delete('quran_push_student');
+        $left = (int) $this->db->where('subscription_id', (int) $existing->id)->count_all_results('quran_push_student');
+        if ($left < 1) {
+            $this->db->where('id', (int) $existing->id)->delete('quran_push_subscription');
+        }
+        return true;
+    }
+
+    /**
      * Phone alerts for every child included in an acknowledged session.
      */
     public function notifyAcknowledgedParents($row)

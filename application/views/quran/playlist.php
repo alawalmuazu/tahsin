@@ -23,6 +23,8 @@ $clipsJson = json_encode($clips, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | J
 window.__quranInstall = null;
 window.__quranInstallWait = [];
 window.__quranToken = <?php echo json_encode($token); ?>;
+window.__quranStudent = <?php echo json_encode($install['student_name']); ?>;
+window.__quranSchool = <?php echo json_encode($install['school_name']); ?>;
 window.__quranStart = <?php echo json_encode(site_url('quran/' . $token)); ?>;
 window.__quranManifest = <?php echo json_encode($manifest); ?>;
 function quranIsStandalone() {
@@ -39,6 +41,13 @@ function quranClearInstalled() {
 	try { localStorage.removeItem(quranInstallKey()); } catch (e) {}
 	if (!quranIsStandalone()) document.documentElement.classList.remove('quran-installed');
 }
+(function () {
+	try {
+		if (localStorage.getItem('quran-notify-' + window.__quranToken) === '1') {
+			document.documentElement.classList.add('quran-notify-on');
+		}
+	} catch (e) {}
+})();
 (function () {
 	if (quranIsStandalone()) {
 		quranMarkInstalled();
@@ -103,6 +112,8 @@ h1{font-size:1.35rem;margin:0}
 html[data-theme="dark"] .transport button.on{color:var(--accent);border-color:var(--accent)}
 .transport .go{background:#0f766e;color:#fff;border-color:#0f766e;min-width:4.2rem}
 .playall{display:block;width:100%;margin-top:.55rem}
+.share-rec{display:block;width:100%;margin-top:.45rem;background:transparent;color:var(--text);border:1px solid #0f766e;border-radius:999px;padding:.7rem 1.1rem;font-weight:700;font-size:1rem}
+.share-note{margin:.4rem 0 0;font-size:.78rem;color:var(--muted);text-align:center}
 .queue{margin-top:.25rem}
 .clip{display:block;width:100%;text-align:left;background:var(--card);border-radius:14px;padding:.85rem 1rem;margin:0 0 .55rem;border:1px solid var(--line);font:inherit;color:inherit;cursor:pointer}
 .clip.on{border-color:#0f766e;background:var(--soft)}
@@ -138,6 +149,9 @@ html[data-theme="dark"] .clip.on{border-color:var(--accent)}
 }
 html.no-open .open{display:none}
 html.quran-installed .install:not(.notify),html.hear .install:not(.notify){display:none}
+html.quran-notify-on .notify{display:none}
+.notify-off{display:none;margin:0 0 .85rem;background:transparent;color:var(--muted);border:0;padding:0;font-size:.82rem;font-weight:700;text-decoration:underline}
+html.quran-notify-on .notify-off{display:inline-block}
 .ayah-row{display:flex;flex-wrap:wrap;gap:.4rem;justify-content:center;margin:.15rem 0 .85rem}
 .ayah-row button{min-width:2.15rem;height:2.15rem;padding:0 .45rem;border-radius:999px;border:1px solid var(--num-line);background:transparent;color:var(--num);font-weight:700}
 .ayah-row button.lit{background:#0f766e;color:#fff;border-color:#0f766e}
@@ -191,6 +205,7 @@ html.hear .hear-go.gone{display:none}
 		<button type="button" id="notify_on">Turn On Notification</button>
 		<p id="notify_note">When an admin acknowledges a session that includes this child, this phone shows a notification. Tap the notification to hear the recording.</p>
 	</div>
+	<button type="button" id="notify_off" class="notify-off">Turn off notification</button>
 	<?php endif; ?>
 	<div class="install">
 		<button type="button" id="install_quran">Install <?php echo html_escape($install['name']); ?></button>
@@ -217,6 +232,8 @@ html.hear .hear-go.gone{display:none}
 			<button type="button" id="btn_speed">Speed 1×</button>
 		</div>
 		<button type="button" id="btn_all" class="playall">Play all</button>
+		<button type="button" id="btn_share" class="share-rec">Share recitation</button>
+		<p id="share_note" class="share-note">Opens your phone’s share list. Choose WhatsApp Status, WhatsApp, or another app.</p>
 	</div>
 	<div class="queue" id="queue"></div>
 	<audio id="qpl_audio" preload="metadata"></audio>
@@ -337,14 +354,40 @@ document.getElementById('install_quran').addEventListener('click', function () {
 	function ios() {
 		return /iphone|ipad|ipod/i.test(navigator.userAgent || '');
 	}
+	var offBtn = document.getElementById('notify_off');
 	function remember() {
 		try { localStorage.setItem(store, '1'); } catch (e) {}
 	}
+	function saved() {
+		try { return localStorage.getItem(store) === '1'; } catch (e) { return false; }
+	}
 	function markOn() {
-		btn.textContent = 'Notification is on';
-		btn.disabled = true;
-		note.textContent = 'This phone alerts you when an admin acknowledges a session that includes this child.';
 		remember();
+		document.documentElement.classList.add('quran-notify-on');
+	}
+	function showPrompt() {
+		try { localStorage.removeItem(store); } catch (e) {}
+		document.documentElement.classList.remove('quran-notify-on');
+		btn.disabled = false;
+		btn.textContent = 'Turn On Notification';
+		if (offBtn) offBtn.disabled = false;
+	}
+	function dropThisChild() {
+		if (!('serviceWorker' in navigator) || !navigator.serviceWorker.getRegistration) {
+			return Promise.resolve();
+		}
+		return navigator.serviceWorker.getRegistration().then(function (reg) {
+			if (!reg || !reg.pushManager) return;
+			return reg.pushManager.getSubscription();
+		}).then(function (sub) {
+			if (!sub) return;
+			return fetch(url, {
+				method: 'DELETE',
+				headers: { 'Content-Type': 'application/json' },
+				credentials: 'same-origin',
+				body: JSON.stringify({ endpoint: sub.endpoint })
+			});
+		}).catch(function () {});
 	}
 	function keyBytes(b64) {
 		var padding = '='.repeat((4 - b64.length % 4) % 4);
@@ -405,11 +448,43 @@ document.getElementById('install_quran').addEventListener('click', function () {
 			note.textContent = 'The alert could not be turned on. Open the installed app and try again.';
 		});
 	});
-	try {
-		if (localStorage.getItem(store) === '1' && window.Notification && Notification.permission === 'granted') {
-			subscribe().catch(function () { btn.disabled = false; });
+	if (offBtn) {
+		offBtn.addEventListener('click', function () {
+			offBtn.disabled = true;
+			dropThisChild().then(function () { showPrompt(); });
+		});
+	}
+	if (navigator.permissions && navigator.permissions.query) {
+		navigator.permissions.query({ name: 'notifications' }).then(function (status) {
+			status.onchange = function () {
+				if (status.state !== 'granted') showPrompt();
+			};
+		}).catch(function () {});
+	}
+	if (!saved()) return;
+	if (!window.Notification || Notification.permission !== 'granted' || !('serviceWorker' in navigator) || !('PushManager' in window)) {
+		showPrompt();
+		return;
+	}
+	navigator.serviceWorker.getRegistration().then(function (reg) {
+		if (!reg || !reg.pushManager) {
+			showPrompt();
+			return;
 		}
-	} catch (e) {}
+		return reg.pushManager.getSubscription().then(function (sub) {
+			if (!sub) {
+				showPrompt();
+				return;
+			}
+			markOn();
+			fetch(url, {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				credentials: 'same-origin',
+				body: JSON.stringify(sub)
+			}).catch(function () {});
+		});
+	}).catch(function () { showPrompt(); });
 })();
 </script>
 <?php if (!empty($clips)): ?>
@@ -737,6 +812,75 @@ document.getElementById('install_quran').addEventListener('click', function () {
 	document.getElementById('btn_all').addEventListener('click', function () {
 		pos = 0;
 		playClip(true);
+	});
+	document.getElementById('btn_share').addEventListener('click', function () {
+		var clip = clips[currentIndex()];
+		var btn = document.getElementById('btn_share');
+		var note = document.getElementById('share_note');
+		if (!clip || !clip.audio) return;
+		var who = (window.__quranStudent || 'Student').trim();
+		var school = (window.__quranSchool || 'Tahsin Academy').trim();
+		var text = who + ' recited ' + clip.portion + ' at ' + school + '. ' + clip.date + '.';
+		var title = who + ' — ' + clip.portion;
+		function finish(message) {
+			btn.disabled = false;
+			btn.textContent = 'Share recitation';
+			if (note && message) note.textContent = message;
+		}
+		function copyText(value) {
+			if (navigator.clipboard && navigator.clipboard.writeText) {
+				return navigator.clipboard.writeText(value).then(function () {
+					finish('Copied. Paste it into WhatsApp Status or another app.');
+				}).catch(function () {
+					finish('Open WhatsApp and paste this recitation from the share list.');
+				});
+			}
+			finish('This phone has no share list. Open WhatsApp and attach the recording.');
+			return Promise.resolve();
+		}
+		function shareLink() {
+			if (!navigator.share) return copyText(text + '\n' + clip.audio);
+			return navigator.share({ title: title, text: text, url: clip.audio }).then(function () {
+				finish('Opens your phone’s share list. Choose WhatsApp Status, WhatsApp, or another app.');
+			}).catch(function (err) {
+				if (err && err.name === 'AbortError') {
+					finish('Opens your phone’s share list. Choose WhatsApp Status, WhatsApp, or another app.');
+					return;
+				}
+				return copyText(text + '\n' + clip.audio);
+			});
+		}
+		function fileName() {
+			var base = (who + ' - ' + clip.portion).replace(/[\\/:*?"<>|]+/g, ' ').replace(/\s+/g, ' ').trim();
+			if (base.length > 80) base = base.slice(0, 80);
+			return (base || 'Recitation') + '.mp3';
+		}
+		btn.disabled = true;
+		btn.textContent = 'Preparing…';
+		if (!navigator.share || !window.File) {
+			shareLink();
+			return;
+		}
+		fetch(clip.audio).then(function (res) {
+			if (!res.ok) throw new Error('audio');
+			return res.blob();
+		}).then(function (blob) {
+			var type = blob.type && blob.type.indexOf('audio/') === 0 ? blob.type : 'audio/mpeg';
+			var file = new File([blob], fileName(), { type: type });
+			var payload = { title: title, text: text, files: [file] };
+			if (navigator.canShare && navigator.canShare(payload)) {
+				return navigator.share(payload).then(function () {
+					finish('Opens your phone’s share list. Choose WhatsApp Status, WhatsApp, or another app.');
+				});
+			}
+			return shareLink();
+		}).catch(function (err) {
+			if (err && err.name === 'AbortError') {
+				finish('Opens your phone’s share list. Choose WhatsApp Status, WhatsApp, or another app.');
+				return;
+			}
+			return shareLink();
+		});
 	});
 	document.getElementById('btn_next').addEventListener('click', function () { step(1); });
 	document.getElementById('btn_prev').addEventListener('click', function () { step(-1); });

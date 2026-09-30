@@ -50,7 +50,8 @@ class Quran extends CI_Controller
             show_404();
             return;
         }
-        if (strtoupper($this->input->server('REQUEST_METHOD')) !== 'POST') {
+        $method = strtoupper($this->input->server('REQUEST_METHOD'));
+        if ($method !== 'POST' && $method !== 'DELETE') {
             $this->output->set_status_header(405)->set_content_type('application/json')->set_output('{"ok":false}');
             return;
         }
@@ -58,8 +59,18 @@ class Quran extends CI_Controller
         if (!is_array($data)) {
             $data = array();
         }
-        $keys = isset($data['keys']) && is_array($data['keys']) ? $data['keys'] : array();
         $this->load->model('academy_model');
+        if ($method === 'DELETE') {
+            $ok = $this->academy_model->removeQuranPushSubscription(
+                $studentId,
+                isset($data['endpoint']) ? $data['endpoint'] : ''
+            );
+            $this->output
+                ->set_content_type('application/json')
+                ->set_output(json_encode(array('ok' => (bool) $ok)));
+            return;
+        }
+        $keys = isset($data['keys']) && is_array($data['keys']) ? $data['keys'] : array();
         $ok = $this->academy_model->saveQuranPushSubscription(
             $studentId,
             isset($data['endpoint']) ? $data['endpoint'] : '',
