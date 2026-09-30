@@ -1,5 +1,5 @@
 /* Quran playlist service worker. Android installs only if this page is served without Cache-Control: no-store. */
-var CACHE = 'quran-playlist-v5';
+var CACHE = 'quran-playlist-v6';
 
 function storeable(response) {
 	var headers = new Headers(response.headers);
@@ -60,6 +60,38 @@ self.addEventListener('message', function (event) {
 			if (port) port.postMessage({ ok: false });
 		})
 	);
+});
+
+self.addEventListener('push', function (event) {
+	var data = {};
+	try {
+		data = event.data ? event.data.json() : {};
+	} catch (e) {}
+	var title = data.title || 'Tahsin Academy';
+	var options = {
+		body: data.body || 'A session was acknowledged.',
+		data: { url: data.url || self.registration.scope },
+		tag: data.tag || 'tahsin-ack',
+		renotify: true
+	};
+	if (data.icon) options.icon = data.icon;
+	event.waitUntil(self.registration.showNotification(title, options));
+});
+
+self.addEventListener('notificationclick', function (event) {
+	event.notification.close();
+	var url = (event.notification.data && event.notification.data.url) || self.registration.scope;
+	event.waitUntil(self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(function (list) {
+		var i;
+		for (i = 0; i < list.length; i++) {
+			if (list[i].url === url && 'focus' in list[i]) {
+				return list[i].focus();
+			}
+		}
+		if (self.clients.openWindow) {
+			return self.clients.openWindow(url);
+		}
+	}));
 });
 
 self.addEventListener('fetch', function (event) {

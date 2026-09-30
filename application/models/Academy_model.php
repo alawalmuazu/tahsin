@@ -1422,6 +1422,9 @@ class Academy_model extends MY_Model
         $gateReview = $this->db->table_exists('academy_class_session');
 
         foreach ($roster as $st) {
+            if (!empty($st['parent_phones']) || $st['parent_contact']) {
+                $withPhone++;
+            }
             $ackTeachers = $gateReview ? $this->acknowledgedTeacherIds((int) $branch_id, (int) $st['id'], $today) : array();
             if ($gateReview && empty($ackTeachers)) {
                 $awaitingReview++;
@@ -1451,9 +1454,6 @@ class Academy_model extends MY_Model
                 });
             }
 
-            if (!empty($st['parent_phones']) || $st['parent_contact']) {
-                $withPhone++;
-            }
             if (!empty($drills)) {
                 $withDrills++;
             }
@@ -1857,7 +1857,7 @@ class Academy_model extends MY_Model
         );
         if ($token !== '') {
             $base = defined('PUBLIC_SITE_URL') && PUBLIC_SITE_URL !== '' ? rtrim(PUBLIC_SITE_URL, '/') : rtrim(base_url(), '/');
-            $lines[] = 'Previous recitations: ' . $base . '/quran/' . $token;
+            $lines[] = 'Previous recitations: ' . $base . '/quran/' . $token . '/hear';
         }
         return implode("\n", $lines);
     }
@@ -1967,6 +1967,235 @@ class Academy_model extends MY_Model
             return 0;
         }
         return (int) $m[1];
+    }
+
+    /**
+     * Public key the installed app uses to subscribe for acknowledgement alerts.
+     */
+    public function quranPushPublicKey()
+    {
+        $creds = $this->quranPushCredentials();
+        return $creds ? $creds['public'] : '';
+    }
+
+    /**
+     * Remember this phone for one child. The same phone can also subscribe for a sibling.
+     */
+    public function saveQuranPushSubscription($studentId, $endpoint, $p256dh, $auth)
+    {
+        $studentId = (int) $studentId;
+        if ($studentId < 1 || !$this->ensureQuranPushTables()) {
+            return false;
+        }
+        $endpoint = trim((string) $endpoint);
+        if (!preg_match('#^https://#i', $endpoint) || strlen($endpoint) > 2000) {
+            return false;
+        }
+        require_once APPPATH . 'libraries/Web_push.php';
+        if (strlen(Web_push::b64urlDecode($p256dh)) !== 65 || strlen(Web_push::b64urlDecode($auth)) !== 16) {
+            return false;
+        }
+        $hash = hash('sha256', $endpoint);
+        $now = date('Y-m-d H:i:s');
+        $existing = $this->db->get_where('quran_push_subscription', array('endpoint_hash' => $hash))->row();
+        if ($existing) {
+            $this->db->where('id', (int) $existing->id)->update('quran_push_subscription', array(
+                'endpoint' => $endpoint,
+                'p256dh' => (string) $p256dh,
+                'auth' => (string) $auth,
+                'updated_at' => $now,
+            ));
+            $id = (int) $existing->id;
+        } else {
+            $this->db->insert('quran_push_subscription', array(
+                'endpoint_hash' => $hash,
+                'endpoint' => $endpoint,
+                'p256dh' => (string) $p256dh,
+                'auth' => (string) $auth,
+                'created_at' => $now,
+                'updated_at' => $now,
+            ));
+            $id = (int) $this->db->insert_id();
+        }
+        if ($id < 1) {
+            return false;
+        }
+        $link = $this->db->get_where('quran_push_student', array(
+            'subscription_id' => $id,
+            'student_id' => $studentId,
+        ))->row();
+        if (!$link) {
+            $this->db->insert('quran_push_student', array(
+                'subscription_id' => $id,
+                'student_id' => $studentId,
+                'created_at' => $now,
+            ));
+        }
+        return true;
+    }
+
+    /**
+     * Phone alerts for every child included in an acknowledged session.
+     */
+    public function notifyAcknowledgedParents($row)
+    {
+        if (!$row || !$this->ensureQuranPushTables()) {
+            return;
+        }
+        $studentIds = $this->sessionStudentIds($row);
+        if (empty($studentIds)) {
+            return;
+        }
+        $creds = $this->quranPushCredentials();
+        if (!$creds) {
+            return;
+        }
+        $this->load->library('web_push', array(
+            'public' => $creds['public'],
+            'private' => $creds['private'],
+        ));
+        foreach ($studentIds as $sid) {
+            $subs = $this->db->select('s.id, s.endpoint, s.p256dh, s.auth')
+                ->from('quran_push_subscription s')
+                ->join('quran_push_student m', 'm.subscription_id = s.id', 'inner')
+                ->where('m.student_id', (int) $sid)
+                ->get()->result();
+            if (!$subs) {
+                continue;
+            }
+            $student = $this->db->select('first_name, last_name')->where('id', (int) $sid)->get('student')->row();
+            $name = $student ? trim($student->first_name . ' ' . $student->last_name) : '';
+            if ($name === '') {
+                $name = 'Your child';
+            }
+            $portion = '';
+            $milestoneId = isset($row->milestone_id) ? (int) $row->milestone_id : 0;
+            $lineRow = $this->digestMilestoneRow((int) $sid, (int) $row->teacher_id, $row->session_date, $milestoneId);
+            if ($lineRow) {
+                $line = $this->sealedDigestLine(array($lineRow), array());
+                $portion = isset($line['portion']) ? (string) $line['portion'] : '';
+            }
+            $token = $this->quranPlaylistToken($sid);
+            $body = $name . ' — a session was acknowledged';
+            if ($portion !== '' && $portion !== 'Session sealed') {
+                $body = $name . ' — ' . $portion . ' was acknowledged';
+            }
+            $payload = json_encode(array(
+                'title' => 'Tahsin Academy',
+                'body' => $body,
+                'url' => site_url('quran/' . $token . '/hear'),
+                'icon' => site_url('quran/' . $token . '/icon-192.png'),
+                'tag' => 'ack-' . (int) $row->id . '-' . (int) $sid,
+            ), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+            foreach ($subs as $sub) {
+                $result = $this->web_push->send(array(
+                    'endpoint' => $sub->endpoint,
+                    'p256dh' => $sub->p256dh,
+                    'auth' => $sub->auth,
+                ), $payload);
+                if (!empty($result['gone'])) {
+                    $this->db->where('subscription_id', (int) $sub->id)->delete('quran_push_student');
+                    $this->db->where('id', (int) $sub->id)->delete('quran_push_subscription');
+                }
+            }
+        }
+    }
+
+    protected function quranPushCredentials()
+    {
+        if (!$this->ensureQuranPushTables()) {
+            return null;
+        }
+        $row = $this->db->get_where('quran_push_vapid', array('id' => 1))->row();
+        if ($row && $row->public_key !== '' && $row->private_pem !== '') {
+            return array('public' => $row->public_key, 'private' => $row->private_pem);
+        }
+        require_once APPPATH . 'libraries/Web_push.php';
+        $pair = Web_push::generateVapid();
+        if (!$pair) {
+            return null;
+        }
+        $this->db->replace('quran_push_vapid', array(
+            'id' => 1,
+            'public_key' => $pair['public'],
+            'private_pem' => $pair['private'],
+            'created_at' => date('Y-m-d H:i:s'),
+        ));
+        return array('public' => $pair['public'], 'private' => $pair['private']);
+    }
+
+    protected function ensureQuranPushTables()
+    {
+        static $done = false;
+        if ($done) {
+            return true;
+        }
+        if (!$this->db->table_exists('quran_push_vapid')) {
+            $this->db->query("CREATE TABLE `quran_push_vapid` (
+                `id` TINYINT NOT NULL,
+                `public_key` VARCHAR(255) NOT NULL,
+                `private_pem` TEXT NOT NULL,
+                `created_at` DATETIME NOT NULL,
+                PRIMARY KEY (`id`)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+        }
+        if (!$this->db->table_exists('quran_push_subscription')) {
+            $this->db->query("CREATE TABLE `quran_push_subscription` (
+                `id` INT NOT NULL AUTO_INCREMENT,
+                `endpoint_hash` CHAR(64) NOT NULL,
+                `endpoint` TEXT NOT NULL,
+                `p256dh` VARCHAR(255) NOT NULL,
+                `auth` VARCHAR(64) NOT NULL,
+                `created_at` DATETIME NOT NULL,
+                `updated_at` DATETIME NOT NULL,
+                PRIMARY KEY (`id`),
+                UNIQUE KEY `uq_qps_endpoint` (`endpoint_hash`)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+        }
+        if (!$this->db->table_exists('quran_push_student')) {
+            $this->db->query("CREATE TABLE `quran_push_student` (
+                `subscription_id` INT NOT NULL,
+                `student_id` INT NOT NULL,
+                `created_at` DATETIME NOT NULL,
+                PRIMARY KEY (`subscription_id`, `student_id`),
+                KEY `idx_qps_student` (`student_id`)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+        }
+        $done = $this->db->table_exists('quran_push_vapid')
+            && $this->db->table_exists('quran_push_subscription')
+            && $this->db->table_exists('quran_push_student');
+        return $done;
+    }
+
+    /**
+     * Children covered by one class session: the group, or that facilitator's assigned students.
+     *
+     * @return int[]
+     */
+    protected function sessionStudentIds($row)
+    {
+        $wanted = array();
+        $groupId = 0;
+        if (isset($row->group_id) && $this->db->field_exists('group_id', 'academy_class_session')) {
+            $groupId = (int) $row->group_id;
+        }
+        if ($groupId > 0 && $this->groupsReady()) {
+            foreach ($this->groupMemberIds($groupId) as $sid) {
+                if ((int) $sid > 0) {
+                    $wanted[(int) $sid] = true;
+                }
+            }
+        } elseif ($this->db->table_exists('academy_teacher_student')) {
+            $rows = $this->db->select('student_id')->get_where('academy_teacher_student', array(
+                'branch_id' => (int) $row->branch_id,
+                'teacher_id' => (int) $row->teacher_id,
+                'session_id' => (int) get_session_id(),
+            ))->result();
+            foreach ($rows as $one) {
+                $wanted[(int) $one->student_id] = true;
+            }
+        }
+        return array_keys($wanted);
     }
 
     /**
@@ -2300,6 +2529,9 @@ class Academy_model extends MY_Model
                         isset($params[2]) ? $params[2] : 'Session sealed',
                     );
                     $token = isset($r['playlist_token']) ? $r['playlist_token'] : '';
+                    if ($token !== '') {
+                        $token .= '/hear';
+                    }
                     $result = $this->whatsapp_cloud->sendTemplate(
                         $phone,
                         $body5,
@@ -2332,7 +2564,7 @@ class Academy_model extends MY_Model
                     $fallbackParams = $params;
                     if (!empty($r['playlist_token'])) {
                         $base = defined('PUBLIC_SITE_URL') ? rtrim(PUBLIC_SITE_URL, '/') : rtrim(base_url(), '/');
-                        $fallbackParams[3] = $base . '/quran/' . $r['playlist_token'];
+                        $fallbackParams[3] = $base . '/quran/' . $r['playlist_token'] . '/hear';
                     } elseif ($listenUrl !== '') {
                         $fallbackParams[3] = $listenUrl;
                     }
@@ -3346,6 +3578,10 @@ class Academy_model extends MY_Model
                     $this->db->field_exists('group_id', 'academy_class_session') ? (int) $row->group_id : 0,
                     isset($row->milestone_id) ? (int) $row->milestone_id : 0
                 );
+                try {
+                    $this->notifyAcknowledgedParents($row);
+                } catch (Throwable $e) {
+                }
                 return null;
             }
             $this->db->where('id', (int) $row->id)->update('academy_class_session', array(
@@ -4388,5 +4624,54 @@ class Academy_model extends MY_Model
             'link' => $link,
             'is_read' => 0,
         ));
+    }
+
+    /**
+     * Build per-student share messages for WhatsApp group sharing.
+     * Same student resolution as dispatchSealedDigests, but only produces text.
+     *
+     * @return array  Array of individual message strings, one per student.
+     */
+    public function sessionShareMessages($branchId, $teacherId, $date, $groupId = 0, $milestoneId = 0)
+    {
+        $wanted = array();
+        $groupId = (int) $groupId;
+        if ($groupId > 0 && $this->groupsReady()) {
+            foreach ($this->groupMemberIds($groupId) as $sid) {
+                $wanted[$sid] = true;
+            }
+        } elseif ($this->db->table_exists('academy_teacher_student')) {
+            $rows = $this->db->select('student_id')->get_where('academy_teacher_student', array(
+                'branch_id' => (int) $branchId,
+                'teacher_id' => (int) $teacherId,
+                'session_id' => (int) get_session_id(),
+            ))->result();
+            foreach ($rows as $row) {
+                $wanted[(int) $row->student_id] = true;
+            }
+        }
+        if (empty($wanted)) {
+            return array();
+        }
+
+        $broadcast = $this->generateDailyBroadcast($branchId);
+        $messages = array();
+        foreach ((isset($broadcast['reports']) ? $broadcast['reports'] : array()) as $report) {
+            $sid = (int) $report['student_id'];
+            if (!isset($wanted[$sid])) {
+                continue;
+            }
+            // Enrich with milestone-specific data if available
+            $row = $this->digestMilestoneRow($sid, (int) $teacherId, $date, (int) $milestoneId);
+            if ($row) {
+                $line = $this->sealedDigestLine(array($row), array());
+                $report['teacher_name'] = $line['teacher'];
+                $report['portion'] = $line['portion'];
+                $report['sealed_at'] = $line['sealed_at'];
+                $report['playlist_token'] = $this->quranPlaylistToken($sid);
+            }
+            $messages[] = $this->sealedRecordShareBlock($report);
+        }
+        return $messages;
     }
 }

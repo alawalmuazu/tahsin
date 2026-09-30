@@ -68,8 +68,10 @@ window.addEventListener('appinstalled', function () {
 	document.documentElement.setAttribute('data-theme', theme);
 })();
 (function () {
+	var hear = /\/hear\/?$/.test(location.pathname) || /(?:\?|&)play=1(?:&|$)/.test(location.search) || location.hash === '#play';
+	if (hear) document.documentElement.classList.add('hear');
 	var installed = (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) || window.navigator.standalone;
-	if (!installed) document.documentElement.classList.add('no-open');
+	if (!installed || hear) document.documentElement.classList.add('no-open');
 })();
 </script>
 <style>
@@ -135,7 +137,13 @@ html[data-theme="dark"] .clip.on{border-color:var(--accent)}
 .open-bar span{width:100%}
 }
 html.no-open .open{display:none}
-html.quran-installed .install{display:none}
+html.quran-installed .install:not(.notify),html.hear .install:not(.notify){display:none}
+.ayah-row{display:flex;flex-wrap:wrap;gap:.4rem;justify-content:center;margin:.15rem 0 .85rem}
+.ayah-row button{min-width:2.15rem;height:2.15rem;padding:0 .45rem;border-radius:999px;border:1px solid var(--num-line);background:transparent;color:var(--num);font-weight:700}
+.ayah-row button.lit{background:#0f766e;color:#fff;border-color:#0f766e}
+.hear-go{display:none}
+html.hear .hear-go{display:block;width:100%;margin:.35rem 0 .85rem;background:#0f766e;color:#fff;border:0;border-radius:999px;padding:.9rem 1rem;font-weight:700;font-size:1.05rem}
+html.hear .hear-go.gone{display:none}
 </style>
 </head>
 <body>
@@ -178,6 +186,12 @@ html.quran-installed .install{display:none}
 		</div>
 		<button type="button" id="theme_toggle" class="theme">Dark</button>
 	</div>
+	<?php if (!empty($vapid_public)): ?>
+	<div class="install notify" id="notify_box">
+		<button type="button" id="notify_on">Turn on session alerts</button>
+		<p id="notify_note">When an admin acknowledges a session that includes this child, this phone shows a notification. Tap the notification to hear the recording.</p>
+	</div>
+	<?php endif; ?>
 	<div class="install">
 		<button type="button" id="install_quran">Install <?php echo html_escape($install['name']); ?></button>
 		<p id="install_note">Tap Install Quran, then confirm the question Chrome shows. The icon is this student's photo.</p>
@@ -186,6 +200,8 @@ html.quran-installed .install{display:none}
 	<?php if (empty($clips)): ?>
 		<p>No sealed recitation is on this playlist yet.</p>
 	<?php else: ?>
+	<div id="ayah_row" class="ayah-row" hidden></div>
+	<button type="button" id="hear_go" class="hear-go">Hear this recitation</button>
 	<div id="mushaf" class="mushaf empty">Choose a recording. Its ayahs appear here and light up as it plays.</div>
 	<div class="player">
 		<div class="now-title" id="now_title"><?php echo html_escape($clips[0]['portion']); ?></div>
@@ -210,7 +226,7 @@ html.quran-installed .install{display:none}
 <script>
 if ('serviceWorker' in navigator) {
 	var quranSwScope = '<?php echo base_url('quran/'); ?>';
-	navigator.serviceWorker.register('<?php echo base_url('quran/sw.js'); ?>?v=5', { scope: quranSwScope, updateViaCache: 'none' }).then(function (reg) {
+	navigator.serviceWorker.register('<?php echo base_url('quran/sw.js'); ?>?v=6', { scope: quranSwScope, updateViaCache: 'none' }).then(function (reg) {
 		return navigator.serviceWorker.ready.then(function () {
 			var worker = reg.active || navigator.serviceWorker.controller;
 			if (!worker) return;
@@ -219,7 +235,7 @@ if ('serviceWorker' in navigator) {
 				worker.postMessage({ type: 'claim' });
 			}
 			var warmed = false;
-			try { warmed = sessionStorage.getItem('quran-sw-v5') === '1'; } catch (e) {}
+			try { warmed = sessionStorage.getItem('quran-sw-v6') === '1'; } catch (e) {}
 			if (warmed) return;
 			var channel = new MessageChannel();
 			var settled = false;
@@ -228,8 +244,8 @@ if ('serviceWorker' in navigator) {
 				settled = true;
 				var marked = false;
 				try {
-					sessionStorage.setItem('quran-sw-v5', '1');
-					marked = sessionStorage.getItem('quran-sw-v5') === '1';
+					sessionStorage.setItem('quran-sw-v6', '1');
+					marked = sessionStorage.getItem('quran-sw-v6') === '1';
 				} catch (e2) {}
 				if (reload && marked) window.location.reload();
 			}
@@ -311,6 +327,90 @@ document.getElementById('install_quran').addEventListener('click', function () {
 		note.textContent = 'Chrome is ready. Tap Install Quran again, then confirm.';
 	});
 });
+(function () {
+	var btn = document.getElementById('notify_on');
+	var note = document.getElementById('notify_note');
+	if (!btn || !note) return;
+	var key = <?php echo json_encode(isset($vapid_public) ? $vapid_public : ''); ?>;
+	var url = <?php echo json_encode(site_url('quran/' . $token . '/notify')); ?>;
+	var store = 'quran-notify-' + window.__quranToken;
+	function ios() {
+		return /iphone|ipad|ipod/i.test(navigator.userAgent || '');
+	}
+	function remember() {
+		try { localStorage.setItem(store, '1'); } catch (e) {}
+	}
+	function markOn() {
+		btn.textContent = 'Session alerts are on';
+		btn.disabled = true;
+		note.textContent = 'This phone alerts you when an admin acknowledges a session that includes this child.';
+		remember();
+	}
+	function keyBytes(b64) {
+		var padding = '='.repeat((4 - b64.length % 4) % 4);
+		var base64 = (b64 + padding).replace(/-/g, '+').replace(/_/g, '/');
+		var raw = atob(base64);
+		var out = new Uint8Array(raw.length);
+		var i;
+		for (i = 0; i < raw.length; i++) out[i] = raw.charCodeAt(i);
+		return out;
+	}
+	function subscribe() {
+		if (!key || !('serviceWorker' in navigator) || !('PushManager' in window)) {
+			note.textContent = (ios() && !quranIsStandalone())
+				? 'On iPhone, install the app first, open it from the home screen, then tap Turn on session alerts.'
+				: 'This phone cannot show these alerts.';
+			btn.disabled = false;
+			return Promise.resolve();
+		}
+		return navigator.serviceWorker.ready.then(function (reg) {
+			return reg.pushManager.getSubscription().then(function (existing) {
+				if (existing) return existing;
+				return reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: keyBytes(key) });
+			});
+		}).then(function (sub) {
+			return fetch(url, {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				credentials: 'same-origin',
+				body: JSON.stringify(sub)
+			});
+		}).then(function (res) {
+			return res.json().then(function (data) {
+				if (!res.ok || !data || !data.ok) throw new Error('save');
+				markOn();
+			});
+		});
+	}
+	btn.addEventListener('click', function () {
+		if (ios() && !quranIsStandalone()) {
+			note.textContent = 'On iPhone, install the app first, open it from the home screen, then tap Turn on session alerts.';
+			return;
+		}
+		if (!window.Notification || !key) {
+			note.textContent = 'This phone cannot show these alerts.';
+			return;
+		}
+		btn.disabled = true;
+		note.textContent = 'Allow notifications when the phone asks.';
+		Promise.resolve(Notification.requestPermission()).then(function (result) {
+			if (result !== 'granted') {
+				btn.disabled = false;
+				note.textContent = 'Notifications are blocked. Allow them for this app in the phone settings, then tap the button again.';
+				return;
+			}
+			return subscribe();
+		}).catch(function () {
+			btn.disabled = false;
+			note.textContent = 'The alert could not be turned on. Open the installed app and try again.';
+		});
+	});
+	try {
+		if (localStorage.getItem(store) === '1' && window.Notification && Notification.permission === 'granted') {
+			subscribe().catch(function () { btn.disabled = false; });
+		}
+	} catch (e) {}
+})();
 </script>
 <?php if (!empty($clips)): ?>
 <script>
@@ -378,6 +478,38 @@ document.getElementById('install_quran').addEventListener('click', function () {
 	function showMeta(clip) {
 		document.getElementById('now_title').textContent = clip.portion;
 		document.getElementById('now_meta').textContent = (pos + 1) + ' of ' + order.length + ' · ' + clip.date + ' · ' + clip.time + ' · ' + clip.teacher;
+		paintAyahRow(clip);
+	}
+
+	function paintAyahRow(clip) {
+		var row = document.getElementById('ayah_row');
+		if (!row || !clip) return;
+		var from = Number(clip.from) || 0;
+		var to = Number(clip.to) || from;
+		row.innerHTML = '';
+		if (!from || to < from) {
+			row.hidden = true;
+			return;
+		}
+		if (to - from > 40) to = from + 40;
+		row.hidden = false;
+		var n;
+		for (n = from; n <= to; n++) {
+			var cell = document.createElement('button');
+			cell.type = 'button';
+			cell.textContent = String(n);
+			cell.addEventListener('click', function () { playClip(true); });
+			row.appendChild(cell);
+		}
+		lightAyah(!audio.paused);
+	}
+
+	function lightAyah(on) {
+		var row = document.getElementById('ayah_row');
+		if (!row) return;
+		var cells = row.querySelectorAll('button');
+		var i;
+		for (i = 0; i < cells.length; i++) cells[i].classList.toggle('lit', !!on);
 	}
 
 	function fetchSurah(num) {
@@ -667,11 +799,17 @@ document.getElementById('install_quran').addEventListener('click', function () {
 	audio.addEventListener('playing', function () { skips = 0; });
 	audio.addEventListener('play', function () {
 		if (audioCtx && audioCtx.state === 'suspended' && audioCtx.resume) audioCtx.resume();
+		lightAyah(true);
+		var hearGo = document.getElementById('hear_go');
+		if (hearGo) hearGo.classList.add('gone');
 		paintButtons();
 		cancelAnimationFrame(frame);
 		frame = requestAnimationFrame(follow);
 	});
-	audio.addEventListener('pause', paintButtons);
+	audio.addEventListener('pause', function () {
+		lightAyah(false);
+		paintButtons();
+	});
 	audio.addEventListener('ended', function () {
 		if (repeat === 'one') {
 			audio.currentTime = 0;
@@ -699,11 +837,19 @@ document.getElementById('install_quran').addEventListener('click', function () {
 		}
 	});
 
+	var hear = document.documentElement.classList.contains('hear');
+	if (hear) audio.preload = 'auto';
 	showMeta(clips[0]);
 	renderText(clips[0]);
 	renderQueue();
 	paintButtons();
-	audio.src = clips[0].audio;
+	if (hear) {
+		var hearGo = document.getElementById('hear_go');
+		if (hearGo) hearGo.addEventListener('click', function () { playClip(true); });
+		playClip(true);
+	} else {
+		audio.src = clips[0].audio;
+	}
 })();
 </script>
 <?php endif; ?>

@@ -23,7 +23,7 @@
 		<p>Each digest is one sealed sentence: student, teacher, portion. The recitation audio is attached after the template.</p>
 	</div>
 	<div>
-		<?php if (!empty($wa_ready)): ?>
+		<?php if (!empty($wa_ready) && !empty($broadcast['reports'])): ?>
 		<?php echo form_open(base_url('academy_broadcast'), array('style' => 'display:inline', 'class' => 'bcast-wa-send-form', 'data-confirm' => "Send today's digests to all parents with a phone number via WhatsApp Cloud API?")); ?>
 		<input type="hidden" name="ajax" value="1">
 		<button type="submit" name="send_cloud_api" value="1" class="btn btn-success"><i class="fab fa-whatsapp"></i> Send digests via WhatsApp API</button>
@@ -81,9 +81,19 @@ $cohortMsg = isset($broadcast['cohort_message']) ? $broadcast['cohort_message'] 
 <?php if (!empty($cohortReports)): ?>
 <div class="bcast-cohort">
 	<h5>Share cohort</h5>
-	<p class="text-muted" style="margin:0 0 .65rem;font-size:.82rem">Opens your WhatsApp so you pick the group. One message, with each child’s sealed record written in it.</p>
-	<pre class="bcast-msg" style="margin-bottom:.75rem"><?php echo html_escape($cohortMsg); ?></pre>
-	<a href="<?php echo 'https://api.whatsapp.com/send?text=' . rawurlencode($cohortMsg); ?>" target="_blank" class="btn btn-success btn-sm"><i class="fab fa-whatsapp"></i> Share cohort</a>
+	<p class="text-muted" style="margin:0 0 .65rem;font-size:.82rem">One click sends each child’s message automatically. You do not tap Send in WhatsApp.</p>
+	<?php foreach ($cohortReports as $ci => $cr): ?>
+	<?php if ($ci > 0): ?>
+	<p class="text-muted" style="margin:.15rem 0 .5rem;font-size:.8rem">then</p>
+	<?php endif; ?>
+	<pre class="bcast-msg" style="margin-bottom:.75rem"><?php echo html_escape($this->academy_model->sealedRecordShareBlock($cr)); ?></pre>
+	<?php endforeach; ?>
+	<?php if (!empty($wa_ready)): ?>
+	<?php echo form_open(base_url('academy_broadcast'), array('style' => 'display:inline', 'class' => 'bcast-wa-send-form', 'data-confirm' => 'Send each child’s WhatsApp message now?')); ?>
+	<input type="hidden" name="ajax" value="1">
+	<button type="submit" name="send_cloud_api" value="1" class="btn btn-success btn-sm"><i class="fab fa-whatsapp"></i> Share cohort</button>
+	<?php echo form_close(); ?>
+	<?php endif; ?>
 	<button type="button" class="btn btn-default btn-sm" id="bcast_copy_cohort"><i class="fas fa-copy"></i> Copy records</button>
 </div>
 <?php endif; ?>

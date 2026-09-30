@@ -20,7 +20,7 @@ class Quran extends CI_Controller
         $this->output->set_header('Expires: ' . gmdate('D, d M Y H:i:s', time() + 300) . ' GMT');
     }
 
-    public function playlist($token = '')
+    public function playlist($token = '', $hear = '')
     {
         $studentId = $this->academy_model_id($token);
         if ($studentId < 1) {
@@ -34,8 +34,42 @@ class Quran extends CI_Controller
             'token' => $token,
             'install' => $install,
             'clips' => $clips,
+            'hear' => ($hear === 'hear'),
+            'vapid_public' => $this->academy_model->quranPushPublicKey(),
             'manifest' => site_url('quran/' . $token . '/manifest.webmanifest'),
         ));
+    }
+
+    /**
+     * The installed app posts its push subscription here, tied to this child's token.
+     */
+    public function notify($token = '')
+    {
+        $studentId = $this->academy_model_id($token);
+        if ($studentId < 1) {
+            show_404();
+            return;
+        }
+        if (strtoupper($this->input->server('REQUEST_METHOD')) !== 'POST') {
+            $this->output->set_status_header(405)->set_content_type('application/json')->set_output('{"ok":false}');
+            return;
+        }
+        $data = json_decode((string) $this->input->raw_input_stream, true);
+        if (!is_array($data)) {
+            $data = array();
+        }
+        $keys = isset($data['keys']) && is_array($data['keys']) ? $data['keys'] : array();
+        $this->load->model('academy_model');
+        $ok = $this->academy_model->saveQuranPushSubscription(
+            $studentId,
+            isset($data['endpoint']) ? $data['endpoint'] : '',
+            isset($keys['p256dh']) ? $keys['p256dh'] : '',
+            isset($keys['auth']) ? $keys['auth'] : ''
+        );
+        $this->output
+            ->set_status_header($ok ? 200 : 422)
+            ->set_content_type('application/json')
+            ->set_output(json_encode(array('ok' => (bool) $ok)));
     }
 
     public function manifest($token = '')
