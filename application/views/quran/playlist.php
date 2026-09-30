@@ -25,6 +25,8 @@ window.__quranInstallWait = [];
 window.__quranToken = <?php echo json_encode($token); ?>;
 window.__quranStudent = <?php echo json_encode($install['student_name']); ?>;
 window.__quranSchool = <?php echo json_encode($install['school_name']); ?>;
+window.__quranLogo = <?php echo json_encode($install['school_logo']); ?>;
+window.__quranPhoto = <?php echo json_encode($install['photo']); ?>;
 window.__quranStart = <?php echo json_encode(site_url('quran/' . $token)); ?>;
 window.__quranManifest = <?php echo json_encode($manifest); ?>;
 function quranIsStandalone() {
@@ -114,6 +116,11 @@ html[data-theme="dark"] .transport button.on{color:var(--accent);border-color:va
 .playall{display:block;width:100%;margin-top:.55rem}
 .share-rec{display:block;width:100%;margin-top:.45rem;background:transparent;color:var(--text);border:1px solid #0f766e;border-radius:999px;padding:.7rem 1.1rem;font-weight:700;font-size:1rem}
 .share-note{margin:.4rem 0 0;font-size:.78rem;color:var(--muted);text-align:center}
+.share-film{position:fixed;inset:0;z-index:60;display:none;align-items:center;justify-content:center;padding:1.25rem;background:rgba(16,24,22,.94);color:#f6f1e6;text-align:center}
+.share-film.on{display:flex}
+.share-film canvas{width:min(260px,70vw);height:auto;border-radius:18px;margin-bottom:.85rem;box-shadow:0 16px 40px rgba(0,0,0,.35)}
+.share-film strong{display:block;font-size:1.05rem}
+.share-film p{margin:.35rem 0 0;color:#b7c4bb;font-size:.85rem}
 .queue{margin-top:.25rem}
 .clip{display:block;width:100%;text-align:left;background:var(--card);border-radius:14px;padding:.85rem 1rem;margin:0 0 .55rem;border:1px solid var(--line);font:inherit;color:inherit;cursor:pointer}
 .clip.on{border-color:#0f766e;background:var(--soft)}
@@ -233,10 +240,17 @@ html.hear .hear-go.gone{display:none}
 		</div>
 		<button type="button" id="btn_all" class="playall">Play all</button>
 		<button type="button" id="btn_share" class="share-rec">Share recitation</button>
-		<p id="share_note" class="share-note">Choose WhatsApp Status, WhatsApp, or another app.</p>
+		<p id="share_note" class="share-note">Makes a video of this recitation, then opens WhatsApp Status and your other apps.</p>
 	</div>
 	<div class="queue" id="queue"></div>
 	<audio id="qpl_audio" preload="metadata"></audio>
+	<div id="share_film" class="share-film" aria-live="polite">
+		<div>
+			<canvas id="share_canvas" width="720" height="1280"></canvas>
+			<strong id="share_film_title">Making the video</strong>
+			<p id="share_film_note">The ayah highlights while the recitation plays.</p>
+		</div>
+	</div>
 	<script type="application/json" id="qpl_data"><?php echo $clipsJson; ?></script>
 	<?php endif; ?>
 </div>
@@ -550,11 +564,14 @@ document.getElementById('install_quran').addEventListener('click', function () {
 		document.getElementById('btn_play').textContent = audio.paused ? 'Play' : 'Pause';
 	}
 
+	var pendingShareFile = null;
 	function showMeta(clip) {
 		document.getElementById('now_title').textContent = clip.portion;
 		document.getElementById('now_meta').textContent = (pos + 1) + ' of ' + order.length + ' · ' + clip.date + ' · ' + clip.time + ' · ' + clip.teacher;
 		paintAyahRow(clip);
-		prepareShare(clip);
+		pendingShareFile = null;
+		var shareBtn = document.getElementById('btn_share');
+		if (shareBtn) shareBtn.textContent = 'Share recitation';
 	}
 
 	function paintAyahRow(clip) {
@@ -814,50 +831,388 @@ document.getElementById('install_quran').addEventListener('click', function () {
 		pos = 0;
 		playClip(true);
 	});
-	var shareFiles = {};
-	function prepareShare(clip) {
-		if (!clip || !clip.audio || shareFiles[clip.audio] || !window.File) return;
-		shareFiles[clip.audio] = 'loading';
-		fetch(clip.audio).then(function (res) {
-			if (!res.ok) throw new Error('audio');
-			return res.blob();
-		}).then(function (blob) {
-			var type = blob.type && blob.type.indexOf('audio/') === 0 ? blob.type : 'audio/mpeg';
-			var who = (window.__quranStudent || 'Student').trim();
-			var base = (who + ' - ' + (clip.portion || 'Recitation')).replace(/[\\/:*?"<>|]+/g, ' ').replace(/\s+/g, ' ').trim();
-			if (base.length > 80) base = base.slice(0, 80);
-			shareFiles[clip.audio] = new File([blob], (base || 'Recitation') + '.mp3', { type: type });
-		}).catch(function () {
-			delete shareFiles[clip.audio];
+	function shareMime() {
+		var list = [
+			'video/mp4;codecs=avc1.42E01E,mp4a.40.2',
+			'video/mp4;codecs=avc1.4D401E,mp4a.40.2',
+			'video/mp4;codecs=avc1,mp4a.40.2',
+			'video/mp4'
+		];
+		if (!window.MediaRecorder || !MediaRecorder.isTypeSupported) return '';
+		var i;
+		for (i = 0; i < list.length; i++) {
+			if (MediaRecorder.isTypeSupported(list[i])) return list[i];
+		}
+		return '';
+	}
+	function loadShareImage(url) {
+		return new Promise(function (resolve) {
+			if (!url) { resolve(null); return; }
+			var img = new Image();
+			img.onload = function () { resolve(img); };
+			img.onerror = function () { resolve(null); };
+			img.src = url;
+		});
+	}
+	function wrapShareText(ctx, text, maxWidth) {
+		var parts = String(text || '').split(/\s+/);
+		var lines = [];
+		var line = '';
+		var i;
+		for (i = 0; i < parts.length; i++) {
+			var test = line ? line + ' ' + parts[i] : parts[i];
+			if (ctx.measureText(test).width > maxWidth && line) {
+				lines.push(line);
+				line = parts[i];
+			} else {
+				line = test;
+			}
+		}
+		if (line) lines.push(line);
+		return lines;
+	}
+	function layoutShareWords(ctx, list, maxWidth) {
+		var lines = [];
+		var line = [];
+		var width = 0;
+		var i;
+		for (i = 0; i < list.length; i++) {
+			var wordWidth = ctx.measureText(list[i] + ' ').width;
+			if (width + wordWidth > maxWidth && line.length) {
+				lines.push(line);
+				line = [];
+				width = 0;
+			}
+			line.push({ text: list[i], index: i, width: wordWidth });
+			width += wordWidth;
+		}
+		if (line.length) lines.push(line);
+		return lines;
+	}
+	function shareWordIndex(t, duration, count, marks) {
+		if (marks && marks.length) {
+			if (t < marks[0].start) return -1;
+			var last = marks.length - 1;
+			if (t >= marks[last].end) return last;
+			var i;
+			for (i = 0; i < marks.length; i++) {
+				if (t >= marks[i].start && t < marks[i].end) return i;
+				if (t < marks[i].start) return i - 1;
+			}
+			return last;
+		}
+		if (!count || !duration) return -1;
+		return Math.min(count - 1, Math.floor((t / duration) * count));
+	}
+	function drawCover(ctx, img, dx, dy, dw, dh) {
+		var scale = Math.max(dw / img.width, dh / img.height);
+		var sw = dw / scale;
+		var sh = dh / scale;
+		var sx = (img.width - sw) / 2;
+		var sy = (img.height - sh) / 2;
+		ctx.drawImage(img, sx, sy, sw, sh, dx, dy, dw, dh);
+	}
+	function recordShareVideo(clip, recAudio, onProgress) {
+		var mime = shareMime();
+		if (!mime || !HTMLCanvasElement.prototype.captureStream) {
+			return Promise.reject(new Error('mp4'));
+		}
+		var who = (window.__quranStudent || 'Student').trim();
+		var school = (window.__quranSchool || 'Tahsin Academy').trim();
+		var ayahs = [];
+		var a;
+		for (a = Number(clip.from) || 0; a <= (Number(clip.to) || 0); a++) ayahs.push(a);
+		if (!ayahs.length || ayahs.length > 40) ayahs = [];
+		var textPromise = clip.surah ? fetchSurah(clip.surah).catch(function () { return []; }) : Promise.resolve([]);
+		return Promise.all([
+			document.fonts && document.fonts.load ? document.fonts.load('700 64px "Scheherazade New"') : Promise.resolve(),
+			loadShareImage(window.__quranLogo),
+			loadShareImage(window.__quranPhoto),
+			textPromise
+		]).then(function (loaded) {
+			var logo = loaded[1];
+			var photo = loaded[2];
+			var ayah = loaded[3] || [];
+			var arabic = [];
+			var ayahOf = [];
+			var wanted = {};
+			var n;
+			for (n = 0; n < ayahs.length; n++) wanted[ayahs[n]] = true;
+			ayah.forEach(function (row) {
+				var num = Number(row.numberInSurah);
+				if (!wanted[num] || !row.text) return;
+				row.text.trim().split(/\s+/).forEach(function (bit) {
+					if (!bit) return;
+					arabic.push(bit);
+					ayahOf.push(num);
+				});
+			});
+			var timingPromise = arabic.length ? decodeTimings(clip.audio, arabic.length) : Promise.resolve(null);
+			return timingPromise.then(function (marks) {
+				return { logo: logo, photo: photo, arabic: arabic, ayahOf: ayahOf, marks: marks, who: who, school: school };
+			});
+		}).then(function (pack) {
+			return new Promise(function (resolve, reject) {
+				var canvas = document.getElementById('share_canvas');
+				var ctx = canvas.getContext('2d');
+				var ctxAudio = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+				audioCtx = ctxAudio;
+				recAudio.pause();
+				recAudio.muted = false;
+				try { recAudio.currentTime = 0; } catch (e) {}
+				var source = ctxAudio.createMediaElementSource(recAudio);
+				var dest = ctxAudio.createMediaStreamDestination();
+				source.connect(dest);
+				source.connect(ctxAudio.destination);
+				var mixed = new MediaStream();
+				canvas.captureStream(30).getVideoTracks().forEach(function (track) { mixed.addTrack(track); });
+				dest.stream.getAudioTracks().forEach(function (track) { mixed.addTrack(track); });
+				var recorder;
+				try {
+					recorder = new MediaRecorder(mixed, { mimeType: mime, videoBitsPerSecond: 2200000, audioBitsPerSecond: 128000 });
+				} catch (err) {
+					try { source.disconnect(); } catch (e) {}
+					try { recAudio.pause(); } catch (e2) {}
+					reject(err);
+					return;
+				}
+				var chunks = [];
+				var settled = false;
+				function finish(err, blob) {
+					if (settled) return;
+					settled = true;
+					try { source.disconnect(); } catch (e) {}
+					try { recAudio.pause(); } catch (e2) {}
+					if (err) reject(err);
+					else resolve(blob);
+				}
+				recorder.ondataavailable = function (ev) { if (ev.data && ev.data.size) chunks.push(ev.data); };
+				recorder.onerror = function () { finish(new Error('record')); };
+				recorder.onstop = function () {
+					var blob = new Blob(chunks, { type: 'video/mp4' });
+					if (blob.size < 1000) finish(new Error('empty'));
+					else finish(null, blob);
+				};
+				function paint(t, duration) {
+					var w = canvas.width;
+					var h = canvas.height;
+					ctx.fillStyle = '#10241e';
+					ctx.fillRect(0, 0, w, h);
+					ctx.fillStyle = '#e4c98a';
+					ctx.fillRect(0, 0, w, 10);
+					var y = 56;
+					if (pack.logo) {
+						var lw = 84;
+						var lh = Math.max(36, (pack.logo.height / pack.logo.width) * lw);
+						ctx.drawImage(pack.logo, (w - lw) / 2, y, lw, lh);
+						y += lh + 22;
+					}
+					ctx.fillStyle = '#f6f1e6';
+					ctx.textAlign = 'center';
+					ctx.font = '600 34px Outfit, sans-serif';
+					ctx.fillText(pack.school, w / 2, y + 28);
+					y += 58;
+					var radius = 72;
+					var photoY = y + radius;
+					ctx.save();
+					ctx.beginPath();
+					ctx.arc(w / 2, photoY, radius, 0, Math.PI * 2);
+					ctx.fillStyle = '#1c332b';
+					ctx.fill();
+					ctx.clip();
+					if (pack.photo) drawCover(ctx, pack.photo, w / 2 - radius, photoY - radius, radius * 2, radius * 2);
+					ctx.restore();
+					ctx.beginPath();
+					ctx.arc(w / 2, photoY, radius, 0, Math.PI * 2);
+					ctx.strokeStyle = '#e4c98a';
+					ctx.lineWidth = 5;
+					ctx.stroke();
+					y = photoY + radius + 48;
+					ctx.fillStyle = '#f6f1e6';
+					ctx.font = '700 40px Outfit, sans-serif';
+					ctx.fillText(pack.who, w / 2, y);
+					y += 42;
+					ctx.fillStyle = '#e4c98a';
+					ctx.font = '600 28px Outfit, sans-serif';
+					var portionLines = wrapShareText(ctx, clip.portion || '', w - 96);
+					var p;
+					for (p = 0; p < portionLines.length && p < 3; p++) {
+						ctx.fillText(portionLines[p], w / 2, y);
+						y += 36;
+					}
+					y += 8;
+					var size = pack.arabic.length > 40 ? 30 : (pack.arabic.length > 16 ? 40 : 54);
+					ctx.font = '700 ' + size + 'px "Scheherazade New", serif';
+					var lines = layoutShareWords(ctx, pack.arabic, w - 80);
+					var lineH = size + 22;
+					var lit = shareWordIndex(t, duration, pack.arabic.length, pack.marks);
+					var shownAyah = (lit >= 0 && pack.ayahOf[lit]) ? pack.ayahOf[lit] : (pack.ayahOf[0] || 0);
+					if (shownAyah) {
+						ctx.textAlign = 'center';
+						ctx.fillStyle = '#f6f1e6';
+						ctx.font = '600 26px Outfit, sans-serif';
+						ctx.fillText('Ayah ' + shownAyah, w / 2, y);
+						y += 42;
+						ctx.font = '700 ' + size + 'px "Scheherazade New", serif';
+					}
+					var li;
+					var wi;
+					var viewTop = y;
+					var maxY = h - 160;
+					var anchor = 0;
+					var seen = 0;
+					for (li = 0; li < lines.length; li++) {
+						var onLine = false;
+						for (wi = 0; wi < lines[li].length; wi++) {
+							if (lines[li][wi].index === lit) onLine = true;
+						}
+						if (onLine) { anchor = seen; break; }
+						seen += lineH;
+					}
+					var room = Math.max(lineH, maxY - viewTop);
+					var shift = anchor + lineH > room ? anchor - room * 0.35 : 0;
+					if (shift < 0) shift = 0;
+					var drawY = viewTop - shift;
+					for (li = 0; li < lines.length; li++) {
+						if (drawY > maxY) break;
+						if (drawY >= viewTop) {
+						var line = lines[li];
+						var lineWidth = 0;
+						for (wi = 0; wi < line.length; wi++) lineWidth += line[wi].width;
+						var x = (w + lineWidth) / 2;
+						for (wi = 0; wi < line.length; wi++) {
+							var word = line[wi];
+							x -= word.width;
+							if (word.index === lit) {
+								ctx.fillStyle = '#1f6b4a';
+								ctx.fillRect(x - 4, drawY - size, word.width, lineH - 6);
+							}
+							ctx.fillStyle = word.index === lit ? '#f6f1e6' : '#d7e3db';
+							ctx.textAlign = 'left';
+							ctx.fillText(word.text, x, drawY);
+						}
+						}
+						drawY += lineH;
+					}
+					ctx.textAlign = 'center';
+					var barY = h - 120;
+					ctx.fillStyle = '#1c332b';
+					ctx.fillRect(48, barY, w - 96, 8);
+					var ratio = duration ? Math.min(1, t / duration) : 0;
+					ctx.fillStyle = '#1f6b4a';
+					ctx.fillRect(48, barY, (w - 96) * ratio, 8);
+					ctx.fillStyle = '#b7c4bb';
+					ctx.font = '500 24px Outfit, sans-serif';
+					ctx.fillText([clip.date, clip.time, clip.teacher].filter(Boolean).join(' · '), w / 2, h - 64);
+				}
+				paint(0, 0);
+				recorder.start(1000);
+				if (ctxAudio.resume) ctxAudio.resume();
+				recAudio.ontimeupdate = function () {
+					if (onProgress) onProgress(recAudio.currentTime || 0, recAudio.duration || 0);
+				};
+				function frame() {
+					if (recAudio.ended) return;
+					paint(recAudio.currentTime || 0, recAudio.duration || 0);
+					requestAnimationFrame(frame);
+				}
+				recAudio.onended = function () {
+					paint(recAudio.duration || 0, recAudio.duration || 0);
+					setTimeout(function () {
+						if (recorder.state !== 'inactive') recorder.stop();
+					}, 250);
+				};
+				var started = recAudio.play();
+				var cap = setTimeout(function () {
+					if (recorder.state === 'recording') recorder.stop();
+				}, (((recAudio.duration && isFinite(recAudio.duration)) ? recAudio.duration : 180) + 4) * 1000);
+				recAudio.onloadedmetadata = function () {
+					clearTimeout(cap);
+					cap = setTimeout(function () {
+						if (recorder.state === 'recording') recorder.stop();
+					}, ((recAudio.duration || 180) + 4) * 1000);
+					if (onProgress) onProgress(0, recAudio.duration || 0);
+				};
+				if (started && started.then) {
+					started.then(frame).catch(function (err) {
+						try { if (recorder.state === 'recording') recorder.stop(); } catch (e) {}
+						finish(err);
+					});
+				} else {
+					frame();
+				}
+			});
 		});
 	}
 	document.getElementById('btn_share').addEventListener('click', function () {
 		var clip = clips[currentIndex()];
 		var note = document.getElementById('share_note');
+		var btn = document.getElementById('btn_share');
+		var film = document.getElementById('share_film');
+		var filmNote = document.getElementById('share_film_note');
 		if (!clip || !clip.audio) return;
 		var who = (window.__quranStudent || 'Student').trim();
 		var school = (window.__quranSchool || 'Tahsin Academy').trim();
 		var text = who + ' recited ' + clip.portion + ' at ' + school + '. ' + clip.date + '.';
 		var title = who + ' — ' + clip.portion;
-		var hint = 'Choose WhatsApp Status, WhatsApp, or another app.';
-		var file = shareFiles[clip.audio];
-		var data = { title: title, text: text };
-		if (file && typeof file !== 'string' && navigator.canShare && navigator.canShare({ files: [file], title: title, text: text })) {
-			data.files = [file];
-		} else {
-			data.url = clip.audio;
+		function openShare(file) {
+			if (!navigator.share) {
+				if (note) note.textContent = 'This phone cannot open the share list.';
+				return;
+			}
+			var payload = { files: [file], title: title, text: text };
+			if (navigator.canShare && !navigator.canShare(payload)) payload = { files: [file] };
+			if (navigator.canShare && !navigator.canShare(payload)) {
+				if (note) note.textContent = 'This phone cannot share the video file.';
+				return;
+			}
+			navigator.share(payload).then(function () {
+				if (note) note.textContent = 'Choose WhatsApp Status, WhatsApp, or another app.';
+			}).catch(function (err) {
+				if (err && err.name === 'AbortError') return;
+				pendingShareFile = file;
+				btn.textContent = 'Share video';
+				if (note) note.textContent = 'Video is ready. Tap Share video, then pick WhatsApp Status.';
+			});
 		}
-		if (!navigator.share) {
-			if (note) note.textContent = 'This phone cannot open the share list.';
+		if (pendingShareFile) {
+			openShare(pendingShareFile);
 			return;
 		}
-		navigator.share(data).then(function () {
-			if (note) note.textContent = hint;
-		}).catch(function (err) {
-			if (err && err.name === 'AbortError') return;
-			if (data.files && navigator.share) {
-				navigator.share({ title: title, text: text, url: clip.audio }).catch(function () {});
-			}
+		if (!shareMime()) {
+			if (note) note.textContent = 'This phone cannot make an MP4 video.';
+			return;
+		}
+		audio.pause();
+		paintButtons();
+		var Ctx = window.AudioContext || window.webkitAudioContext;
+		if (!audioCtx && Ctx) audioCtx = new Ctx();
+		if (audioCtx && audioCtx.resume) audioCtx.resume();
+		var recAudio = new Audio(clip.audio);
+		recAudio.preload = 'auto';
+		recAudio.muted = true;
+		var unlock = recAudio.play();
+		if (unlock && unlock.catch) unlock.catch(function () {});
+		btn.disabled = true;
+		btn.textContent = 'Making video…';
+		if (film) film.classList.add('on');
+		if (filmNote) filmNote.textContent = 'Loading the ayah and the recording…';
+		recordShareVideo(clip, recAudio, function (t, duration) {
+			if (filmNote) filmNote.textContent = clock(t) + ' / ' + clock(duration);
+		}).then(function (blob) {
+			var base = (who + ' - ' + (clip.portion || 'Recitation')).replace(/[\\/:*?"<>|]+/g, ' ').replace(/\s+/g, ' ').trim();
+			if (base.length > 80) base = base.slice(0, 80);
+			pendingShareFile = new File([blob], (base || 'Recitation') + '.mp4', { type: 'video/mp4' });
+			if (film) film.classList.remove('on');
+			btn.disabled = false;
+			btn.textContent = 'Share video';
+			openShare(pendingShareFile);
+		}).catch(function () {
+			try { recAudio.pause(); } catch (e) {}
+			if (film) film.classList.remove('on');
+			btn.disabled = false;
+			btn.textContent = 'Share recitation';
+			if (note) note.textContent = 'The video could not be made. Tap Share recitation to try again.';
 		});
 	});
 	document.getElementById('btn_next').addEventListener('click', function () { step(1); });
