@@ -188,7 +188,7 @@ html.hear .hear-go.gone{display:none}
 	</div>
 	<?php if (!empty($vapid_public)): ?>
 	<div class="install notify" id="notify_box">
-		<button type="button" id="notify_on">Turn on session alerts</button>
+		<button type="button" id="notify_on">Turn On Notification</button>
 		<p id="notify_note">When an admin acknowledges a session that includes this child, this phone shows a notification. Tap the notification to hear the recording.</p>
 	</div>
 	<?php endif; ?>
@@ -341,7 +341,7 @@ document.getElementById('install_quran').addEventListener('click', function () {
 		try { localStorage.setItem(store, '1'); } catch (e) {}
 	}
 	function markOn() {
-		btn.textContent = 'Session alerts are on';
+		btn.textContent = 'Notification is on';
 		btn.disabled = true;
 		note.textContent = 'This phone alerts you when an admin acknowledges a session that includes this child.';
 		remember();
@@ -358,7 +358,7 @@ document.getElementById('install_quran').addEventListener('click', function () {
 	function subscribe() {
 		if (!key || !('serviceWorker' in navigator) || !('PushManager' in window)) {
 			note.textContent = (ios() && !quranIsStandalone())
-				? 'On iPhone, install the app first, open it from the home screen, then tap Turn on session alerts.'
+				? 'On iPhone, install the app first, open it from the home screen, then tap Turn On Notification.'
 				: 'This phone cannot show these alerts.';
 			btn.disabled = false;
 			return Promise.resolve();
@@ -384,7 +384,7 @@ document.getElementById('install_quran').addEventListener('click', function () {
 	}
 	btn.addEventListener('click', function () {
 		if (ios() && !quranIsStandalone()) {
-			note.textContent = 'On iPhone, install the app first, open it from the home screen, then tap Turn on session alerts.';
+			note.textContent = 'On iPhone, install the app first, open it from the home screen, then tap Turn On Notification.';
 			return;
 		}
 		if (!window.Notification || !key) {
