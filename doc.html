@@ -495,7 +495,8 @@ flowchart TD
     achoice -->|Reject| arej["admin_rejected"]
     arej --> record
     ack --> dash["Parent and student dashboards show this teacher's scores"]
-    ack --> wa["WhatsApp digest for that group's students today"]
+    ack --> wa["WhatsApp sealed card for that group's students today"]
+    ack --> app["Parent Quran app alert when that phone subscribed"]
                 </div>
             </div>
             <ol>
@@ -504,7 +505,7 @@ flowchart TD
                 <li><strong>Record.</strong> The teacher saves only students on their own list who also sit in a group (when any groups exist). A student counts for today when this teacher wrote the drill (<code>evaluator_id</code>) or the tahfiz row (<code>instructor_id</code>). Status stays <code>recording</code> until that group’s list is complete. The same facilitator cannot save the same category, surah, and ayah range twice in one day; the save returns the earlier <code>completed_at</code> and the session status.</li>
                 <li><strong>Auto-submit.</strong> When the last member of a group is recorded for that category milestone, that group’s row moves to <code>pending_director</code>. The director (role 9), superadmin (role 1), and the teacher get a bell notice (<code>academy_notice</code>).</li>
                 <li><strong>Director.</strong> Session Review loads the weak clip for <code>pending_director</code>, <code>pending_admin</code>, and <code>acknowledged</code> rows so both director and admin can play, read the transcript, and read Tajweed mistakes before they decide. Approve moves the day to <code>pending_admin</code> and notifies the teacher, admin (role 2), and superadmin. Reject sets <code>director_rejected</code> and notifies the teacher. The next time that group is complete, it resubmits.</li>
-                <li><strong>Admin.</strong> Acknowledge on one row, or <strong>Release today's sealed sessions</strong>, sets the day to <code>acknowledged</code>. That teacher's portion and audio appear on the parent and student dashboards. The same step sends the WhatsApp digest for that session’s group members when the session date is today (<code>dispatchSealedDigests(..., group_id)</code>). Every phone on the guardian is messaged: primary <code>parent.mobileno</code> plus each number in <code>parent.extra_phones</code> (duplicates removed after E.164 normalize). A guardian with no phone falls back once to the student’s mobile; if that is empty too, the student is skipped. Director, superadmin, and the teacher are notified. Reject on a single row still sets <code>admin_rejected</code> and does not send WhatsApp. Academy → Broadcast → Send digests remains for a later resend.</li>
+                <li><strong>Admin.</strong> Acknowledge on one row, or <strong>Release today's sealed sessions</strong>, sets the day to <code>acknowledged</code>. That teacher's portion and audio appear on the parent and student dashboards. The same step sends the WhatsApp sealed card for that session’s group members when the session date is today (<code>dispatchSealedDigests(..., group_id)</code>) and alerts the installed parent Quran app for those children (<code>notifyAcknowledgedParents</code>). Every phone on the guardian is messaged: primary <code>parent.mobileno</code> plus each number in <code>parent.extra_phones</code> (duplicates removed after E.164 normalize). A guardian with no phone falls back once to the student’s mobile; if that is empty too, the student is skipped. Director, superadmin, and the teacher are notified. Reject on a single row still sets <code>admin_rejected</code> and does not send WhatsApp. Academy → Broadcast → Send digests remains for a later resend.</li>
             </ol>
             <div class="table-container">
                 <table>
@@ -593,23 +594,26 @@ flowchart TD
 
             
             <h3>WhatsApp Cloud API (Broadcast)</h3>
-            <p>Admin acknowledgement sends the parent digest itself through Meta Graph API (<code>application/libraries/Whatsapp_cloud.php</code>, <code>Academy_model::dispatchSealedDigests</code> → <code>deliverCloudDigests</code>). Configure under School Settings → WhatsApp (table <code>whatsapp_cloud_config</code>); file config is fallback only. Body variables are student, teacher, portion, and either a public HTTPS listen URL or a seal line. Cold utility templates cannot send a green voice-note bubble. When Meta has approved <code>tahsin_digest_with_audio</code> (DOCUMENT header), the clip is uploaded to Meta and attached in the template header; otherwise the body listen URL is used. WAV clips are converted to MP3 via sibling file, local <code>ffmpeg</code>, or the VPS convert endpoint (<code>media_convert_url</code>, default <code>:8002/v1/media/to-mp3</code>). A localhost Save can POST the clip to live <code>PUBLIC_SITE_URL/academy_media/receive</code> (<code>Academy_media</code>, secret <code>ACADEMY_MEDIA_SYNC_SECRET</code>) so parents and Meta fetch <code>https://tahsinacademy.ng/uploads/...</code>. <code>Academy_broadcast</code> has a manual resend plus click-to-chat. Sends are stored in <code>academy_broadcast_log</code> (one log row per phone). Migrations: <code>whatsapp_broadcast_log.sql</code>, <code>whatsapp_cloud_config.sql</code>, <code>parent_extra_phones.sql</code>.</p>
+            <p>Admin acknowledgement sends each parent a sealed-record card through Meta Graph API (<code>application/libraries/Whatsapp_cloud.php</code>, <code>Academy_model::dispatchSealedDigests</code> → <code>deliverCloudDigests</code>). Configure under School Settings → WhatsApp (table <code>whatsapp_cloud_config</code>); file config is fallback only. The card template is <code>tahsin_sealed_record</code>: document header of this session’s MP3, body fields student, facilitator, date, time, and portion, and a URL button whose suffix is <code>{playlist}/hear</code>. If that send fails, <code>tahsin_recitation_record</code> is tried, then a body-only template whose listen URL is <code>PUBLIC_SITE_URL/quran/{playlist}/hear</code>. Cold utility templates cannot send a green voice-note bubble. After a successful template, the student photo is sent as a follow-up image when the parent is inside the 24-hour care window. WAV clips are converted to MP3 via sibling file, local <code>ffmpeg</code>, or the VPS convert endpoint (<code>media_convert_url</code>, default <code>:8002/v1/media/to-mp3</code>). A localhost Save can POST the clip to live <code>PUBLIC_SITE_URL/academy_media/receive</code> (<code>Academy_media</code>, secret <code>ACADEMY_MEDIA_SYNC_SECRET</code>) so parents and Meta fetch <code>https://tahsinacademy.ng/uploads/...</code>. Sends are stored in <code>academy_broadcast_log</code> (one log row per phone). Migrations: <code>whatsapp_broadcast_log.sql</code>, <code>whatsapp_cloud_config.sql</code>, <code>parent_extra_phones.sql</code>.</p>
             <p>Guardian and parent are the same <code>parent</code> row (role 6). Student → Add Guardian Details and Parents → Add/Profile share the same <strong>+</strong> extra-phone fields (<code>application/views/parents/_extra_phones.php</code>). <code>Academy_model::parentPhoneList()</code> builds the send list from primary + extras.</p>
             <div class="mermaid-wrapper">
                 <div class="mermaid">
 flowchart TD
     ack["Admin acknowledges a session row"] --> digest["dispatchSealedDigests for that teacher and group_id"]
+    ack --> push["notifyAcknowledgedParents for subscribed phones"]
     digest --> phones["parentPhoneList: mobileno plus extra_phones"]
     phones --> each{"Each unique E.164 number"}
-    each --> clip{"Public MP3 or synced clip ready?"}
-    clip -->|Yes and template APPROVED| doc["Send tahsin_digest_with_audio with DOCUMENT header"]
-    clip -->|Else| body["Send body template with listen URL in variable 4"]
-    doc --> next["Next number"]
+    each --> clip{"This session MP3 ready?"}
+    clip -->|Yes| card["Send tahsin_sealed_record with document and /hear button"]
+    card -->|Send fails| older["Try tahsin_recitation_record then body URL"]
+    clip -->|No| body["Send body template with /hear URL"]
+    card --> next["Next number"]
+    older --> next
     body --> next
     next --> each
                 </div>
             </div>
-            <p><strong>Manual resend (Broadcast page):</strong> <strong>Send digests via WhatsApp API</strong> (batch) and per-student <strong>Send API</strong> POST to <code>academy_broadcast</code> with <code>ajax=1</code>. The browser confirms, shows a spinner, and reads a JSON result toast — no <code>Location</code> redirect (browser Redirect Blocker extensions were swallowing the old PRG redirect and looked like “nothing happened”). Non-AJAX POST falls through and renders the same page with an inline result banner. Same <code>deliverCloudDigests</code> path as acknowledgement.</p>
+            <p><strong>Manual resend (Broadcast page):</strong> <strong>Send digests via WhatsApp API</strong> shows only when today’s reports are not empty. <strong>Share cohort</strong> posts the same <code>send_cloud_api</code> action: one click sends each child’s sealed card to that parent’s number. <strong>Copy records</strong> copies the plain-text blocks. Per-student <strong>Send API</strong> POSTs <code>send_cloud_one</code>. All of these hit <code>academy_broadcast</code> with <code>ajax=1</code>. The browser confirms, shows a spinner, and reads a JSON result toast — no <code>Location</code> redirect. Non-AJAX POST falls through and renders the same page with an inline result banner. Same <code>deliverCloudDigests</code> path as acknowledgement. The With Parent Phone count includes every roster student who has a phone, including children still waiting for acknowledgement.</p>
             <div class="mermaid-wrapper">
                 <div class="mermaid">
 flowchart TD
@@ -621,7 +625,34 @@ flowchart TD
     json --> toast["Toast on page — no redirect"]
                 </div>
             </div>
-            <p><strong>Production:</strong> After deploy, run <code>academy_session_review.sql</code> (the trailing statements drop the old one-student unique key and add the multi-teacher key), <code>academy_session_by_category.sql</code> (category + milestone unique key), <code>academy_teacher_groups.sql</code> (group tables + <code>group_id</code> + <code>uq_acs_group_day</code>), <code>parent_extra_phones.sql</code> (adds <code>parent.extra_phones</code>), <code>parent_portal_approval.sql</code> (adds <code>login_credential.pwa_required</code>) and <code>whatsapp_cloud_config.sql</code> if needed, enter the permanent Meta system-user token and IDs in School Settings (never commit tokens). Prefer VPS <code>:8002/v1/media/to-mp3</code> when Cloud PHP has no <code>ffmpeg</code>. Template names must match an <strong>APPROVED</strong> Meta template. Prefer <code>tahsin_digest_with_audio</code> once APPROVED for in-chat DOCUMENT attachment; body-only templates put the listen URL in variable 4. Leave <code>tahsin_daily_digest</code> unused: it is the older drill-count wording and cannot be edited while PENDING. Acknowledgement sends that session’s group members (or the whole assigned list when <code>group_id</code> is 0), and only when the session date is today. A later manual send uses the same acknowledged rows. <strong>Remove or HTTP-auth block</strong> root <code>test_whatsapp.php</code> on live — it is local diagnostics only and can write tokens to the database. Do not switch School Settings off the working test phone number ID until the school WABA template is Approved and a token is scoped to that WABA.</p>
+            <p><strong>Production:</strong> After deploy, run <code>academy_session_review.sql</code> (the trailing statements drop the old one-student unique key and add the multi-teacher key), <code>academy_session_by_category.sql</code> (category + milestone unique key), <code>academy_teacher_groups.sql</code> (group tables + <code>group_id</code> + <code>uq_acs_group_day</code>), <code>parent_extra_phones.sql</code> (adds <code>parent.extra_phones</code>), <code>parent_portal_approval.sql</code> (adds <code>login_credential.pwa_required</code>) and <code>whatsapp_cloud_config.sql</code> if needed, enter the permanent Meta system-user token and IDs in School Settings (never commit tokens). Prefer VPS <code>:8002/v1/media/to-mp3</code> when Cloud PHP has no <code>ffmpeg</code>. Template names must match an <strong>APPROVED</strong> Meta template. The parent card is <code>tahsin_sealed_record</code>. Leave <code>tahsin_daily_digest</code> unused: it is the older drill-count wording. Acknowledgement sends that session’s group members (or the whole assigned list when <code>group_id</code> is 0), and WhatsApp only when the session date is today. The parent-app alert is sent for the same children on any session date. A later manual send uses the same acknowledged rows. <strong>Remove or HTTP-auth block</strong> root <code>test_whatsapp.php</code> on live — it is local diagnostics only and can write tokens to the database. Do not switch School Settings off the working test phone number ID until the school WABA template is Approved and a token is scoped to that WABA.</p>
+
+            <h3>Parent Quran app</h3>
+            <p>Public controller <code>Quran</code>. Routes under <code>quran/</code> must be registered before the catch-all <code>quran/(:any)</code>. The playlist token is the student id plus an HMAC (<code>QURAN_PLAYLIST_KEY</code>). One child installs as <strong>Quran</strong>; each extra child in the same family installs as <strong>Quran</strong> plus that child’s first name. The home-screen icon is the student photo, drawn at 192 and 512 by <code>Quran::icon</code>. After a successful install, <strong>Install Quran</strong> stays hidden for that child until the app is removed. Service worker: <code>quran/sw.js</code>.</p>
+            <p>The WhatsApp button opens <code>/quran/{token}/hear</code>. That page hides Install Quran, shows the sealed ayah numbers, and starts the newest recording. If the phone blocks autoplay, <strong>Hear this recitation</strong> stays until the parent taps it.</p>
+            <p><strong>Turn On Notification</strong> asks for permission and POSTs the push subscription to <code>quran/{token}/notify</code>. Tables <code>quran_push_vapid</code>, <code>quran_push_subscription</code>, and <code>quran_push_student</code> are created on first use. One phone can subscribe to more than one child. After a successful turn-on, the button stays hidden. <strong>Turn off notification</strong> removes only that child’s link and shows the button again. Admin acknowledgement calls <code>notifyAcknowledgedParents</code>; the tap opens <code>/hear</code>. <code>application/libraries/Web_push.php</code> sends the alert.</p>
+            <p><strong>Share recitation</strong> on the open clip calls the phone share sheet in the same tap (<code>navigator.share</code>). When the recording file is already prepared and the phone accepts it, that file is attached. Otherwise the sheet carries the caption and the recording URL. The parent then picks WhatsApp Status, WhatsApp, or another app. The private playlist link is not included.</p>
+            <p>On <code>student/view</code>, each row’s green WhatsApp action opens WhatsApp on the saved parent number with that child’s install link (<code>Student_model::quranShareAction</code>). The link is <code>PUBLIC_SITE_URL/quran/{token}</code> so <strong>Install Quran</strong> is visible. If no parent number is saved, WhatsApp opens without a chat selected.</p>
+            <p>A new student photo appears inside the app the next time the parent opens it online. The home-screen icon is the copy saved at install and does not replace itself.</p>
+            <div class="mermaid-wrapper">
+                <div class="mermaid">
+flowchart TD
+    staff["Staff shares install link from student list"] --> wa["WhatsApp opens the parent number"]
+    wa --> open["Parent opens the child Quran page"]
+    open --> install["Install Quran"]
+    install --> hide["Install button stays hidden for that child"]
+    open --> notify["Turn On Notification"]
+    notify --> sub["Phone subscription saved for this child"]
+    sub --> quiet["Button stays hidden"]
+    quiet --> off["Turn off notification"]
+    off --> notify
+    ack["Admin acknowledges the session"] --> card["WhatsApp sealed card with /hear"]
+    ack --> alert["App alert on subscribed phones"]
+    card --> hear["Parent taps and the sealed ayah plays"]
+    alert --> hear
+    hear --> share["Share recitation opens the phone app list"]
+                </div>
+            </div>
 
             <h3>Recitation categories &amp; portion modes</h3>
             <p>Required before save (see <code>Academy_model::recitationCategories()</code>): Hifz Fauq, Hifz Taht, Talqeen, Murajaa Qareebah, Murajaa Baeedah, Musaffa, Qiyaamullail. Portion modes: Full Surah, Single Ayah, From–To Ayah, Summu'i, Rubbu'i, Safha.</p>
@@ -650,6 +681,7 @@ flowchart TD
                         <tr><td><code>App_lib</code></td><td>Hybrid board/branch queries, addon detection (<code>isExistingAddon('saas')</code>), bill numbers, table helpers</td></tr>
                         <tr><td><code>MY_Model</code></td><td>Password hash, image upload, generic <code>get()</code> that auto-scopes <code>branch_id</code> unless Super Admin</td></tr>
                         <tr><td><code>general_helper.php</code></td><td>Translation (missing strings get inserted into the DB), permissions, session/branch helpers</td></tr>
+                        <tr><td><code>Web_push</code></td><td>VAPID Web Push for the parent Quran app. Used by <code>notifyAcknowledgedParents</code>.</td></tr>
                     </tbody>
                 </table>
             </div>
@@ -693,6 +725,7 @@ erDiagram
                 <li><code>academy_class_session</code> — day review rows; unique on branch, teacher, <code>group_id</code>, date, recitation category, milestone (<code>uq_acs_group_day</code>)</li>
                 <li><code>academy_tarteel_band</code> / <code>academy_tarteel_student</code> — internal analysis levels and student assignment</li>
                 <li><code>parent.extra_phones</code> — JSON list of extra guardian numbers; sealed digests send to primary + each extra</li>
+                <li><code>quran_push_vapid</code> / <code>quran_push_subscription</code> / <code>quran_push_student</code> — parent-app alerts. Created on first use. One phone subscription can link to several children.</li>
                 <li><code>academy_daily_drill</code> — timed pillar scores</li>
                 <li><code>student.media_consent</code> — media consent flag (engine v2)</li>
                 <li><code>login_credential</code> — shared auth for staff, parent, student; <code>pwa_required</code> for parent first-install gate</li>
