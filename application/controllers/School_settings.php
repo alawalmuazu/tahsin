@@ -879,6 +879,10 @@ class School_settings extends Admin_Controller
                 'send_media_after_template' => $this->input->post('send_media_after_template') ? 1 : 0,
                 'media_max_per_student' => $mediaMax,
             );
+            if ($this->db->field_exists('parent_group_link', 'whatsapp_cloud_config')) {
+                $groupLink = trim((string) $this->input->post('parent_group_link'));
+                $row['parent_group_link'] = $groupLink !== '' ? $groupLink : null;
+            }
 
             if (empty($existing)) {
                 $this->db->insert('whatsapp_cloud_config', $row);
@@ -905,6 +909,7 @@ class School_settings extends Admin_Controller
             'template_lang' => 'en',
             'send_media_after_template' => 1,
             'media_max_per_student' => 3,
+            'parent_group_link' => '',
             'webhook_verify_token' => '',
             'has_token' => false,
         );

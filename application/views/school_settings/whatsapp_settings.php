@@ -165,6 +165,14 @@ if (!empty($whatsapp['backend_enable_chat']) && $whatsapp['backend_enable_chat']
                                 value="<?php echo (int) (isset($cloud['media_max_per_student']) ? $cloud['media_max_per_student'] : 3); ?>" />
                         </div>
                     </div>
+                    <div class="form-group mb-md">
+                        <label class="col-md-3 control-label">Parent group link</label>
+                        <div class="col-md-6">
+                            <input type="url" class="form-control" name="parent_group_link" placeholder="https://chat.whatsapp.com/..."
+                                value="<?php echo html_escape(isset($cloud['parent_group_link']) ? $cloud['parent_group_link'] : ''); ?>" />
+                            <span class="help-block mb-none">WhatsApp group invite link. After admin acknowledges a session, messages are queued for pasting into this group. Get the link from WhatsApp → Group info → Invite via link.</span>
+                        </div>
+                    </div>
                 </div>
                 <div class="panel-footer">
                     <div class="row">

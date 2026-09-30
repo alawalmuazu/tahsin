@@ -28,6 +28,17 @@ class Academy_review extends Admin_Controller
             set_alert('success', $n > 0
                 ? ('Released ' . (int) $n . ' sealed session' . ($n === 1 ? '' : 's') . '. Parent and student dashboards are updated.' . ($sent !== '' ? ' ' . $sent : ''))
                 : 'No sessions are waiting for release today.');
+            // Build per-student share messages for WhatsApp group sharing
+            if ($n > 0) {
+                $broadcast = $this->academy_model->generateDailyBroadcast($branchID);
+                $messages = array();
+                foreach ((isset($broadcast['reports']) ? $broadcast['reports'] : array()) as $r) {
+                    $messages[] = $this->academy_model->sealedRecordShareBlock($r);
+                }
+                if (!empty($messages)) {
+                    $this->session->set_flashdata('wa_group_share', json_encode($messages));
+                }
+            }
             redirect(base_url('academy_review'));
         }
 
@@ -297,8 +308,9 @@ class Academy_review extends Admin_Controller
         if ($step === 'admin' && !is_superadmin_loggedin() && !is_admin_loggedin()) {
             access_denied();
         }
+        $sessionId = (int) $this->input->post('session_id');
         $err = $this->academy_model->decideSession(
-            (int) $this->input->post('session_id'),
+            $sessionId,
             $branchID,
             get_loggedin_user_id(),
             $step,
@@ -314,6 +326,26 @@ class Academy_review extends Admin_Controller
                     ? ('Acknowledged. Parent and student dashboards are updated.' . ($sent !== '' ? ' ' . $sent : ''))
                     : 'Approved and sent to the admin.')
                 : 'Rejected. The other party has been notified.');
+
+            // After admin acknowledge, prepare per-student WhatsApp group share messages
+            if ($step === 'admin' && $approve) {
+                $session = $this->db->get_where('academy_class_session', array(
+                    'id' => $sessionId,
+                    'branch_id' => (int) $branchID,
+                ))->row();
+                if ($session) {
+                    $messages = $this->academy_model->sessionShareMessages(
+                        $branchID,
+                        (int) $session->teacher_id,
+                        $session->session_date,
+                        $this->db->field_exists('group_id', 'academy_class_session') ? (int) $session->group_id : 0,
+                        isset($session->milestone_id) ? (int) $session->milestone_id : 0
+                    );
+                    if (!empty($messages)) {
+                        $this->session->set_flashdata('wa_group_share', json_encode($messages));
+                    }
+                }
+            }
         }
         redirect(base_url('academy_review'));
     }
