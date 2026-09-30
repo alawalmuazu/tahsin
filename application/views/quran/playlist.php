@@ -233,7 +233,7 @@ html.hear .hear-go.gone{display:none}
 		</div>
 		<button type="button" id="btn_all" class="playall">Play all</button>
 		<button type="button" id="btn_share" class="share-rec">Share recitation</button>
-		<p id="share_note" class="share-note">Opens your phone’s share list. Choose WhatsApp Status, WhatsApp, or another app.</p>
+		<p id="share_note" class="share-note">Choose WhatsApp Status, WhatsApp, or another app.</p>
 	</div>
 	<div class="queue" id="queue"></div>
 	<audio id="qpl_audio" preload="metadata"></audio>
@@ -554,6 +554,7 @@ document.getElementById('install_quran').addEventListener('click', function () {
 		document.getElementById('now_title').textContent = clip.portion;
 		document.getElementById('now_meta').textContent = (pos + 1) + ' of ' + order.length + ' · ' + clip.date + ' · ' + clip.time + ' · ' + clip.teacher;
 		paintAyahRow(clip);
+		prepareShare(clip);
 	}
 
 	function paintAyahRow(clip) {
@@ -813,73 +814,50 @@ document.getElementById('install_quran').addEventListener('click', function () {
 		pos = 0;
 		playClip(true);
 	});
+	var shareFiles = {};
+	function prepareShare(clip) {
+		if (!clip || !clip.audio || shareFiles[clip.audio] || !window.File) return;
+		shareFiles[clip.audio] = 'loading';
+		fetch(clip.audio).then(function (res) {
+			if (!res.ok) throw new Error('audio');
+			return res.blob();
+		}).then(function (blob) {
+			var type = blob.type && blob.type.indexOf('audio/') === 0 ? blob.type : 'audio/mpeg';
+			var who = (window.__quranStudent || 'Student').trim();
+			var base = (who + ' - ' + (clip.portion || 'Recitation')).replace(/[\\/:*?"<>|]+/g, ' ').replace(/\s+/g, ' ').trim();
+			if (base.length > 80) base = base.slice(0, 80);
+			shareFiles[clip.audio] = new File([blob], (base || 'Recitation') + '.mp3', { type: type });
+		}).catch(function () {
+			delete shareFiles[clip.audio];
+		});
+	}
 	document.getElementById('btn_share').addEventListener('click', function () {
 		var clip = clips[currentIndex()];
-		var btn = document.getElementById('btn_share');
 		var note = document.getElementById('share_note');
 		if (!clip || !clip.audio) return;
 		var who = (window.__quranStudent || 'Student').trim();
 		var school = (window.__quranSchool || 'Tahsin Academy').trim();
 		var text = who + ' recited ' + clip.portion + ' at ' + school + '. ' + clip.date + '.';
 		var title = who + ' — ' + clip.portion;
-		function finish(message) {
-			btn.disabled = false;
-			btn.textContent = 'Share recitation';
-			if (note && message) note.textContent = message;
+		var hint = 'Choose WhatsApp Status, WhatsApp, or another app.';
+		var file = shareFiles[clip.audio];
+		var data = { title: title, text: text };
+		if (file && typeof file !== 'string' && navigator.canShare && navigator.canShare({ files: [file], title: title, text: text })) {
+			data.files = [file];
+		} else {
+			data.url = clip.audio;
 		}
-		function copyText(value) {
-			if (navigator.clipboard && navigator.clipboard.writeText) {
-				return navigator.clipboard.writeText(value).then(function () {
-					finish('Copied. Paste it into WhatsApp Status or another app.');
-				}).catch(function () {
-					finish('Open WhatsApp and paste this recitation from the share list.');
-				});
-			}
-			finish('This phone has no share list. Open WhatsApp and attach the recording.');
-			return Promise.resolve();
-		}
-		function shareLink() {
-			if (!navigator.share) return copyText(text + '\n' + clip.audio);
-			return navigator.share({ title: title, text: text, url: clip.audio }).then(function () {
-				finish('Opens your phone’s share list. Choose WhatsApp Status, WhatsApp, or another app.');
-			}).catch(function (err) {
-				if (err && err.name === 'AbortError') {
-					finish('Opens your phone’s share list. Choose WhatsApp Status, WhatsApp, or another app.');
-					return;
-				}
-				return copyText(text + '\n' + clip.audio);
-			});
-		}
-		function fileName() {
-			var base = (who + ' - ' + clip.portion).replace(/[\\/:*?"<>|]+/g, ' ').replace(/\s+/g, ' ').trim();
-			if (base.length > 80) base = base.slice(0, 80);
-			return (base || 'Recitation') + '.mp3';
-		}
-		btn.disabled = true;
-		btn.textContent = 'Preparing…';
-		if (!navigator.share || !window.File) {
-			shareLink();
+		if (!navigator.share) {
+			if (note) note.textContent = 'This phone cannot open the share list.';
 			return;
 		}
-		fetch(clip.audio).then(function (res) {
-			if (!res.ok) throw new Error('audio');
-			return res.blob();
-		}).then(function (blob) {
-			var type = blob.type && blob.type.indexOf('audio/') === 0 ? blob.type : 'audio/mpeg';
-			var file = new File([blob], fileName(), { type: type });
-			var payload = { title: title, text: text, files: [file] };
-			if (navigator.canShare && navigator.canShare(payload)) {
-				return navigator.share(payload).then(function () {
-					finish('Opens your phone’s share list. Choose WhatsApp Status, WhatsApp, or another app.');
-				});
-			}
-			return shareLink();
+		navigator.share(data).then(function () {
+			if (note) note.textContent = hint;
 		}).catch(function (err) {
-			if (err && err.name === 'AbortError') {
-				finish('Opens your phone’s share list. Choose WhatsApp Status, WhatsApp, or another app.');
-				return;
+			if (err && err.name === 'AbortError') return;
+			if (data.files && navigator.share) {
+				navigator.share({ title: title, text: text, url: clip.audio }).catch(function () {});
 			}
-			return shareLink();
 		});
 	});
 	document.getElementById('btn_next').addEventListener('click', function () { step(1); });
