@@ -246,8 +246,8 @@ html.hear .hear-go.gone{display:none}
 			<button type="button" id="btn_speed">Speed 1×</button>
 		</div>
 		<button type="button" id="btn_all" class="playall">Play all</button>
-		<button type="button" id="btn_share" class="share-rec" disabled>Status 0%</button>
-		<button type="button" id="btn_full" class="share-full" disabled>Full video</button>
+		<button type="button" id="btn_share" class="share-rec">Status 0%</button>
+		<button type="button" id="btn_full" class="share-full">Full video</button>
 		<p id="share_note" class="share-note">Share for Status is a short video. Share full keeps the whole recitation.</p>
 	</div>
 	<div class="queue" id="queue"></div>
@@ -1274,7 +1274,7 @@ document.getElementById('install_quran').addEventListener('click', function () {
 					var descent = sample.actualBoundingBoxDescent || size * 0.35;
 					var lines = layoutShareWords(ctx, pack.arabic, w - 180);
 					var lineH = ascent + descent + 26;
-					var lit = shareWordIndex(t, duration, pack.arabic.length, pack.marks);
+					var lit = shareWordIndex(t, span.end || slice, pack.arabic.length, pack.marks);
 					y += ascent;
 					var li;
 					var wi;
@@ -1399,8 +1399,14 @@ document.getElementById('install_quran').addEventListener('click', function () {
 							finish(new Error('cancel'));
 							return;
 						}
-						paint(span.start || 0);
-						recorder.start(500);
+						try {
+							paint(span.start || 0);
+							recorder.start(500);
+						} catch (err) {
+							finish(err);
+							return;
+						}
+						if (onProgress) onProgress(0.01);
 						var started = recAudio.play();
 						var cap = setTimeout(function () {
 							if (recorder.state === 'recording') recorder.stop();
@@ -1437,7 +1443,10 @@ document.getElementById('install_quran').addEventListener('click', function () {
 							tick();
 						}
 					};
+					var startedTake = false;
 					var go = function () {
+						if (startedTake) return;
+						startedTake = true;
 						if (span.start > 0.05) {
 							var onSeek = function () {
 								recAudio.removeEventListener('seeked', onSeek);
@@ -1452,15 +1461,17 @@ document.getElementById('install_quran').addEventListener('click', function () {
 					if (ctxAudio.state === 'running') go();
 					else {
 						var unlock = function () {
-							if (ctxAudio.resume) ctxAudio.resume();
-							if (ctxAudio.state === 'running') {
+							var pending = ctxAudio.resume ? ctxAudio.resume() : Promise.resolve();
+							Promise.resolve(pending).then(function () {
+								if (ctxAudio.state !== 'running') return;
 								document.removeEventListener('pointerdown', unlock);
+								waitUnlock = null;
 								go();
-							}
+							}).catch(function () {});
 						};
 						waitUnlock = unlock;
 						document.addEventListener('pointerdown', unlock);
-						if (resume && resume.then) resume.then(function () { if (ctxAudio.state === 'running') unlock(); });
+						if (resume && resume.then) resume.then(function () { unlock(); });
 					}
 				}
 				recAudio.onloadedmetadata = function () {
@@ -1483,11 +1494,11 @@ document.getElementById('install_quran').addEventListener('click', function () {
 		if (base.length > 70) base = base.slice(0, 70);
 		return (base || 'Recitation') + (mode === 'full' ? ' full' : '') + '.mp4';
 	}
-	function setShareButton(id, label, ready) {
+	function setShareButton(id, label) {
 		var el = document.getElementById(id);
 		if (!el) return;
+		el.disabled = false;
 		el.textContent = label;
-		el.disabled = !ready;
 	}
 	function openShareFile(file, clip) {
 		var note = document.getElementById('share_note');
@@ -1515,20 +1526,20 @@ document.getElementById('install_quran').addEventListener('click', function () {
 	function runShareJob(clip, mode, token) {
 		var btnId = mode === 'full' ? 'btn_full' : 'btn_share';
 		var label = mode === 'full' ? 'Full' : 'Status';
-		setShareButton(btnId, label + ' 0%', false);
+		setShareButton(btnId, label + ' 0%');
 		return recordShareVideo(clip, mode, function (frac) {
 			if (token !== shareToken) return;
 			var pct = Math.max(1, Math.min(99, Math.round((frac || 0) * 100)));
-			setShareButton(btnId, label + ' ' + pct + '%', false);
+			setShareButton(btnId, label + ' ' + pct + '%');
 		}, function () { return token === shareToken; }).then(function (blob) {
 			if (token !== shareToken) return;
 			shareReady[mode] = new File([blob], shareBaseName(clip, mode), { type: 'video/mp4' });
-			setShareButton(btnId, mode === 'full' ? 'Share full' : 'Share for Status', true);
+			setShareButton(btnId, mode === 'full' ? 'Share full' : 'Share for Status');
 		}).catch(function (err) {
 			if (token !== shareToken) return;
 			if (err && err.message === 'cancel') return;
 			shareReady[mode] = false;
-			setShareButton(btnId, mode === 'full' ? 'Share full' : 'Share for Status', false);
+			setShareButton(btnId, mode === 'full' ? 'Share full' : 'Share for Status');
 			var note = document.getElementById('share_note');
 			if (note) note.textContent = 'The video could not be made. Open this recitation again.';
 		});
@@ -1542,8 +1553,8 @@ document.getElementById('install_quran').addEventListener('click', function () {
 		shareReady.full = null;
 		var note = document.getElementById('share_note');
 		if (!shareMime()) {
-			setShareButton('btn_share', 'Share for Status', false);
-			setShareButton('btn_full', 'Share full', false);
+			setShareButton('btn_share', 'Share for Status');
+			setShareButton('btn_full', 'Share full');
 			if (note) note.textContent = 'This phone cannot make an MP4 video.';
 			return;
 		}
@@ -1555,8 +1566,16 @@ document.getElementById('install_quran').addEventListener('click', function () {
 	}
 	function shareReadyFile(mode) {
 		var clip = clips[currentIndex()];
+		if (audioCtx && audioCtx.resume) audioCtx.resume();
 		var file = shareReady[mode];
-		if (file && typeof file !== 'boolean') openShareFile(file, clip);
+		var note = document.getElementById('share_note');
+		if (file && typeof file !== 'boolean') {
+			openShareFile(file, clip);
+			return;
+		}
+		if (note) note.textContent = mode === 'full'
+			? 'The full video is still being made. It starts after the Status video.'
+			: 'The Status video is being made. This button opens your apps when it reaches Share for Status.';
 	}
 	document.getElementById('btn_share').addEventListener('click', function () { shareReadyFile('status'); });
 	document.getElementById('btn_full').addEventListener('click', function () { shareReadyFile('full'); });
