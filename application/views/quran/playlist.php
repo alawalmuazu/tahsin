@@ -725,9 +725,9 @@ document.getElementById('install_quran').addEventListener('click', function () {
 		function atPct(p) {
 			return sorted[Math.min(sorted.length - 1, Math.max(0, Math.floor((sorted.length - 1) * p)))] || 0;
 		}
+		var duration = channel.length / rate;
 		var noise = atPct(0.08);
 		var loud = atPct(0.9);
-		var thresh = Math.max(0.004, noise + Math.max(0, loud - noise) * 0.28);
 		function speechEdges(level) {
 			var from = -1;
 			var to = -1;
@@ -740,67 +740,144 @@ document.getElementById('install_quran').addEventListener('click', function () {
 			}
 			return { from: from, to: to };
 		}
+		var thresh = Math.max(0.0025, noise + Math.max(0, loud - noise) * 0.1);
 		var edges = speechEdges(thresh);
 		if (edges.from < 0 || edges.to <= edges.from) {
-			thresh = Math.max(0.003, loud * 0.22);
+			thresh = Math.max(0.002, loud * 0.08);
 			edges = speechEdges(thresh);
 		}
-		var first = edges.from;
-		var last = edges.to;
-		if (first < 0 || last <= first) {
-			first = 0;
-			last = smooth.length - 1;
+		var speechStart = edges.from < 0 ? 0 : times[edges.from];
+		var speechEnd = edges.to < 0 ? duration : (times[edges.to] + (hop / rate));
+		if (speechEnd - speechStart < Math.max(0.4, duration * 0.55)) {
+			thresh = Math.max(0.0018, Math.min(thresh, loud * 0.05));
+			edges = speechEdges(thresh);
+			if (edges.from >= 0 && edges.to > edges.from) {
+				speechStart = times[edges.from];
+				speechEnd = times[edges.to] + (hop / rate);
+			}
 		}
-		var speechStart = times[first];
-		var speechEnd = times[last] + (hop / rate);
-		var span = speechEnd - speechStart;
-		if (span < 0.15) return null;
-		var bounds = [speechStart];
-		var cum = 0;
-		for (i = 0; i < wordCount - 1; i++) {
-			cum += weights[i];
-			var expected = speechStart + (cum / total) * span;
-			var nextCum = cum + (weights[i + 1] || weights[i]);
-			var nextExpected = (i + 1 >= wordCount - 1) ? speechEnd : (speechStart + (nextCum / total) * span);
-			var prevEdge = bounds[bounds.length - 1];
-			var lo = prevEdge + Math.max(0.06, Math.min(0.16, (expected - prevEdge) * 0.2));
-			var hi = (expected + nextExpected) / 2;
-			if (hi < lo + 0.05) hi = lo + 0.05;
-			var valley = -1;
-			var valleyEnergy = Infinity;
+		if (speechEnd - speechStart < 0.2) {
+			speechStart = 0;
+			speechEnd = duration;
+		}
+		var runs = [];
+		var runStart = -1;
+		for (i = 0; i < smooth.length; i++) {
+			var at = times[i];
+			if (at < speechStart - 0.02 || at > speechEnd + 0.02) continue;
+			if (smooth[i] >= thresh) {
+				if (runStart < 0) runStart = i;
+			} else if (runStart >= 0) {
+				runs.push({ a: runStart, b: i });
+				runStart = -1;
+			}
+		}
+		if (runStart >= 0) runs.push({ a: runStart, b: smooth.length - 1 });
+		var pieces = [];
+		for (i = 0; i < runs.length; i++) {
+			var runDur = times[Math.min(runs[i].b, times.length - 1)] - times[runs[i].a];
+			if (runDur < 0.06) continue;
+			var piece = {
+				start: times[runs[i].a],
+				end: times[Math.min(runs[i].b, times.length - 1)] + (hop / rate)
+			};
+			if (pieces.length && piece.start - pieces[pieces.length - 1].end < 0.14) {
+				pieces[pieces.length - 1].end = piece.end;
+				continue;
+			}
+			pieces.push(piece);
+		}
+		if (!pieces.length) pieces.push({ start: speechStart, end: speechEnd });
+		while (pieces.length > wordCount) {
+			var joinAt = 0;
+			var joinGap = Infinity;
+			for (i = 0; i < pieces.length - 1; i++) {
+				var gap = pieces[i + 1].start - pieces[i].end;
+				if (gap < joinGap) {
+					joinGap = gap;
+					joinAt = i;
+				}
+			}
+			pieces[joinAt].end = pieces[joinAt + 1].end;
+			pieces.splice(joinAt, 1);
+		}
+		function quietCut(from, to, guess) {
+			var lo = Math.max(from + 0.05, guess - 0.35);
+			var hi = Math.min(to - 0.05, guess + 0.35);
+			if (hi <= lo) return Math.min(to - 0.05, Math.max(from + 0.05, guess));
+			var bestT = guess;
+			var bestE = Infinity;
 			var f;
 			for (f = 0; f < times.length; f++) {
 				if (times[f] < lo || times[f] > hi) continue;
-				if (smooth[f] < valleyEnergy) {
-					valleyEnergy = smooth[f];
-					valley = f;
+				if (smooth[f] < bestE) {
+					bestE = smooth[f];
+					bestT = times[f];
 				}
 			}
-			var cut = expected;
-			if (valley >= 0) {
-				cut = times[valley];
-				for (f = valley; f < times.length && times[f] <= hi; f++) {
-					if (smooth[f] >= thresh && times[f] > times[valley] + 0.04) {
-						cut = times[f];
-						break;
-					}
+			var cut = bestT;
+			for (f = 0; f < times.length; f++) {
+				if (times[f] < bestT || times[f] > hi) continue;
+				if (smooth[f] >= thresh && times[f] > bestT + 0.04) {
+					cut = times[f];
+					break;
 				}
 			}
-			if (cut <= prevEdge + 0.05) cut = prevEdge + 0.05;
-			if (cut > speechEnd - 0.05) cut = speechEnd - 0.05;
-			bounds.push(cut);
+			if (cut <= from + 0.04) cut = from + 0.05;
+			if (cut >= to - 0.04) cut = to - 0.05;
+			return cut;
 		}
-		bounds.push(speechEnd);
-		for (i = 1; i < bounds.length; i++) {
-			if (bounds[i] <= bounds[i - 1] + 0.04) bounds[i] = bounds[i - 1] + 0.04;
+		var counts = [];
+		var remainWords = wordCount;
+		var remainTime = 0;
+		for (i = 0; i < pieces.length; i++) remainTime += Math.max(0.05, pieces[i].end - pieces[i].start);
+		for (i = 0; i < pieces.length; i++) {
+			var pieceDur = Math.max(0.05, pieces[i].end - pieces[i].start);
+			var share = 0;
+			if (remainWords > 0) {
+				share = (i === pieces.length - 1) ? remainWords : Math.max(1, Math.round((pieceDur / remainTime) * remainWords));
+				if (share > remainWords) share = remainWords;
+				if (share < 1) share = 1;
+			}
+			counts.push(share);
+			remainWords -= share;
+			remainTime -= pieceDur;
 		}
-		bounds[bounds.length - 1] = Math.max(bounds[bounds.length - 1], speechEnd);
+		if (remainWords > 0) counts[counts.length - 1] += remainWords;
 		var built = [];
-		for (i = 0; i < wordCount; i++) {
-			var startAt = bounds[i];
-			var endAt = bounds[Math.min(i + 1, bounds.length - 1)];
-			if (endAt <= startAt) endAt = startAt + 0.05;
-			built.push({ start: startAt, end: endAt });
+		var wordAt = 0;
+		for (i = 0; i < pieces.length; i++) {
+			var take = counts[i] || 0;
+			if (take < 1) continue;
+			var sliceWeights = weights.slice(wordAt, wordAt + take);
+			var weightSum = 0;
+			var s;
+			for (s = 0; s < sliceWeights.length; s++) weightSum += sliceWeights[s];
+			if (!weightSum) weightSum = take;
+			var cursorT = pieces[i].start;
+			var grown = 0;
+			for (s = 0; s < take; s++) {
+				grown += sliceWeights[s] || 1;
+				var edge = (s === take - 1)
+					? pieces[i].end
+					: pieces[i].start + (grown / weightSum) * (pieces[i].end - pieces[i].start);
+				if (s < take - 1) edge = quietCut(cursorT, pieces[i].end, edge);
+				built.push({ start: cursorT, end: edge });
+				cursorT = edge;
+			}
+			wordAt += take;
+		}
+		while (built.length < wordCount) built.push({ start: speechEnd, end: speechEnd + 0.05 });
+		if (built.length > wordCount) built = built.slice(0, wordCount);
+		for (i = 0; i < built.length - 1; i++) built[i].end = built[i + 1].start;
+		var covered = built[built.length - 1].end - built[0].start;
+		if (duration > 1 && covered < duration * 0.62) {
+			var origin = built[0].start;
+			var scale = (Math.max(speechEnd, duration * 0.92) - origin) / Math.max(0.2, covered);
+			for (i = 0; i < built.length; i++) {
+				built[i].start = origin + (built[i].start - origin) * scale;
+				built[i].end = origin + (built[i].end - origin) * scale;
+			}
 		}
 		return built;
 	}
@@ -825,7 +902,7 @@ document.getElementById('install_quran').addEventListener('click', function () {
 	function decodeTimings(url, wordsOrCount) {
 		var texts = Array.isArray(wordsOrCount) ? wordsOrCount : [];
 		var wordCount = texts.length || (typeof wordsOrCount === 'number' ? wordsOrCount : 0);
-		var key = url + '|v3|' + (texts.length ? texts.join('\u0001') : String(wordCount));
+		var key = url + '|v4|' + (texts.length ? texts.join('\u0001') : String(wordCount));
 		if (timingCache[key]) return timingCache[key];
 		timingCache[key] = loadAudioBuffer(url).then(function (decoded) {
 			if (!decoded) return null;
@@ -1235,9 +1312,9 @@ document.getElementById('install_quran').addEventListener('click', function () {
 					y += 28;
 					var size = pack.arabic.length > 40 ? 30 : (pack.arabic.length > 16 ? 40 : 54);
 					ctx.save();
-					ctx.direction = 'rtl';
+					ctx.direction = 'ltr';
 					ctx.font = '700 ' + size + 'px "Scheherazade New", serif';
-					ctx.textAlign = 'right';
+					ctx.textAlign = 'left';
 					ctx.textBaseline = 'alphabetic';
 					var probe = ctx.measureText(pack.arabic[0] || 'بِسْمِ');
 					var ascent = probe.actualBoundingBoxAscent || size * 0.86;
@@ -1305,11 +1382,11 @@ document.getElementById('install_quran').addEventListener('click', function () {
 									ctx.fill();
 								}
 								ctx.fillStyle = word.index === lit ? '#f6f1e6' : '#d7e3db';
-								ctx.direction = 'rtl';
-								ctx.textAlign = 'right';
+								ctx.direction = 'ltr';
+								ctx.textAlign = 'left';
 								ctx.textBaseline = 'alphabetic';
 								ctx.font = '700 ' + size + 'px "Scheherazade New", serif';
-								ctx.fillText(word.text, cursor, drawY);
+								ctx.fillText(word.text, wordLeft, drawY);
 								cursor = wordLeft - gap;
 							}
 							var endWord = line[line.length - 1];
@@ -1374,19 +1451,10 @@ document.getElementById('install_quran').addEventListener('click', function () {
 					ctx.fillStyle = '#e4c98a';
 					ctx.font = '600 26px Outfit, sans-serif';
 					ctx.fillText('Contact us 08021211053', w / 2, h - 104);
-					var pad = 28;
-					var thick = 6;
-					var armX = 58;
-					var armY = 116;
-					ctx.fillStyle = '#e4c98a';
-					ctx.fillRect(pad, pad, armX, thick);
-					ctx.fillRect(pad, pad, thick, armY);
-					ctx.fillRect(w - pad - armX, pad, armX, thick);
-					ctx.fillRect(w - pad - thick, pad, thick, armY);
-					ctx.fillRect(pad, h - pad - thick, armX, thick);
-					ctx.fillRect(pad, h - pad - armY, thick, armY);
-					ctx.fillRect(w - pad - armX, h - pad - thick, armX, thick);
-					ctx.fillRect(w - pad - thick, h - pad - armY, thick, armY);
+					var frame = 26;
+					ctx.strokeStyle = '#e4c98a';
+					ctx.lineWidth = 6;
+					ctx.strokeRect(frame, frame, w - frame * 2, h - frame * 2);
 				}
 				function beginTake() {
 					if (alive && !alive()) {
