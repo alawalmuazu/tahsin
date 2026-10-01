@@ -3,7 +3,7 @@
 .soc-actions{display:flex;flex-wrap:wrap;gap:.5rem;margin:0 0 1rem}
 .soc-actions button,.soc-row button{border-radius:999px;font-weight:700}
 .soc-row{display:flex;gap:.75rem;align-items:center;padding:.75rem 0;border-top:1px solid #e2e8f0}
-.soc-row img{width:46px;height:46px;border-radius:12px;object-fit:cover;background:#d7e3dc}
+.soc-row img,.soc-initial{width:46px;height:46px;border-radius:12px;object-fit:cover;background:#10241e;color:#e4c98a;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:1.15rem;flex:0 0 46px}
 .soc-row .who{flex:1;min-width:0}
 .soc-row strong{display:block;color:#10241e}
 .soc-row span{display:block;color:#64748b;font-size:.82rem}
@@ -28,11 +28,23 @@
 		<p class="soc-note" id="soc_note">Tap a student’s button. When it says Share for Status or Share full, tap again and pick the school account.</p>
 		<div id="soc_list">
 			<?php foreach ($students as $st): ?>
+			<?php
+				$bits = array();
+				if (!empty($st['class_name'])) $bits[] = $st['class_name'];
+				if (!empty($st['clip']['portion'])) $bits[] = $st['clip']['portion'];
+				if (!empty($st['clip']['date'])) $bits[] = $st['clip']['date'];
+				if (!empty($st['clip']['time'])) $bits[] = $st['clip']['time'];
+				$hasPhoto = !empty($st['photo']) && strpos($st['photo'], 'defualt.png') === false;
+			?>
 			<div class="soc-row" data-id="<?php echo (int) $st['id']; ?>">
+				<?php if ($hasPhoto): ?>
 				<img src="<?php echo html_escape($st['photo']); ?>" alt="">
+				<?php else: ?>
+				<div class="soc-initial"><?php echo html_escape(strtoupper(substr($st['name'], 0, 1))); ?></div>
+				<?php endif; ?>
 				<div class="who">
 					<strong><?php echo html_escape($st['name']); ?></strong>
-					<span><?php echo html_escape(trim($st['class_name'] . ' · ' . $st['clip']['portion'] . ' · ' . $st['clip']['date'] . ' · ' . $st['clip']['time'])); ?></span>
+					<span><?php echo html_escape(implode(' · ', $bits)); ?></span>
 				</div>
 				<div class="soc-btns">
 					<button type="button" class="soc-ready" data-share="status" data-id="<?php echo (int) $st['id']; ?>">Share for Status</button>

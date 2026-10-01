@@ -377,7 +377,9 @@
 		playClip(true);
 	}
 
-	document.getElementById('btn_play').addEventListener('click', function () {
+	var playBtn = document.getElementById('btn_play');
+	var allBtn = document.getElementById('btn_all');
+	if (playBtn) playBtn.addEventListener('click', function () {
 		if (!audio.getAttribute('src')) {
 			playClip(true);
 			return;
@@ -390,7 +392,7 @@
 		}
 		paintButtons();
 	});
-	document.getElementById('btn_all').addEventListener('click', function () {
+	if (allBtn) allBtn.addEventListener('click', function () {
 		pos = 0;
 		playClip(true);
 	});
@@ -561,6 +563,8 @@
 		}
 		var who = (window.__quranStudent || 'Student').trim();
 		var school = (window.__quranSchool || 'Tahsin Academy').trim();
+		var photoUrl = window.__quranPhoto || '';
+		if (/defualt\.png/i.test(photoUrl)) photoUrl = '';
 		var ayahs = [];
 		var a;
 		for (a = Number(clip.from) || 0; a <= (Number(clip.to) || 0); a++) ayahs.push(a);
@@ -569,7 +573,7 @@
 		return Promise.all([
 			document.fonts && document.fonts.load ? document.fonts.load('700 64px "Scheherazade New"') : Promise.resolve(),
 			loadShareImage(window.__quranLogo),
-			loadShareImage(window.__quranPhoto),
+			loadShareImage(photoUrl),
 			textPromise
 		]).then(function (loaded) {
 			var logo = loaded[1];
@@ -672,6 +676,14 @@
 					ctx.fill();
 					ctx.clip();
 					if (pack.photo) drawCover(ctx, pack.photo, w / 2 - radius, photoY - radius, radius * 2, radius * 2);
+					else {
+						ctx.fillStyle = '#e4c98a';
+						ctx.font = '700 64px Outfit, sans-serif';
+						ctx.textAlign = 'center';
+						ctx.textBaseline = 'middle';
+						ctx.fillText((pack.who || 'S').charAt(0).toUpperCase(), w / 2, photoY + 2);
+						ctx.textBaseline = 'alphabetic';
+					}
 					ctx.restore();
 					ctx.beginPath();
 					ctx.arc(w / 2, photoY, radius, 0, Math.PI * 2);
