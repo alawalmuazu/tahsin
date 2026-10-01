@@ -681,54 +681,6 @@ document.getElementById('install_quran').addEventListener('click', function () {
 		return Math.max(1, letters.length || String(word || '').trim().length || 1);
 	}
 
-	function apportionBursts(count, weights) {
-		var total = 0;
-		var i;
-		for (i = 0; i < weights.length; i++) total += weights[i];
-		if (!total) total = weights.length;
-		var raw = [];
-		var counts = [];
-		var used = 0;
-		for (i = 0; i < weights.length; i++) {
-			raw.push(count * weights[i] / total);
-			counts.push(Math.floor(raw[i]));
-			used += counts[i];
-		}
-		if (count >= weights.length) {
-			for (i = 0; i < counts.length; i++) {
-				if (counts[i] < 1) {
-					counts[i] = 1;
-					used++;
-				}
-			}
-			while (used > count) {
-				var victim = -1;
-				var surplus = -1;
-				for (i = 0; i < counts.length; i++) {
-					if (counts[i] <= 1) continue;
-					var over = counts[i] - raw[i];
-					if (over > surplus) {
-						victim = i;
-						surplus = over;
-					}
-				}
-				if (victim < 0) break;
-				counts[victim]--;
-				used--;
-			}
-		}
-		var order = [];
-		for (i = 0; i < weights.length; i++) order.push(i);
-		order.sort(function (a, b) { return (raw[b] - Math.floor(raw[b])) - (raw[a] - Math.floor(raw[a])); });
-		var guard = 0;
-		while (used < count && guard < count * 4) {
-			counts[order[guard % order.length]]++;
-			used++;
-			guard++;
-		}
-		return counts;
-	}
-
 	function buildTimings(buffer, wordsOrCount) {
 		var texts = Array.isArray(wordsOrCount) ? wordsOrCount : [];
 		var wordCount = texts.length || (typeof wordsOrCount === 'number' ? wordsOrCount : 0);
@@ -736,106 +688,119 @@ document.getElementById('install_quran').addEventListener('click', function () {
 		var weights = [];
 		var i;
 		for (i = 0; i < wordCount; i++) weights.push(texts.length ? arabicWeight(texts[i]) : 1);
+		var total = 0;
+		for (i = 0; i < weights.length; i++) total += weights[i];
+		if (!total) total = wordCount;
 		var channel = buffer.getChannelData(0);
 		var rate = buffer.sampleRate || 44100;
-		var hop = Math.max(1, Math.floor(rate * 0.02));
+		var hop = Math.max(1, Math.floor(rate * 0.01));
 		var energies = [];
 		var times = [];
-		for (i = 0; i + hop < channel.length; i += hop) {
+		for (i = 0; i + hop <= channel.length; i += hop) {
 			var sum = 0;
 			var j;
-			for (j = 0; j < hop; j++) {
-				var sample = channel[i + j];
+			var end = Math.min(channel.length, i + hop);
+			for (j = i; j < end; j++) {
+				var sample = channel[j];
 				sum += sample * sample;
 			}
-			energies.push(Math.sqrt(sum / hop));
+			var n = Math.max(1, end - i);
+			energies.push(Math.sqrt(sum / n));
 			times.push(i / rate);
 		}
-		if (!energies.length) return null;
+		if (energies.length < 4) return null;
 		var smooth = [];
 		for (i = 0; i < energies.length; i++) {
-			var left = energies[Math.max(0, i - 2)];
-			var mid = energies[i];
-			var right = energies[Math.min(energies.length - 1, i + 2)];
-			smooth.push((left + mid + right) / 3);
+			var acc = 0;
+			var count = 0;
+			var k;
+			for (k = i - 2; k <= i + 2; k++) {
+				if (k < 0 || k >= energies.length) continue;
+				acc += energies[k];
+				count++;
+			}
+			smooth.push(acc / count);
 		}
 		var sorted = smooth.slice().sort(function (a, b) { return a - b; });
-		function atPct(p) { return sorted[Math.min(sorted.length - 1, Math.floor(sorted.length * p))] || 0; }
-		var floor = atPct(0.2);
-		var loud = atPct(0.98);
-		var thresh = Math.max(0.015, Math.min(loud * 0.18, Math.max(floor * 1.35, 0.015)));
-		var runs = [];
-		var start = -1;
-		for (i = 0; i < smooth.length; i++) {
-			if (smooth[i] >= thresh) {
-				if (start < 0) start = i;
-			} else if (start >= 0) {
-				runs.push({ a: start, b: i });
-				start = -1;
-			}
+		function atPct(p) {
+			return sorted[Math.min(sorted.length - 1, Math.max(0, Math.floor((sorted.length - 1) * p)))] || 0;
 		}
-		if (start >= 0) runs.push({ a: start, b: smooth.length - 1 });
-		var merged = [];
-		for (i = 0; i < runs.length; i++) {
-			var run = { a: runs[i].a, b: runs[i].b };
-			var dur = times[Math.min(run.b, times.length - 1)] - times[run.a];
-			if (dur < 0.08) continue;
-			if (merged.length) {
-				var prev = merged[merged.length - 1];
-				var gap = times[run.a] - times[Math.min(prev.b, times.length - 1)];
-				if (gap < 0.22) {
-					prev.b = run.b;
-					continue;
+		var noise = atPct(0.08);
+		var loud = atPct(0.9);
+		var thresh = Math.max(0.004, noise + Math.max(0, loud - noise) * 0.28);
+		function speechEdges(level) {
+			var from = -1;
+			var to = -1;
+			var n;
+			for (n = 0; n < smooth.length; n++) {
+				if (smooth[n] >= level) {
+					if (from < 0) from = n;
+					to = n;
 				}
 			}
-			merged.push(run);
+			return { from: from, to: to };
 		}
-		if (!merged.length) return null;
-		var pieces = merged.map(function (run) {
-			return {
-				start: times[run.a],
-				end: times[Math.min(run.b, times.length - 1)] + (hop / rate)
-			};
-		});
-		if (pieces.length > wordCount) {
-			var counts = apportionBursts(pieces.length, weights);
-			var grouped = [];
-			var cursor = 0;
-			for (i = 0; i < wordCount; i++) {
-				var take = Math.max(1, counts[i] || 1);
-				var group = pieces.slice(cursor, cursor + take);
-				if (!group.length) group = [pieces[Math.min(cursor, pieces.length - 1)]];
-				cursor += take;
-				grouped.push({ start: group[0].start, end: group[group.length - 1].end });
-			}
-			pieces = grouped;
-		} else if (pieces.length < wordCount) {
-			var cuts = pieces.map(function (piece) { return { start: piece.start, end: piece.end, parts: 1 }; });
-			while (cuts.reduce(function (n, cut) { return n + cut.parts; }, 0) < wordCount) {
-				var longest = 0;
-				for (i = 1; i < cuts.length; i++) {
-					var each = (cuts[i].end - cuts[i].start) / cuts[i].parts;
-					var best = (cuts[longest].end - cuts[longest].start) / cuts[longest].parts;
-					if (each > best) longest = i;
-				}
-				cuts[longest].parts += 1;
-			}
-			var flat = [];
-			for (i = 0; i < cuts.length; i++) {
-				var step = (cuts[i].end - cuts[i].start) / cuts[i].parts;
-				var k;
-				for (k = 0; k < cuts[i].parts; k++) {
-					flat.push({ start: cuts[i].start + step * k, end: cuts[i].start + step * (k + 1) });
+		var edges = speechEdges(thresh);
+		if (edges.from < 0 || edges.to <= edges.from) {
+			thresh = Math.max(0.003, loud * 0.22);
+			edges = speechEdges(thresh);
+		}
+		var first = edges.from;
+		var last = edges.to;
+		if (first < 0 || last <= first) {
+			first = 0;
+			last = smooth.length - 1;
+		}
+		var speechStart = times[first];
+		var speechEnd = times[last] + (hop / rate);
+		var span = speechEnd - speechStart;
+		if (span < 0.15) return null;
+		var bounds = [speechStart];
+		var cum = 0;
+		for (i = 0; i < wordCount - 1; i++) {
+			cum += weights[i];
+			var expected = speechStart + (cum / total) * span;
+			var nextCum = cum + (weights[i + 1] || weights[i]);
+			var nextExpected = (i + 1 >= wordCount - 1) ? speechEnd : (speechStart + (nextCum / total) * span);
+			var prevEdge = bounds[bounds.length - 1];
+			var lo = prevEdge + Math.max(0.06, Math.min(0.16, (expected - prevEdge) * 0.2));
+			var hi = (expected + nextExpected) / 2;
+			if (hi < lo + 0.05) hi = lo + 0.05;
+			var valley = -1;
+			var valleyEnergy = Infinity;
+			var f;
+			for (f = 0; f < times.length; f++) {
+				if (times[f] < lo || times[f] > hi) continue;
+				if (smooth[f] < valleyEnergy) {
+					valleyEnergy = smooth[f];
+					valley = f;
 				}
 			}
-			pieces = flat;
+			var cut = expected;
+			if (valley >= 0) {
+				cut = times[valley];
+				for (f = valley; f < times.length && times[f] <= hi; f++) {
+					if (smooth[f] >= thresh && times[f] > times[valley] + 0.04) {
+						cut = times[f];
+						break;
+					}
+				}
+			}
+			if (cut <= prevEdge + 0.05) cut = prevEdge + 0.05;
+			if (cut > speechEnd - 0.05) cut = speechEnd - 0.05;
+			bounds.push(cut);
 		}
+		bounds.push(speechEnd);
+		for (i = 1; i < bounds.length; i++) {
+			if (bounds[i] <= bounds[i - 1] + 0.04) bounds[i] = bounds[i - 1] + 0.04;
+		}
+		bounds[bounds.length - 1] = Math.max(bounds[bounds.length - 1], speechEnd);
 		var built = [];
 		for (i = 0; i < wordCount; i++) {
-			var piece = pieces[Math.min(i, pieces.length - 1)];
-			var endAt = (i + 1 < wordCount && pieces[i + 1]) ? pieces[i + 1].start : piece.end;
-			if (endAt <= piece.start) endAt = piece.start + 0.05;
-			built.push({ start: piece.start, end: endAt });
+			var startAt = bounds[i];
+			var endAt = bounds[Math.min(i + 1, bounds.length - 1)];
+			if (endAt <= startAt) endAt = startAt + 0.05;
+			built.push({ start: startAt, end: endAt });
 		}
 		return built;
 	}
@@ -860,7 +825,7 @@ document.getElementById('install_quran').addEventListener('click', function () {
 	function decodeTimings(url, wordsOrCount) {
 		var texts = Array.isArray(wordsOrCount) ? wordsOrCount : [];
 		var wordCount = texts.length || (typeof wordsOrCount === 'number' ? wordsOrCount : 0);
-		var key = url + '|v2|' + (texts.length ? texts.join('\u0001') : String(wordCount));
+		var key = url + '|v3|' + (texts.length ? texts.join('\u0001') : String(wordCount));
 		if (timingCache[key]) return timingCache[key];
 		timingCache[key] = loadAudioBuffer(url).then(function (decoded) {
 			if (!decoded) return null;
@@ -1010,20 +975,23 @@ document.getElementById('install_quran').addEventListener('click', function () {
 		if (line) lines.push(line);
 		return lines;
 	}
-	function layoutShareWords(ctx, list, maxWidth) {
+	function layoutShareWords(list, maxWidth, gap) {
 		var lines = [];
 		var line = [];
 		var width = 0;
 		var i;
+		var space = gap || 0;
 		for (i = 0; i < list.length; i++) {
-			var wordWidth = ctx.measureText(list[i]).width + 16;
-			if (width + wordWidth > maxWidth && line.length) {
+			var word = list[i];
+			var add = word.width + (line.length ? space : 0);
+			if (width + add > maxWidth && line.length) {
 				lines.push(line);
 				line = [];
 				width = 0;
+				add = word.width;
 			}
-			line.push({ text: list[i], index: i, width: wordWidth });
-			width += wordWidth;
+			line.push(word);
+			width += add;
 		}
 		if (line.length) lines.push(line);
 		return lines;
@@ -1266,14 +1234,24 @@ document.getElementById('install_quran').addEventListener('click', function () {
 					}
 					y += 28;
 					var size = pack.arabic.length > 40 ? 30 : (pack.arabic.length > 16 ? 40 : 54);
+					ctx.save();
+					ctx.direction = 'rtl';
 					ctx.font = '700 ' + size + 'px "Scheherazade New", serif';
-					ctx.textAlign = 'left';
+					ctx.textAlign = 'right';
 					ctx.textBaseline = 'alphabetic';
-					var sample = ctx.measureText(pack.arabic[0] || 'ب');
-					var ascent = sample.actualBoundingBoxAscent || size * 0.92;
-					var descent = sample.actualBoundingBoxDescent || size * 0.35;
-					var lines = layoutShareWords(ctx, pack.arabic, w - 180);
-					var lineH = ascent + descent + 26;
+					var probe = ctx.measureText(pack.arabic[0] || 'بِسْمِ');
+					var ascent = probe.actualBoundingBoxAscent || size * 0.86;
+					var descent = probe.actualBoundingBoxDescent || size * 0.34;
+					if (ascent < size * 0.62) ascent = size * 0.86;
+					if (descent < size * 0.2) descent = size * 0.34;
+					var gap = Math.max(12, Math.round(size * 0.34));
+					var shareWords = [];
+					var sw;
+					for (sw = 0; sw < pack.arabic.length; sw++) {
+						shareWords.push({ text: pack.arabic[sw], index: sw, width: ctx.measureText(pack.arabic[sw]).width });
+					}
+					var lines = layoutShareWords(shareWords, w - 210, gap);
+					var lineH = ascent + descent + 28;
 					var lit = shareWordIndex(t, span.end || slice, pack.arabic.length, pack.marks);
 					y += ascent;
 					var li;
@@ -1300,32 +1278,50 @@ document.getElementById('install_quran').addEventListener('click', function () {
 							var line = lines[li];
 							var lineWidth = 0;
 							for (wi = 0; wi < line.length; wi++) lineWidth += line[wi].width;
-							var x = (w + lineWidth) / 2;
-							var leftEdge = x - lineWidth;
+							if (line.length > 1) lineWidth += gap * (line.length - 1);
+							var cursor = (w + lineWidth) / 2;
+							var lineLeft = cursor - lineWidth;
+							var lineLit = false;
 							for (wi = 0; wi < line.length; wi++) {
 								var word = line[wi];
-								x -= word.width;
-								var metric = ctx.measureText(word.text);
-								var inkLeft = x - (metric.actualBoundingBoxLeft || 0);
-								var inkRight = x + (metric.actualBoundingBoxRight || (word.width - 16));
+								var wordLeft = cursor - word.width;
 								if (word.index === lit) {
-									var boxTop = drawY - (metric.actualBoundingBoxAscent || ascent) - 6;
-									var boxBot = drawY + (metric.actualBoundingBoxDescent || descent) + 6;
+									lineLit = true;
+									var padX = Math.max(5, Math.round(size * 0.1));
+									var padY = Math.max(4, Math.round(size * 0.08));
+									var boxX = wordLeft - padX;
+									var boxY = drawY - ascent - padY;
+									var boxW = word.width + padX * 2;
+									var boxH = ascent + descent + padY * 2;
+									var radius = Math.min(12, boxH / 2, boxW / 2);
+									ctx.beginPath();
+									ctx.moveTo(boxX + radius, boxY);
+									ctx.arcTo(boxX + boxW, boxY, boxX + boxW, boxY + boxH, radius);
+									ctx.arcTo(boxX + boxW, boxY + boxH, boxX, boxY + boxH, radius);
+									ctx.arcTo(boxX, boxY + boxH, boxX, boxY, radius);
+									ctx.arcTo(boxX, boxY, boxX + boxW, boxY, radius);
+									ctx.closePath();
 									ctx.fillStyle = '#1f6b4a';
-									ctx.fillRect(inkLeft - 4, boxTop, Math.max(8, inkRight - inkLeft) + 8, boxBot - boxTop);
+									ctx.fill();
 								}
 								ctx.fillStyle = word.index === lit ? '#f6f1e6' : '#d7e3db';
-								ctx.textAlign = 'left';
+								ctx.direction = 'rtl';
+								ctx.textAlign = 'right';
 								ctx.textBaseline = 'alphabetic';
 								ctx.font = '700 ' + size + 'px "Scheherazade New", serif';
-								ctx.fillText(word.text, x, drawY);
+								ctx.fillText(word.text, cursor, drawY);
+								cursor = wordLeft - gap;
 							}
-							var ayahNum = pack.ayahOf[line[line.length - 1].index] || 0;
-							if (ayahNum) {
-								var badgeX = leftEdge - 28;
-								var badgeY = drawY - ascent * 0.35;
+							var endWord = line[line.length - 1];
+							var ayahNum = pack.ayahOf[endWord.index] || 0;
+							var nextAyah = pack.ayahOf[endWord.index + 1];
+							var ayahEnds = ayahNum && nextAyah !== ayahNum;
+							if (ayahEnds) {
+								var badgeR = 16;
+								var badgeX = lineLeft - 26 - badgeR;
+								var badgeY = drawY - (ascent - descent) / 2;
 								ctx.beginPath();
-								ctx.arc(badgeX, badgeY, 15, 0, Math.PI * 2);
+								ctx.arc(badgeX, badgeY, badgeR, 0, Math.PI * 2);
 								ctx.strokeStyle = '#e4c98a';
 								ctx.lineWidth = 2;
 								ctx.stroke();
@@ -1333,17 +1329,17 @@ document.getElementById('install_quran').addEventListener('click', function () {
 								ctx.font = '600 16px Outfit, sans-serif';
 								ctx.textAlign = 'center';
 								ctx.textBaseline = 'middle';
-								ctx.fillText(String(ayahNum), badgeX, badgeY);
-								ctx.textBaseline = 'alphabetic';
-								var lineLit = false;
-								for (wi = 0; wi < line.length; wi++) if (line[wi].index === lit) lineLit = true;
+								ctx.direction = 'ltr';
+								ctx.fillText(String(ayahNum), badgeX, badgeY + 1);
 								if (lineLit || !stampWhere) stampWhere = { x: badgeX, y: badgeY };
 							}
 						}
 						drawY += lineH;
 					}
+					ctx.restore();
 					ctx.textAlign = 'center';
 					ctx.textBaseline = 'alphabetic';
+					ctx.direction = 'ltr';
 					if (stampP > 0 && stampWhere) {
 						ctx.beginPath();
 						ctx.arc(stampWhere.x, stampWhere.y, 24, -Math.PI / 2, -Math.PI / 2 + stampP * Math.PI * 2);
@@ -1364,29 +1360,33 @@ document.getElementById('install_quran').addEventListener('click', function () {
 					var ratio = Math.max(0, Math.min(1, ((t || 0) - (span.start || 0)) / slice));
 					ctx.fillStyle = '#1f6b4a';
 					ctx.fillRect(120, barY, (w - 240) * ratio, 8);
-					var sealLine = 'Sealed · ' + (clip.date || '');
+					var when = clip.date || '';
+					if (clip.time) when = when ? (when + ' · ' + clip.time) : clip.time;
+					var sealLine = 'Sealed · ' + when;
 					var mistakeCount = Number(clip.mistakes);
 					if (isFinite(mistakeCount) && mistakeCount > 0) {
 						sealLine += ' · ' + mistakeCount + (mistakeCount === 1 ? ' mistake' : ' mistakes');
 					}
 					ctx.fillStyle = '#b7c4bb';
 					ctx.font = '500 24px Outfit, sans-serif';
+					if (ctx.measureText(sealLine).width > w - 160) ctx.font = '500 20px Outfit, sans-serif';
 					ctx.fillText(sealLine, w / 2, h - 140);
 					ctx.fillStyle = '#e4c98a';
 					ctx.font = '600 26px Outfit, sans-serif';
 					ctx.fillText('Contact us 08021211053', w / 2, h - 104);
-					var arm = 78;
-					var thick = 8;
-					var pad = 22;
+					var pad = 28;
+					var thick = 6;
+					var armX = 58;
+					var armY = 116;
 					ctx.fillStyle = '#e4c98a';
-					ctx.fillRect(pad, pad, arm, thick);
-					ctx.fillRect(pad, pad, thick, arm);
-					ctx.fillRect(w - pad - arm, pad, arm, thick);
-					ctx.fillRect(w - pad - thick, pad, thick, arm);
-					ctx.fillRect(pad, h - pad - thick, arm, thick);
-					ctx.fillRect(pad, h - pad - arm, thick, arm);
-					ctx.fillRect(w - pad - arm, h - pad - thick, arm, thick);
-					ctx.fillRect(w - pad - thick, h - pad - arm, thick, arm);
+					ctx.fillRect(pad, pad, armX, thick);
+					ctx.fillRect(pad, pad, thick, armY);
+					ctx.fillRect(w - pad - armX, pad, armX, thick);
+					ctx.fillRect(w - pad - thick, pad, thick, armY);
+					ctx.fillRect(pad, h - pad - thick, armX, thick);
+					ctx.fillRect(pad, h - pad - armY, thick, armY);
+					ctx.fillRect(w - pad - armX, h - pad - thick, armX, thick);
+					ctx.fillRect(w - pad - thick, h - pad - armY, thick, armY);
 				}
 				function beginTake() {
 					if (alive && !alive()) {
