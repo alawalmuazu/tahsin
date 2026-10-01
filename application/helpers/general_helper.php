@@ -352,6 +352,35 @@ function is_librarian_loggedin()
     return false;
 }
 
+// is receptionist logged in @return boolean
+function is_receptionist_loggedin()
+{
+    $CI = &get_instance();
+    $roleId = (int) $CI->session->userdata('loggedin_role_id');
+    if ($roleId === 8) {
+        return true;
+    }
+    static $ids = null;
+    if ($ids === null) {
+        $ids = array(8);
+        if (isset($CI->db) && $CI->db && $CI->db->table_exists('roles')) {
+            $rows = $CI->db->select('id')
+                ->from('roles')
+                ->group_start()
+                    ->where('prefix', 'receptionist')
+                    ->or_where('name', 'Receptionist')
+                ->group_end()
+                ->get()
+                ->result();
+            foreach ($rows as $r) {
+                $ids[] = (int) $r->id;
+            }
+            $ids = array_values(array_unique($ids));
+        }
+    }
+    return in_array($roleId, $ids, true);
+}
+
 // is parent logged in @return boolean
 function is_parent_loggedin()
 {

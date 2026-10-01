@@ -367,6 +367,31 @@ class Academy_students extends Admin_Controller
         $this->load->view('layout/index', $this->data);
     }
 
+    /**
+     * Reception desk: make a Status clip or the full recitation for each student
+     * and hand it to the phone share sheet for the school's social accounts.
+     */
+    public function social()
+    {
+        if (!is_loggedin() || is_student_loggedin() || is_parent_loggedin()) {
+            access_denied();
+        }
+        if (!is_receptionist_loggedin() && !is_admin_loggedin() && !is_superadmin_loggedin() && !is_director_loggedin()) {
+            access_denied();
+        }
+        $branchID = $this->application_model->get_branch_id();
+        $students = $this->academy_model->socialShareRoster($branchID);
+        $this->data['students'] = $students;
+        $this->data['students_json'] = json_encode(
+            $students,
+            JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_UNICODE
+        );
+        $this->data['title'] = 'School social share';
+        $this->data['sub_page'] = 'academy/social';
+        $this->data['main_menu'] = 'academy';
+        $this->load->view('layout/index', $this->data);
+    }
+
     public function parse_voice()
     {
         if (!is_loggedin()) {

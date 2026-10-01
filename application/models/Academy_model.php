@@ -2303,57 +2303,145 @@ class Academy_model extends MY_Model
         $this->db->order_by('t.id', 'DESC');
         $rows = $this->db->get()->result();
         $out = array();
-        $names = $this->surahList();
         foreach ($rows as $row) {
-            $audio = $this->absoluteMediaUrl(isset($row->audio_url) ? $row->audio_url : '');
-            if ($audio === '') {
-                continue;
+            $clip = $this->sealedClipFromRow($row);
+            if ($clip) {
+                $out[] = $clip;
             }
-            $when = !empty($row->completed_at) ? strtotime($row->completed_at) : time();
-            $teacher = 'Facilitator';
-            if (!empty($row->instructor_id) && function_exists('get_type_name_by_id')) {
-                $name = get_type_name_by_id('staff', $row->instructor_id, 'name');
-                if ($name) {
-                    $teacher = $name;
-                }
+        }
+        return $out;
+    }
+
+    /**
+     * One sealed recording, in the shape the share card records.
+     *
+     * @return array<string,mixed>|null
+     */
+    public function sealedClipFromRow($row)
+    {
+        if (!$row) {
+            return null;
+        }
+        $audio = $this->absoluteMediaUrl(isset($row->audio_url) ? $row->audio_url : '');
+        if ($audio === '') {
+            return null;
+        }
+        $when = !empty($row->completed_at) ? strtotime($row->completed_at) : time();
+        $teacher = 'Facilitator';
+        if (!empty($row->instructor_id) && function_exists('get_type_name_by_id')) {
+            $name = get_type_name_by_id('staff', $row->instructor_id, 'name');
+            if ($name) {
+                $teacher = $name;
             }
-            $surah = isset($row->surah_number) ? (int) $row->surah_number : 0;
-            if ($surah < 1 || $surah > 114) {
-                $surah = 0;
-                $want = isset($row->surah_name) ? strtolower(trim((string) $row->surah_name)) : '';
-                if ($want !== '') {
-                    foreach ($names as $i => $n) {
-                        if (strtolower($n) === $want) {
-                            $surah = (int) $i;
-                            break;
-                        }
+        }
+        $names = $this->surahList();
+        $surah = isset($row->surah_number) ? (int) $row->surah_number : 0;
+        if ($surah < 1 || $surah > 114) {
+            $surah = 0;
+            $want = isset($row->surah_name) ? strtolower(trim((string) $row->surah_name)) : '';
+            if ($want !== '') {
+                foreach ($names as $i => $n) {
+                    if (strtolower($n) === $want) {
+                        $surah = (int) $i;
+                        break;
                     }
                 }
             }
-            $from = isset($row->ayah_from) && $row->ayah_from !== '' && $row->ayah_from !== null ? (int) $row->ayah_from : 1;
-            $to = isset($row->ayah_to) && $row->ayah_to !== '' && $row->ayah_to !== null ? (int) $row->ayah_to : $from;
-            if ($to < 1) {
-                $to = $from;
+        }
+        $from = isset($row->ayah_from) && $row->ayah_from !== '' && $row->ayah_from !== null ? (int) $row->ayah_from : 1;
+        $to = isset($row->ayah_to) && $row->ayah_to !== '' && $row->ayah_to !== null ? (int) $row->ayah_to : $from;
+        if ($to < 1) {
+            $to = $from;
+        }
+        if ($from < 1) {
+            $from = 1;
+        }
+        if ($from > $to) {
+            $swap = $from;
+            $from = $to;
+            $to = $swap;
+        }
+        return array(
+            'portion' => $this->sealedDigestLine(array($row), array())['portion'],
+            'date' => date('j M Y', $when),
+            'time' => date('g:i A', $when),
+            'teacher' => $teacher,
+            'audio' => $audio,
+            'surah' => $surah,
+            'from' => $from,
+            'to' => $to,
+            'mistakes' => (isset($row->mistake_word_count) && $row->mistake_word_count !== null && $row->mistake_word_count !== '')
+                ? (int) $row->mistake_word_count : null,
+        );
+    }
+
+    /**
+     * Latest sealed recitation for every enrolled student, for the school social share desk.
+     *
+     * @return array<int, array<string,mixed>>
+     */
+    public function socialShareRoster($branchId)
+    {
+        if (!$this->tahfizReady()) {
+            return array();
+        }
+        $sessionID = get_session_id();
+        $this->db->select('s.id, s.photo, TRIM(CONCAT_WS(" ", s.first_name, NULLIF(s.other_name,""), s.last_name)) AS fullname, c.name AS class_name', false);
+        $this->db->from('enroll e');
+        $this->db->join('student s', 's.id = e.student_id', 'inner');
+        $this->db->join('class c', 'c.id = e.class_id', 'left');
+        $this->db->where('e.branch_id', (int) $branchId);
+        if ($sessionID) {
+            $this->db->where('e.session_id', (int) $sessionID);
+        }
+        $this->db->group_by('s.id');
+        $this->db->order_by('s.first_name', 'ASC');
+        $students = $this->db->get()->result();
+        if (empty($students)) {
+            return array();
+        }
+        $this->db->from('academy_tahfiz_record t');
+        $this->db->where('t.branch_id', (int) $branchId);
+        $this->db->where('t.audio_url IS NOT NULL', null, false);
+        $this->db->where('t.audio_url !=', '');
+        if ($this->db->table_exists('academy_class_session')) {
+            $this->db->where(
+                'EXISTS (SELECT 1 FROM academy_class_session cs WHERE cs.status = "acknowledged" AND cs.branch_id = t.branch_id AND cs.teacher_id = t.instructor_id AND (cs.milestone_id = t.id OR (cs.milestone_id = 0 AND cs.session_date = DATE(t.completed_at))))',
+                null,
+                false
+            );
+        }
+        $this->db->order_by('t.completed_at', 'DESC');
+        $this->db->order_by('t.id', 'DESC');
+        $rows = $this->db->get()->result();
+        $latest = array();
+        foreach ($rows as $row) {
+            $sid = (int) $row->student_id;
+            if (!isset($latest[$sid])) {
+                $latest[$sid] = $row;
             }
-            if ($from < 1) {
-                $from = 1;
+        }
+        $school = $this->quranSchoolName();
+        $logo = base_url('uploads/app_image/logo.png');
+        $out = array();
+        foreach ($students as $student) {
+            $sid = (int) $student->id;
+            if (!isset($latest[$sid])) {
+                continue;
             }
-            if ($from > $to) {
-                $swap = $from;
-                $from = $to;
-                $to = $swap;
+            $clip = $this->sealedClipFromRow($latest[$sid]);
+            if (!$clip) {
+                continue;
             }
+            $name = trim((string) $student->fullname);
             $out[] = array(
-                'portion' => $this->sealedDigestLine(array($row), array())['portion'],
-                'date' => date('j M Y', $when),
-                'time' => date('g:i A', $when),
-                'teacher' => $teacher,
-                'audio' => $audio,
-                'surah' => $surah,
-                'from' => $from,
-                'to' => $to,
-                'mistakes' => (isset($row->mistake_word_count) && $row->mistake_word_count !== null && $row->mistake_word_count !== '')
-                    ? (int) $row->mistake_word_count : null,
+                'id' => $sid,
+                'name' => $name !== '' ? $name : 'Student',
+                'photo' => get_image_url('student', $student->photo),
+                'class_name' => $student->class_name ? $student->class_name : '',
+                'school' => $school,
+                'logo' => $logo,
+                'clip' => $clip,
             );
         }
         return $out;

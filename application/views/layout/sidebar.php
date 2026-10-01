@@ -451,6 +451,13 @@
                                     <span><i class="fas fa-caret-right"></i>Quran playlist</span>
                                 </a>
                             </li>
+                            <?php if (is_receptionist_loggedin() || is_superadmin_loggedin() || is_admin_loggedin() || is_director_loggedin()) { ?>
+                            <li class="<?php if ($_ac_sub == 'academy/social') echo 'nav-active'; ?>">
+                                <a href="<?php echo base_url('academy_students/social'); ?>">
+                                    <span><i class="fas fa-caret-right"></i>School social share</span>
+                                </a>
+                            </li>
+                            <?php } ?>
                             <li class="<?php if ($_ac_sub == 'academy/groups') echo 'nav-active'; ?>">
                                 <a href="<?php echo base_url('academy_groups'); ?>">
                                     <span><i class="fas fa-caret-right"></i>My Groups</span>
