@@ -30,13 +30,13 @@ $zones = array(
 <div class="col-md-3 mb-sm js-online-field">
 	<div class="form-group">
 		<label class="control-label">Country</label>
-		<input type="text" class="form-control" name="country" value="<?php echo html_escape($country); ?>" placeholder="Nigeria, USA, United Kingdom">
+		<input type="text" class="form-control" name="country" id="country" value="<?php echo html_escape($country); ?>" placeholder="Nigeria, USA, United Kingdom">
 	</div>
 </div>
 <div class="col-md-3 mb-sm js-online-field">
 	<div class="form-group">
 		<label class="control-label">Their timezone</label>
-		<select name="timezone" class="form-control">
+		<select name="timezone" id="timezone" class="form-control">
 			<?php foreach ($zones as $id => $label): ?>
 				<option value="<?php echo html_escape($id); ?>" <?php echo $tz === $id ? 'selected' : ''; ?>><?php echo html_escape($label); ?></option>
 			<?php endforeach; ?>

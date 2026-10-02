@@ -292,13 +292,19 @@ class Student extends Admin_Controller
                 $post['category_id'] = empty($post['category_id']) ? 0 : (int) $post['category_id'];
                 $post['pwd_category_id'] = empty($post['pwd_category_id']) ? 0 : (int) $post['pwd_category_id'];
                 $attendMode = ($this->input->post('instruction_mode') === 'online') ? 'online' : 'campus';
-                $schoolFee = $this->student_model->schoolFeeAmount(
-                    $post['section_id'] ? $post['section_id'] : 0,
-                    $post['category_id'],
-                    $post['pwd_category_id'],
-                    $branchID,
-                    $attendMode
-                );
+                $onlineQuote = null;
+                if ($attendMode === 'online') {
+                    $this->load->model('school_fee_model');
+                    $onlineQuote = $this->school_fee_model->quoteOnline($branchID, $this->input->post('country'), $this->input->post('timezone'));
+                    $schoolFee = $onlineQuote['naira'];
+                } else {
+                    $schoolFee = $this->student_model->schoolFeeAmount(
+                        $post['section_id'] ? $post['section_id'] : 0,
+                        $post['category_id'],
+                        $post['pwd_category_id'],
+                        $branchID
+                    );
+                }
                 $post['register_no'] = $this->student_model->allocateRegisterNo($branchID);
                 $post['roll'] = $this->student_model->allocateRoll(
                     $post['class_id'] ? $post['class_id'] : 0,
@@ -320,6 +326,12 @@ class Student extends Admin_Controller
                 );
                 if ($this->db->field_exists('instruction_mode', 'enroll')) {
                     $arrayEnroll['instruction_mode'] = ($this->input->post('instruction_mode') === 'online') ? 'online' : 'campus';
+                }
+                if ($attendMode === 'online' && $onlineQuote && $this->db->field_exists('fee_naira', 'enroll')) {
+                    $arrayEnroll['fee_currency'] = $onlineQuote['currency'];
+                    $arrayEnroll['fee_foreign'] = $onlineQuote['foreign'];
+                    $arrayEnroll['fee_rate'] = $onlineQuote['rate'];
+                    $arrayEnroll['fee_naira'] = $onlineQuote['naira'];
                 }
                 $this->db->insert('enroll', $arrayEnroll);
                 $enrollID = $this->db->insert_id();
@@ -770,6 +782,22 @@ class Student extends Admin_Controller
                 if ($this->db->field_exists('instruction_mode', 'enroll')) {
                     $arrayEnroll['instruction_mode'] = ($this->input->post('instruction_mode') === 'online') ? 'online' : 'campus';
                 }
+                if ($this->db->field_exists('fee_naira', 'enroll')) {
+                    $summary = $this->student_model->getTuitionSummary($getStudent['enrollid']);
+                    if ($arrayEnroll['instruction_mode'] === 'online' && (float) $summary['paid'] <= 0) {
+                        $this->load->model('school_fee_model');
+                        $quote = $this->school_fee_model->quoteOnline($this->data['branch_id'], $this->input->post('country'), $this->input->post('timezone'));
+                        $arrayEnroll['fee_currency'] = $quote['currency'];
+                        $arrayEnroll['fee_foreign'] = $quote['foreign'];
+                        $arrayEnroll['fee_rate'] = $quote['rate'];
+                        $arrayEnroll['fee_naira'] = $quote['naira'];
+                    } elseif ($arrayEnroll['instruction_mode'] !== 'online') {
+                        $arrayEnroll['fee_currency'] = null;
+                        $arrayEnroll['fee_foreign'] = null;
+                        $arrayEnroll['fee_rate'] = null;
+                        $arrayEnroll['fee_naira'] = null;
+                    }
+                }
                 $this->db->where('id', $getStudent['enrollid']);
                 $this->db->update('enroll', $arrayEnroll);
 
@@ -872,12 +900,18 @@ class Student extends Admin_Controller
         $pwd_category_id = (int) $this->input->post('pwd_category_id');
         $branchID = $this->application_model->get_branch_id();
         $mode = $this->input->post('instruction_mode') === 'online' ? 'online' : 'campus';
-        $fee = $this->student_model->schoolFeeAmount($section_id, $category_id, $pwd_category_id, $branchID, $mode);
-        $amount = parse_money_input($amount);
-        if ($mode === 'online' && $fee <= 0) {
-            $this->form_validation->set_message('valid_tuition_now', 'Set the online school fee under Settings, School Fees, before admitting an online student.');
-            return false;
+        if ($mode === 'online') {
+            $this->load->model('school_fee_model');
+            $quote = $this->school_fee_model->quoteOnline($branchID, $this->input->post('country'), $this->input->post('timezone'));
+            $fee = $quote['naira'];
+            if ($fee <= 0) {
+                $this->form_validation->set_message('valid_tuition_now', $quote['error'] !== '' ? $quote['error'] : 'The online fee could not be calculated.');
+                return false;
+            }
+        } else {
+            $fee = $this->student_model->schoolFeeAmount($section_id, $category_id, $pwd_category_id, $branchID);
         }
+        $amount = parse_money_input($amount);
         if ($amount < 0) {
             $this->form_validation->set_message('valid_tuition_now', 'Amount cannot be negative.');
             return false;

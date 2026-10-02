@@ -84,6 +84,10 @@ class Fees_model extends MY_Model
         $sessionID = get_session_id();
         $sql = "SELECT SUM(`fee_groups_details`.`amount` + `fee_allocation`.`prev_due`) as `total`, min(`fee_allocation`.`id`) as `inv_no` FROM `fee_allocation` LEFT JOIN `fee_groups_details` ON `fee_groups_details`.`fee_groups_id` = `fee_allocation`.`group_id` LEFT JOIN `fees_type` ON `fees_type`.`id` = `fee_groups_details`.`fee_type_id` WHERE `fee_allocation`.`student_id` = " . $this->db->escape($enrollID) . " AND `fee_allocation`.`session_id` = " . $this->db->escape($sessionID);
         $balance = $this->db->query($sql)->row_array();
+        $lockedNaira = $this->lockedOnlineNaira($enrollID);
+        if ($lockedNaira > 0) {
+            $balance['total'] = (float) $balance['total'] - $this->onlineGroupAmount($enrollID) + $lockedNaira;
+        }
         $invNo = empty($balance['inv_no']) ? 0 : str_pad($balance['inv_no'], 4, '0', STR_PAD_LEFT);
 
         // calculation total transport fee
@@ -117,18 +121,40 @@ class Fees_model extends MY_Model
 
     public function getInvoiceDetails($enrollID = '')
     {
-        $sql = "SELECT `fee_allocation`.`group_id`,`fee_allocation`.`prev_due`,`fee_allocation`.`id` as `allocation_id`, `fees_type`.`name`, `fees_type`.`system`, `fee_groups_details`.`amount`, `fee_groups_details`.`due_date`, `fee_groups_details`.`fee_type_id` FROM `fee_allocation` LEFT JOIN
-        `fee_groups_details` ON `fee_groups_details`.`fee_groups_id` = `fee_allocation`.`group_id` LEFT JOIN `fees_type` ON `fees_type`.`id` = `fee_groups_details`.`fee_type_id` WHERE
+        $sql = "SELECT `fee_allocation`.`group_id`,`fee_allocation`.`prev_due`,`fee_allocation`.`id` as `allocation_id`, `fee_groups`.`name` as `group_name`, `fees_type`.`name`, `fees_type`.`system`, `fee_groups_details`.`amount`, `fee_groups_details`.`due_date`, `fee_groups_details`.`fee_type_id` FROM `fee_allocation` LEFT JOIN
+        `fee_groups_details` ON `fee_groups_details`.`fee_groups_id` = `fee_allocation`.`group_id` LEFT JOIN `fee_groups` ON `fee_groups`.`id` = `fee_allocation`.`group_id` LEFT JOIN `fees_type` ON `fees_type`.`id` = `fee_groups_details`.`fee_type_id` WHERE
         `fee_allocation`.`student_id` = " . $this->db->escape($enrollID) . " AND `fee_allocation`.`session_id` = " . $this->db->escape(get_session_id()) . " ORDER BY `fee_allocation`.`group_id` ASC, `fees_type`.`id` ASC";
         $student = array();
+        $lockedNaira = $this->lockedOnlineNaira($enrollID);
         $r = $this->db->query($sql)->result_array();
         foreach ($r as $key => $value) {
             if ($value['system'] == 1) {
                 $value['amount'] = $value['prev_due'];
+            } elseif ($lockedNaira > 0 && isset($value['group_name']) && $value['group_name'] === 'Online tuition') {
+                $value['amount'] = $lockedNaira;
             }
             $student[] = $value;
         }
         return $student;
+    }
+
+    protected function lockedOnlineNaira($enrollID)
+    {
+        if ((int) $enrollID < 1 || !$this->db->field_exists('fee_naira', 'enroll') || !$this->db->field_exists('instruction_mode', 'enroll')) {
+            return 0.0;
+        }
+        $row = $this->db->select('instruction_mode, fee_naira')->where('id', (int) $enrollID)->get('enroll')->row();
+        if (!$row || $row->instruction_mode !== 'online') {
+            return 0.0;
+        }
+        return (float) $row->fee_naira;
+    }
+
+    protected function onlineGroupAmount($enrollID)
+    {
+        $sql = "SELECT IFNULL(SUM(`fee_groups_details`.`amount`), 0) AS `amount` FROM `fee_allocation` INNER JOIN `fee_groups` ON `fee_groups`.`id` = `fee_allocation`.`group_id` AND `fee_groups`.`name` = 'Online tuition' LEFT JOIN `fee_groups_details` ON `fee_groups_details`.`fee_groups_id` = `fee_allocation`.`group_id` WHERE `fee_allocation`.`student_id` = " . $this->db->escape($enrollID) . " AND `fee_allocation`.`session_id` = " . $this->db->escape(get_session_id());
+        $row = $this->db->query($sql)->row();
+        return $row ? (float) $row->amount : 0.0;
     }
 
     public function getInvoiceBasic($enrollID = '')

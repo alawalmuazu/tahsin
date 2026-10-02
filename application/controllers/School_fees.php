@@ -44,8 +44,13 @@ class School_fees extends Admin_Controller
                 set_alert('error', 'Run school_fees_section_programme_pwd.sql migration first.');
             } else {
                 $this->school_fee_model->saveMatrix($branchID, $default, $matrix);
-                if ($this->school_fee_model->hasOnlineAmount()) {
-                    $this->school_fee_model->saveOnlineAmount($branchID, parse_money_input($this->input->post('online_amount')));
+                if ($this->school_fee_model->pricesReady()) {
+                    $posted = $this->input->post('online_price');
+                    $prices = array();
+                    foreach ($this->school_fee_model->currencies() as $code => $label) {
+                        $prices[$code] = parse_money_input(is_array($posted) && isset($posted[$code]) ? $posted[$code] : 0);
+                    }
+                    $this->school_fee_model->savePrices($branchID, $prices);
                 }
                 set_alert('success', translate('information_has_been_updated_successfully'));
             }
@@ -67,7 +72,8 @@ class School_fees extends Admin_Controller
         }
         $this->data['fee_map'] = $this->school_fee_model->getMap($branchID);
         $this->data['default_amount'] = $this->school_fee_model->getDefaultAmount($branchID);
-        $this->data['online_amount'] = $this->school_fee_model->onlineAmount($branchID);
+        $this->data['online_prices'] = $this->school_fee_model->getPrices($branchID);
+        $this->data['online_currencies'] = $this->school_fee_model->currencies();
         $this->data['title'] = 'School Fees';
         $this->data['sub_page'] = 'school_fees/index';
         $this->data['main_menu'] = 'settings';
@@ -84,11 +90,22 @@ class School_fees extends Admin_Controller
         $categoryID = (int) $this->input->post('category_id');
         $pwdID = (int) $this->input->post('pwd_category_id');
         $mode = $this->input->post('instruction_mode') === 'online' ? 'online' : 'campus';
+        if ($mode === 'online') {
+            $quote = $this->school_fee_model->quoteOnline($branchID, $this->input->post('country'), $this->input->post('timezone'));
+            echo json_encode(array(
+                'status' => 'success',
+                'amount' => $quote['naira'],
+                'formatted' => currencyFormat($quote['naira']),
+                'quote' => $quote['error'] !== '' ? $quote['error'] : $quote['text'],
+            ));
+            return;
+        }
         $amount = $this->school_fee_model->resolveAmount($branchID, $sectionID, $categoryID, $pwdID, $mode);
         echo json_encode(array(
             'status' => 'success',
             'amount' => $amount,
             'formatted' => currencyFormat($amount),
+            'quote' => '',
         ));
     }
 

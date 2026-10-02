@@ -674,6 +674,7 @@ if ($previous_school_details['status']) {
 						<?php if ($tuition['paid'] > 0): ?>
 						<div class="alert <?=$tuition['complete'] ? 'alert-success' : 'alert-info'?>">
 							School Fees: <strong><?=currencyFormat($tuition['fee'])?></strong>
+							<?php if (!empty($tuition['quote'])): ?><div class="text-muted"><?=html_escape($tuition['quote'])?></div><?php endif; ?>
 							&nbsp;|&nbsp; Payment Type: <strong><?=html_escape($tuition['plan_label'] ?: '—')?></strong>
 							&nbsp;|&nbsp; Paid: <strong><?=currencyFormat($tuition['paid'])?></strong>
 							&nbsp;|&nbsp; Balance: <strong><?=currencyFormat($tuition['balance'])?></strong>
@@ -707,6 +708,7 @@ if ($previous_school_details['status']) {
 						<?php elseif ($canRecordTuition): ?>
 						<div class="alert alert-warning">
 							<strong><?=translate('tuition')?> <?=translate('payment')?></strong> has not been recorded for this student. School fees: <strong><?=currencyFormat($tuition['fee'])?></strong>
+							<?php if (!empty($tuition['quote'])): ?><div class="text-muted"><?=html_escape($tuition['quote'])?></div><?php endif; ?>
 						</div>
 						<?php endif; ?>
 						<?php if ($canRecordTuition && !$tuition['complete']): ?>

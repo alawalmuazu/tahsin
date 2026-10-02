@@ -728,7 +728,15 @@ endif;
 				</div>
 				<?php
 					$attend_mode = set_value('instruction_mode') === 'online' ? 'online' : 'campus';
-					$school_fee = get_school_fee_amount(set_value('section_id'), set_value('category_id'), $branch_id, set_value('pwd_category_id'), $attend_mode);
+					$online_quote = '';
+					if ($attend_mode === 'online') {
+						$this->load->model('school_fee_model');
+						$quoted = $this->school_fee_model->quoteOnline($branch_id, set_value('country'), set_value('timezone'));
+						$school_fee = $quoted['naira'];
+						$online_quote = $quoted['error'] !== '' ? $quoted['error'] : $quoted['text'];
+					} else {
+						$school_fee = get_school_fee_amount(set_value('section_id'), set_value('category_id'), $branch_id, set_value('pwd_category_id'));
+					}
 					$tuition_plan = set_value('tuition_plan', 'full');
 				?>
 				<div class="row">
@@ -736,6 +744,7 @@ endif;
 						<div class="form-group">
 							<label class="control-label">School Fees</label>
 							<input type="text" class="form-control" id="school_fee_display" value="<?=currencyFormat($school_fee)?>" readonly />
+							<small class="text-muted" id="online_fee_quote"><?=html_escape(isset($online_quote) ? $online_quote : '')?></small>
 						</div>
 					</div>
 					<div class="col-md-4 mb-sm">

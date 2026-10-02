@@ -8,7 +8,7 @@
 			Set the default school fee and optional amounts by <strong>Section</strong> (Boarding / Day / Weekend)
 			and <strong>Category</strong> (With / Without Technical Skills), for <strong>Physically Fit</strong>
 			and each <strong>PWD</strong> type. Admission tuition uses the matching amount automatically.
-			Online students use the online amount below, not the campus tables.
+			Online students are not charged from these campus tables. Set their fee in the currency of their country. Admission converts it to naira at the current rate.
 		</p>
 
 		<?php if (!$this->school_fee_model->tableReady()): ?>
@@ -29,17 +29,38 @@
 			</div>
 		</div>
 
-		<?php if ($this->school_fee_model->hasOnlineAmount()): ?>
+		<?php if ($this->school_fee_model->pricesReady()): ?>
 		<div class="form-group">
-			<label class="col-md-3 control-label">Online school fee</label>
-			<div class="col-md-4">
-				<input type="text" inputmode="decimal" name="online_amount" class="form-control money-input" value="<?php echo html_escape(amount_format(isset($online_amount) ? $online_amount : 0)); ?>">
-				<span class="help-block">Naira. Used when How they attend is Online, so a remote child is not charged the Kano boarding fee. Leave 0 until you set it.</span>
+			<label class="col-md-3 control-label">Online fees by place</label>
+			<div class="col-md-6">
+				<table class="table table-bordered table-condensed">
+					<thead>
+						<tr>
+							<th>Place</th>
+							<th>Currency</th>
+							<th>Fee in that currency</th>
+						</tr>
+					</thead>
+					<tbody>
+						<?php foreach ($online_currencies as $code => $place):
+							$val = isset($online_prices[$code]) ? $online_prices[$code] : 0;
+						?>
+						<tr>
+							<td><?php echo html_escape($place); ?></td>
+							<td><?php echo html_escape($code); ?></td>
+							<td>
+								<input type="text" inputmode="decimal" class="form-control money-input" name="online_price[<?php echo html_escape($code); ?>]" value="<?php echo $val > 0 ? html_escape(amount_format($val)) : ''; ?>" placeholder="0.00">
+							</td>
+						</tr>
+						<?php endforeach; ?>
+					</tbody>
+				</table>
+				<span class="help-block">Country picks the currency. Timezone is used when the country is not recognised. Naira for Nigeria is the amount itself. Other currencies are multiplied by the current rate and that naira figure is locked on the student.</span>
 			</div>
 		</div>
 		<?php else: ?>
 		<div class="alert alert-warning">
-			Run <code>application/migrations/online_fee_attendance.sql</code> before the online fee can be saved.
+			Run <code>application/migrations/online_fee_currency.sql</code> before online fees can be saved.
 		</div>
 		<?php endif; ?>
 

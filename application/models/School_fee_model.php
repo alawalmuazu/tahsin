@@ -42,7 +42,7 @@ class School_fee_model extends MY_Model
         $pwd_category_id = (int) $pwd_category_id;
 
         if ($mode === 'online') {
-            return $this->onlineAmount($branch_id);
+            return 0.0;
         }
 
         if (!$this->tableReady() || $branch_id <= 0) {
@@ -223,5 +223,228 @@ class School_fee_model extends MY_Model
             unset($insert['pwd_category_id']);
         }
         $this->db->insert('school_fee_settings', $insert);
+    }
+
+    public function pricesReady()
+    {
+        return $this->db->table_exists('online_fee_price');
+    }
+
+    public function currencies()
+    {
+        return array(
+            'NGN' => 'Nigeria (Abuja and other online)',
+            'USD' => 'United States',
+            'GBP' => 'United Kingdom',
+            'EUR' => 'Europe',
+            'AED' => 'Gulf',
+            'CAD' => 'Canada',
+        );
+    }
+
+    public function currencyFor($country, $timezone)
+    {
+        $place = strtolower(trim((string) $country));
+        $place = preg_replace('/[^a-z ]/', ' ', $place);
+        $place = trim(preg_replace('/\s+/', ' ', $place));
+        $phrases = array(
+            'united kingdom' => 'GBP',
+            'great britain' => 'GBP',
+            'england' => 'GBP',
+            'scotland' => 'GBP',
+            'wales' => 'GBP',
+            'london' => 'GBP',
+            'united states' => 'USD',
+            'america' => 'USD',
+            'canada' => 'CAD',
+            'united arab emirates' => 'AED',
+            'emirates' => 'AED',
+            'dubai' => 'AED',
+            'saudi' => 'AED',
+            'qatar' => 'AED',
+            'kuwait' => 'AED',
+            'bahrain' => 'AED',
+            'oman' => 'AED',
+            'gulf' => 'AED',
+            'nigeria' => 'NGN',
+            'abuja' => 'NGN',
+            'kano' => 'NGN',
+            'lagos' => 'NGN',
+            'germany' => 'EUR',
+            'france' => 'EUR',
+            'spain' => 'EUR',
+            'italy' => 'EUR',
+            'netherlands' => 'EUR',
+            'belgium' => 'EUR',
+            'austria' => 'EUR',
+            'portugal' => 'EUR',
+            'ireland' => 'EUR',
+            'europe' => 'EUR',
+        );
+        $exact = array(
+            'uk' => 'GBP',
+            'usa' => 'USD',
+            'us' => 'USD',
+            'uae' => 'AED',
+        );
+        if (isset($exact[$place])) {
+            return $exact[$place];
+        }
+        foreach ($phrases as $needle => $code) {
+            if ($place === $needle || strpos($place, $needle) !== false) {
+                return $code;
+            }
+        }
+        $zones = array(
+            'Africa/Lagos' => 'NGN',
+            'Europe/London' => 'GBP',
+            'Europe/Paris' => 'EUR',
+            'Europe/Berlin' => 'EUR',
+            'America/New_York' => 'USD',
+            'America/Chicago' => 'USD',
+            'America/Denver' => 'USD',
+            'America/Los_Angeles' => 'USD',
+            'Asia/Dubai' => 'AED',
+        );
+        if (isset($zones[$timezone])) {
+            return $zones[$timezone];
+        }
+        return 'USD';
+    }
+
+    public function getPrices($branch_id)
+    {
+        $out = array();
+        foreach ($this->currencies() as $code => $label) {
+            $out[$code] = 0.0;
+        }
+        if (!$this->pricesReady() || (int) $branch_id <= 0) {
+            return $out;
+        }
+        $rows = $this->db->get_where('online_fee_price', array('branch_id' => (int) $branch_id))->result();
+        foreach ($rows as $row) {
+            $code = strtoupper($row->currency);
+            if (isset($out[$code])) {
+                $out[$code] = (float) $row->amount;
+            }
+        }
+        return $out;
+    }
+
+    public function savePrices($branch_id, $amounts)
+    {
+        $branch_id = (int) $branch_id;
+        if (!$this->pricesReady() || $branch_id <= 0 || !is_array($amounts)) {
+            return false;
+        }
+        foreach ($this->currencies() as $code => $label) {
+            $amount = isset($amounts[$code]) ? (float) $amounts[$code] : 0;
+            if ($amount < 0) {
+                $amount = 0;
+            }
+            $existing = $this->db->get_where('online_fee_price', array(
+                'branch_id' => $branch_id,
+                'currency' => $code,
+            ))->row();
+            if ($existing) {
+                $this->db->where('id', $existing->id)->update('online_fee_price', array('amount' => $amount));
+            } else {
+                $this->db->insert('online_fee_price', array(
+                    'branch_id' => $branch_id,
+                    'currency' => $code,
+                    'amount' => $amount,
+                ));
+            }
+        }
+        return true;
+    }
+
+    public function quoteOnline($branch_id, $country, $timezone)
+    {
+        $currency = $this->currencyFor($country, $timezone);
+        $names = $this->currencies();
+        $label = isset($names[$currency]) ? $names[$currency] : $currency;
+        $foreign = 0.0;
+        if ($this->pricesReady()) {
+            $prices = $this->getPrices($branch_id);
+            $foreign = isset($prices[$currency]) ? (float) $prices[$currency] : 0.0;
+        }
+        $rate = ($foreign > 0) ? $this->nairaPerUnit($currency) : 0.0;
+        $naira = ($foreign > 0 && $rate > 0) ? round($foreign * $rate, 2) : 0.0;
+        $error = '';
+        $text = '';
+        if (!$this->pricesReady()) {
+            $error = 'Run application/migrations/online_fee_currency.sql before admitting an online student.';
+        } elseif ($foreign <= 0) {
+            $error = 'Set the ' . $currency . ' online fee under Settings, School Fees.';
+        } elseif ($rate <= 0) {
+            $error = 'The current ' . $currency . ' rate to naira could not be loaded. Try again.';
+        } else {
+            $text = $currency . ' ' . number_format($foreign, 2, '.', ',') . ' × ' . number_format($rate, 2, '.', ',') . ' (' . $label . ', current rate to naira)';
+        }
+        return array(
+            'currency' => $currency,
+            'foreign' => $foreign,
+            'rate' => $rate,
+            'naira' => $naira,
+            'text' => $text,
+            'error' => $error,
+            'label' => $label,
+        );
+    }
+
+    public function nairaPerUnit($currency)
+    {
+        $currency = strtoupper(trim((string) $currency));
+        if ($currency === 'NGN') {
+            return 1.0;
+        }
+        $rates = $this->fxRates();
+        if (empty($rates['NGN']) || empty($rates[$currency]) || (float) $rates[$currency] <= 0) {
+            return 0.0;
+        }
+        return (float) $rates['NGN'] / (float) $rates[$currency];
+    }
+
+    protected function fxRates()
+    {
+        $path = APPPATH . 'cache/fx_usd.json';
+        $cached = array();
+        if (is_file($path)) {
+            $decoded = json_decode((string) file_get_contents($path), true);
+            if (is_array($decoded) && !empty($decoded['rates'])) {
+                $cached = $decoded;
+                $age = time() - (int) (isset($decoded['fetched_at']) ? $decoded['fetched_at'] : 0);
+                if ($age >= 0 && $age < 6 * 3600) {
+                    return $decoded['rates'];
+                }
+            }
+        }
+        $body = $this->httpGet('https://open.er-api.com/v6/latest/USD');
+        $json = $body ? json_decode($body, true) : null;
+        if (is_array($json) && !empty($json['rates']['NGN'])) {
+            $payload = array('fetched_at' => time(), 'rates' => $json['rates']);
+            @file_put_contents($path, json_encode($payload));
+            return $json['rates'];
+        }
+        return !empty($cached['rates']) ? $cached['rates'] : array();
+    }
+
+    protected function httpGet($url)
+    {
+        if (function_exists('curl_init')) {
+            $ch = curl_init($url);
+            curl_setopt_array($ch, array(
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_TIMEOUT => 8,
+                CURLOPT_CONNECTTIMEOUT => 5,
+            ));
+            $body = curl_exec($ch);
+            curl_close($ch);
+            return is_string($body) ? $body : '';
+        }
+        $context = stream_context_create(array('http' => array('timeout' => 8)));
+        $body = @file_get_contents($url, false, $context);
+        return is_string($body) ? $body : '';
     }
 }

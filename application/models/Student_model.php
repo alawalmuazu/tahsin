@@ -856,10 +856,10 @@ if ($validArr['roll']) {
         $sectionId = isset($enroll['section_id']) ? $enroll['section_id'] : 0;
         $programmeId = $student ? $student->category_id : 0;
         $pwdId = $student ? $student->pwd_category_id : 0;
-        $feeAmt = $this->schoolFeeAmount($sectionId, $programmeId, $pwdId, $enroll['branch_id'], $mode);
         if ($mode === 'online') {
-            $setup = $this->ensureOnlineTuitionSetup($enroll['branch_id'], $enroll['session_id'], $feeAmt);
+            $setup = $this->ensureOnlineTuitionSetup($enroll['branch_id'], $enroll['session_id'], 0);
         } else {
+            $feeAmt = $this->schoolFeeAmount($sectionId, $programmeId, $pwdId, $enroll['branch_id']);
             $setup = $this->ensureTuitionSetup($enroll['branch_id'], $enroll['session_id'], $feeAmt);
         }
         $plan = ($plan === 'full') ? 'full' : 'installment';
@@ -934,8 +934,14 @@ if ($validArr['roll']) {
     public function getTuitionSummary($enroll_id)
     {
         $cols = 'e.section_id, e.branch_id, s.pwd_category_id, s.category_id';
+        if ($this->db->field_exists('country', 'student')) {
+            $cols .= ', s.country, s.timezone';
+        }
         if ($this->db->field_exists('instruction_mode', 'enroll')) {
             $cols .= ', e.instruction_mode';
+        }
+        if ($this->db->field_exists('fee_naira', 'enroll')) {
+            $cols .= ', e.fee_currency, e.fee_foreign, e.fee_rate, e.fee_naira';
         }
         $enroll = $this->db->select($cols)
             ->from('enroll as e')
@@ -947,7 +953,24 @@ if ($validArr['roll']) {
         $pwd_category_id = $enroll ? (int) $enroll->pwd_category_id : 0;
         $branch_id = $enroll ? (int) $enroll->branch_id : null;
         $mode = ($enroll && isset($enroll->instruction_mode) && $enroll->instruction_mode === 'online') ? 'online' : 'campus';
-        $fee = $this->schoolFeeAmount($section_id, $programme_category_id, $pwd_category_id, $branch_id, $mode);
+        $quoteText = '';
+        if ($mode === 'online' && $enroll && isset($enroll->fee_naira) && (float) $enroll->fee_naira > 0) {
+            $fee = (float) $enroll->fee_naira;
+            $quoteText = $enroll->fee_currency . ' ' . number_format((float) $enroll->fee_foreign, 2, '.', ',')
+                . ' × ' . number_format((float) $enroll->fee_rate, 2, '.', ',')
+                . ' locked in naira';
+        } elseif ($mode === 'online') {
+            $this->load->model('school_fee_model');
+            $quote = $this->school_fee_model->quoteOnline(
+                $branch_id,
+                $enroll && isset($enroll->country) ? $enroll->country : '',
+                $enroll && isset($enroll->timezone) ? $enroll->timezone : ''
+            );
+            $fee = $quote['naira'];
+            $quoteText = $quote['error'] !== '' ? $quote['error'] : $quote['text'];
+        } else {
+            $fee = $this->schoolFeeAmount($section_id, $programme_category_id, $pwd_category_id, $branch_id);
+        }
         $payments = $this->getTuitionPayments($enroll_id);
         $paid = 0;
         $plan = '';
@@ -977,6 +1000,7 @@ if ($validArr['roll']) {
             'payments' => $payments,
             'last' => $last,
             'complete' => ($paid > 0 && $balance <= 0),
+            'quote' => $quoteText,
         );
     }
 

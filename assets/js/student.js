@@ -321,7 +321,9 @@
 					category_id: $('#category_id').val() || 0,
 					pwd_category_id: $('#pwd_category_id').val() || 0,
 					branch_id: $('input[name="branch_id"]').val() || 0,
-					instruction_mode: $('#instruction_mode').val() || 'campus'
+					instruction_mode: $('#instruction_mode').val() || 'campus',
+					country: $('#country').val() || '',
+					timezone: $('#timezone').val() || ''
 				},
 				success: function (res) {
 					if (!res || res.status !== 'success') {
@@ -330,12 +332,14 @@
 					var fee = parseFloat(res.amount) || 0;
 					$amt.data('school-fee', fee).attr('max', fee);
 					$('#school_fee_display').val(res.formatted || ('\u20A6' + formatTuitionMoney(fee)));
+					$('#online_fee_quote').text(res.quote || '');
 					updateTuitionUI();
 				}
 			});
 		}
 
-		$(document).on('change', '#section_id, #category_id, #pwd_category_id, #instruction_mode', refreshSchoolFeeFromSettings);
+		$(document).on('change', '#section_id, #category_id, #pwd_category_id, #instruction_mode, #timezone', refreshSchoolFeeFromSettings);
+		$(document).on('blur', '#country', refreshSchoolFeeFromSettings);
 
 		if ($('#tuition_amount').length) {
 			updateTuitionUI();
