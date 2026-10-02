@@ -727,7 +727,8 @@ endif;
 					<i class="fas fa-money-check-alt"></i> <?=translate('tuition')?> <?=translate('payment')?>
 				</div>
 				<?php
-					$school_fee = get_school_fee_amount(set_value('section_id'), set_value('category_id'), $branch_id, set_value('pwd_category_id'));
+					$attend_mode = set_value('instruction_mode') === 'online' ? 'online' : 'campus';
+					$school_fee = get_school_fee_amount(set_value('section_id'), set_value('category_id'), $branch_id, set_value('pwd_category_id'), $attend_mode);
 					$tuition_plan = set_value('tuition_plan', 'full');
 				?>
 				<div class="row">

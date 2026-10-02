@@ -320,7 +320,8 @@
 					section_id: $('#section_id').val() || 0,
 					category_id: $('#category_id').val() || 0,
 					pwd_category_id: $('#pwd_category_id').val() || 0,
-					branch_id: $('input[name="branch_id"]').val() || 0
+					branch_id: $('input[name="branch_id"]').val() || 0,
+					instruction_mode: $('#instruction_mode').val() || 'campus'
 				},
 				success: function (res) {
 					if (!res || res.status !== 'success') {
@@ -334,7 +335,7 @@
 			});
 		}
 
-		$(document).on('change', '#section_id, #category_id, #pwd_category_id', refreshSchoolFeeFromSettings);
+		$(document).on('change', '#section_id, #category_id, #pwd_category_id, #instruction_mode', refreshSchoolFeeFromSettings);
 
 		if ($('#tuition_amount').length) {
 			updateTuitionUI();

@@ -783,7 +783,7 @@ function amount_format($amount = 0, $decimals = 2)
 {
     return number_format((float) $amount, (int) $decimals, '.', ',');
 }
-function get_school_fee_amount($section_id = 0, $programme_category_id = 0, $branch_id = null, $pwd_category_id = 0)
+function get_school_fee_amount($section_id = 0, $programme_category_id = 0, $branch_id = null, $pwd_category_id = 0, $mode = 'campus')
 {
     $CI = &get_instance();
     if ($branch_id === null || $branch_id === '') {
@@ -792,7 +792,7 @@ function get_school_fee_amount($section_id = 0, $programme_category_id = 0, $bra
     if (!isset($CI->school_fee_model)) {
         $CI->load->model('school_fee_model');
     }
-    return $CI->school_fee_model->resolveAmount($branch_id, $section_id, $programme_category_id, $pwd_category_id);
+    return $CI->school_fee_model->resolveAmount($branch_id, $section_id, $programme_category_id, $pwd_category_id, $mode);
 }
 
 function moneyFormatIndia($num)

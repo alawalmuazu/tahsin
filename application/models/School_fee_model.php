@@ -18,6 +18,11 @@ class School_fee_model extends MY_Model
         return $this->tableReady() && $this->db->field_exists('pwd_category_id', 'school_fee_settings');
     }
 
+    public function hasOnlineAmount()
+    {
+        return $this->tableReady() && $this->db->field_exists('online_amount', 'school_fee_settings');
+    }
+
     public function defaultFallback()
     {
         return defined('SCHOOL_FEE_AMOUNT') ? (float) SCHOOL_FEE_AMOUNT : 2500000.0;
@@ -27,13 +32,18 @@ class School_fee_model extends MY_Model
      * Resolve fee by Section × Programme Category × Student Category (PWD).
      * category_id = programme (With/Without Technical Skills).
      * pwd_category_id = Physically Fit / ALL / impairments.
+     * $mode online uses the single online amount, not the campus matrix.
      */
-    public function resolveAmount($branch_id, $section_id = 0, $category_id = 0, $pwd_category_id = 0)
+    public function resolveAmount($branch_id, $section_id = 0, $category_id = 0, $pwd_category_id = 0, $mode = 'campus')
     {
         $branch_id = (int) $branch_id;
         $section_id = (int) $section_id;
         $category_id = (int) $category_id;
         $pwd_category_id = (int) $pwd_category_id;
+
+        if ($mode === 'online') {
+            return $this->onlineAmount($branch_id);
+        }
 
         if (!$this->tableReady() || $branch_id <= 0) {
             return $this->defaultFallback();
@@ -101,6 +111,54 @@ class School_fee_model extends MY_Model
     public function getDefaultAmount($branch_id)
     {
         return $this->resolveAmount($branch_id, 0, 0, 0);
+    }
+
+    public function onlineAmount($branch_id)
+    {
+        if (!$this->hasOnlineAmount() || (int) $branch_id <= 0) {
+            return 0.0;
+        }
+        $row = $this->db->get_where('school_fee_settings', $this->defaultWhere($branch_id))->row();
+        if (!$row || !isset($row->online_amount)) {
+            return 0.0;
+        }
+        return (float) $row->online_amount;
+    }
+
+    public function saveOnlineAmount($branch_id, $amount)
+    {
+        $branch_id = (int) $branch_id;
+        if (!$this->hasOnlineAmount() || $branch_id <= 0) {
+            return false;
+        }
+        $amount = (float) $amount;
+        if ($amount < 0) {
+            $amount = 0;
+        }
+        $where = $this->defaultWhere($branch_id);
+        $existing = $this->db->get_where('school_fee_settings', $where)->row();
+        if ($existing) {
+            $this->db->where('id', $existing->id)->update('school_fee_settings', array('online_amount' => $amount));
+            return true;
+        }
+        $insert = $where;
+        $insert['amount'] = $this->getDefaultAmount($branch_id);
+        $insert['online_amount'] = $amount;
+        $this->db->insert('school_fee_settings', $insert);
+        return true;
+    }
+
+    protected function defaultWhere($branch_id)
+    {
+        $where = array(
+            'branch_id' => (int) $branch_id,
+            'section_id' => 0,
+            'category_id' => 0,
+        );
+        if ($this->hasPwdDimension()) {
+            $where['pwd_category_id'] = 0;
+        }
+        return $where;
     }
 
     /**

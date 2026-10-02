@@ -44,6 +44,9 @@ class School_fees extends Admin_Controller
                 set_alert('error', 'Run school_fees_section_programme_pwd.sql migration first.');
             } else {
                 $this->school_fee_model->saveMatrix($branchID, $default, $matrix);
+                if ($this->school_fee_model->hasOnlineAmount()) {
+                    $this->school_fee_model->saveOnlineAmount($branchID, parse_money_input($this->input->post('online_amount')));
+                }
                 set_alert('success', translate('information_has_been_updated_successfully'));
             }
             redirect(base_url('school_fees'));
@@ -64,6 +67,7 @@ class School_fees extends Admin_Controller
         }
         $this->data['fee_map'] = $this->school_fee_model->getMap($branchID);
         $this->data['default_amount'] = $this->school_fee_model->getDefaultAmount($branchID);
+        $this->data['online_amount'] = $this->school_fee_model->onlineAmount($branchID);
         $this->data['title'] = 'School Fees';
         $this->data['sub_page'] = 'school_fees/index';
         $this->data['main_menu'] = 'settings';
@@ -79,7 +83,8 @@ class School_fees extends Admin_Controller
         $sectionID = (int) $this->input->post('section_id');
         $categoryID = (int) $this->input->post('category_id');
         $pwdID = (int) $this->input->post('pwd_category_id');
-        $amount = $this->school_fee_model->resolveAmount($branchID, $sectionID, $categoryID, $pwdID);
+        $mode = $this->input->post('instruction_mode') === 'online' ? 'online' : 'campus';
+        $amount = $this->school_fee_model->resolveAmount($branchID, $sectionID, $categoryID, $pwdID, $mode);
         echo json_encode(array(
             'status' => 'success',
             'amount' => $amount,

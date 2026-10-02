@@ -706,7 +706,7 @@ if ($validArr['roll']) {
         return '<a href="' . htmlspecialchars($share, ENT_QUOTES, 'UTF-8') . '" class="btn btn-circle icon btn-default" style="color:#128C7E" data-toggle="tooltip" data-original-title="Share Quran app" target="_blank" rel="noopener"><i class="fab fa-whatsapp"></i></a>';
     }
 
-    public function schoolFeeAmount($section_id = 0, $programme_category_id = 0, $pwd_category_id = 0, $branch_id = null)
+    public function schoolFeeAmount($section_id = 0, $programme_category_id = 0, $pwd_category_id = 0, $branch_id = null, $mode = 'campus')
     {
         if (!isset($this->school_fee_model)) {
             $this->load->model('school_fee_model');
@@ -714,7 +714,7 @@ if ($validArr['roll']) {
         if ($branch_id === null || $branch_id === '') {
             $branch_id = $this->application_model->get_branch_id();
         }
-        return $this->school_fee_model->resolveAmount($branch_id, $section_id, $programme_category_id, $pwd_category_id);
+        return $this->school_fee_model->resolveAmount($branch_id, $section_id, $programme_category_id, $pwd_category_id, $mode);
     }
 
     public function tuitionPlanLabel($plan)
@@ -786,6 +786,65 @@ if ($validArr['roll']) {
         return array('type_id' => $type_id, 'group_id' => $group_id);
     }
 
+    /**
+     * Separate group so the online price does not overwrite the campus tuition amount.
+     */
+    public function ensureOnlineTuitionSetup($branch_id, $session_id, $amount = 0)
+    {
+        $fee = (float) $amount;
+        if ($fee < 0) {
+            $fee = 0;
+        }
+        $type = $this->db->get_where('fees_type', array('branch_id' => $branch_id, 'name' => 'Tuition'))->row();
+        if (empty($type)) {
+            $this->db->insert('fees_type', array(
+                'name' => 'Tuition',
+                'fee_code' => 'tuition',
+                'description' => 'Termly tuition fee',
+                'branch_id' => $branch_id,
+                'system' => 0,
+            ));
+            $type_id = $this->db->insert_id();
+        } else {
+            $type_id = $type->id;
+        }
+
+        $group = $this->db->get_where('fee_groups', array(
+            'branch_id' => $branch_id,
+            'session_id' => $session_id,
+            'name' => 'Online tuition',
+        ))->row();
+        if (empty($group)) {
+            $this->db->insert('fee_groups', array(
+                'name' => 'Online tuition',
+                'description' => 'Tuition for students who attend online',
+                'session_id' => $session_id,
+                'system' => 0,
+                'branch_id' => $branch_id,
+            ));
+            $group_id = $this->db->insert_id();
+        } else {
+            $group_id = $group->id;
+        }
+
+        $detail = $this->db->get_where('fee_groups_details', array(
+            'fee_groups_id' => $group_id,
+            'fee_type_id' => $type_id,
+        ))->row();
+        if (empty($detail)) {
+            $this->db->insert('fee_groups_details', array(
+                'fee_groups_id' => $group_id,
+                'fee_type_id' => $type_id,
+                'amount' => $fee,
+                'due_date' => date('Y-m-d', strtotime('+30 days')),
+            ));
+        } elseif ((float) $detail->amount != $fee) {
+            $this->db->where('id', $detail->id)->update('fee_groups_details', array('amount' => $fee));
+        }
+
+        return array('type_id' => $type_id, 'group_id' => $group_id);
+    }
+
     public function recordTuitionPayment($enroll_id, $amount, $pay_via, $date, $remarks = '', $plan = 'installment')
     {
         $enroll = $this->db->get_where('enroll', array('id' => $enroll_id))->row_array();
@@ -793,26 +852,35 @@ if ($validArr['roll']) {
             return false;
         }
         $student = $this->db->select('pwd_category_id, category_id')->where('id', $enroll['student_id'])->get('student')->row();
-        $feeAmt = $this->schoolFeeAmount(
-            isset($enroll['section_id']) ? $enroll['section_id'] : 0,
-            $student ? $student->category_id : 0,
-            $student ? $student->pwd_category_id : 0,
-            $enroll['branch_id']
-        );
-        $setup = $this->ensureTuitionSetup($enroll['branch_id'], $enroll['session_id'], $feeAmt);
+        $mode = (!empty($enroll['instruction_mode']) && $enroll['instruction_mode'] === 'online') ? 'online' : 'campus';
+        $sectionId = isset($enroll['section_id']) ? $enroll['section_id'] : 0;
+        $programmeId = $student ? $student->category_id : 0;
+        $pwdId = $student ? $student->pwd_category_id : 0;
+        $feeAmt = $this->schoolFeeAmount($sectionId, $programmeId, $pwdId, $enroll['branch_id'], $mode);
+        if ($mode === 'online') {
+            $setup = $this->ensureOnlineTuitionSetup($enroll['branch_id'], $enroll['session_id'], $feeAmt);
+        } else {
+            $setup = $this->ensureTuitionSetup($enroll['branch_id'], $enroll['session_id'], $feeAmt);
+        }
         $plan = ($plan === 'full') ? 'full' : 'installment';
         $note = $this->stripTuitionPlanTag($remarks);
         if ($note === '') {
             $note = ($plan === 'full') ? 'Tuition paid in full' : 'Tuition installment';
         }
 
-        $existing = $this->db->get_where('fee_allocation', array(
-            'student_id' => $enroll_id,
-            'group_id' => $setup['group_id'],
-            'session_id' => $enroll['session_id'],
-        ))->row();
+        $existing = $this->db->select('a.id, a.group_id')
+            ->from('fee_allocation a')
+            ->join('fee_groups g', 'g.id = a.group_id', 'inner')
+            ->where('a.student_id', $enroll_id)
+            ->where('a.session_id', $enroll['session_id'])
+            ->where_in('g.name', array('Tuition', 'Online tuition'))
+            ->order_by('a.id', 'ASC')
+            ->get()->row();
         if (!empty($existing)) {
             $allocation_id = $existing->id;
+            if ((int) $existing->group_id !== (int) $setup['group_id']) {
+                $this->db->where('id', $existing->id)->update('fee_allocation', array('group_id' => $setup['group_id']));
+            }
         } else {
             $this->db->insert('fee_allocation', array(
                 'student_id' => $enroll_id,
@@ -865,7 +933,11 @@ if ($validArr['roll']) {
 
     public function getTuitionSummary($enroll_id)
     {
-        $enroll = $this->db->select('e.section_id, e.branch_id, s.pwd_category_id, s.category_id')
+        $cols = 'e.section_id, e.branch_id, s.pwd_category_id, s.category_id';
+        if ($this->db->field_exists('instruction_mode', 'enroll')) {
+            $cols .= ', e.instruction_mode';
+        }
+        $enroll = $this->db->select($cols)
             ->from('enroll as e')
             ->join('student as s', 's.id = e.student_id', 'left')
             ->where('e.id', (int) $enroll_id)
@@ -874,7 +946,8 @@ if ($validArr['roll']) {
         $programme_category_id = $enroll ? (int) $enroll->category_id : 0;
         $pwd_category_id = $enroll ? (int) $enroll->pwd_category_id : 0;
         $branch_id = $enroll ? (int) $enroll->branch_id : null;
-        $fee = $this->schoolFeeAmount($section_id, $programme_category_id, $pwd_category_id, $branch_id);
+        $mode = ($enroll && isset($enroll->instruction_mode) && $enroll->instruction_mode === 'online') ? 'online' : 'campus';
+        $fee = $this->schoolFeeAmount($section_id, $programme_category_id, $pwd_category_id, $branch_id, $mode);
         $payments = $this->getTuitionPayments($enroll_id);
         $paid = 0;
         $plan = '';

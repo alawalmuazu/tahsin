@@ -111,7 +111,7 @@ else :
 									<?php if (!empty($meet['teacher'])): ?> · <?php echo html_escape($meet['teacher']); ?><?php endif; ?>
 									<div class="text-muted"><?php echo html_escape($meet['local']); ?><?php if (!empty($meet['lagos'])): ?> · <?php echo html_escape($meet['lagos']); ?><?php endif; ?></div>
 									<?php if (!empty($meet['open'])): ?>
-										<a class="btn btn-primary btn-sm" style="margin-top:.3rem" href="<?php echo html_escape($meet['url']); ?>" target="_blank" rel="noopener">Join</a>
+										<a class="btn btn-primary btn-sm" style="margin-top:.3rem" href="<?php echo base_url('userrole/join_class/' . (int) $meet['group_id']); ?>" target="_blank" rel="noopener">Join</a>
 									<?php else: ?>
 										<span class="text-muted">Join opens during this slot.</span>
 									<?php endif; ?>

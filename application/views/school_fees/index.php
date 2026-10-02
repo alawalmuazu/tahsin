@@ -8,6 +8,7 @@
 			Set the default school fee and optional amounts by <strong>Section</strong> (Boarding / Day / Weekend)
 			and <strong>Category</strong> (With / Without Technical Skills), for <strong>Physically Fit</strong>
 			and each <strong>PWD</strong> type. Admission tuition uses the matching amount automatically.
+			Online students use the online amount below, not the campus tables.
 		</p>
 
 		<?php if (!$this->school_fee_model->tableReady()): ?>
@@ -27,6 +28,20 @@
 				<span class="help-block">Used when no Section × Category amount is set.</span>
 			</div>
 		</div>
+
+		<?php if ($this->school_fee_model->hasOnlineAmount()): ?>
+		<div class="form-group">
+			<label class="col-md-3 control-label">Online school fee</label>
+			<div class="col-md-4">
+				<input type="text" inputmode="decimal" name="online_amount" class="form-control money-input" value="<?php echo html_escape(amount_format(isset($online_amount) ? $online_amount : 0)); ?>">
+				<span class="help-block">Naira. Used when How they attend is Online, so a remote child is not charged the Kano boarding fee. Leave 0 until you set it.</span>
+			</div>
+		</div>
+		<?php else: ?>
+		<div class="alert alert-warning">
+			Run <code>application/migrations/online_fee_attendance.sql</code> before the online fee can be saved.
+		</div>
+		<?php endif; ?>
 
 		<?php
 		$canMatrix = !empty($sections) && !empty($programme_categories) && (!empty($pwd_fit) || !empty($pwd_list));

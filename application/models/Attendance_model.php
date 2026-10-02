@@ -12,8 +12,54 @@ class Attendance_model extends MY_Model
 
     public function getStudentAttendence($classID, $sectionID, $date, $branchID)
     {
-        $sql = "SELECT `enroll`.`id` as `enroll_id`,`enroll`.`roll`,`student`.`first_name`,`student`.`last_name`,`student`.`id` as `student_id`,`student`.`register_no`,`student_attendance`.`id` as `att_id`,`student_attendance`.`status` as `att_status`,`student_attendance`.`remark` as `att_remark` FROM `enroll` INNER JOIN `student` ON `student`.`id` = `enroll`.`student_id` LEFT JOIN `student_attendance` ON `student_attendance`.`enroll_id` = `enroll`.`id` AND `student_attendance`.`date` = " . $this->db->escape($date) . " WHERE `enroll`.`class_id` = " . $this->db->escape($classID) . " AND `enroll`.`section_id` = " . $this->db->escape($sectionID) . " AND `enroll`.`branch_id` = " . $this->db->escape($branchID) . " AND `enroll`.`session_id` = " . $this->db->escape(get_session_id());
+        $modeCol = $this->db->field_exists('instruction_mode', 'enroll')
+            ? '`enroll`.`instruction_mode`'
+            : "'campus' AS `instruction_mode`";
+        $sql = "SELECT `enroll`.`id` as `enroll_id`,`enroll`.`roll`,`student`.`first_name`,`student`.`last_name`,`student`.`id` as `student_id`,`student`.`register_no`,`student_attendance`.`id` as `att_id`,`student_attendance`.`status` as `att_status`,`student_attendance`.`remark` as `att_remark`, " . $modeCol . " FROM `enroll` INNER JOIN `student` ON `student`.`id` = `enroll`.`student_id` LEFT JOIN `student_attendance` ON `student_attendance`.`enroll_id` = `enroll`.`id` AND `student_attendance`.`date` = " . $this->db->escape($date) . " WHERE `enroll`.`class_id` = " . $this->db->escape($classID) . " AND `enroll`.`section_id` = " . $this->db->escape($sectionID) . " AND `enroll`.`branch_id` = " . $this->db->escape($branchID) . " AND `enroll`.`session_id` = " . $this->db->escape(get_session_id());
         return $this->db->query($sql)->result_array();
+    }
+
+    /**
+     * An online student is present for the day when they join the class or a recitation is saved.
+     * Campus rolls do not write this row.
+     */
+    public function markOnlinePresent($studentId, $date, $remark)
+    {
+        $studentId = (int) $studentId;
+        if ($studentId < 1 || !$this->db->field_exists('instruction_mode', 'enroll')) {
+            return false;
+        }
+        $enroll = $this->db->select('id, branch_id, instruction_mode')
+            ->from('enroll')
+            ->where('student_id', $studentId)
+            ->where('session_id', (int) get_session_id())
+            ->order_by('id', 'DESC')
+            ->limit(1)
+            ->get()->row();
+        if (!$enroll || $enroll->instruction_mode !== 'online') {
+            return false;
+        }
+        $day = date('Y-m-d', strtotime($date) ?: time());
+        $existing = $this->db->get_where('student_attendance', array(
+            'enroll_id' => (int) $enroll->id,
+            'date' => $day,
+        ))->row();
+        $note = mb_substr(trim((string) $remark), 0, 240);
+        if ($existing) {
+            $this->db->where('id', $existing->id)->update('student_attendance', array(
+                'status' => 'P',
+                'remark' => $note,
+            ));
+            return true;
+        }
+        $this->db->insert('student_attendance', array(
+            'enroll_id' => (int) $enroll->id,
+            'status' => 'P',
+            'remark' => $note,
+            'date' => $day,
+            'branch_id' => (int) $enroll->branch_id,
+        ));
+        return true;
     }
 
     public function getStaffAttendence($roleID, $date, $branchID)

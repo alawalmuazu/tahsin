@@ -350,8 +350,17 @@ class Academy_model extends MY_Model
                 $sync['recitation_category'] = $row['recitation_category'];
             }
             $this->syncQuranDrillFromTahfiz($sync);
+            $this->noteOnlinePresence((int) $data['student_id'], $row['completed_at'], 'Recitation saved');
         }
         return $newId;
+    }
+
+    protected function noteOnlinePresence($studentId, $when, $remark)
+    {
+        $this->load->model('attendance_model');
+        $stamp = strtotime((string) $when);
+        $date = $stamp ? date('Y-m-d', $stamp) : date('Y-m-d');
+        $this->attendance_model->markOnlinePresent($studentId, $date, $remark);
     }
 
     /**
@@ -3292,6 +3301,17 @@ class Academy_model extends MY_Model
         if (!$this->groupsReady() || !$this->db->field_exists('meeting_url', 'academy_teacher_group') || (int) $studentId < 1) {
             return array();
         }
+        if ($this->db->field_exists('instruction_mode', 'enroll')) {
+            $enroll = $this->db->select('instruction_mode')
+                ->where('student_id', (int) $studentId)
+                ->where('session_id', (int) get_session_id())
+                ->order_by('id', 'DESC')
+                ->limit(1)
+                ->get('enroll')->row();
+            if (!$enroll || $enroll->instruction_mode !== 'online') {
+                return array();
+            }
+        }
         $stu = $this->db->select('timezone')->where('id', (int) $studentId)->get('student')->row();
         $tzName = ($stu && !empty($stu->timezone)) ? $stu->timezone : 'Africa/Lagos';
         try {
@@ -3301,7 +3321,7 @@ class Academy_model extends MY_Model
             $tzName = 'Africa/Lagos';
         }
         $lagos = new DateTimeZone('Africa/Lagos');
-        $rows = $this->db->select('g.name, g.starts_at_lagos, g.duration_minutes, g.meeting_url, st.name AS teacher_name')
+        $rows = $this->db->select('g.id AS group_id, g.name, g.starts_at_lagos, g.duration_minutes, g.meeting_url, st.name AS teacher_name')
             ->from('academy_teacher_group_member m')
             ->join('academy_teacher_group g', 'g.id = m.group_id', 'inner')
             ->join('staff st', 'st.id = g.teacher_id', 'left')
@@ -3339,6 +3359,7 @@ class Academy_model extends MY_Model
                 }
             }
             $out[] = array(
+                'group_id' => (int) $row->group_id,
                 'name' => $row->name,
                 'teacher' => $row->teacher_name,
                 'url' => $row->meeting_url,

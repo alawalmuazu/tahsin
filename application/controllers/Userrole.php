@@ -80,6 +80,52 @@ class Userrole extends User_Controller
         $this->load->view('layout/index', $this->data);
     }
 
+    /**
+     * Record that an online student joined, then open the Meet or Zoom link.
+     */
+    public function join_class($groupId = 0)
+    {
+        if (!is_student_loggedin() && !is_parent_loggedin()) {
+            access_denied();
+        }
+        $studentId = 0;
+        if (is_student_loggedin()) {
+            $studentId = (int) get_loggedin_user_id();
+        } elseif (is_parent_loggedin()) {
+            $studentId = (int) $this->session->userdata('myChildren_id');
+            if ($studentId < 1) {
+                $only = $this->db->select('id')->where('parent_id', get_loggedin_user_id())->get('student')->result();
+                if (count($only) === 1) {
+                    $studentId = (int) $only[0]->id;
+                }
+            }
+        }
+        if ($studentId < 1) {
+            set_alert('error', 'Select a child first.');
+            redirect(base_url('parents/my_children'));
+        }
+        $this->load->model('academy_model');
+        $this->load->model('attendance_model');
+        $groupId = (int) $groupId;
+        $match = null;
+        foreach ($this->academy_model->onlineMeetingsForStudent($studentId) as $meet) {
+            if ((int) $meet['group_id'] === $groupId) {
+                $match = $meet;
+                break;
+            }
+        }
+        if (!$match || empty($match['url']) || !preg_match('#^https://#i', $match['url'])) {
+            set_alert('error', 'This online class is not available.');
+            redirect(base_url('dashboard'));
+        }
+        if (empty($match['open'])) {
+            set_alert('error', 'Join opens during the class time.');
+            redirect(base_url('dashboard'));
+        }
+        $this->attendance_model->markOnlinePresent($studentId, date('Y-m-d'), 'Joined online class');
+        redirect($match['url']);
+    }
+
     /* Getting All Teachers List */
     public function teacher()
     {

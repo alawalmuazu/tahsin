@@ -115,15 +115,24 @@
 								if(count($attendencelist)) {
 									foreach ($attendencelist as $key => $row):
 										?>
+								<?php $isOnline = !empty($row['instruction_mode']) && $row['instruction_mode'] === 'online'; ?>
 								<tr>
 									<input type="hidden" name="attendance[<?=$key?>][attendance_id]" value="<?=$row['att_id']?>" >
 									<input type="hidden" name="attendance[<?=$key?>][enroll_id]" value="<?=$row['enroll_id']?>" >
 									<input type="hidden" name="attendance[<?=$key?>][student_id]" value="<?=$row['student_id']?>" >
 									<td><?php echo $count++; ?></td>
-									<td><?php echo $row['first_name'] . ' ' . $row['last_name']; ?></td>
+									<td><?php echo $row['first_name'] . ' ' . $row['last_name']; ?><?php if ($isOnline): ?> <small class="text-info">(Online)</small><?php endif; ?></td>
 									<td><?php echo $row['roll']; ?></td>
 									<td><?php echo $row['register_no']; ?></td>
 									<td>
+										<?php if ($isOnline): ?>
+											<?php if ($row['att_status'] === 'P'): ?>
+												<span class="text-success">Present</span>
+												<?php if (!empty($row['att_remark'])): ?><div class="text-muted"><?php echo html_escape($row['att_remark']); ?></div><?php endif; ?>
+											<?php else: ?>
+												<span class="text-muted">Not in this class. Present only after they join the online class or a recitation is saved.</span>
+											<?php endif; ?>
+										<?php else: ?>
 										<div class="radio-custom radio-success radio-inline mt-xs">
 											<input type="radio" value="P" <?=(empty($row['att_status']) ? 'checked' : '')?> <?=($row['att_status'] == 'P' ? 'checked' : '')?> name="attendance[<?=$key?>][status]" id="pstatus_<?=$key?>">
 											<label for="pstatus_<?=$key?>"><?=translate('present')?></label>
@@ -140,9 +149,14 @@
 											<input type="radio" value="HD" <?=($row['att_status'] == 'HD' ? 'checked' : '')?> name="attendance[<?=$key?>][status]" id="hdstatus_<?=$key?>">
 											<label for="hdstatus_<?=$key?>"><?=translate('half_day')?></label>
 										</div>
+										<?php endif; ?>
 									</td>
 									<td>
+										<?php if ($isOnline): ?>
+											<span class="text-muted">—</span>
+										<?php else: ?>
 										<input class="form-control" style="min-width: 110px;" name="attendance[<?=$key?>][remark]" type="text" placeholder="<?=translate('remarks')?>" value="<?=$row['att_remark']?>" >
+										<?php endif; ?>
 									</td>
 								</tr>
 									<?php 

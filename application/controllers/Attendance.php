@@ -67,7 +67,24 @@ class Attendance extends Admin_Controller
         if (isset($_POST['save'])) {
             $attendance = $this->input->post('attendance');
             $date = $this->input->post('date');
+            $onlineEnroll = array();
+            if (is_array($attendance) && $this->db->field_exists('instruction_mode', 'enroll')) {
+                $enrollIds = array();
+                foreach ($attendance as $value) {
+                    $enrollIds[] = isset($value['enroll_id']) ? (int) $value['enroll_id'] : 0;
+                }
+                $enrollIds = array_values(array_filter($enrollIds));
+                if ($enrollIds) {
+                    foreach ($this->db->select('id')->where_in('id', $enrollIds)->where('instruction_mode', 'online')->get('enroll')->result() as $onlineRow) {
+                        $onlineEnroll[(int) $onlineRow->id] = true;
+                    }
+                }
+            }
+            if (is_array($attendance)) {
             foreach ($attendance as $key => $value) {
+                if (!isset($value['enroll_id']) || isset($onlineEnroll[(int) $value['enroll_id']])) {
+                    continue;
+                }
                 $attStatus = (isset($value['status']) ? $value['status'] : "");
                 $studentID = $value['student_id'];
                 $arrayAttendance = array(
@@ -88,6 +105,7 @@ class Attendance extends Admin_Controller
                     $arrayAttendance['student_id'] = $studentID;
                     $this->sms_model->send_sms($arrayAttendance, 3);
                 }
+            }
             }
             set_alert('success', translate('information_has_been_updated_successfully'));
             redirect(current_url());
