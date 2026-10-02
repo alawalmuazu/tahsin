@@ -401,6 +401,48 @@
                     </li>
                     <?php } ?>
                     <?php
+                    $_online_open = is_superadmin_loggedin() || is_admin_loggedin() || is_director_loggedin()
+                        || is_accountant_loggedin() || is_receptionist_loggedin()
+                        || is_teacher_loggedin() || is_facilitator_loggedin();
+                    $_online_money = is_superadmin_loggedin() || is_admin_loggedin() || is_director_loggedin()
+                        || is_accountant_loggedin() || is_receptionist_loggedin()
+                        || get_permission('school_fees', 'is_view');
+                    if ($_online_open) {
+                        $_on_sub = isset($sub_page) ? $sub_page : '';
+                    ?>
+                    <li class="nav-parent <?php if (isset($main_menu) && $main_menu == 'online') echo 'nav-expanded nav-active'; ?>">
+                        <a>
+                            <i class="fas fa-globe"></i><span>Online</span>
+                        </a>
+                        <ul class="nav nav-children">
+                            <li class="<?php if ($_on_sub == 'online/students') echo 'nav-active'; ?>">
+                                <a href="<?php echo base_url('online'); ?>">
+                                    <span><i class="fas fa-caret-right"></i>Online students</span>
+                                </a>
+                            </li>
+                            <?php if ($_online_money) { ?>
+                            <li class="<?php if ($_on_sub == 'online/fees') echo 'nav-active'; ?>">
+                                <a href="<?php echo base_url('online/fees'); ?>">
+                                    <span><i class="fas fa-caret-right"></i>Fees</span>
+                                </a>
+                            </li>
+                            <?php } ?>
+                            <li class="<?php if ($_on_sub == 'online/classes') echo 'nav-active'; ?>">
+                                <a href="<?php echo base_url('online/classes'); ?>">
+                                    <span><i class="fas fa-caret-right"></i>Classes</span>
+                                </a>
+                            </li>
+                            <?php if ($_online_money) { ?>
+                            <li class="<?php if ($_on_sub == 'online/income') echo 'nav-active'; ?>">
+                                <a href="<?php echo base_url('online/income'); ?>">
+                                    <span><i class="fas fa-caret-right"></i>Income</span>
+                                </a>
+                            </li>
+                            <?php } ?>
+                        </ul>
+                    </li>
+                    <?php } ?>
+                    <?php
                     // Academy hub — always show for staff who can open the ERP
                     if (is_loggedin() && !is_student_loggedin() && !is_parent_loggedin()) {
                         $_ac_sub = isset($sub_page) ? $sub_page : '';

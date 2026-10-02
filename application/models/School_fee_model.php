@@ -376,7 +376,7 @@ class School_fee_model extends MY_Model
         if (!$this->pricesReady()) {
             $error = 'Run application/migrations/online_fee_currency.sql before admitting an online student.';
         } elseif ($foreign <= 0) {
-            $error = 'Set the ' . $currency . ' online fee under Settings, School Fees.';
+            $error = 'Set the ' . $currency . ' online fee under Online, Fees.';
         } elseif ($rate <= 0) {
             $error = 'The current ' . $currency . ' rate to naira could not be loaded. Try again.';
         } else {

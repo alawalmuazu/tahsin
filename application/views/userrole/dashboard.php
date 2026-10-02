@@ -2,7 +2,14 @@
 	<div class="row">
 		<?php
 		$sessionID = get_session_id();
-		$this->db->select('s.id,s.first_name,s.last_name,s.photo,s.register_no,s.birthday,e.class_id,e.section_id,e.id as enroll_id,e.roll,e.session_id,c.name as class_name,se.name as section_name');
+		$_childCols = 's.id,s.first_name,s.last_name,s.photo,s.register_no,s.birthday,e.class_id,e.section_id,e.id as enroll_id,e.roll,e.session_id,c.name as class_name,se.name as section_name';
+		if ($this->db->field_exists('instruction_mode', 'enroll')) {
+			$_childCols .= ',e.instruction_mode';
+		}
+		if ($this->db->field_exists('country', 'student')) {
+			$_childCols .= ',s.country,s.timezone';
+		}
+		$this->db->select($_childCols);
 		$this->db->from('enroll as e');
 		$this->db->join('student as s', 'e.student_id = s.id', 'left');
 		$this->db->join('class as c', 'e.class_id = c.id', 'left');
@@ -27,7 +34,16 @@
 					<h5><?=html_escape($row->first_name . " " . $row->last_name)?></h5>
 					<p><?=translate('my_child')?></p>
 					<ul>
-						<li><div class="icon-holder" data-toggle="tooltip" data-original-title="<?=translate('class')?>"><i class="fas fa-school"></i></div><?=html_escape($row->class_name).' ('.html_escape($row->section_name).')'?></li>
+						<li><div class="icon-holder" data-toggle="tooltip" data-original-title="<?=translate('class')?>"><i class="fas fa-school"></i></div><?php
+							if (!empty($row->instruction_mode) && $row->instruction_mode === 'online') {
+								echo 'Online';
+								if (!empty($row->country)) {
+									echo ' · ' . html_escape($row->country);
+								}
+							} else {
+								echo html_escape($row->class_name).' ('.html_escape($row->section_name).')';
+							}
+						?></li>
 						<li><div class="icon-holder" data-toggle="tooltip" data-original-title="<?=translate('roll')?>"><i class="fas fa-award"></i></div><?=html_escape($row->roll)?></li>
 						<li><div class="icon-holder" data-toggle="tooltip" data-original-title="<?=translate('register_no')?>"><i class="far fa-registered"></i></div><?=html_escape($row->register_no)?></li>
 						<li><div class="icon-holder" data-toggle="tooltip" data-original-title="<?=translate('birthday')?>"><i class="fas fa-birthday-cake"></i></div><?=_d($row->birthday)?></li>
@@ -74,8 +90,17 @@ else :
 <?php
 	$CI = get_instance();
 	$CI->load->model('academy_model');
+	$CI->load->model('online_model');
 	$academyProgress = $CI->academy_model->portalProgress($student_id);
+	$onlineHome = $CI->online_model->homeForStudent((int) $student_id);
 ?>
+<?php if (!empty($onlineHome)): ?>
+	<div class="row">
+		<div class="col-md-12">
+			<?php $this->load->view('userrole/online_home', array('onlineHome' => $onlineHome)); ?>
+		</div>
+	</div>
+<?php endif; ?>
 	<div class="row">
 		<div class="col-md-12">
 			<section class="panel">
@@ -101,7 +126,7 @@ else :
 						<?php endforeach; ?>
 						<p style="margin:.25rem 0 0"><a href="<?=base_url('userrole/mushaf')?>">Living Mushaf</a> — hear sealed ayahs in this child’s voice</p>
 					<?php endif; ?>
-					<?php $meetings = $CI->academy_model->onlineMeetingsForStudent((int) $student_id); ?>
+					<?php $meetings = empty($onlineHome) ? $CI->academy_model->onlineMeetingsForStudent((int) $student_id) : array(); ?>
 					<?php if (!empty($meetings)): ?>
 						<div style="margin-top:.85rem">
 							<strong>Online class</strong>
@@ -123,6 +148,7 @@ else :
 			</section>
 		</div>
 	</div>
+	<?php if (empty($onlineHome)): ?>
 	<div class="row">
 		<!-- annual fees summary of students graph -->
 		<div class="col-md-12">
@@ -136,6 +162,7 @@ else :
 			</section>
 		</div>
 	</div>
+	<?php endif; ?>
 
 	<div class="row">
 		<div class="col-md-12 col-lg-12 col-sm-12">
@@ -313,6 +340,7 @@ else :
 			}
 		});
 
+		<?php if (empty($onlineHome)): ?>
 		// Own Annual Fee Summary JS
 		var total_fees = <?php echo json_encode($fees_summary['total_fee']);?>;
 		var total_paid = <?php echo json_encode($fees_summary['total_paid']);?>;
@@ -371,6 +399,7 @@ else :
 				}
 			}
 		});
+		<?php endif; ?>
 
 		//annual attendance overview of students
 		var total_present = <?php echo json_encode($get_student_attendance['total_present']);?>;
