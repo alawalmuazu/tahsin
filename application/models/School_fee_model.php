@@ -393,6 +393,36 @@ class School_fee_model extends MY_Model
         );
     }
 
+    public function rateBoard()
+    {
+        $fx = $this->fxRates();
+        $when = 0;
+        $path = APPPATH . 'cache/fx_usd.json';
+        if (is_file($path)) {
+            $decoded = json_decode((string) @file_get_contents($path), true);
+            if (is_array($decoded) && isset($decoded['fetched_at'])) {
+                $when = (int) $decoded['fetched_at'];
+            }
+        }
+        $rates = array();
+        foreach ($this->currencies() as $code => $label) {
+            if ($code === 'NGN') {
+                $rates[$code] = 1.0;
+                continue;
+            }
+            if (empty($fx['NGN']) || empty($fx[$code]) || (float) $fx[$code] <= 0) {
+                $rates[$code] = 0.0;
+                continue;
+            }
+            $rates[$code] = (float) $fx['NGN'] / (float) $fx[$code];
+        }
+        return array(
+            'rates' => $rates,
+            'fetched_at' => $when,
+            'ok' => !empty($fx['NGN']),
+        );
+    }
+
     public function nairaPerUnit($currency)
     {
         $currency = strtoupper(trim((string) $currency));

@@ -74,6 +74,10 @@ class School_fees extends Admin_Controller
         $this->data['default_amount'] = $this->school_fee_model->getDefaultAmount($branchID);
         $this->data['online_prices'] = $this->school_fee_model->getPrices($branchID);
         $this->data['online_currencies'] = $this->school_fee_model->currencies();
+        $rateBoard = $this->school_fee_model->rateBoard();
+        $this->data['online_rates'] = $rateBoard['rates'];
+        $this->data['online_rate_at'] = $rateBoard['fetched_at'];
+        $this->data['online_rate_ok'] = $rateBoard['ok'];
         $this->data['title'] = 'School Fees';
         $this->data['sub_page'] = 'school_fees/index';
         $this->data['main_menu'] = 'settings';
