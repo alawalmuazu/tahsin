@@ -452,6 +452,10 @@ foreach($languages as $lang) :
 						<li role="separator" class="divider"></li>
 						<li><a href="<?php echo base_url('school_settings');?>"><i class="fas fa-school"></i> <?php echo translate('school_settings');?></a></li>
 					<?php endif; ?>
+					<?php if (can_manage_partial_fee_reminder()): ?>
+					<li role="separator" class="divider"></li>
+					<li><a href="<?php echo base_url('fees/partial_reminder');?>"><i class="fas fa-bell"></i> Partial payment reminder</a></li>
+					<?php endif; ?>
 					<li role="separator" class="divider"></li>
 					<li><a href="<?php echo base_url('authentication/logout');?>"><i class="fas fa-sign-out-alt"></i> <?php echo translate('logout');?></a></li>
 				</ul>

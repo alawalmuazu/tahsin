@@ -1439,7 +1439,8 @@
                         get_permission('due_invoice', 'is_view') ||
                         get_permission('offline_payments', 'is_view') ||
                         get_permission('offline_payments_type', 'is_view') ||
-                        get_permission('fees_reminder', 'is_view')) {
+                        get_permission('fees_reminder', 'is_view') ||
+                        can_manage_partial_fee_reminder()) {
                             $getOfflinePaymentsTotal = $this->application_model->getOfflinePaymentsTotal();
                         ?>
                     <!-- student accounting -->
@@ -1497,6 +1498,10 @@
                             <?php } if(get_permission('fees_reminder', 'is_view')) { ?>
                             <li class="<?php if ($sub_page == 'fees/reminder') echo 'nav-active';?>">
                                 <a href="<?=base_url('fees/reminder')?>"><span><i class="fas fa-caret-right"></i><?=translate('fees_reminder')?></span></a>
+                            </li>
+                            <?php } if (can_manage_partial_fee_reminder()) { ?>
+                            <li class="<?php if ($sub_page == 'fees/partial_reminder') echo 'nav-active';?>">
+                                <a href="<?=base_url('fees/partial_reminder')?>"><span><i class="fas fa-caret-right"></i>Partial payment reminder</span></a>
                             </li>
                             <?php } ?>
                         </ul>

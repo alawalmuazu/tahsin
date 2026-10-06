@@ -9,6 +9,8 @@
 			and <strong>Category</strong> (With / Without Technical Skills), for <strong>Physically Fit</strong>
 			and each <strong>PWD</strong> type. Admission tuition uses the matching amount automatically.
 			Online students are not charged from these campus tables. Set their fee in the currency of their country. Admission converts it to naira at the current rate.
+			Parents who have paid part of the fees and still owe a balance are reminded from
+			<a href="<?php echo base_url('fees/partial_reminder'); ?>">Partial payment reminder</a>.
 		</p>
 
 		<?php if (!$this->school_fee_model->tableReady()): ?>

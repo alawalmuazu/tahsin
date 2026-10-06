@@ -381,6 +381,22 @@ function is_receptionist_loggedin()
     return in_array($roleId, $ids, true);
 }
 
+// Receptionist sets the partial-fee reminder date. Admins who already handle fees can open the same page.
+function can_manage_partial_fee_reminder()
+{
+    if (!is_loggedin() || is_student_loggedin() || is_parent_loggedin()) {
+        return false;
+    }
+    return is_receptionist_loggedin()
+        || is_superadmin_loggedin()
+        || is_admin_loggedin()
+        || is_director_loggedin()
+        || is_accountant_loggedin()
+        || get_permission('fees_reminder', 'is_view')
+        || get_permission('school_fees', 'is_view')
+        || get_permission('invoice', 'is_view');
+}
+
 // is parent logged in @return boolean
 function is_parent_loggedin()
 {

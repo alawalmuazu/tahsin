@@ -205,6 +205,7 @@
         </div>
     </div>
     <?php } ?>
+	<?php if (is_receptionist_loggedin()) { $this->load->view('layout/_partial_fee_popup'); } ?>
 	<?php if (!empty($_ac_body)): ?>
 	<script src="<?php echo base_url('assets/js/academy-mobile.js?v=' . (is_file(FCPATH . 'assets/js/academy-mobile.js') ? filemtime(FCPATH . 'assets/js/academy-mobile.js') : version_combine())); ?>"></script>
 	<?php endif; ?>

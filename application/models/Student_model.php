@@ -1273,4 +1273,217 @@ if ($validArr['roll']) {
         }
         return $src;
     }
+
+    public function ensurePartialReminderTable()
+    {
+        if ($this->db->table_exists('partial_fee_reminder')) {
+            return true;
+        }
+        $this->db->query("CREATE TABLE IF NOT EXISTS `partial_fee_reminder` (
+            `id` int(11) NOT NULL AUTO_INCREMENT,
+            `branch_id` int(11) NOT NULL,
+            `remind_on` date DEFAULT NULL,
+            `updated_at` datetime DEFAULT NULL,
+            PRIMARY KEY (`id`),
+            UNIQUE KEY `branch_id` (`branch_id`)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8");
+        return $this->db->table_exists('partial_fee_reminder');
+    }
+
+    public function getPartialReminderDate($branchId)
+    {
+        if (!$this->ensurePartialReminderTable()) {
+            return '';
+        }
+        $row = $this->db->get_where('partial_fee_reminder', array('branch_id' => (int) $branchId))->row();
+        if (!$row || empty($row->remind_on) || $row->remind_on === '0000-00-00') {
+            return '';
+        }
+        return $row->remind_on;
+    }
+
+    public function savePartialReminderDate($branchId, $date)
+    {
+        if (!$this->ensurePartialReminderTable()) {
+            return false;
+        }
+        $branchId = (int) $branchId;
+        $existing = $this->db->get_where('partial_fee_reminder', array('branch_id' => $branchId))->row();
+        $this->db->set('remind_on', $date === '' ? null : $date);
+        $this->db->set('updated_at', date('Y-m-d H:i:s'));
+        if ($existing) {
+            $this->db->where('id', (int) $existing->id);
+            return $this->db->update('partial_fee_reminder');
+        }
+        $this->db->set('branch_id', $branchId);
+        return $this->db->insert('partial_fee_reminder');
+    }
+
+    /**
+     * Students who have paid some school fees and still owe a balance, grouped by parent.
+     * Siblings share one WhatsApp message. The message lists each child separately.
+     */
+    public function partialPaymentGroups($branchId)
+    {
+        $branchId = (int) $branchId;
+        $paidIds = $this->partialTuitionEnrollIds();
+        if (empty($paidIds)) {
+            return array();
+        }
+        $nameExpr = $this->db->field_exists('other_name', 'student')
+            ? 'TRIM(CONCAT_WS(" ", s.first_name, NULLIF(s.other_name, ""), s.last_name))'
+            : 'TRIM(CONCAT_WS(" ", s.first_name, s.last_name))';
+        $extra = $this->db->field_exists('extra_phones', 'parent') ? ', p.extra_phones AS guardian_extra_phones' : '';
+        $this->db->select('e.id AS enroll_id, s.id AS student_id, s.register_no, s.mobileno, s.parent_id, '
+            . $nameExpr . ' AS student_name, c.name AS class_name, se.name AS section_name, '
+            . 'p.name AS guardian_name, p.mobileno AS guardian_mobileno' . $extra, false);
+        $this->db->from('enroll e');
+        $this->db->join('student s', 's.id = e.student_id', 'inner');
+        $this->db->join('class c', 'c.id = e.class_id', 'left');
+        $this->db->join('section se', 'se.id = e.section_id', 'left');
+        $this->db->join('parent p', 'p.id = s.parent_id', 'left');
+        $this->db->where('e.session_id', get_session_id());
+        $this->db->where('e.branch_id', $branchId);
+        $this->db->where_in('e.id', $paidIds);
+        $this->db->order_by('p.name', 'asc');
+        $this->db->order_by('s.first_name', 'asc');
+        $rows = $this->db->get()->result();
+
+        $this->load->model('academy_model');
+        $groups = array();
+        foreach ($rows as $row) {
+            $summary = $this->getTuitionSummary((int) $row->enroll_id);
+            $paid = (float) $summary['paid'];
+            $balance = (float) $summary['balance'];
+            if ($paid <= 0 || $balance <= 0) {
+                continue;
+            }
+            $parentId = (int) $row->parent_id;
+            $key = $parentId > 0 ? 'p' . $parentId : 's' . (int) $row->student_id;
+            if (!isset($groups[$key])) {
+                $guardian = trim((string) $row->guardian_name);
+                $primaryPhone = trim((string) $row->guardian_mobileno);
+                $studentPhone = trim((string) $row->mobileno);
+                $extraRaw = isset($row->guardian_extra_phones) ? trim((string) $row->guardian_extra_phones) : '';
+                $hasExtra = $extraRaw !== '' && $extraRaw !== '[]' && $extraRaw !== 'null';
+                $phones = $this->academy_model->parentPhoneList(
+                    $primaryPhone,
+                    $extraRaw,
+                    $studentPhone
+                );
+                $phoneFromStudent = $primaryPhone === '' && !$hasExtra && $studentPhone !== '' && !empty($phones);
+                if ($primaryPhone !== '') {
+                    $display = $primaryPhone;
+                } elseif ($phoneFromStudent) {
+                    $display = $studentPhone;
+                } elseif (!empty($phones)) {
+                    $display = $phones[0];
+                } else {
+                    $display = '';
+                }
+                $groups[$key] = array(
+                    'guardian' => $guardian,
+                    'phone_display' => $display,
+                    'phone_from_student' => $phoneFromStudent,
+                    'phone' => !empty($phones) ? $phones[0] : '',
+                    'children' => array(),
+                );
+            }
+            if ($groups[$key]['phone'] === '' && trim((string) $row->mobileno) !== '') {
+                $fallbackPhones = $this->academy_model->parentPhoneList('', '', $row->mobileno);
+                if (!empty($fallbackPhones)) {
+                    $groups[$key]['phone'] = $fallbackPhones[0];
+                    $groups[$key]['phone_display'] = trim((string) $row->mobileno);
+                    $groups[$key]['phone_from_student'] = true;
+                }
+            }
+            $name = trim((string) $row->student_name);
+            $classLabel = trim((string) $row->class_name);
+            $sectionLabel = trim((string) $row->section_name);
+            if ($classLabel !== '' && $sectionLabel !== '') {
+                $classLabel .= ' / ' . $sectionLabel;
+            } elseif ($sectionLabel !== '') {
+                $classLabel = $sectionLabel;
+            }
+            $groups[$key]['children'][] = array(
+                'name' => $name !== '' ? $name : 'Student',
+                'register_no' => (string) $row->register_no,
+                'class_name' => $classLabel,
+                'fee_text' => $this->partialReminderMoney($summary['fee']),
+                'paid_text' => $this->partialReminderMoney($paid),
+                'balance_text' => $this->partialReminderMoney($balance),
+                'plan_label' => (string) $summary['plan_label'],
+            );
+        }
+
+        $out = array();
+        foreach ($groups as $group) {
+            $group['message'] = $this->partialReminderMessage($group['guardian'], $group['children']);
+            $group['whatsapp'] = $group['phone'] === '' ? '' : $this->partialReminderWhatsapp($group['phone'], $group['message']);
+            $out[] = $group;
+        }
+        return $out;
+    }
+
+    protected function partialTuitionEnrollIds()
+    {
+        $this->db->distinct();
+        $this->db->select('a.student_id');
+        $this->db->from('fee_allocation a');
+        $this->db->join('fee_payment_history h', 'h.allocation_id = a.id', 'inner');
+        $this->db->join('fees_type t', 't.id = h.type_id', 'left');
+        $this->db->group_start();
+        $this->db->where('t.fee_code', 'tuition');
+        $this->db->or_where('t.name', 'Tuition');
+        $this->db->group_end();
+        $this->db->where('h.amount >', 0);
+        $ids = array();
+        foreach ($this->db->get()->result() as $row) {
+            $ids[] = (int) $row->student_id;
+        }
+        return $ids;
+    }
+
+    protected function partialReminderMoney($amount)
+    {
+        $text = trim(html_entity_decode(strip_tags(currencyFormat($amount)), ENT_QUOTES, 'UTF-8'));
+        return $text !== '' ? $text : number_format((float) $amount, 2, '.', ',');
+    }
+
+    protected function partialReminderMessage($guardian, $children)
+    {
+        $school = 'Tahsin Academy';
+        $ci = get_instance();
+        if (!empty($ci->data['global_config']['institute_name'])) {
+            $school = $ci->data['global_config']['institute_name'];
+        }
+        $guardian = trim((string) $guardian);
+        $lines = array();
+        $lines[] = $guardian !== '' ? ('Assalamu alaikum ' . $guardian . '.') : 'Assalamu alaikum.';
+        $lines[] = '';
+        $lines[] = 'This is ' . $school . '. School fees still have a balance:';
+        $lines[] = '';
+        foreach ($children as $i => $child) {
+            $label = ($i + 1) . '. ' . $child['name'];
+            if ($child['register_no'] !== '') {
+                $label .= ' (' . $child['register_no'] . ')';
+            }
+            $lines[] = $label;
+            $lines[] = 'School fees: ' . $child['fee_text'];
+            $lines[] = 'Paid: ' . $child['paid_text'];
+            $lines[] = 'Remaining: ' . $child['balance_text'];
+            $lines[] = '';
+        }
+        if (count($children) > 1) {
+            $lines[] = 'Kindly complete the remaining payment for each child. Jazakumullahu khairan.';
+        } else {
+            $lines[] = 'Kindly complete the remaining payment. Jazakumullahu khairan.';
+        }
+        return implode("\n", $lines);
+    }
+
+    protected function partialReminderWhatsapp($phone, $message)
+    {
+        return 'https://api.whatsapp.com/send?phone=' . rawurlencode($phone) . '&text=' . rawurlencode($message);
+    }
 }

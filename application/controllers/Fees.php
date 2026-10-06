@@ -1445,6 +1445,62 @@ class Fees extends Admin_Controller
         echo json_encode($array);
     }
 
+    public function partial_reminder()
+    {
+        if (!can_manage_partial_fee_reminder()) {
+            access_denied();
+        }
+        $branchID = $this->application_model->get_branch_id();
+        $this->load->model('student_model');
+        if ($this->input->post('save_reminder') || $this->input->post('clear_reminder')) {
+            $date = $this->input->post('clear_reminder') ? '' : trim((string) $this->input->post('remind_on'));
+            if ($date !== '' && !preg_match('/^\d{4}-\d{2}-\d{2}$/', $date)) {
+                set_alert('error', 'Choose a valid reminder date.');
+            } elseif (!$this->student_model->savePartialReminderDate($branchID, $date)) {
+                set_alert('error', 'The reminder date could not be saved. Run application/migrations/partial_fee_reminder.sql on the database.');
+            } else {
+                set_alert('success', $date === '' ? 'The reminder date has been cleared.' : 'The receptionist will see the partial payment reminder on ' . _d($date) . '.');
+            }
+            redirect(base_url('fees/partial_reminder'));
+        }
+        $this->data['branch_id'] = $branchID;
+        $this->data['remind_on'] = $this->student_model->getPartialReminderDate($branchID);
+        $this->data['table_ready'] = $this->student_model->ensurePartialReminderTable();
+        $this->data['groups'] = $this->data['table_ready'] ? $this->student_model->partialPaymentGroups($branchID) : array();
+        $this->data['title'] = 'Partial payment reminder';
+        $this->data['main_menu'] = 'fees';
+        $this->data['sub_page'] = 'fees/partial_reminder';
+        $this->load->view('layout/index', $this->data);
+    }
+
+    public function partial_reminder_due()
+    {
+        if (!is_receptionist_loggedin()) {
+            $this->output->set_content_type('application/json')->set_output(json_encode(array('show' => false)));
+            return;
+        }
+        $branchID = $this->application_model->get_branch_id();
+        $this->load->model('student_model');
+        $date = $this->student_model->getPartialReminderDate($branchID);
+        if ($date === '' || $date !== date('Y-m-d')) {
+            $this->output->set_content_type('application/json')->set_output(json_encode(array('show' => false)));
+            return;
+        }
+        $groups = $this->student_model->partialPaymentGroups($branchID);
+        $students = 0;
+        foreach ($groups as $group) {
+            $students += count($group['children']);
+        }
+        $html = $this->load->view('fees/_partial_reminder_groups', array('groups' => $groups), true);
+        $this->output->set_content_type('application/json')->set_output(json_encode(array(
+            'show' => $students > 0,
+            'date' => $date,
+            'students' => $students,
+            'families' => count($groups),
+            'html' => $html,
+        )));
+    }
+
     public function selectedFeesCollect()
     {
         if ($_POST) {
