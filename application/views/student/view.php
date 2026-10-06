@@ -33,6 +33,11 @@
 	#dobEditModal .form-control { min-height: 42px; font-size: 16px; }
 	#dobEditModal .modal-footer { display: flex; flex-direction: column; gap: 8px; }
 }
+.js-quick-open { display: inline-block; padding: 0; border: 0; background: transparent; color: inherit; font: inherit; cursor: pointer; vertical-align: middle; }
+.js-quick-name { font-weight: 600; text-align: left; }
+.js-quick-name:hover, .js-quick-name:focus { color: #1b7a3a; text-decoration: underline; }
+.js-quick-photo img { display: block; border-radius: 4px; }
+.js-quick-photo:hover img, .js-quick-photo:focus img { outline: 2px solid #1b7a3a; outline-offset: 2px; }
 .js-dob-edit { display: inline-block; padding: 0; white-space: normal; text-align: left; line-height: 1.25; }
 .js-dob-edit .js-dob-label { display: block; font-size: 11px; }
 .quick-dob-edit { margin-top: 6px; }
@@ -44,6 +49,83 @@
 @media (max-width: 767px) {
 	#quickView .qv-actions { flex-direction: column; }
 	#quickView .qv-actions .btn { width: 100%; min-height: 44px; margin: 0; }
+}
+.student-hscroll-hint { display: none; margin: 0 0 8px; font-size: 13px; }
+@media (max-width: 1600px) {
+	.student-hscroll-hint { display: block; }
+}
+.student-list-panel .dataTables_wrapper .table-responsive {
+		overflow-x: auto !important;
+		overflow-y: hidden;
+		-webkit-overflow-scrolling: touch;
+		max-width: 100%;
+		scrollbar-color: #1b7a3a #e6eee8;
+	}
+	.student-list-panel .dataTables_wrapper .table-responsive::-webkit-scrollbar { height: 14px; }
+	.student-list-panel .dataTables_wrapper .table-responsive::-webkit-scrollbar-track { background: #e6eee8; }
+	.student-list-panel .dataTables_wrapper .table-responsive::-webkit-scrollbar-thumb { background: #1b7a3a; border-radius: 8px; }
+	.student-list-panel #studentTable {
+		width: max-content !important;
+		min-width: 1180px;
+		border-collapse: separate !important;
+		border-spacing: 0;
+	}
+	.student-list-panel #studentTable th,
+	.student-list-panel #studentTable td { white-space: nowrap; }
+	.student-list-panel #studentTable th:nth-child(1),
+	.student-list-panel #studentTable td:nth-child(1),
+	.student-list-panel #studentTable th:nth-child(2),
+	.student-list-panel #studentTable td:nth-child(2),
+	.student-list-panel #studentTable th:nth-child(3),
+	.student-list-panel #studentTable td:nth-child(3) {
+		position: sticky;
+		z-index: 2;
+		background: #fff;
+	}
+	.student-list-panel #studentTable th:nth-child(1),
+	.student-list-panel #studentTable td:nth-child(1) { left: 0; min-width: 44px; }
+	.student-list-panel #studentTable th:nth-child(2),
+	.student-list-panel #studentTable td:nth-child(2) { left: 44px; min-width: 70px; }
+	.student-list-panel #studentTable th:nth-child(3),
+	.student-list-panel #studentTable td:nth-child(3) {
+		left: 114px;
+		min-width: 150px;
+		box-shadow: 6px 0 8px -4px rgba(0, 0, 0, .18);
+	}
+	.student-list-panel #studentTable thead th:nth-child(-n+3) { z-index: 3; background: #eee; }
+	.student-list-panel #studentTable tbody tr:hover td:nth-child(-n+3) { background: #f5f5f5; }
+body.academy-phone .student-list-panel #studentTable { display: table !important; width: max-content !important; border: 1px solid #ddd !important; }
+body.academy-phone .student-list-panel #studentTable thead {
+	display: table-header-group !important;
+	position: static !important;
+	width: auto !important;
+	height: auto !important;
+	overflow: visible !important;
+	clip: auto !important;
+}
+body.academy-phone .student-list-panel #studentTable tbody { display: table-row-group !important; }
+body.academy-phone .student-list-panel #studentTable tr {
+	display: table-row !important;
+	margin: 0 !important;
+	padding: 0 !important;
+	border-radius: 0 !important;
+}
+body.academy-phone .student-list-panel #studentTable th,
+body.academy-phone .student-list-panel #studentTable td {
+	display: table-cell !important;
+	float: none !important;
+	width: auto !important;
+	padding: 5px 8px !important;
+	white-space: nowrap !important;
+	border: 1px solid #ddd !important;
+}
+body.academy-phone .student-list-panel #studentTable td::before { content: none !important; }
+body.academy-phone .student-list-panel #studentTable td .btn,
+body.academy-phone .student-list-panel #studentTable td button {
+	width: auto !important;
+	min-height: 0;
+	margin: 0 2px 0 0;
+	display: inline-block;
 }
 </style>
 <div class="row">
@@ -122,8 +204,8 @@
 			</header>
 			<div class="panel-body mb-md" id="table">
 				<div class="export_title"><?php echo translate('student_list');?></div>
-				<div class="table-responsive">
-				<table class="table table-bordered table-condensed table-hover table-export" id="studentTable" width="100%">
+				<p class="student-hscroll-hint text-muted">Drag the green bar left or right. The photo and name stay in place.</p>
+				<table class="table table-bordered table-condensed table-hover table-export" id="studentTable">
 					<thead>
 						<tr>
 							<th width="10" class="no-sort no-export">
@@ -153,7 +235,6 @@
 						</tr>	
 					</thead>
 				</table>
-				</div>
 			</div>
 		</section>
 		
@@ -264,6 +345,22 @@
 				<label><?=translate('address')?></label>
 				<textarea class="form-control" name="current_address" id="qv_address" rows="2"></textarea>
 			</div>
+			<input type="hidden" name="parent_id" id="qv_parent_id" value="">
+			<div class="row">
+				<div class="col-sm-6">
+					<div class="form-group">
+						<label><?=translate('guardian_name')?></label>
+						<input type="text" class="form-control" name="guardian_name" id="qv_guardian_name">
+					</div>
+				</div>
+				<div class="col-sm-6">
+					<div class="form-group">
+						<label><?=translate('guardian')?> <?=translate('mobile_no')?></label>
+						<input type="text" class="form-control" name="guardian_mobileno" id="qv_guardian_phone">
+						<small class="text-muted" id="qv_guardian_note"></small>
+					</div>
+				</div>
+			</div>
 			<p class="text-danger" id="quick_edit_error" style="margin-bottom:0"></p>
 		</div>
 		<footer class="panel-footer">
@@ -314,6 +411,12 @@
 							<td><span id="quick_mobile_no"></span></td>
 							<th><?=translate('state')?></th>
 							<td><span id="quick_state"></span></td>
+						</tr>
+						<tr>
+							<th><?=translate('guardian_name')?></th>
+							<td><span id="quick_guardian_name"></span></td>
+							<th><?=translate('guardian')?> <?=translate('mobile_no')?></th>
+							<td><span id="quick_guardian_phone"></span></td>
 						</tr>
 						<tr class="quick-address">
 							<th><?=translate('address')?></th>
@@ -440,6 +543,7 @@
 						$(".export_title").html(data.export_title);
 						$("#studentTable").html(data.thead);
 						cusDataTable = initDatatable("#studentTable", "student/getStudentListDT", data.filter, 25, true, false, [{"orderable": false, "targets": 'no-sort'},{"class": 'center', "targets": 1},{"orderable": false, "targets": [-1],'class':'action'}]);
+						$('#studentTable_filter input').attr('placeholder', 'Name or guardian phone');
 						$(".panel.hidden-div").show();
 					}
                 },
@@ -544,6 +648,11 @@
 			$('#qv_email').val(res.email_value || '');
 			$('#qv_mobile').val(res.mobile_value || '');
 			$('#qv_address').val(res.address_value || '');
+			var hasGuardian = parseInt(res.parent_id, 10) > 0;
+			$('#qv_parent_id').val(hasGuardian ? res.parent_id : '');
+			$('#qv_guardian_name').val(res.guardian_name_value || '').prop('disabled', !hasGuardian);
+			$('#qv_guardian_phone').val(res.guardian_phone_value || '').prop('disabled', !hasGuardian);
+			$('#qv_guardian_note').text(hasGuardian ? 'This number is shared by every student with this guardian.' : 'No guardian is linked to this student.');
 			$('#quick_edit_error').removeClass('text-success').addClass('text-danger').text('');
 		};
 		$('#quickEditForm').on('submit', function (e) {

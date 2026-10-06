@@ -1390,10 +1390,15 @@ class Student extends Admin_Controller
     public function quickDetails()
     {
         $id = $this->input->post('enroll_id');
-        $this->db->select('student.*,enroll.student_id,enroll.roll,student_category.name as cname');
+        $guardianSelect = ', parent.name as guardian_name, parent.mobileno as guardian_mobileno, parent.id as guardian_id';
+        if ($this->db->field_exists('extra_phones', 'parent')) {
+            $guardianSelect .= ', parent.extra_phones as guardian_extra_phones';
+        }
+        $this->db->select('student.*,enroll.student_id,enroll.roll,student_category.name as cname' . $guardianSelect);
         $this->db->from('enroll');
         $this->db->join('student', 'student.id = enroll.student_id', 'inner');
         $this->db->join('student_category', 'student_category.id = student.category_id', 'left');
+        $this->db->join('parent', 'parent.id = student.parent_id', 'left');
         $this->db->where('enroll.id', $id);
         $row = $this->db->get()->row();
         $birthdayIso = (!empty($row->birthday) && $row->birthday !== '0000-00-00') ? date('Y-m-d', strtotime($row->birthday)) : '';
@@ -1427,6 +1432,15 @@ class Student extends Admin_Controller
         $data['state_value'] = (string) $row->state;
         $data['address'] = empty($row->current_address) ? 'N/A' : $row->current_address;
         $data['address_value'] = (string) $row->current_address;
+        $guardianPhones = $this->guardianPhoneList(
+            isset($row->guardian_mobileno) ? $row->guardian_mobileno : '',
+            isset($row->guardian_extra_phones) ? $row->guardian_extra_phones : ''
+        );
+        $data['parent_id'] = isset($row->guardian_id) ? (int) $row->guardian_id : 0;
+        $data['guardian_name'] = empty($row->guardian_name) ? 'N/A' : $row->guardian_name;
+        $data['guardian_name_value'] = isset($row->guardian_name) ? (string) $row->guardian_name : '';
+        $data['guardian_phone'] = empty($guardianPhones) ? 'N/A' : implode(', ', $guardianPhones);
+        $data['guardian_phone_value'] = isset($row->guardian_mobileno) ? (string) $row->guardian_mobileno : '';
         echo json_encode($data);
     }
 
@@ -1534,6 +1548,25 @@ class Student extends Admin_Controller
         if ($photoName) {
             $update['photo'] = $photoName;
         }
+        $parentID = (int) $this->input->post('parent_id');
+        if ($parentID > 0) {
+            $parent = $this->db->where('id', $parentID)->get('parent')->row();
+            $studentParent = (int) $this->db->select('parent_id')->where('id', $studentID)->get('student')->row()->parent_id;
+            if (!$parent || $studentParent !== $parentID || (!is_superadmin_loggedin() && (int) $parent->branch_id !== $branchID)) {
+                echo json_encode(array('status' => 'error', 'message' => 'That guardian is not linked to this student.'));
+                return;
+            }
+            $guardianName = trim((string) $this->input->post('guardian_name'));
+            $guardianPhone = trim((string) $this->input->post('guardian_mobileno'));
+            if ($guardianName === '') {
+                echo json_encode(array('status' => 'error', 'message' => 'Guardian name is required.'));
+                return;
+            }
+            $this->db->where('id', $parentID)->update('parent', array(
+                'name' => mb_substr($guardianName, 0, 100),
+                'mobileno' => mb_substr($guardianPhone, 0, 20),
+            ));
+        }
         $this->db->where('id', $studentID)->update('student', $update);
         $categoryName = isset($programmes[$categoryID]) ? $programmes[$categoryID] : $programmes[(string) $categoryID];
         $age = '';
@@ -1553,6 +1586,27 @@ class Student extends Admin_Controller
             'label' => $dobLabel,
             'iso' => $birthday,
         ));
+    }
+
+    protected function guardianPhoneList($primary, $extraJson = '')
+    {
+        $phones = array();
+        $primary = trim((string) $primary);
+        if ($primary !== '') {
+            $phones[] = $primary;
+        }
+        if ($extraJson !== '' && $extraJson !== null) {
+            $decoded = is_array($extraJson) ? $extraJson : json_decode((string) $extraJson, true);
+            if (is_array($decoded)) {
+                foreach ($decoded as $phone) {
+                    $phone = trim((string) $phone);
+                    if ($phone !== '' && !in_array($phone, $phones, true)) {
+                        $phones[] = $phone;
+                    }
+                }
+            }
+        }
+        return $phones;
     }
 
     protected function quickIsoDate($value)

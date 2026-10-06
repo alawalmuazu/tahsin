@@ -331,6 +331,26 @@ class Student_model extends MY_Model
         return $this->db->get();
     }
 
+    protected function phoneSearchDigits($search_text)
+    {
+        $raw = trim((string) $search_text);
+        if ($raw === '' || !preg_match('/^[\d\s+\-().]+$/', $raw)) {
+            return '';
+        }
+        $digits = preg_replace('/\D+/', '', $raw);
+        return strlen($digits) >= 4 ? $digits : '';
+    }
+
+    protected function orWherePhoneDigits($column, $digits)
+    {
+        $safe = $this->db->escape_like_str($digits);
+        $this->db->or_where(
+            "REPLACE(REPLACE(REPLACE(REPLACE(IFNULL({$column},''), ' ', ''), '-', ''), '+', ''), '.', '') LIKE '%{$safe}%' ESCAPE '!'",
+            null,
+            false
+        );
+    }
+
     public function getSearchStudentList($search_text)
     {
         $this->db->select('e.*,s.photo,s.first_name,s.last_name,s.register_no,s.parent_id,s.email,s.blood_group,s.birthday,c.name as class_name,se.name as section_name,sp.name as parent_name');
@@ -351,6 +371,19 @@ class Student_model extends MY_Model
         $this->db->or_like('e.roll', $search_text);
         $this->db->or_like('s.blood_group', $search_text);
         $this->db->or_like('sp.name', $search_text);
+        $this->db->or_like('s.mobileno', $search_text);
+        $this->db->or_like('sp.mobileno', $search_text);
+        if ($this->db->field_exists('extra_phones', 'parent')) {
+            $this->db->or_like('sp.extra_phones', $search_text);
+        }
+        $phoneDigits = $this->phoneSearchDigits($search_text);
+        if ($phoneDigits !== '') {
+            $this->orWherePhoneDigits('s.mobileno', $phoneDigits);
+            $this->orWherePhoneDigits('sp.mobileno', $phoneDigits);
+            if ($this->db->field_exists('extra_phones', 'parent')) {
+                $this->orWherePhoneDigits('sp.extra_phones', $phoneDigits);
+            }
+        }
         $this->db->group_end();
         $this->db->order_by('s.id', 'desc');
         return $this->db->get();
@@ -566,7 +599,14 @@ class Student_model extends MY_Model
         $this->datatables->join('section', 'section.id = enroll.section_id', 'left');
         $this->datatables->join('student_category', 'student_category.id = student.category_id', 'left');
         $this->datatables->join('parent', 'parent.id = student.parent_id', 'left');
-        $this->datatables->search_value('student.register_no,student.first_name,student.last_name,student.gender,student_category.name,class.name,section.name,enroll.roll,parent.name' . $field_select);
+        $phoneSearch = 'student.mobileno,parent.mobileno';
+        $phoneColumns = array('student.mobileno', 'parent.mobileno');
+        if ($this->db->field_exists('extra_phones', 'parent')) {
+            $phoneSearch .= ',parent.extra_phones';
+            $phoneColumns[] = 'parent.extra_phones';
+        }
+        $this->datatables->search_value('student.register_no,student.first_name,student.last_name,student.gender,student_category.name,class.name,section.name,enroll.roll,parent.name,' . $phoneSearch . $field_select);
+        $this->datatables->search_phone_columns($phoneColumns);
         $this->datatables->column_order('enroll.id,enroll.id,student.first_name,class.name,section.name,student.gender,student.mobileno,student.register_no,enroll.roll,student.birthday,parent.name' . $custom_fields_column_order);
         $this->datatables->order_by('enroll.id', 'desc');
         $this->datatables->where('student.active', 1);
@@ -621,8 +661,11 @@ class Student_model extends MY_Model
                     . '<span class="js-dob-label text-muted">' . html_escape($dobLabel) . '</span>'
                     . '</button>';
             }
-            // photo
-            $photo = "<img src='" . get_image_url('student', $record->photo) . "' height='50'>";
+            // photo and name open the same Quick View as the QR button
+            $quickOpen = "studentQuickView('" . (int) $record->id . "', this)";
+            $quickAttrs = ' type="button" data-loading-text="<i class=\'fas fa-spinner fa-spin\'></i>" onclick="' . $quickOpen . '" title="' . html_escape(translate('quick_view')) . '"';
+            $photo = '<button class="js-quick-open js-quick-photo"' . $quickAttrs . '><img src="' . html_escape(get_image_url('student', $record->photo)) . '" height="50" alt=""></button>';
+            $nameCell = '<button class="js-quick-open js-quick-name"' . $quickAttrs . '>' . html_escape($record->fullname) . '</button>';
 
             // actions btn
             $actions = '<button class="btn btn-circle icon btn-default" data-toggle="tooltip" data-original-title="' . translate('quick_view') . '" data-loading-text="<i class=\'fas fa-spinner fa-spin\'></i>" onclick="studentQuickView(' . "'" . $record->id . "'" . ', this)"><i class="fas fa-qrcode"></i></button>';
@@ -646,14 +689,40 @@ class Student_model extends MY_Model
 if ($validArr['student_photo']) {
             $row[] = $photo;
 }
-            $row[] = $record->fullname;
+            $row[] = $nameCell;
             $row[] = $record->class_name;
             $row[] = $record->section_name;
 if ($validArr['gender']) {
             $row[] = translate($record->gender);
 }
+            $guardianPhones = array();
+            if (!empty($record->guardian_mobileno)) {
+                $guardianPhones[] = trim((string) $record->guardian_mobileno);
+            }
+            if (!empty($record->guardian_extra_phones)) {
+                $extraPhones = json_decode($record->guardian_extra_phones, true);
+                if (is_array($extraPhones)) {
+                    foreach ($extraPhones as $extraPhone) {
+                        $extraPhone = trim((string) $extraPhone);
+                        if ($extraPhone !== '' && !in_array($extraPhone, $guardianPhones, true)) {
+                            $guardianPhones[] = $extraPhone;
+                        }
+                    }
+                }
+            }
+            $guardianPhoneHtml = '';
+            foreach ($guardianPhones as $guardianPhone) {
+                $guardianPhoneHtml .= "\n<small class='text-muted bs-block'>" . html_escape($guardianPhone) . "</small>";
+            }
 if ($validArr['student_mobile_no']) {
-            $row[] = $record->mobileno;
+            $ownMobile = trim((string) $record->mobileno);
+            if ($ownMobile !== '') {
+                $row[] = html_escape($ownMobile);
+            } elseif ($guardianPhoneHtml !== '') {
+                $row[] = $guardianPhoneHtml . "\n<small class='text-muted bs-block'>Guardian</small>";
+            } else {
+                $row[] = '';
+            }
 }
             $row[] = $record->register_no . "\n<small class='text-muted bs-block'>"._d($record->admission_date)."</small>";
 if ($validArr['roll']) {
@@ -663,8 +732,7 @@ if ($validArr['roll']) {
             if (empty($record->parent_id)) {
                 $row[] = 'N/A';
             } else {
-                $mobileno = empty($record->guardian_mobileno) ? '' : "\n<small class='text-muted bs-block'>" . $record->guardian_mobileno . "</small>";
-                $row[] = $record->guardian_name . $mobileno;
+                $row[] = html_escape($record->guardian_name) . $guardianPhoneHtml;
             }
             if (count($show_custom_fields)) {
                 foreach ($show_custom_fields as $fields) {

@@ -35,6 +35,7 @@ class Datatables
     private $search = array();
     private $edit_columns  = array();
     private $unset_columns = array();
+    private $phone_columns = array();
 
     /**
      * Copies an instance of CI
@@ -93,6 +94,12 @@ class Datatables
     public function search_value($data)
     {
         $this->search_arr = $data;
+        return $this;
+    }
+
+    public function search_phone_columns($columns)
+    {
+        $this->phone_columns = is_array($columns) ? $columns : array();
         return $this;
     }
 
@@ -369,6 +376,32 @@ class Datatables
         }
     }
 
+    private function apply_phone_search($search)
+    {
+        if (empty($this->phone_columns) || empty($search['value'])) {
+            return;
+        }
+        $raw = trim($search['value']);
+        if ($raw === '' || !preg_match('/^[\d\s+\-().]+$/', $raw)) {
+            return;
+        }
+        $digits = preg_replace('/\D+/', '', $raw);
+        if (strlen($digits) < 4) {
+            return;
+        }
+        $safe = $this->ci->db->escape_like_str($digits);
+        foreach ($this->phone_columns as $col) {
+            if (!preg_match('/^[A-Za-z0-9_.]+$/', $col)) {
+                continue;
+            }
+            $this->ci->db->or_where(
+                "REPLACE(REPLACE(REPLACE(REPLACE(IFNULL({$col},''), ' ', ''), '-', ''), '+', ''), '.', '') LIKE '%{$safe}%' ESCAPE '!'",
+                null,
+                false
+            );
+        }
+    }
+
     /**
      * Generates a %LIKE% portion of the query
      *
@@ -407,6 +440,7 @@ class Datatables
 
                     if (count($searchCol) - 1 == $i)  // last loop
                     {
+                        $this->apply_phone_search($search);
                         $this->ci->db->group_end();
                     }
                     // close bracket

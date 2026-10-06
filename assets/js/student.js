@@ -375,6 +375,8 @@ function studentQuickView(id, elem) {
             $('#quick_religion').html(res.religion);
             $('#quick_email').html(res.email);
             $('#quick_mobile_no').html(res.mobileno);
+            $('#quick_guardian_name').html(res.guardian_name || 'N/A');
+            $('#quick_guardian_phone').html(res.guardian_phone || 'N/A');
             $('#quick_state').html(res.state);
             $('#quick_address').html(res.address);
             if (typeof window.fillQuickEdit === 'function') {

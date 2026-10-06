@@ -1,5 +1,35 @@
 /* Academy phone layout. Desktop and tablet rules live in the page styles and stay in force from 768px up. */
 
+.header-search-mobile { display: none; }
+@media (max-width: 991px) {
+	.header .header-search-mobile {
+		display: block !important;
+		clear: both;
+		float: none;
+		width: 100%;
+		padding: 8px 12px 10px;
+		background: #fff;
+		border-bottom: 1px solid #e4e4e4;
+		box-sizing: border-box;
+	}
+	.header .header-search-mobile .search {
+		display: block !important;
+		width: 100% !important;
+		float: none !important;
+		margin: 0;
+	}
+	.header .header-search-mobile .input-search,
+	.header .header-search-mobile .form-control {
+		width: 100%;
+		height: 42px;
+		font-size: 16px;
+	}
+	.header .header-search-mobile .btn {
+		height: 42px;
+		min-width: 44px;
+	}
+}
+
 @media (min-width: 768px) and (max-width: 991px) {
 	body.academy-phone .content-body .panel-body,
 	body.academy-phone .content-body .table-responsive {
