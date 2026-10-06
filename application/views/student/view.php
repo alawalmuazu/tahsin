@@ -55,45 +55,21 @@
 	.student-hscroll-hint { display: block; }
 }
 .student-list-panel .dataTables_wrapper .table-responsive {
-		overflow-x: auto !important;
-		overflow-y: hidden;
-		-webkit-overflow-scrolling: touch;
-		max-width: 100%;
-		scrollbar-color: #1b7a3a #e6eee8;
-	}
-	.student-list-panel .dataTables_wrapper .table-responsive::-webkit-scrollbar { height: 14px; }
-	.student-list-panel .dataTables_wrapper .table-responsive::-webkit-scrollbar-track { background: #e6eee8; }
-	.student-list-panel .dataTables_wrapper .table-responsive::-webkit-scrollbar-thumb { background: #1b7a3a; border-radius: 8px; }
-	.student-list-panel #studentTable {
-		width: max-content !important;
-		min-width: 1180px;
-		border-collapse: separate !important;
-		border-spacing: 0;
-	}
-	.student-list-panel #studentTable th,
-	.student-list-panel #studentTable td { white-space: nowrap; }
-	.student-list-panel #studentTable th:nth-child(1),
-	.student-list-panel #studentTable td:nth-child(1),
-	.student-list-panel #studentTable th:nth-child(2),
-	.student-list-panel #studentTable td:nth-child(2),
-	.student-list-panel #studentTable th:nth-child(3),
-	.student-list-panel #studentTable td:nth-child(3) {
-		position: sticky;
-		z-index: 2;
-		background: #fff;
-	}
-	.student-list-panel #studentTable th:nth-child(1),
-	.student-list-panel #studentTable td:nth-child(1) { left: 0; min-width: 44px; }
-	.student-list-panel #studentTable th:nth-child(2),
-	.student-list-panel #studentTable td:nth-child(2) { left: 44px; min-width: 70px; }
-	.student-list-panel #studentTable th:nth-child(3),
-	.student-list-panel #studentTable td:nth-child(3) {
-		left: 114px;
-		min-width: 150px;
-		box-shadow: 6px 0 8px -4px rgba(0, 0, 0, .18);
-	}
-	.student-list-panel #studentTable thead th:nth-child(-n+3) { z-index: 3; background: #eee; }
-	.student-list-panel #studentTable tbody tr:hover td:nth-child(-n+3) { background: #f5f5f5; }
+	overflow-x: auto !important;
+	overflow-y: hidden;
+	-webkit-overflow-scrolling: touch;
+	max-width: 100%;
+	scrollbar-color: #1b7a3a #e6eee8;
+}
+.student-list-panel .dataTables_wrapper .table-responsive::-webkit-scrollbar { height: 14px; }
+.student-list-panel .dataTables_wrapper .table-responsive::-webkit-scrollbar-track { background: #e6eee8; }
+.student-list-panel .dataTables_wrapper .table-responsive::-webkit-scrollbar-thumb { background: #1b7a3a; border-radius: 8px; }
+.student-list-panel #studentTable {
+	width: max-content !important;
+	min-width: 1180px;
+}
+.student-list-panel #studentTable th,
+.student-list-panel #studentTable td { white-space: nowrap; }
 body.academy-phone .student-list-panel #studentTable { display: table !important; width: max-content !important; border: 1px solid #ddd !important; }
 body.academy-phone .student-list-panel #studentTable thead {
 	display: table-header-group !important;
@@ -204,7 +180,7 @@ body.academy-phone .student-list-panel #studentTable td button {
 			</header>
 			<div class="panel-body mb-md" id="table">
 				<div class="export_title"><?php echo translate('student_list');?></div>
-				<p class="student-hscroll-hint text-muted">Drag the green bar left or right. The photo and name stay in place.</p>
+				<p class="student-hscroll-hint text-muted">Swipe the list sideways to see class, phone, fees, and actions.</p>
 				<table class="table table-bordered table-condensed table-hover table-export" id="studentTable">
 					<thead>
 						<tr>
