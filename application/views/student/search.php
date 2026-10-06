@@ -1,3 +1,10 @@
+<style>
+.js-quick-open { display: inline-block; padding: 0; border: 0; background: transparent; color: inherit; font: inherit; cursor: pointer; vertical-align: middle; }
+.js-quick-name { font-weight: 600; text-align: left; }
+.js-quick-name:hover, .js-quick-name:focus { color: #1b7a3a; text-decoration: underline; }
+.js-quick-photo img { display: block; border-radius: 4px; }
+.js-quick-photo:hover img, .js-quick-photo:focus img { outline: 2px solid #1b7a3a; outline-offset: 2px; }
+</style>
 <?php if (!empty($query)):?>
 	<section class="panel appear-animation" data-appear-animation="<?=$global_config['animations'] ?>" data-appear-animation-delay="100">
 		<header class="panel-heading">
@@ -31,11 +38,11 @@
 					?>
 					<tr>
 						<td class="center"><?php echo $count++; ?></td>
-						<td class="center"><img class="rounded" src="<?=get_image_url('student', $row->photo)?>" width="40" height="40"/></td>
+						<td class="center"><button type="button" class="js-quick-open js-quick-photo" data-loading-text="<i class='fas fa-spinner fa-spin'></i>" onclick="studentQuickView('<?=(int) $row->id?>', this)" title="<?=translate('quick_view')?>"><img class="rounded" src="<?=html_escape(get_image_url('student', $row->photo))?>" width="40" height="40" alt=""></button></td>
 					<?php if (is_multi_school()) { ?>
 						<td><?php echo get_type_name_by_id('branch', $row->branch_id);?></td>
 					<?php } ?>
-						<td><?php echo $row->first_name .' '.$row->last_name;?></td>
+						<td><button type="button" class="js-quick-open js-quick-name" data-student="<?=(int) $row->student_id?>" data-loading-text="<i class='fas fa-spinner fa-spin'></i>" onclick="studentQuickView('<?=(int) $row->id?>', this)" title="<?=translate('quick_view')?>"><?php echo html_escape($row->first_name . ' ' . $row->last_name); ?></button></td>
 						<td><?php echo $row->register_no;?></td>
 						<td><?php echo $row->roll;?></td>
 						<td>
@@ -71,4 +78,5 @@
 			</table>
 		</div>
 	</section>
+	<?php $this->load->view('student/_quick_view'); ?>
 	<?php endif;?>

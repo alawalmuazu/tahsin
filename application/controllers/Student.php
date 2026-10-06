@@ -1335,10 +1335,18 @@ class Student extends Admin_Controller
         }
 
         $search_text = $this->input->post('search_text');
+        $branchID = $this->application_model->get_branch_id();
+        $this->data['bulk_programmes'] = $this->app_lib->getStudentCategory($branchID);
         $this->data['query'] = $this->student_model->getSearchStudentList(trim($search_text));
         $this->data['title'] = translate('searching_results');
         $this->data['sub_page'] = 'student/search';
         $this->data['main_menu'] = '';
+        $this->data['headerelements'] = array(
+            'js' => array(
+                'js/student.js',
+                'js/image_compress_preview.js',
+            ),
+        );
         $this->load->view('layout/index', $this->data);
     }
 
