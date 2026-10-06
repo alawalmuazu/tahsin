@@ -55,7 +55,7 @@ class Student_model extends MY_Model
             'hostel_id' => $hostelID,
             'room_id' => $roomID,
             'previous_details' => $previous_details,
-            'photo' => $this->uploadImage('student'),
+            'photo' => $this->storeStudentPhoto('user_photo'),
             'nin' => preg_replace('/[^0-9]/', '', $this->input->post('nin')),
         );
 
@@ -603,13 +603,23 @@ class Student_model extends MY_Model
             $fee_progress = $this->getFeeProgress($record->id);
 
             // age calculation
-            if(!empty($record->birthday)){
+            $dobIso = '';
+            $dobLabel = 'Set date of birth';
+            if (!empty($record->birthday) && $record->birthday !== '0000-00-00') {
                 $birthday = new DateTime($record->birthday);
                 $today = new DateTime('today');
                 $age = $birthday->diff($today)->y;
                 $stu_age = html_escape($age);
-            }else{
-                $stu_age = "N/A";
+                $dobIso = $birthday->format('Y-m-d');
+                $dobLabel = _d($record->birthday);
+            } else {
+                $stu_age = 'N/A';
+            }
+            if (get_permission('student', 'is_edit')) {
+                $stu_age = '<button type="button" class="btn btn-link btn-xs js-dob-edit" data-student="' . (int) $record->student_id . '" data-name="' . html_escape($record->fullname) . '" data-dob="' . html_escape($dobIso) . '">'
+                    . '<span class="js-dob-age">' . $stu_age . '</span>'
+                    . '<span class="js-dob-label text-muted">' . html_escape($dobLabel) . '</span>'
+                    . '</button>';
             }
             // photo
             $photo = "<img src='" . get_image_url('student', $record->photo) . "' height='50'>";
@@ -1065,5 +1075,134 @@ if ($validArr['roll']) {
         ));
         @chmod($full, 0666);
         return $relative;
+    }
+
+    public $photo_failed = false;
+
+    public function storeStudentPhoto($field = 'user_photo')
+    {
+        $this->photo_failed = false;
+        $old = basename((string) $this->input->post('old_user_photo'));
+        if ($old === '.' || $old === '..') {
+            $old = '';
+        }
+        $fallback = $old !== '' ? $old : 'defualt.png';
+        if (!isset($_FILES[$field]) || $_FILES[$field]['error'] === UPLOAD_ERR_NO_FILE || empty($_FILES[$field]['name'])) {
+            return $fallback;
+        }
+        $file = $_FILES[$field];
+        if ((int) $file['error'] !== UPLOAD_ERR_OK || !is_uploaded_file($file['tmp_name'])) {
+            $this->photo_failed = true;
+            return $fallback;
+        }
+        if ((int) $file['size'] > 12 * 1024 * 1024) {
+            $this->photo_failed = true;
+            return $fallback;
+        }
+        $info = @getimagesize($file['tmp_name']);
+        if (!$info) {
+            $this->photo_failed = true;
+            return $fallback;
+        }
+        $width = (int) $info[0];
+        $height = (int) $info[1];
+        $type = (int) $info[2];
+        if ($width < 32 || $height < 32 || $width > 8000 || $height > 8000 || ($width * $height) > 24000000) {
+            $this->photo_failed = true;
+            return $fallback;
+        }
+        if (!in_array($type, array(IMAGETYPE_JPEG, IMAGETYPE_PNG, IMAGETYPE_WEBP), true)) {
+            $this->photo_failed = true;
+            return $fallback;
+        }
+        $mime = '';
+        if (function_exists('finfo_open')) {
+            $finfo = finfo_open(FILEINFO_MIME_TYPE);
+            if ($finfo) {
+                $mime = (string) finfo_file($finfo, $file['tmp_name']);
+                finfo_close($finfo);
+            }
+        }
+        $allowedMime = array(IMAGETYPE_JPEG => 'image/jpeg', IMAGETYPE_PNG => 'image/png', IMAGETYPE_WEBP => 'image/webp');
+        if ($mime !== '' && $mime !== $allowedMime[$type]) {
+            $this->photo_failed = true;
+            return $fallback;
+        }
+        if ($type === IMAGETYPE_JPEG) {
+            $src = @imagecreatefromjpeg($file['tmp_name']);
+        } elseif ($type === IMAGETYPE_PNG) {
+            $src = @imagecreatefrompng($file['tmp_name']);
+        } else {
+            $src = function_exists('imagecreatefromwebp') ? @imagecreatefromwebp($file['tmp_name']) : false;
+        }
+        if (!$src) {
+            $this->photo_failed = true;
+            return $fallback;
+        }
+        if ($type === IMAGETYPE_JPEG && function_exists('exif_read_data')) {
+            $exif = @exif_read_data($file['tmp_name']);
+            if (!empty($exif['Orientation'])) {
+                $src = $this->orientStudentPhoto($src, (int) $exif['Orientation']);
+            }
+        }
+        $width = imagesx($src);
+        $height = imagesy($src);
+        $scale = min(1, 1600 / max($width, $height));
+        $nw = max(1, (int) round($width * $scale));
+        $nh = max(1, (int) round($height * $scale));
+        $dst = imagecreatetruecolor($nw, $nh);
+        $white = imagecolorallocate($dst, 255, 255, 255);
+        imagefilledrectangle($dst, 0, 0, $nw, $nh, $white);
+        imagecopyresampled($dst, $src, 0, 0, 0, 0, $nw, $nh, $width, $height);
+        imagedestroy($src);
+        $dir = FCPATH . 'uploads/images/student/';
+        if (!is_dir($dir)) {
+            @mkdir($dir, 0755, true);
+        }
+        try {
+            $name = 'stu_' . bin2hex(random_bytes(16)) . '.jpg';
+        } catch (Exception $e) {
+            $name = 'stu_' . bin2hex(openssl_random_pseudo_bytes(16)) . '.jpg';
+        }
+        $path = $dir . $name;
+        $saved = imagejpeg($dst, $path, 86);
+        imagedestroy($dst);
+        if (!$saved || !is_file($path) || filesize($path) < 80) {
+            if (is_file($path)) {
+                @unlink($path);
+            }
+            $this->photo_failed = true;
+            return $fallback;
+        }
+        @chmod($path, 0644);
+        if ($old !== '' && $old !== 'defualt.png' && $old !== $name) {
+            $oldPath = $dir . $old;
+            if (is_file($oldPath)) {
+                @unlink($oldPath);
+            }
+        }
+        return $name;
+    }
+
+    protected function orientStudentPhoto($src, $orientation)
+    {
+        $angle = 0;
+        if ($orientation === 3) {
+            $angle = 180;
+        } elseif ($orientation === 6) {
+            $angle = -90;
+        } elseif ($orientation === 8) {
+            $angle = 90;
+        } elseif ($orientation === 2 && function_exists('imageflip')) {
+            imageflip($src, IMG_FLIP_HORIZONTAL);
+        }
+        if ($angle !== 0) {
+            $turned = imagerotate($src, $angle, 0);
+            if ($turned) {
+                imagedestroy($src);
+                return $turned;
+            }
+        }
+        return $src;
     }
 }

@@ -32,7 +32,7 @@ if (empty($student['previous_details'])) {
 					<li><div class="icon-holder" data-toggle="tooltip" data-original-title="<?=translate('present_address')?>"><i class="fas fa-home"></i></div> <?=(!empty($student['current_address']) ? $student['current_address'] : 'N/A'); ?></li>
 				</ul>
 			</div>
-			<div class="col-md-12 col-lg-3 col-xl-4 text-right mt-md">
+			<div class="col-md-12 col-lg-3 col-xl-4 text-right mt-md student-profile-actions">
 				<a href="<?=base_url('student/admission_slip/' . $student['enrollid'])?>" class="btn btn-default btn-circle" target="_blank">
 					<i class="fas fa-print"></i> <?=translate('admission_slip')?>
 				</a>
@@ -469,13 +469,11 @@ if ($present_address['status']) {
 $student_photo = $this->student_fields_model->getStatus('student_photo', $branchID);
 if ($student_photo['status']) {
 ?>
-							<div class="col-md-12 mb-sm">
-								<div class="form-group">
-									<label for="input-file-now"><?=translate('profile_picture')?><?php echo $student_photo['required'] == 1 ? ' <span class="required">*</span>' : ''; ?></label>
-									<input type="file" name="user_photo" class="dropify" data-default-file="<?=get_image_url('student', $student['photo'])?>" />
-									<input type="hidden" name="old_user_photo" value="<?php echo $student['photo']; ?>" />
-								</div>
-								<span class="error"><?=form_error('user_photo')?></span>
+							<div class="col-md-12 col-xs-12 mb-sm">
+								<?php $this->load->view('student/_photo_field', array(
+									'photo_current' => $student['photo'],
+									'photo_required' => $student_photo['required'] == 1,
+								)); ?>
 							</div>
 <?php } ?>
 						</div>
@@ -640,9 +638,9 @@ if ($previous_school_details['status']) {
 <?php } ?>
 					</div>
 					
-					<div class="panel-footer">
+					<div class="panel-footer student-profile-save">
 						<div class="row">
-							<div class="col-md-offset-9 col-md-3">
+							<div class="col-xs-12 col-md-offset-9 col-md-3">
 								<button type="submit" name="update" value="1" class="btn btn-default btn-block"><?=translate('update')?></button>
 							</div>
 						</div>

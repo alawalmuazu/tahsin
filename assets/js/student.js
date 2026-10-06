@@ -366,12 +366,20 @@ function studentQuickView(id, elem) {
             $('#quick_roll').html(res.roll);
             $('#quick_admission_date').html(res.admission_date);
             $('#quick_date_of_birth').html(res.birthday);
+            if ($('#quick_dob_input').length) {
+                $('#quick_dob_input').val(res.birthday_iso || '');
+                $('#quick_dob_input').data('student', res.student_id || '');
+                $('#quick_dob_error').text('');
+            }
             $('#quick_blood_group').html(res.blood_group);
             $('#quick_religion').html(res.religion);
             $('#quick_email').html(res.email);
             $('#quick_mobile_no').html(res.mobileno);
             $('#quick_state').html(res.state);
             $('#quick_address').html(res.address);
+            if (typeof window.fillQuickEdit === 'function') {
+                window.fillQuickEdit(res);
+            }
             mfp_modal('#quickView');
             btn.tooltip("hide");
         },

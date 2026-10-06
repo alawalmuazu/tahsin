@@ -55,7 +55,7 @@ class Student extends Admin_Controller
         // NIN deduplication (only if NIN is provided)
         $this->form_validation->set_rules('nin', 'NIN', 'trim|callback_unique_nin');
         // checking profile photo format
-        $this->form_validation->set_rules('user_photo', translate('profile_picture'), 'callback_photoHandleUpload[user_photo]');
+        $this->form_validation->set_rules('user_photo', translate('profile_picture'), 'callback_studentPhotoCheck[user_photo]');
 
         // system fields validation rules
         $validArr = array();
@@ -691,12 +691,17 @@ class Student extends Admin_Controller
 
         $branchID = $this->application_model->get_branch_id();
         $this->data['branch_id'] = $branchID;
+        $this->load->model('pwd_category_model');
+        $this->data['bulk_pwd'] = $this->pwd_category_model->getDropdown($branchID);
+        $this->data['bulk_sections'] = $this->app_lib->getBranchSections($branchID, false);
+        $this->data['bulk_programmes'] = $this->app_lib->getStudentCategory($branchID);
         $this->data['title'] = translate('student_list');
         $this->data['main_menu'] = 'student';
         $this->data['sub_page'] = 'student/view';
         $this->data['headerelements'] = array(
             'js' => array(
-                'js/student.js'
+                'js/student.js',
+                'js/image_compress_preview.js',
             ),
         );
         $this->load->view('layout/index', $this->data);
@@ -845,6 +850,7 @@ class Student extends Admin_Controller
                 'js/student.js',
                 'vendor/dropify/js/dropify.min.js',
                 'vendor/bootstrap-multiselect/js/bootstrap-multiselect.js',
+                'js/image_compress_preview.js',
             ),
         );
         $this->load->view('layout/index', $this->data);
@@ -1390,21 +1396,176 @@ class Student extends Admin_Controller
         $this->db->join('student_category', 'student_category.id = student.category_id', 'left');
         $this->db->where('enroll.id', $id);
         $row = $this->db->get()->row();
+        $birthdayIso = (!empty($row->birthday) && $row->birthday !== '0000-00-00') ? date('Y-m-d', strtotime($row->birthday)) : '';
+        $admissionIso = (!empty($row->admission_date) && $row->admission_date !== '0000-00-00') ? date('Y-m-d', strtotime($row->admission_date)) : '';
         $data['photo'] = get_image_url('student', $row->photo);
-        $data['full_name'] = $row->first_name . " " . $row->last_name;
+        $data['photo_file'] = $row->photo;
+        $data['full_name'] = trim($row->first_name . ' ' . $row->last_name);
+        $data['first_name'] = $row->first_name;
+        $data['other_name'] = isset($row->other_name) ? $row->other_name : '';
+        $data['last_name'] = $row->last_name;
         $data['student_category'] = $row->cname;
+        $data['category_id'] = (int) $row->category_id;
         $data['register_no'] = $row->register_no;
         $data['roll'] = $row->roll;
         $data['gender'] = translate($row->gender);
-        $data['admission_date'] = empty($row->admission_date) ? "N/A" : _d($row->admission_date);
-        $data['birthday'] = empty($row->birthday) ? "N/A" : _d($row->birthday);
-        $data['blood_group'] = empty($row->blood_group) ? "N/A" : $row->blood_group;
-        $data['religion'] = empty($row->religion) ? "N/A" : $row->religion;
+        $data['gender_value'] = $row->gender;
+        $data['admission_date'] = $admissionIso === '' ? 'N/A' : _d($row->admission_date);
+        $data['admission_iso'] = $admissionIso;
+        $data['student_id'] = (int) $row->student_id;
+        $data['birthday_iso'] = $birthdayIso;
+        $data['birthday'] = $birthdayIso === '' ? 'N/A' : _d($row->birthday);
+        $data['blood_group'] = empty($row->blood_group) ? 'N/A' : $row->blood_group;
+        $data['blood_value'] = (string) $row->blood_group;
+        $data['religion'] = empty($row->religion) ? 'N/A' : $row->religion;
+        $data['religion_value'] = (string) $row->religion;
         $data['email'] = $row->email;
-        $data['mobileno'] = empty($row->mobileno) ? "N/A" : $row->mobileno;
-        $data['state'] = empty($row->state) ? "N/A" : $row->state;
-        $data['address'] = empty($row->current_address) ? "N/A" : $row->current_address;
+        $data['email_value'] = (string) $row->email;
+        $data['mobileno'] = empty($row->mobileno) ? 'N/A' : $row->mobileno;
+        $data['mobile_value'] = (string) $row->mobileno;
+        $data['state'] = empty($row->state) ? 'N/A' : $row->state;
+        $data['state_value'] = (string) $row->state;
+        $data['address'] = empty($row->current_address) ? 'N/A' : $row->current_address;
+        $data['address_value'] = (string) $row->current_address;
         echo json_encode($data);
+    }
+
+    public function quick_save()
+    {
+        if (!$this->input->post() || !get_permission('student', 'is_edit')) {
+            echo json_encode(array('status' => 'error', 'message' => translate('access_denied')));
+            return;
+        }
+        $studentID = (int) $this->input->post('student_id');
+        $branchID = (int) $this->application_model->get_branch_id();
+        $owns = $this->db->where('student_id', $studentID)
+            ->where('branch_id', $branchID)
+            ->where('session_id', (int) get_session_id())
+            ->get('enroll')->row();
+        if ($studentID < 1 || !$owns) {
+            echo json_encode(array('status' => 'error', 'message' => 'That student is not in this session.'));
+            return;
+        }
+        $first = trim((string) $this->input->post('first_name'));
+        $last = trim((string) $this->input->post('last_name'));
+        $other = trim((string) $this->input->post('other_name'));
+        if ($first === '' || $last === '') {
+            echo json_encode(array('status' => 'error', 'message' => 'First name and surname are required.'));
+            return;
+        }
+        $gender = (string) $this->input->post('gender');
+        if (!in_array($gender, array('male', 'female'), true)) {
+            echo json_encode(array('status' => 'error', 'message' => 'Choose male or female.'));
+            return;
+        }
+        $email = trim((string) $this->input->post('email'));
+        if ($email !== '' && !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            echo json_encode(array('status' => 'error', 'message' => 'Enter a valid email.'));
+            return;
+        }
+        $bloods = $this->app_lib->getBloodgroup();
+        $religions = nigeria_religions(false);
+        $states = nigeria_states(false);
+        $blood = (string) $this->input->post('blood_group');
+        $religion = (string) $this->input->post('religion');
+        $state = (string) $this->input->post('state');
+        if ($blood !== '' && !isset($bloods[$blood])) {
+            echo json_encode(array('status' => 'error', 'message' => 'Choose a blood group from the list.'));
+            return;
+        }
+        if ($religion !== '' && !isset($religions[$religion])) {
+            echo json_encode(array('status' => 'error', 'message' => 'Choose a religion from the list.'));
+            return;
+        }
+        if ($state !== '' && !isset($states[$state])) {
+            echo json_encode(array('status' => 'error', 'message' => 'Choose a state from the list.'));
+            return;
+        }
+        $programmes = $this->app_lib->getStudentCategory($branchID);
+        $categoryID = (int) $this->input->post('category_id');
+        if ($categoryID < 1 || (!isset($programmes[$categoryID]) && !isset($programmes[(string) $categoryID]))) {
+            echo json_encode(array('status' => 'error', 'message' => 'Choose a programme category.'));
+            return;
+        }
+        $birthday = $this->quickIsoDate($this->input->post('birthday'));
+        $admission = $this->quickIsoDate($this->input->post('admission_date'));
+        if ($this->input->post('birthday') !== '' && $this->input->post('birthday') !== null && $birthday === '') {
+            echo json_encode(array('status' => 'error', 'message' => 'Choose a valid date of birth.'));
+            return;
+        }
+        if ($birthday !== '') {
+            $born = new DateTime($birthday);
+            if ($born > new DateTime('today') || (int) $born->format('Y') < 1990) {
+                echo json_encode(array('status' => 'error', 'message' => 'That date of birth is outside the range for a student.'));
+                return;
+            }
+        }
+        if ($this->input->post('admission_date') !== '' && $this->input->post('admission_date') !== null && $admission === '') {
+            echo json_encode(array('status' => 'error', 'message' => 'Choose a valid admission date.'));
+            return;
+        }
+        $photoName = null;
+        if (!empty($_FILES['user_photo']['name'])) {
+            $photoName = $this->student_model->storeStudentPhoto('user_photo');
+            if ($this->student_model->photo_failed || !$photoName) {
+                echo json_encode(array('status' => 'error', 'message' => 'The photo could not be saved. Use a JPG or PNG, or take it with the camera.'));
+                return;
+            }
+        }
+        $update = array(
+            'first_name' => mb_substr($first, 0, 100),
+            'last_name' => mb_substr($last, 0, 100),
+            'gender' => $gender,
+            'email' => mb_substr($email, 0, 100),
+            'blood_group' => $blood,
+            'religion' => $religion,
+            'state' => $state,
+            'mobileno' => mb_substr(trim((string) $this->input->post('mobileno')), 0, 20),
+            'current_address' => mb_substr(trim((string) $this->input->post('current_address')), 0, 500),
+            'category_id' => $categoryID,
+            'birthday' => $birthday === '' ? null : $birthday,
+        );
+        if ($this->db->field_exists('other_name', 'student')) {
+            $update['other_name'] = mb_substr($other, 0, 100);
+        }
+        if ($admission !== '') {
+            $update['admission_date'] = $admission;
+        }
+        if ($photoName) {
+            $update['photo'] = $photoName;
+        }
+        $this->db->where('id', $studentID)->update('student', $update);
+        $categoryName = isset($programmes[$categoryID]) ? $programmes[$categoryID] : $programmes[(string) $categoryID];
+        $age = '';
+        $dobLabel = 'Set date of birth';
+        if ($birthday !== '') {
+            $age = (string) (new DateTime($birthday))->diff(new DateTime('today'))->y;
+            $dobLabel = _d($birthday);
+        }
+        echo json_encode(array(
+            'status' => 'success',
+            'message' => 'Saved.',
+            'full_name' => trim($update['first_name'] . ' ' . $update['last_name']),
+            'student_category' => $categoryName,
+            'photo' => get_image_url('student', $photoName ? $photoName : $this->input->post('old_user_photo')),
+            'photo_file' => $photoName ? $photoName : basename((string) $this->input->post('old_user_photo')),
+            'age' => $age === '' ? 'N/A' : $age,
+            'label' => $dobLabel,
+            'iso' => $birthday,
+        ));
+    }
+
+    protected function quickIsoDate($value)
+    {
+        $raw = trim((string) $value);
+        if ($raw === '') {
+            return '';
+        }
+        $date = DateTime::createFromFormat('Y-m-d', $raw);
+        if (!$date || $date->format('Y-m-d') !== $raw) {
+            return '';
+        }
+        return $raw;
     }
 
      /* student information delete here */
@@ -1477,6 +1638,136 @@ class Student extends Admin_Controller
             }
             echo json_encode(array('status' => $status, 'message' => $message));
         }
+    }
+
+    public function quick_dob()
+    {
+        if (!$this->input->post() || !get_permission('student', 'is_edit')) {
+            echo json_encode(array('status' => 'error', 'message' => translate('access_denied')));
+            return;
+        }
+        $studentID = (int) $this->input->post('student_id');
+        $raw = trim((string) $this->input->post('birthday'));
+        $date = DateTime::createFromFormat('Y-m-d', $raw);
+        $today = new DateTime('today');
+        if ($studentID < 1 || !$date || $date->format('Y-m-d') !== $raw) {
+            echo json_encode(array('status' => 'error', 'message' => 'Choose a valid date of birth.'));
+            return;
+        }
+        if ($date > $today || (int) $date->format('Y') < 1990) {
+            echo json_encode(array('status' => 'error', 'message' => 'That date of birth is outside the range for a student.'));
+            return;
+        }
+        $branchID = (int) $this->application_model->get_branch_id();
+        $owns = $this->db->where('student_id', $studentID)
+            ->where('branch_id', $branchID)
+            ->where('session_id', (int) get_session_id())
+            ->get('enroll')->row();
+        if (!$owns) {
+            echo json_encode(array('status' => 'error', 'message' => 'That student is not in this session.'));
+            return;
+        }
+        $this->db->where('id', $studentID)->update('student', array('birthday' => $raw));
+        echo json_encode(array(
+            'status' => 'success',
+            'message' => 'Date of birth saved.',
+            'iso' => $raw,
+            'age' => (string) $date->diff($today)->y,
+            'label' => _d($raw),
+        ));
+    }
+
+    public function bulk_edit()
+    {
+        if (!$this->input->post() || !get_permission('student', 'is_edit')) {
+            echo json_encode(array('status' => 'error', 'message' => translate('access_denied')));
+            return;
+        }
+        $ids = $this->input->post('array_id');
+        $field = (string) $this->input->post('field');
+        $value = (int) $this->input->post('value');
+        $clean = array();
+        if (is_array($ids)) {
+            foreach ($ids as $id) {
+                $id = (int) $id;
+                if ($id > 0) {
+                    $clean[$id] = $id;
+                }
+            }
+        }
+        $clean = array_values($clean);
+        if (empty($clean) || $value < 1 || !in_array($field, array('pwd_category', 'section', 'programme'), true)) {
+            echo json_encode(array('status' => 'error', 'message' => 'Select students and one value to apply.'));
+            return;
+        }
+        $branchID = (int) $this->application_model->get_branch_id();
+        $sessionID = (int) get_session_id();
+        $rows = $this->db->select('student_id')
+            ->where('branch_id', $branchID)
+            ->where('session_id', $sessionID)
+            ->where_in('student_id', $clean)
+            ->get('enroll')->result();
+        $allowed = array();
+        foreach ($rows as $row) {
+            $allowed[(int) $row->student_id] = (int) $row->student_id;
+        }
+        $allowed = array_values($allowed);
+        if (empty($allowed)) {
+            echo json_encode(array('status' => 'error', 'message' => 'None of the selected students are in this session.'));
+            return;
+        }
+        if ($field === 'section') {
+            $section = $this->db->where('id', $value)->where('branch_id', $branchID)->get('section')->row();
+            if (!$section) {
+                echo json_encode(array('status' => 'error', 'message' => 'Choose a section from this school.'));
+                return;
+            }
+            $this->db->where('branch_id', $branchID)
+                ->where('session_id', $sessionID)
+                ->where_in('student_id', $allowed)
+                ->update('enroll', array('section_id' => $value));
+            if ($this->db->table_exists('sections_allocation')) {
+                $valid = array();
+                foreach ($this->db->select('class_id')->where('section_id', $value)->get('sections_allocation')->result() as $classRow) {
+                    $valid[(int) $classRow->class_id] = (int) $classRow->class_id;
+                }
+                $this->db->where('branch_id', $branchID)
+                    ->where('session_id', $sessionID)
+                    ->where_in('student_id', $allowed)
+                    ->where('class_id IS NOT NULL', null, false)
+                    ->where('class_id >', 0);
+                if (!empty($valid)) {
+                    $this->db->where_not_in('class_id', array_values($valid));
+                }
+                $this->db->update('enroll', array('class_id' => null));
+            }
+            $label = $section->name;
+        } elseif ($field === 'programme') {
+            $programmes = $this->app_lib->getStudentCategory($branchID);
+            if (!isset($programmes[$value]) && !isset($programmes[(string) $value])) {
+                echo json_encode(array('status' => 'error', 'message' => 'Choose a programme category.'));
+                return;
+            }
+            $this->db->where_in('id', $allowed)->update('student', array('category_id' => $value));
+            $label = isset($programmes[$value]) ? $programmes[$value] : $programmes[(string) $value];
+        } else {
+            if (!$this->db->field_exists('pwd_category_id', 'student') || !$this->db->table_exists('pwd_category')) {
+                echo json_encode(array('status' => 'error', 'message' => 'Student categories are not ready.'));
+                return;
+            }
+            $pwd = $this->db->where('id', $value)->where('branch_id', $branchID)->where('active', 1)->get('pwd_category')->row();
+            if (!$pwd) {
+                echo json_encode(array('status' => 'error', 'message' => 'Choose a student category.'));
+                return;
+            }
+            $this->db->where_in('id', $allowed)->update('student', array('pwd_category_id' => $value));
+            $label = $pwd->name;
+        }
+        $count = count($allowed);
+        echo json_encode(array(
+            'status' => 'success',
+            'message' => $count . ' ' . ($count === 1 ? 'student' : 'students') . ' updated to ' . $label . '.',
+        ));
     }
 
 
@@ -1697,6 +1988,41 @@ class Student extends Admin_Controller
         $this->data['main_menu'] = 'student_repots';
         $this->data['sub_page'] = 'student/sibling_report';
         $this->load->view('layout/index', $this->data);
+    }
+
+    public function studentPhotoCheck($str, $fields)
+    {
+        if (!isset($_FILES[$fields]) || $_FILES[$fields]['error'] === UPLOAD_ERR_NO_FILE || empty($_FILES[$fields]['name'])) {
+            return true;
+        }
+        $file = $_FILES[$fields];
+        if ((int) $file['error'] === UPLOAD_ERR_INI_SIZE || (int) $file['error'] === UPLOAD_ERR_FORM_SIZE) {
+            $this->form_validation->set_message('studentPhotoCheck', 'That photo is too large. Take it again or choose a smaller picture.');
+            return false;
+        }
+        if ((int) $file['error'] !== UPLOAD_ERR_OK || !is_uploaded_file($file['tmp_name'])) {
+            $this->form_validation->set_message('studentPhotoCheck', 'The photo could not be read. Try again.');
+            return false;
+        }
+        if ((int) $file['size'] > 12 * 1024 * 1024) {
+            $this->form_validation->set_message('studentPhotoCheck', 'That photo is too large. Take it again or choose a smaller picture.');
+            return false;
+        }
+        $info = @getimagesize($file['tmp_name']);
+        if (!$info) {
+            $this->form_validation->set_message('studentPhotoCheck', 'Use a JPG or PNG, or take the photo with the camera button.');
+            return false;
+        }
+        $pixels = (int) $info[0] * (int) $info[1];
+        if ((int) $info[0] < 32 || (int) $info[1] < 32 || (int) $info[0] > 8000 || (int) $info[1] > 8000 || $pixels > 24000000) {
+            $this->form_validation->set_message('studentPhotoCheck', 'That photo’s size cannot be used. Take it again.');
+            return false;
+        }
+        if (!in_array((int) $info[2], array(IMAGETYPE_JPEG, IMAGETYPE_PNG, IMAGETYPE_WEBP), true)) {
+            $this->form_validation->set_message('studentPhotoCheck', 'Use a JPG or PNG, or take the photo with the camera button.');
+            return false;
+        }
+        return true;
     }
 
 }

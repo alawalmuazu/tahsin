@@ -1,4 +1,51 @@
 <?php  $widget = (is_multi_school() ? 4 : 6); ?>
+<style>
+@media (max-width: 767px) {
+	.student-list-panel > .panel-heading { padding-bottom: 12px; }
+	.student-list-panel .panel-btn {
+		position: static;
+		float: none !important;
+		display: flex;
+		flex-wrap: wrap;
+		gap: 8px;
+		margin: 10px 0 0;
+		right: auto;
+		top: auto;
+	}
+	.student-list-panel .panel-btn .btn {
+		flex: 1 1 140px;
+		min-height: 42px;
+		float: none;
+	}
+	#studentTable .checked-area,
+	#studentTable .checkbox-replace,
+	#studentTable .i-checks {
+		min-width: 32px;
+		min-height: 32px;
+	}
+	#bulkEditModal .modal-dialog { width: auto; margin: 12px; }
+	#bulkEditModal .modal-body { padding: 15px; }
+	#bulkEditModal .form-control { min-height: 42px; font-size: 16px; }
+	#bulkEditModal .modal-footer { display: flex; flex-direction: column; gap: 8px; }
+	#bulkEditModal .modal-footer .btn,
+	#dobEditModal .modal-footer .btn { width: 100%; min-height: 44px; margin: 0; }
+	#dobEditModal .modal-dialog { width: auto; margin: 12px; }
+	#dobEditModal .form-control { min-height: 42px; font-size: 16px; }
+	#dobEditModal .modal-footer { display: flex; flex-direction: column; gap: 8px; }
+}
+.js-dob-edit { display: inline-block; padding: 0; white-space: normal; text-align: left; line-height: 1.25; }
+.js-dob-edit .js-dob-label { display: block; font-size: 11px; }
+.quick-dob-edit { margin-top: 6px; }
+.quick-dob-edit .form-control { min-height: 42px; font-size: 16px; }
+.quick-dob-edit .btn { margin-top: 6px; min-height: 40px; }
+#quickView .form-control { font-size: 16px; min-height: 42px; }
+#quickView .qv-locked { margin: 4px 0 12px; color: #607068; }
+#quickView .qv-actions { display: flex; gap: 8px; justify-content: flex-end; }
+@media (max-width: 767px) {
+	#quickView .qv-actions { flex-direction: column; }
+	#quickView .qv-actions .btn { width: 100%; min-height: 44px; margin: 0; }
+}
+</style>
 <div class="row">
 	<div class="col-md-12">
 		<section class="panel">
@@ -47,7 +94,7 @@
 			</div>
 			<footer class="panel-footer">
 				<div class="row">
-					<div class="col-md-offset-10 col-md-2">
+					<div class="col-xs-12 col-md-offset-10 col-md-2">
 						<button type="submit" data-loading-text="<i class='fas fa-spinner fa-spin'></i> Processing" name="search" value="1" class="btn btn-default btn-block"> <i class="fas fa-filter"></i> <?=translate('filter')?></button>
 					</div>
 				</div>
@@ -55,19 +102,27 @@
 			<?php echo form_close();?>
 		</section>
 
-		<section class="panel appear-animation hidden-div" data-appear-animation="<?=$global_config['animations'] ?>" data-appear-animation-delay="100">
+		<section class="panel appear-animation hidden-div student-list-panel" data-appear-animation="<?=$global_config['animations'] ?>" data-appear-animation-delay="100">
 			<header class="panel-heading">
-			<?php if (get_permission('student', 'is_delete')): ?>
+			<?php if (get_permission('student', 'is_edit') || get_permission('student', 'is_delete')): ?>
 				<div class="panel-btn">
+					<?php if (get_permission('student', 'is_edit')): ?>
+					<button type="button" class="btn btn-default btn-circle" id="student_bulk_edit">
+						<i class="fas fa-pen"></i> Bulk edit
+					</button>
+					<?php endif; ?>
+					<?php if (get_permission('student', 'is_delete')): ?>
 					<button class="btn btn-default btn-circle" id="student_bulk_delete" data-loading-text="<i class='fas fa-spinner fa-spin'></i> Processing">
 						<i class="fas fa-trash-alt"></i> <?=translate('bulk_delete')?>
 					</button>
+					<?php endif; ?>
 				</div>
 			<?php endif; ?>
 				<h4 class="panel-title"><i class="fas fa-user-graduate"></i> <?php echo translate('student_list');?></h4>
 			</header>
 			<div class="panel-body mb-md" id="table">
 				<div class="export_title"><?php echo translate('student_list');?></div>
+				<div class="table-responsive">
 				<table class="table table-bordered table-condensed table-hover table-export" id="studentTable" width="100%">
 					<thead>
 						<tr>
@@ -98,6 +153,7 @@
 						</tr>	
 					</thead>
 				</table>
+				</div>
 			</div>
 		</section>
 		
@@ -111,13 +167,120 @@
 				<i class="far fa-user-circle"></i> <?=translate('quick_view')?>
 			</h4>
 		</header>
+		<?php if (get_permission('student', 'is_edit')):
+			$qvProgrammes = isset($bulk_programmes) ? $bulk_programmes : array();
+		?>
+		<form id="quickEditForm">
+		<div class="panel-body">
+			<input type="hidden" name="student_id" id="qv_student_id" value="">
+			<input type="hidden" name="old_user_photo" id="quick_old_photo" value="">
+			<?php $this->load->view('student/_photo_field', array('photo_current' => '', 'photo_required' => false)); ?>
+			<div class="text-center qv-locked">
+				<div><?=translate('register_no')?> <strong id="quick_register_no"></strong></div>
+				<div><?=translate('roll')?> <strong id="quick_roll"></strong></div>
+			</div>
+			<div class="row">
+				<div class="col-sm-6">
+					<div class="form-group">
+						<label><?=translate('first_name')?> <span class="required">*</span></label>
+						<input type="text" class="form-control" name="first_name" id="qv_first_name" required>
+					</div>
+				</div>
+				<div class="col-sm-6">
+					<div class="form-group">
+						<label><?=translate('surname')?> <span class="required">*</span></label>
+						<input type="text" class="form-control" name="last_name" id="qv_last_name" required>
+					</div>
+				</div>
+			</div>
+			<div class="form-group">
+				<label><?=translate('other_name')?></label>
+				<input type="text" class="form-control" name="other_name" id="qv_other_name">
+			</div>
+			<div class="form-group">
+				<label>Programme Category <span class="required">*</span></label>
+				<?php echo form_dropdown('category_id', $qvProgrammes, '', "class='form-control' id='qv_category'"); ?>
+			</div>
+			<div class="row">
+				<div class="col-sm-6">
+					<div class="form-group">
+						<label><?=translate('admission_date')?></label>
+						<input type="date" class="form-control" name="admission_date" id="qv_admission">
+					</div>
+				</div>
+				<div class="col-sm-6">
+					<div class="form-group">
+						<label><?=translate('date_of_birth')?></label>
+						<input type="date" class="form-control" name="birthday" id="qv_birthday" max="<?php echo date('Y-m-d'); ?>" min="1990-01-01">
+					</div>
+				</div>
+			</div>
+			<div class="row">
+				<div class="col-sm-6">
+					<div class="form-group">
+						<label><?=translate('gender')?> <span class="required">*</span></label>
+						<select class="form-control" name="gender" id="qv_gender">
+							<option value="male"><?=translate('male')?></option>
+							<option value="female"><?=translate('female')?></option>
+						</select>
+					</div>
+				</div>
+				<div class="col-sm-6">
+					<div class="form-group">
+						<label><?=translate('blood_group')?></label>
+						<?php echo form_dropdown('blood_group', $this->app_lib->getBloodgroup(), '', "class='form-control' id='qv_blood'"); ?>
+					</div>
+				</div>
+			</div>
+			<div class="row">
+				<div class="col-sm-6">
+					<div class="form-group">
+						<label><?=translate('religion')?></label>
+						<?php echo form_dropdown('religion', nigeria_religions(), '', "class='form-control' id='qv_religion'"); ?>
+					</div>
+				</div>
+				<div class="col-sm-6">
+					<div class="form-group">
+						<label><?=translate('state')?></label>
+						<?php echo form_dropdown('state', nigeria_states(), '', "class='form-control' id='qv_state'"); ?>
+					</div>
+				</div>
+			</div>
+			<div class="row">
+				<div class="col-sm-6">
+					<div class="form-group">
+						<label><?=translate('email')?></label>
+						<input type="email" class="form-control" name="email" id="qv_email">
+					</div>
+				</div>
+				<div class="col-sm-6">
+					<div class="form-group">
+						<label><?=translate('mobile_no')?></label>
+						<input type="text" class="form-control" name="mobileno" id="qv_mobile">
+					</div>
+				</div>
+			</div>
+			<div class="form-group">
+				<label><?=translate('address')?></label>
+				<textarea class="form-control" name="current_address" id="qv_address" rows="2"></textarea>
+			</div>
+			<p class="text-danger" id="quick_edit_error" style="margin-bottom:0"></p>
+		</div>
+		<footer class="panel-footer">
+			<div class="qv-actions">
+				<button type="submit" class="btn btn-primary" data-loading-text="<i class='fas fa-spinner fa-spin'></i> Processing">Save</button>
+				<button type="button" class="btn btn-default modal-dismiss"><?=translate('close')?></button>
+			</div>
+		</footer>
+		</form>
+		<?php else: ?>
 		<div class="panel-body">
 			<div class="quick_image">
 				<img alt="" class="user-img-circle" id="quick_image" src="<?=base_url('uploads/app_image/defualt.png')?>" width="120" height="120">
 			</div>
 			<div class="text-center">
 				<h4 class="text-weight-semibold mb-xs" id="quick_full_name"></h4>
-				<p><?=translate('student')?> / <span id="quick_category"></p>
+				<p><?=translate('student')?> / <span id="quick_category"></span></p>
 			</div>
 			<div class="table-responsive mt-md mb-md">
 				<table class="table table-striped table-bordered table-condensed mb-none">
@@ -167,8 +330,85 @@
 				</div>
 			</div>
 		</footer>
+		<?php endif; ?>
 	</section>
 </div>
+
+<?php if (get_permission('student', 'is_edit')):
+	$bulkProgrammes = isset($bulk_programmes) ? $bulk_programmes : array();
+	unset($bulkProgrammes['']);
+	$bulkPwd = isset($bulk_pwd) ? $bulk_pwd : array();
+	unset($bulkPwd['']);
+?>
+<div class="modal fade" id="bulkEditModal" tabindex="-1" role="dialog">
+	<div class="modal-dialog">
+		<div class="modal-content">
+			<form id="bulkEditForm">
+				<div class="modal-header">
+					<button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+					<h4 class="modal-title">Bulk edit</h4>
+				</div>
+				<div class="modal-body">
+					<p class="text-muted" id="bulkEditCount"></p>
+					<div class="form-group">
+						<label>Change one field</label>
+						<select class="form-control" id="bulk_field" name="field">
+							<option value="">Select</option>
+							<option value="pwd_category">Student Category</option>
+							<option value="section">Section</option>
+							<option value="programme">Programme Category</option>
+						</select>
+					</div>
+					<div class="form-group bulk-value" data-field="pwd_category" style="display:none">
+						<label>Student Category <span class="required">*</span></label>
+						<?php echo form_dropdown('pwd_category_id', $bulkPwd, '', "class='form-control' id='bulk_pwd'"); ?>
+					</div>
+					<div class="form-group bulk-value" data-field="section" style="display:none">
+						<label>Section <span class="required">*</span></label>
+						<?php echo form_dropdown('section_id', isset($bulk_sections) ? $bulk_sections : array(), '', "class='form-control' id='bulk_section'"); ?>
+					</div>
+					<div class="form-group bulk-value" data-field="programme" style="display:none">
+						<label>Programme Category <span class="required">*</span></label>
+						<?php echo form_dropdown('category_id', $bulkProgrammes, '', "class='form-control' id='bulk_programme'"); ?>
+						<span class="help-block">With / Without Technical Skills</span>
+					</div>
+					<p class="text-muted">Only the field you choose is changed. A fee already paid stays as it is.</p>
+				</div>
+				<div class="modal-footer">
+					<button type="submit" class="btn btn-primary" data-loading-text="<i class='fas fa-spinner fa-spin'></i> Processing">Update selected</button>
+					<button type="button" class="btn btn-default" data-dismiss="modal"><?=translate('cancel')?></button>
+				</div>
+			</form>
+		</div>
+	</div>
+</div>
+<?php endif; ?>
+<?php if (get_permission('student', 'is_edit')): ?>
+<div class="modal fade" id="dobEditModal" tabindex="-1" role="dialog">
+	<div class="modal-dialog">
+		<div class="modal-content">
+			<form id="dobEditForm">
+				<div class="modal-header">
+					<button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+					<h4 class="modal-title">Date of birth</h4>
+				</div>
+				<div class="modal-body">
+					<p id="dobEditName" style="margin-top:0"></p>
+					<input type="hidden" id="dob_student_id" value="">
+					<div class="form-group" style="margin-bottom:0">
+						<label for="dob_value">Date of birth <span class="required">*</span></label>
+						<input type="date" class="form-control" id="dob_value" name="birthday" required max="<?php echo date('Y-m-d'); ?>" min="1990-01-01">
+					</div>
+				</div>
+				<div class="modal-footer">
+					<button type="submit" class="btn btn-primary" data-loading-text="<i class='fas fa-spinner fa-spin'></i> Processing">Save</button>
+					<button type="button" class="btn btn-default" data-dismiss="modal"><?=translate('cancel')?></button>
+				</div>
+			</form>
+		</div>
+	</div>
+</div>
+<?php endif; ?>
 
 <script type="text/javascript">
 	var cusDataTable = '';
@@ -211,6 +451,188 @@
                 }
             });
         });
+<?php if (get_permission('student', 'is_edit')): ?>
+		function selectedStudentIds() {
+			var arrayID = [];
+			$("input[type='checkbox'].cb_bulkdelete").each(function () {
+				if (this.checked) {
+					arrayID.push($(this).attr('id'));
+				}
+			});
+			return arrayID;
+		}
+		$('#bulk_field').on('change', function () {
+			var field = $(this).val();
+			$('.bulk-value').hide();
+			if (field) {
+				$('.bulk-value[data-field="' + field + '"]').show();
+			}
+		});
+		$('#student_bulk_edit').on('click', function () {
+			var arrayID = selectedStudentIds();
+			if (!arrayID.length) {
+				swal({
+					title: "Select students",
+					text: "Tick the students you want to update.",
+					type: "warning",
+					buttonsStyling: false,
+					confirmButtonClass: "btn btn-default swal2-btn-default"
+				});
+				return;
+			}
+			$('#bulkEditCount').text(arrayID.length + (arrayID.length === 1 ? ' student selected.' : ' students selected.'));
+			$('#bulkEditModal').modal('show');
+		});
+		$('#bulkEditForm').on('submit', function (e) {
+			e.preventDefault();
+			var field = $('#bulk_field').val();
+			var value = field ? $('.bulk-value[data-field="' + field + '"] select').val() : '';
+			var arrayID = selectedStudentIds();
+			if (!field || !value) {
+				swal({
+					title: "Choose one field",
+					text: "Pick Student Category, Section, or Programme Category, then the new value.",
+					type: "warning",
+					buttonsStyling: false,
+					confirmButtonClass: "btn btn-default swal2-btn-default"
+				});
+				return;
+			}
+			var btn = $(this).find('[type="submit"]');
+			btn.button('loading');
+			$.ajax({
+				url: base_url + "student/bulk_edit",
+				type: "POST",
+				dataType: "json",
+				data: { array_id: arrayID, field: field, value: value },
+				success: function (data) {
+					btn.button('reset');
+					$('#bulkEditModal').modal('hide');
+					if (data.status === 'success' && cusDataTable) {
+						cusDataTable.ajax.reload(null, false);
+					}
+					swal({
+						title: data.status === 'success' ? "Updated" : "Not updated",
+						text: data.message,
+						buttonsStyling: false,
+						showCloseButton: true,
+						focusConfirm: false,
+						confirmButtonClass: "btn btn-default swal2-btn-default",
+						type: data.status
+					});
+				},
+				error: function () {
+					btn.button('reset');
+				}
+			});
+		});
+		window.fillQuickEdit = function (res) {
+			if (!$('#quickEditForm').length || !res) return;
+			$('#qv_student_id').val(res.student_id || '');
+			$('#quick_old_photo').val(res.photo_file || '');
+			$('#quickEditForm .photo-desk-preview').attr('src', res.photo || '');
+			$('#qv_first_name').val(res.first_name || '');
+			$('#qv_other_name').val(res.other_name || '');
+			$('#qv_last_name').val(res.last_name || '');
+			$('#qv_category').val(res.category_id || '');
+			$('#qv_admission').val(res.admission_iso || '');
+			$('#qv_birthday').val(res.birthday_iso || '');
+			$('#qv_gender').val(res.gender_value || 'male');
+			$('#qv_blood').val(res.blood_value || '');
+			$('#qv_religion').val(res.religion_value || '');
+			$('#qv_state').val(res.state_value || '');
+			$('#qv_email').val(res.email_value || '');
+			$('#qv_mobile').val(res.mobile_value || '');
+			$('#qv_address').val(res.address_value || '');
+			$('#quick_edit_error').removeClass('text-success').addClass('text-danger').text('');
+		};
+		$('#quickEditForm').on('submit', function (e) {
+			e.preventDefault();
+			var form = this;
+			var btn = $(form).find('[type="submit"]');
+			$('#quick_edit_error').removeClass('text-success').addClass('text-danger').text('');
+			btn.button('loading');
+			$.ajax({
+				url: base_url + 'student/quick_save',
+				type: 'POST',
+				dataType: 'json',
+				data: new FormData(form),
+				processData: false,
+				contentType: false,
+				success: function (data) {
+					btn.button('reset');
+					if (!data || data.status !== 'success') {
+						$('#quick_edit_error').text((data && data.message) ? data.message : 'Not saved');
+						return;
+					}
+					var studentId = $('#qv_student_id').val();
+					var $cell = $('.js-dob-edit[data-student="' + studentId + '"]');
+					if ($cell.length) {
+						$cell.attr('data-dob', data.iso || '');
+						$cell.attr('data-name', data.full_name || '');
+						$cell.find('.js-dob-age').text(data.age || 'N/A');
+						$cell.find('.js-dob-label').text(data.label || '');
+					}
+					if (data.photo) {
+						$('#quickEditForm .photo-desk-preview').attr('src', data.photo);
+					}
+					if (data.photo_file) {
+						$('#quick_old_photo').val(data.photo_file);
+					}
+					$('#quickEditForm .js-photo-input').val('');
+					if (cusDataTable) {
+						cusDataTable.ajax.reload(null, false);
+					}
+					$('#quick_edit_error').removeClass('text-danger').addClass('text-success').text(data.message);
+				},
+				error: function () {
+					btn.button('reset');
+					$('#quick_edit_error').addClass('text-danger').text('Not saved');
+				}
+			});
+		});
+		$(document).on('click', '.js-dob-edit', function () {
+			var $btn = $(this);
+			$('#dobEditName').text($btn.attr('data-name') || '');
+			$('#dob_student_id').val($btn.attr('data-student') || '');
+			$('#dob_value').val($btn.attr('data-dob') || '');
+			$('#dobEditModal').data('button', $btn).modal('show');
+		});
+		$('#dobEditForm').on('submit', function (e) {
+			e.preventDefault();
+			var btn = $(this).find('[type="submit"]');
+			var $cell = $('#dobEditModal').data('button');
+			btn.button('loading');
+			$.ajax({
+				url: base_url + 'student/quick_dob',
+				type: 'POST',
+				dataType: 'json',
+				data: { student_id: $('#dob_student_id').val(), birthday: $('#dob_value').val() },
+				success: function (data) {
+					btn.button('reset');
+					if (data.status !== 'success') {
+						swal({
+							title: 'Not saved',
+							text: data.message,
+							type: 'error',
+							buttonsStyling: false,
+							confirmButtonClass: 'btn btn-default swal2-btn-default'
+						});
+						return;
+					}
+					if ($cell && $cell.length) {
+						$cell.attr('data-dob', data.iso);
+						$cell.find('.js-dob-age').text(data.age);
+						$cell.find('.js-dob-label').text(data.label);
+					}
+					$('#dobEditModal').modal('hide');
+				},
+				error: function () {
+					btn.button('reset');
+				}
+			});
+		});
+<?php endif; ?>
 <?php if (get_permission('student', 'is_delete')): ?>
 		$('#student_bulk_delete').on('click', function() {
 
