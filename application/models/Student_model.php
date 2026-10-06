@@ -1405,12 +1405,23 @@ if ($validArr['roll']) {
             } elseif ($sectionLabel !== '') {
                 $classLabel = $sectionLabel;
             }
+            $paidOn = array();
+            foreach ($summary['payments'] as $payment) {
+                $paidDate = _d(isset($payment['date']) ? $payment['date'] : '');
+                if ($paidDate !== '' && !in_array($paidDate, $paidOn, true)) {
+                    $paidOn[] = $paidDate;
+                }
+            }
             $groups[$key]['children'][] = array(
                 'name' => $name !== '' ? $name : 'Student',
                 'register_no' => (string) $row->register_no,
                 'class_name' => $classLabel,
+                'fee' => (float) $summary['fee'],
+                'paid' => $paid,
+                'balance' => $balance,
                 'fee_text' => $this->partialReminderMoney($summary['fee']),
                 'paid_text' => $this->partialReminderMoney($paid),
+                'paid_on' => implode(', ', $paidOn),
                 'balance_text' => $this->partialReminderMoney($balance),
                 'plan_label' => (string) $summary['plan_label'],
             );
@@ -1418,7 +1429,7 @@ if ($validArr['roll']) {
 
         $out = array();
         foreach ($groups as $group) {
-            $group['message'] = $this->partialReminderMessage($group['guardian'], $group['children']);
+            $group['message'] = $this->partialReminderMessage($group['children']);
             $group['whatsapp'] = $group['phone'] === '' ? '' : $this->partialReminderWhatsapp($group['phone'], $group['message']);
             $out[] = $group;
         }
@@ -1450,35 +1461,88 @@ if ($validArr['roll']) {
         return $text !== '' ? $text : number_format((float) $amount, 2, '.', ',');
     }
 
-    protected function partialReminderMessage($guardian, $children)
+    protected function partialReminderPlain($text)
+    {
+        return str_replace(array('*', '_', '~', '`'), '', (string) $text);
+    }
+
+    protected function waBold($text)
+    {
+        $text = trim($this->partialReminderPlain($text));
+        return $text === '' ? '' : '*' . $text . '*';
+    }
+
+    protected function waItalic($text)
+    {
+        $text = trim($this->partialReminderPlain($text));
+        return $text === '' ? '' : '_' . $text . '_';
+    }
+
+    protected function waMono($text)
+    {
+        $text = trim($this->partialReminderPlain($text));
+        return $text === '' ? '' : '```' . $text . '```';
+    }
+
+    protected function partialReminderLine($label, $value)
+    {
+        return $label . "\t : " . $value;
+    }
+
+    protected function partialReminderMessage($children)
     {
         $school = 'Tahsin Academy';
         $ci = get_instance();
         if (!empty($ci->data['global_config']['institute_name'])) {
             $school = $ci->data['global_config']['institute_name'];
         }
-        $guardian = trim((string) $guardian);
+        $rule = '---------------------------------------';
+        $totalRule = '- - - - - - - - - - - - - - - - - - - -';
         $lines = array();
-        $lines[] = $guardian !== '' ? ('Assalamu alaikum ' . $guardian . '.') : 'Assalamu alaikum.';
+        $lines[] = $this->waItalic('Assalamu alaikum.');
         $lines[] = '';
-        $lines[] = 'This is ' . $school . '. School fees still have a balance:';
+        $lines[] = $this->waBold($school);
+        $lines[] = $this->waItalic('School fee reminder');
         $lines[] = '';
+        $fee = 0;
+        $paid = 0;
+        $balance = 0;
         foreach ($children as $i => $child) {
-            $label = ($i + 1) . '. ' . $child['name'];
+            $name = ($i + 1) . '. ' . $this->waBold($child['name']);
             if ($child['register_no'] !== '') {
-                $label .= ' (' . $child['register_no'] . ')';
+                $name .= ' ' . $this->waMono($child['register_no']);
             }
-            $lines[] = $label;
-            $lines[] = 'School fees: ' . $child['fee_text'];
-            $lines[] = 'Paid: ' . $child['paid_text'];
-            $lines[] = 'Remaining: ' . $child['balance_text'];
+            $paidValue = $child['paid_text'];
+            if ($child['paid_on'] !== '') {
+                $paidValue .= ' ' . $this->waItalic($child['paid_on']);
+            }
+            $lines[] = $rule;
+            $lines[] = $name;
+            $lines[] = $this->partialReminderLine('School fees', $child['fee_text']);
+            $lines[] = $this->partialReminderLine('Paid', $paidValue);
+            $lines[] = $this->partialReminderLine('Remaining', $this->waBold($child['balance_text']));
+            $fee += (float) $child['fee'];
+            $paid += (float) $child['paid'];
+            $balance += (float) $child['balance'];
+        }
+        $lines[] = $rule;
+        $lines[] = '';
+        if (count($children) > 1) {
+            $lines[] = $this->waBold('Subtotal');
+            $lines[] = $this->partialReminderLine('School fees', $this->partialReminderMoney($fee));
+            $lines[] = $this->partialReminderLine('Paid', $this->partialReminderMoney($paid));
             $lines[] = '';
         }
+        $lines[] = $totalRule;
+        $lines[] = '*_' . trim($this->partialReminderPlain('Remaining : ' . $this->partialReminderMoney($balance))) . '_*';
+        $lines[] = $totalRule;
+        $lines[] = '';
         if (count($children) > 1) {
-            $lines[] = 'Kindly complete the remaining payment for each child. Jazakumullahu khairan.';
+            $lines[] = '> Kindly complete the remaining payment for each child.';
         } else {
-            $lines[] = 'Kindly complete the remaining payment. Jazakumullahu khairan.';
+            $lines[] = '> Kindly complete the remaining payment.';
         }
+        $lines[] = $this->waItalic('Jazakumullahu khairan.');
         return implode("\n", $lines);
     }
 

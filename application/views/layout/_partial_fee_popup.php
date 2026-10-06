@@ -26,6 +26,8 @@ if ($remindOn === '' || $remindOn !== $today) {
 .fee-remind-kid-name span, .fee-remind-class { color:#78716c; font-size:12px; font-weight:500; }
 .fee-remind-amounts { display:flex; flex-wrap:wrap; gap:8px 14px; margin-top:4px; font-size:13px; }
 .fee-remind-left { color:#9a3412; font-weight:700; }
+.fee-remind-subtotal { display:flex; flex-wrap:wrap; gap:8px 14px; align-items:baseline; margin-top:4px; padding-top:8px; border-top:1px solid #e7dcc4; font-size:13px; }
+.fee-remind-subtotal strong { color:#14532d; }
 .fee-remind-wa { display:inline-flex; align-items:center; gap:8px; margin-top:8px; background:#25D366; color:#fff !important; border-radius:999px; padding:10px 16px; font-weight:700; text-decoration:none !important; min-height:44px; }
 .fee-remind-wa:hover { background:#1ebe5d; color:#fff !important; }
 .fee-remind-nophone { color:#9a3412; margin:8px 0 0; font-size:13px; }

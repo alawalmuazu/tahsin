@@ -27,12 +27,29 @@
             <?php endif; ?>
             <div class="fee-remind-amounts">
                 <span>Fees <?php echo html_escape($child['fee_text']); ?></span>
-                <span>Paid <?php echo html_escape($child['paid_text']); ?></span>
+                <span>Paid <?php echo html_escape($child['paid_text']); ?><?php if ($child['paid_on'] !== ''): ?> <?php echo html_escape($child['paid_on']); ?><?php endif; ?></span>
                 <span class="fee-remind-left">Left <?php echo html_escape($child['balance_text']); ?></span>
             </div>
         </li>
         <?php endforeach; ?>
     </ul>
+    <?php if ($childCount > 1):
+        $feeTotal = 0;
+        $paidTotal = 0;
+        $balanceTotal = 0;
+        foreach ($group['children'] as $child) {
+            $feeTotal += (float) $child['fee'];
+            $paidTotal += (float) $child['paid'];
+            $balanceTotal += (float) $child['balance'];
+        }
+    ?>
+    <div class="fee-remind-subtotal">
+        <strong>Subtotal</strong>
+        <span>Fees <?php echo html_escape(currencyFormat($feeTotal)); ?></span>
+        <span>Paid <?php echo html_escape(currencyFormat($paidTotal)); ?></span>
+        <span class="fee-remind-left">Left <?php echo html_escape(currencyFormat($balanceTotal)); ?></span>
+    </div>
+    <?php endif; ?>
     <?php if ($group['whatsapp'] !== ''): ?>
     <a class="fee-remind-wa" href="<?php echo html_escape($group['whatsapp']); ?>" target="_blank" rel="noopener">
         <i class="fab fa-whatsapp"></i> WhatsApp parent
