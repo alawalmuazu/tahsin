@@ -790,6 +790,10 @@ class Fees extends Admin_Controller
             }
             $this->db->insert('fee_payment_history', $arrayFees);
             $payment_historyID = $this->db->insert_id();
+            $enrollId = (int) $this->input->post('enroll_id');
+            if ($enrollId > 0 && $payment_historyID) {
+                $this->session->set_flashdata('fee_wa_ids', (string) $payment_historyID);
+            }
 
             $accountID = $this->input->post('account_id');
             if (empty($accountID)) {
@@ -815,6 +819,10 @@ class Fees extends Admin_Controller
             }
             set_alert('success', translate('information_has_been_saved_successfully'));
             $array = array('status' => 'success');
+            $enrollId = (int) $this->input->post('enroll_id');
+            if ($enrollId > 0) {
+                $array['url'] = base_url('fees/invoice/' . $enrollId);
+            }
         } else {
             $error = $this->form_validation->error_array();
             $array = array('status' => 'fail', 'url' => '', 'error' => $error);
@@ -1193,6 +1201,7 @@ class Fees extends Admin_Controller
             $allocations = $this->fees_model->getInvoiceDetails($invoiceID);
             $totalBalance = 0;
             $totalFine = 0;
+            $paidIds = array();
 
             foreach ($allocations as $row) {
                 $fine = $this->fees_model->feeFineCalculation($row['allocation_id'], $row['fee_type_id']);
@@ -1213,6 +1222,7 @@ class Fees extends Admin_Controller
                         'date' => $date,
                     );
                     $this->db->insert('fee_payment_history', $arrayFees);
+                    $paidIds[] = (int) $this->db->insert_id();
                 }
             }
 
@@ -1240,6 +1250,7 @@ class Fees extends Admin_Controller
                             'date' => $date,
                         );
                         $this->db->insert('fee_payment_history', $arrayFees);
+                        $paidIds[] = (int) $this->db->insert_id();
                     }
                 }
             }
@@ -1266,8 +1277,11 @@ class Fees extends Admin_Controller
                 );
                 $this->sms_model->send_sms($arrayData, 2);
             }
+            if (!empty($paidIds)) {
+                $this->session->set_flashdata('fee_wa_ids', implode(',', $paidIds));
+            }
             set_alert('success', translate('information_has_been_saved_successfully'));
-            $array = array('status' => 'success');
+            $array = array('status' => 'success', 'url' => base_url('fees/invoice/' . $invoiceID));
         } else {
             $error = $this->form_validation->error_array();
             $array = array('status' => 'fail', 'url' => '', 'error' => $error);
@@ -1394,6 +1408,7 @@ class Fees extends Admin_Controller
 
         if ($this->form_validation->run() !== false) {
             $studentID = $this->input->post('student_id');
+            $paidIds = array();
             foreach ($items as $key => $value) {
                 $amount = $value['amount'];
                 $fineAmount = $value['fine_amount'];
@@ -1418,6 +1433,7 @@ class Fees extends Admin_Controller
                     $arrayFees['transport_fee_details_id'] = $value['trans_fd_id'];
                 }
                 $this->db->insert('fee_payment_history', $arrayFees);
+                $paidIds[] = (int) $this->db->insert_id();
 
                 $accountID = !empty($value['account_id']) ? $value['account_id'] : $this->app_lib->getCollectionDepositAccountId();
                 if (!empty($accountID)) {
@@ -1436,8 +1452,11 @@ class Fees extends Admin_Controller
                 );
                 $this->sms_model->send_sms($arrayData, 2);
             }
+            if (!empty($paidIds)) {
+                $this->session->set_flashdata('fee_wa_ids', implode(',', $paidIds));
+            }
             set_alert('success', translate('information_has_been_saved_successfully'));
-            $array = array('status' => 'success');
+            $array = array('status' => 'success', 'url' => base_url('fees/invoice/' . $studentID));
         } else {
             $error = $this->form_validation->error_array();
             $array = array('status' => 'fail', 'error' => $error);
@@ -1511,5 +1530,416 @@ class Fees extends Admin_Controller
             $this->data['record_array'] = $record_array;
             $this->load->view('fees/selectedFeesCollect', $this->data);
         }
+    }
+
+    /**
+     * Build a fee receipt as PDF or image and return it for WhatsApp.
+     * deliver=whatsapp sends the file from the school number with the receipt caption.
+     */
+    public function receipt_share()
+    {
+        if (!get_permission('invoice', 'is_view')) {
+            ajax_access_denied();
+        }
+        $enrollId = (int) $this->input->post('enroll_id');
+        $format = $this->input->post('format') === 'image' ? 'image' : 'pdf';
+        $deliver = $this->input->post('deliver') === 'whatsapp';
+        $onlyIds = $this->receiptIdList($this->input->post('payment_ids'));
+        $basic = $this->fees_model->getInvoiceBasic($enrollId);
+        if (empty($basic)) {
+            $this->receiptJson(array('ok' => false, 'error' => 'This invoice could not be opened.'));
+            return;
+        }
+        $rows = $this->receiptPaymentRows($enrollId, $onlyIds);
+        if (empty($rows)) {
+            $this->receiptJson(array('ok' => false, 'error' => 'This invoice has no payment to send.'));
+            return;
+        }
+        $pack = $this->receiptPack($basic, $rows);
+        try {
+            if ($format === 'image') {
+                $binary = $this->receiptImage($pack);
+                $mime = 'image/png';
+                $ext = 'png';
+            } else {
+                $binary = $this->receiptPdf($pack);
+                $mime = 'application/pdf';
+                $ext = 'pdf';
+            }
+        } catch (Throwable $e) {
+            $this->receiptJson(array('ok' => false, 'error' => 'The receipt could not be prepared.'));
+            return;
+        }
+        if ($binary === '' || $binary === null) {
+            $this->receiptJson(array('ok' => false, 'error' => $format === 'image' ? 'Image receipts need the GD extension.' : 'The receipt could not be prepared.'));
+            return;
+        }
+        $reg = preg_replace('/[^A-Za-z0-9\-]/', '', $pack['register']);
+        if ($reg === '') {
+            $reg = 'student';
+        }
+        $filename = 'fee-receipt-' . $reg . '.' . $ext;
+        $sent = false;
+        $sendError = '';
+        if ($deliver) {
+            if ($pack['phone'] === '') {
+                $sendError = 'Add a parent phone number before sending from the school WhatsApp.';
+            } else {
+                $sentResult = $this->receiptSendCloud($pack['phone'], $format, $filename, $binary, $pack['message']);
+                $sent = !empty($sentResult['ok']);
+                $sendError = $sent ? '' : (isset($sentResult['error']) ? $sentResult['error'] : 'WhatsApp could not send the receipt.');
+            }
+        }
+        $link = '';
+        if ($pack['phone'] !== '') {
+            $link = 'https://api.whatsapp.com/send?phone=' . rawurlencode($pack['phone']) . '&text=' . rawurlencode($pack['message']);
+        }
+        $this->receiptJson(array(
+            'ok' => true,
+            'sent' => $sent,
+            'error' => $sendError,
+            'phone' => $pack['phone'],
+            'message' => $pack['message'],
+            'whatsapp' => $link,
+            'filename' => $filename,
+            'mime' => $mime,
+            'file' => base64_encode($binary),
+        ));
+    }
+
+    private function receiptJson($payload)
+    {
+        $this->output->set_content_type('application/json')->set_output(json_encode($payload));
+    }
+
+    private function receiptIdList($raw)
+    {
+        if (is_array($raw)) {
+            $parts = $raw;
+        } elseif (is_string($raw) && trim($raw) !== '') {
+            $parts = explode(',', $raw);
+        } else {
+            $parts = array();
+        }
+        $ids = array();
+        foreach ($parts as $part) {
+            $id = (int) $part;
+            if ($id > 0) {
+                $ids[$id] = $id;
+            }
+        }
+        return array_values($ids);
+    }
+
+    private function receiptPaymentRows($enrollId, $onlyIds)
+    {
+        $enrollId = (int) $enrollId;
+        $rows = array();
+        $this->db->select('h.id, h.amount, h.discount, h.fine, h.date, t.name as fee_name, pt.name as payvia');
+        $this->db->from('fee_payment_history h');
+        $this->db->join('fee_allocation a', 'a.id = h.allocation_id', 'inner');
+        $this->db->join('fees_type t', 't.id = h.type_id', 'left');
+        $this->db->join('payment_types pt', 'pt.id = h.pay_via', 'left');
+        $this->db->where('a.student_id', $enrollId);
+        $this->db->where('a.session_id', get_session_id());
+        if (!empty($onlyIds)) {
+            $this->db->where_in('h.id', $onlyIds);
+        }
+        $this->db->order_by('h.date', 'asc');
+        $this->db->order_by('h.id', 'asc');
+        foreach ($this->db->get()->result_array() as $row) {
+            if ($row['fee_name'] === '' || $row['fee_name'] === null) {
+                $row['fee_name'] = 'Fee';
+            }
+            $rows[(int) $row['id']] = $row;
+        }
+        if (moduleIsEnabled('transport')) {
+            $this->db->select('h.id, h.amount, h.discount, h.fine, h.date, pt.name as payvia, ff.month');
+            $this->db->from('fee_payment_history h');
+            $this->db->join('transport_fee_details td', 'td.id = h.transport_fee_details_id', 'inner');
+            $this->db->join('transport_fee_fine ff', 'ff.id = td.transport_fee_fine_id', 'left');
+            $this->db->join('payment_types pt', 'pt.id = h.pay_via', 'left');
+            $this->db->where('td.enroll_id', $enrollId);
+            if (!empty($onlyIds)) {
+                $this->db->where_in('h.id', $onlyIds);
+            }
+            $this->db->order_by('h.date', 'asc');
+            $this->db->order_by('h.id', 'asc');
+            foreach ($this->db->get()->result_array() as $row) {
+                $id = (int) $row['id'];
+                if (isset($rows[$id])) {
+                    continue;
+                }
+                $month = '';
+                if (!empty($row['month'])) {
+                    $month = $this->app_lib->getMonthslist($row['month']);
+                }
+                $row['fee_name'] = trim(translate('transport_fees') . ($month !== '' ? ' ' . $month : ''));
+                $rows[$id] = $row;
+            }
+        }
+        return array_values($rows);
+    }
+
+    private function receiptMoney($amount)
+    {
+        $text = trim(html_entity_decode(strip_tags(currencyFormat($amount)), ENT_QUOTES, 'UTF-8'));
+        return $text !== '' ? $text : number_format((float) $amount, 2, '.', ',');
+    }
+
+    private function receiptPack($basic, $rows)
+    {
+        $nameBits = array(isset($basic['first_name']) ? $basic['first_name'] : '');
+        if (!empty($basic['other_name'])) {
+            $nameBits[] = $basic['other_name'];
+        }
+        $nameBits[] = isset($basic['last_name']) ? $basic['last_name'] : '';
+        $student = trim(preg_replace('/\s+/', ' ', implode(' ', $nameBits)));
+        if (!empty($basic['class_name']) && !empty($basic['section_name'])) {
+            $classLine = $basic['class_name'] . ' (' . $basic['section_name'] . ')';
+        } elseif (!empty($basic['class_name'])) {
+            $classLine = $basic['class_name'];
+        } else {
+            $classLine = isset($basic['section_name']) ? $basic['section_name'] : '';
+        }
+        $guardian = isset($basic['guardian_name']) ? trim($basic['guardian_name']) : '';
+        if (!empty($basic['guardian_mobile'])) {
+            $guardian = trim($guardian . ($guardian !== '' ? ' · ' : '') . $basic['guardian_mobile']);
+        }
+        $school = !empty($basic['school_name']) ? $basic['school_name'] : 'Tahsin Academy';
+        if (!empty($this->data['global_config']['institute_name'])) {
+            $school = $this->data['global_config']['institute_name'];
+        }
+        $contactBits = array();
+        foreach (array('school_address', 'school_mobileno', 'school_email') as $key) {
+            if (!empty($basic[$key])) {
+                $contactBits[] = $basic[$key];
+            }
+        }
+        $enrollId = (int) $basic['enroll_id'];
+        $feeTotal = 0;
+        $balance = 0;
+        foreach ($this->fees_model->getInvoiceDetails($enrollId) as $row) {
+            $deposit = $this->fees_model->getStudentFeeDeposit($row['allocation_id'], $row['fee_type_id']);
+            $feeTotal += (float) $row['amount'];
+            $balance += (float) $row['amount'] - ((float) $deposit['total_amount'] + (float) $deposit['total_discount']);
+        }
+        if (moduleIsEnabled('transport') && !empty($basic['stoppage_point_id'])) {
+            $transport = $this->fees_model->getStudentTransportFees($enrollId, $basic['stoppage_point_id']);
+            foreach ($transport as $value) {
+                $feeTotal += (float) $value->route_fare;
+                $owed = $this->fees_model->getTransportBalance($value->id);
+                $balance += (float) $owed['balance'];
+            }
+        }
+        $paid = 0;
+        $dates = array();
+        $lines = array();
+        $displayRows = array();
+        foreach ($rows as $row) {
+            $amount = (float) $row['amount'];
+            $paid += $amount;
+            $dateText = !empty($row['date']) ? _d($row['date']) : '';
+            if ($dateText !== '') {
+                $dates[$dateText] = $dateText;
+            }
+            $paidText = $this->receiptMoney($amount);
+            $displayRows[] = array(
+                'name' => $row['fee_name'],
+                'date' => $dateText,
+                'method' => isset($row['payvia']) ? $row['payvia'] : '',
+                'paid_text' => $paidText,
+            );
+            $lines[] = array('label' => $row['fee_name'], 'amount' => $paidText);
+        }
+        $paidText = $this->receiptMoney($paid);
+        $balanceText = $this->receiptMoney($balance);
+        $feeText = $this->receiptMoney($feeTotal);
+        $paidOn = implode(', ', $dates);
+        $this->load->model('student_model');
+        $message = $this->student_model->feeReceiptMessage(
+            $student,
+            isset($basic['register_no']) ? $basic['register_no'] : '',
+            $feeText,
+            $paidText,
+            $paidOn,
+            $balanceText,
+            count($lines) > 1 ? $lines : array()
+        );
+        if (function_exists('mb_strlen') && mb_strlen($message) > 1024) {
+            $message = rtrim(mb_substr($message, 0, 1020)) . '...';
+        }
+        $extra = '';
+        if ($this->db->field_exists('extra_phones', 'parent')) {
+            $parent = $this->db->select('p.extra_phones')
+                ->from('enroll e')
+                ->join('student s', 's.id = e.student_id', 'inner')
+                ->join('parent p', 'p.id = s.parent_id', 'left')
+                ->where('e.id', $enrollId)
+                ->get()->row();
+            if ($parent && !empty($parent->extra_phones)) {
+                $extra = $parent->extra_phones;
+            }
+        }
+        $this->load->model('academy_model');
+        $phones = $this->academy_model->parentPhoneList(
+            isset($basic['guardian_mobile']) ? $basic['guardian_mobile'] : '',
+            $extra,
+            isset($basic['mobileno']) ? $basic['mobileno'] : ''
+        );
+        $status = $this->fees_model->getInvoiceStatus($enrollId);
+        return array(
+            'school' => $school,
+            'motto' => defined('SCHOOL_MOTTO') ? SCHOOL_MOTTO : '',
+            'contact' => implode(' · ', $contactBits),
+            'student' => $student,
+            'register' => isset($basic['register_no']) ? $basic['register_no'] : '',
+            'class_line' => $classLine,
+            'guardian' => $guardian,
+            'invoice_no' => isset($status['invoice_no']) ? $status['invoice_no'] : '',
+            'issued' => _d(date('Y-m-d')),
+            'rows' => $displayRows,
+            'fee_text' => $feeText,
+            'paid_text' => $paidText,
+            'balance' => $balance,
+            'balance_text' => $balanceText,
+            'message' => $message,
+            'phone' => !empty($phones) ? (string) $phones[0] : '',
+        );
+    }
+
+    private function receiptPdf($pack)
+    {
+        $html = $this->load->view('fees/_fee_receipt_doc', array('pack' => $pack), true);
+        $this->load->library('html2pdf');
+        $this->html2pdf->mpdf->SetTitle('Fee receipt');
+        $this->html2pdf->mpdf->WriteHTML($html);
+        return $this->html2pdf->mpdf->Output('', 'S');
+    }
+
+    private function receiptSendCloud($phone, $format, $filename, $binary, $message)
+    {
+        $dir = FCPATH . 'uploads/temp/fee_receipts';
+        if (!is_dir($dir)) {
+            @mkdir($dir, 0777, true);
+        }
+        if (is_dir($dir)) {
+            $oldFiles = glob($dir . DIRECTORY_SEPARATOR . '*');
+            if (is_array($oldFiles)) {
+                foreach ($oldFiles as $old) {
+                    if (is_file($old) && filemtime($old) < time() - 86400) {
+                        @unlink($old);
+                    }
+                }
+            }
+        }
+        $path = $dir . DIRECTORY_SEPARATOR . $filename;
+        if (is_file($path)) {
+            $path = $dir . DIRECTORY_SEPARATOR . pathinfo($filename, PATHINFO_FILENAME) . '-' . bin2hex(random_bytes(3)) . '.' . pathinfo($filename, PATHINFO_EXTENSION);
+        }
+        file_put_contents($path, $binary);
+        $this->load->library('whatsapp_cloud');
+        $type = $format === 'image' ? 'image' : 'document';
+        $url = base_url('uploads/temp/fee_receipts/' . basename($path));
+        $result = $this->whatsapp_cloud->sendMediaByUrl($phone, $type, $url, $message);
+        @unlink($path);
+        return $result;
+    }
+
+    private function receiptAscii($text)
+    {
+        $text = html_entity_decode(strip_tags((string) $text), ENT_QUOTES, 'UTF-8');
+        $text = str_replace(array('₦', '—', '–', '·'), array('NGN ', '-', '-', ' - '), $text);
+        $text = preg_replace('/[^\x20-\x7E]/', '', $text);
+        return trim($text);
+    }
+
+    private function receiptImage($pack)
+    {
+        if (!function_exists('imagecreatetruecolor') || !function_exists('imagepng')) {
+            return null;
+        }
+        $rows = $pack['rows'];
+        $w = 760;
+        $h = 620 + (count($rows) * 28);
+        $im = imagecreatetruecolor($w, $h);
+        $white = imagecolorallocate($im, 255, 255, 255);
+        $green = imagecolorallocate($im, 15, 92, 76);
+        $gold = imagecolorallocate($im, 201, 162, 39);
+        $cream = imagecolorallocate($im, 248, 241, 216);
+        $ink = imagecolorallocate($im, 26, 26, 26);
+        $muted = imagecolorallocate($im, 90, 90, 90);
+        $line = imagecolorallocate($im, 213, 221, 217);
+        $due = imagecolorallocate($im, 169, 68, 66);
+        imagefilledrectangle($im, 0, 0, $w, $h, $white);
+        imagefilledrectangle($im, 0, 0, $w, 10, $green);
+        $logo = FCPATH . 'uploads/app_image/printing-logo.png';
+        if (is_file($logo)) {
+            $src = @imagecreatefrompng($logo);
+            if ($src) {
+                imagecopyresampled($im, $src, 28, 24, 0, 0, 64, 64, imagesx($src), imagesy($src));
+                imagedestroy($src);
+            }
+        }
+        imagestring($im, 5, 108, 28, $this->receiptAscii($pack['school']), $green);
+        imagestring($im, 3, 108, 52, $this->receiptAscii($pack['motto']), $gold);
+        imagestring($im, 2, 108, 74, substr($this->receiptAscii($pack['contact']), 0, 78), $muted);
+        imagefilledrectangle($im, 28, 104, $w - 28, 108, $green);
+        imagestring($im, 5, 28, 122, 'FEE RECEIPT', $green);
+        imagestring($im, 3, 28, 146, $this->receiptAscii('Invoice No #' . $pack['invoice_no'] . '   Issued ' . $pack['issued']), $muted);
+        $y = 176;
+        imagefilledrectangle($im, 28, $y, $w - 28, $y + 22, $green);
+        imagestring($im, 3, 36, $y + 4, 'STUDENT PARTICULARS', $white);
+        $y += 30;
+        $facts = array(
+            'Full Name' => $pack['student'],
+            'Register No' => $pack['register'],
+            'Class / Section' => $pack['class_line'],
+            'Guardian' => $pack['guardian'],
+        );
+        foreach ($facts as $label => $value) {
+            imagestring($im, 3, 36, $y, $label, $green);
+            imagestring($im, 3, 190, $y, substr($this->receiptAscii($value), 0, 62), $ink);
+            $y += 20;
+        }
+        $y += 8;
+        imagefilledrectangle($im, 28, $y, $w - 28, $y + 22, $green);
+        imagestring($im, 3, 36, $y + 4, 'PAYMENT', $white);
+        $y += 22;
+        imagefilledrectangle($im, 28, $y, $w - 28, $y + 22, $cream);
+        imagestring($im, 3, 36, $y + 4, 'Fee', $ink);
+        imagestring($im, 3, 280, $y + 4, 'Date', $ink);
+        imagestring($im, 3, 430, $y + 4, 'Method', $ink);
+        imagestring($im, 3, 580, $y + 4, 'Paid', $ink);
+        $y += 22;
+        foreach ($rows as $row) {
+            imagerectangle($im, 28, $y, $w - 28, $y + 26, $line);
+            imagestring($im, 3, 36, $y + 6, substr($this->receiptAscii($row['name']), 0, 28), $ink);
+            imagestring($im, 3, 280, $y + 6, substr($this->receiptAscii($row['date']), 0, 16), $ink);
+            imagestring($im, 3, 430, $y + 6, substr($this->receiptAscii($row['method']), 0, 16), $ink);
+            imagestring($im, 3, 580, $y + 6, substr($this->receiptAscii($row['paid_text']), 0, 18), $green);
+            $y += 26;
+        }
+        $y += 10;
+        $totals = array(
+            array('School fees', $pack['fee_text'], $ink),
+            array('Paid on this receipt', $pack['paid_text'], $green),
+            array('Remaining', $pack['balance_text'], $pack['balance'] > 0 ? $due : $green),
+        );
+        foreach ($totals as $total) {
+            imagestring($im, 4, 36, $y, $total[0], $ink);
+            imagestring($im, 4, 280, $y, $this->receiptAscii($total[1]), $total[2]);
+            $y += 22;
+        }
+        $y += 16;
+        imagefilledrectangle($im, 28, $y, $w - 28, $y + 36, $cream);
+        imagestring($im, 5, 36, $y + 10, substr('PAID  ' . $this->receiptAscii($pack['paid_text']), 0, 42), $green);
+        $y += 52;
+        imagestring($im, 2, 28, $y, substr($this->receiptAscii('Issued by ' . $pack['school'] . '. Keep this receipt.'), 0, 90), $muted);
+        ob_start();
+        imagepng($im);
+        $binary = ob_get_clean();
+        imagedestroy($im);
+        return $binary;
     }
 }

@@ -1550,4 +1550,52 @@ if ($validArr['roll']) {
     {
         return 'https://api.whatsapp.com/send?phone=' . rawurlencode($phone) . '&text=' . rawurlencode($message);
     }
+
+    /**
+     * Receipt caption in the same WhatsApp layout as the fee reminder.
+     * $lines are optional fee rows: label, amount text.
+     */
+    public function feeReceiptMessage($studentName, $registerNo, $feeText, $paidText, $paidOn, $balanceText, $lines = array())
+    {
+        $school = 'Tahsin Academy';
+        $ci = get_instance();
+        if (!empty($ci->data['global_config']['institute_name'])) {
+            $school = $ci->data['global_config']['institute_name'];
+        }
+        $rule = '---------------------------------------';
+        $totalRule = '- - - - - - - - - - - - - - - - - - - -';
+        $name = '1. ' . $this->waBold($studentName);
+        if ($registerNo !== '') {
+            $name .= ' ' . $this->waMono($registerNo);
+        }
+        $paidValue = $paidText;
+        if ($paidOn !== '') {
+            $paidValue .= ' ' . $this->waItalic($paidOn);
+        }
+        $out = array();
+        $out[] = $this->waItalic('Assalamu alaikum.');
+        $out[] = '';
+        $out[] = $this->waBold($school);
+        $out[] = $this->waItalic('School fee receipt');
+        $out[] = '';
+        $out[] = $rule;
+        $out[] = $name;
+        $out[] = $this->partialReminderLine('School fees', $feeText);
+        foreach ($lines as $line) {
+            $label = isset($line['label']) ? $line['label'] : 'Fee';
+            $amount = isset($line['amount']) ? $line['amount'] : '';
+            $out[] = $this->partialReminderLine($label, $amount);
+        }
+        $out[] = $this->partialReminderLine('Paid', $paidValue);
+        $out[] = $this->partialReminderLine('Remaining', $this->waBold($balanceText));
+        $out[] = $rule;
+        $out[] = '';
+        $out[] = $totalRule;
+        $out[] = '*_' . trim($this->partialReminderPlain('Paid : ' . $paidText)) . '_*';
+        $out[] = $totalRule;
+        $out[] = '';
+        $out[] = '> The receipt is attached.';
+        $out[] = $this->waItalic('Jazakumullahu khairan.');
+        return implode("\n", $out);
+    }
 }

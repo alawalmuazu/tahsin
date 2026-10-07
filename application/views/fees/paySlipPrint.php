@@ -1,128 +1,91 @@
 <style type="text/css">
-@media print {
-	.invoice-summary ul.amounts li {
-		padding: 1px !important;
-		border-bottom: #444444 1px solid;
-	}
-	.invoice table.table > tbody tr > td, 
-	.invoice table.table > thead tr > th {
-	    border-color: #444444 !important;
-	    border-width: 1px !important;
-	}
-}
+.slip-copy { border:1px solid #d5ddd9; padding:8px; color:#1a1a1a; background:#fff; }
+.slip-copy h4 { margin:0 0 6px; text-align:center; font-size:12px; letter-spacing:1px; text-transform:uppercase; color:#0f5c4c; }
+.slip-copy .school { text-align:center; color:#0f5c4c; font-weight:bold; font-size:13px; margin:0; }
+.slip-copy .meta { font-size:10px; color:#555; text-align:center; margin:2px 0 8px; }
+.slip-copy table { width:100%; border-collapse:collapse; font-size:11px; margin:0 0 6px; }
+.slip-copy table th, .slip-copy table td { border:1px solid #d5ddd9; padding:4px 6px; }
+.slip-copy table.who th { width:38%; text-align:left; background:#f4f7f6; color:#0f5c4c; }
+.slip-copy table.lines thead th { background:#f8f1d8; color:#5a4708; }
+.slip-copy .total { background:#0f5c4c; color:#fff; font-weight:bold; }
+.slip-copy .when { font-size:9px; color:#666; text-align:center; margin:6px 0 0; }
 </style>
 <?php
-$record_array    = json_decode($record);
-$currency_symbol = $global_config['currency_symbol'];
-$basic           = $this->fees_model->getInvoiceBasic($studentID);
+$record_array = json_decode($record);
+$basic = $this->fees_model->getInvoiceBasic($studentID);
+if (!empty($basic['class_name']) && !empty($basic['section_name'])) {
+	$classLine = $basic['class_name'] . ' (' . $basic['section_name'] . ')';
+} elseif (!empty($basic['class_name'])) {
+	$classLine = $basic['class_name'];
+} else {
+	$classLine = $basic['section_name'];
+}
+$this->db->where_in('id', array_column($record_array, 'payment_id'));
+$paymentHistory = $this->db->get('fee_payment_history')->result();
+$copies = array('Student Copy', 'Bank Copy', 'Office Copy');
 ?>
 <div class="row">
-<?php for ($i = 0; $i < 3; $i++) { ?>
+<?php foreach ($copies as $copyName) { ?>
 	<div class="col-xs-4">
-		<div class="invoice">
-			<?php
-			if ($i == 0) {
-				echo "<h4 class='text-center mb-none'>Student Copy</h4>";
-			} elseif ($i == 1) {
-				echo "<h4 class='text-center mb-none'>Bank Copy</h4>";
-			} elseif ($i == 2) {
-				echo "<h4 class='text-center mb-none'>Office Copy</h4>";
-			}
-			?>
-			
-			<div class="bill-info">
-				<div class="row">
-					<div class="col-xs-12">
-						<div class="bill-data">
-							<address style="text-align: center;">
-								<?php
-								echo '<strong>' . $basic['school_name'] . '</strong><br/>';
-								echo $basic['school_address'] . '<br/>';
-								echo $basic['school_mobileno'] . '<br/>';
-								echo $basic['school_email'] . '<br/>';
-								?>
-							</address>
-							<div class="row">
-								<div class="invoice-summary text-left mt-xs">
-									<ul class="amounts">
-										<li><?php echo '<strong>' . translate('date') . ' :</strong> ' . _d(date('Y-m-d')); ?></li>
-										<li><?php echo '<strong>' . translate('student_name') . ' :</strong> ' . $basic['first_name'] . ' ' . $basic['last_name'] ?></li>
-										<li><?php echo '<strong>' . translate('register_no') . ' :</strong> ' . $basic['register_no'] ?></li>
-										<li><?php echo '<strong>' . translate('class') . ' :</strong> ' . $basic['class_name'] . ' (' . $basic['section_name'] . ')'; ?></li>
-										<li><?php echo '<strong>' . translate('father_name') . ' :</strong> ' . $basic['father_name'] ?></li>
-									</ul>
-								</div>
-							</div>
-						</div>
-					</div>
-				</div>
-			</div>
-			<div class="table-responsive br-none">
-				<table class="table invoice-items table-hover mb-none">
-					<thead>
-						<tr class="text-dark">
-							<th id="cell-id" class="text-weight-semibold">#</th>
-							<th id="cell-item" class="text-weight-semibold"><?= translate('fees_type') ?></th>
-							<th id="cell-price" class="text-weight-semibold"><?= translate('amount') ?></th>
-						</tr>
-					</thead>
-					<tbody>
-						<?php
-						$count          = 1;
-						$total_fine     = 0;
-						$total_discount = 0;
-						$total_paid     = 0;
-						$total_balance  = 0;
-						$total_amount   = 0;
-						$this->db->select('*');
-						$this->db->where_in('id', array_column($record_array, 'payment_id'));
-						$this->db->from('fee_payment_history');
-						$paymentHistory = $this->db->get()->result();
-						foreach ($paymentHistory as $key => $row) {
-							$paid            = $row->amount;
-							$discount        = $row->discount;
-							$fine            = $row->fine;
-							$total_paid     += $paid;
-							$total_discount += $discount;
-							$total_fine     += $fine;
-							?>
-						<tr>
-							<td><?php echo $count++; ?></td>
-							<td class="text-weight-semibold text-dark"><?php
-							if (empty($row->transport_fee_details_id)) {
-								echo get_type_name_by_id('fees_type', $row->type_id);
-							} else {
-								$month = get_type_name_by_id('transport_fee_details', $row->transport_fee_details_id, 'month');
-								$month = $this->app_lib->getMonthslist($month);
-								echo translate('transport_fees') . " - $month";
-							}
-							?></td>
-							<td><?php echo currencyFormat($paid); ?></td>
-						</tr>
-						<?php } ?>
-					</tbody>
-				</table>
-			</div>
-			<div class="invoice-summary text-right mt-lg">
-				<div class="row">
-					<div class="col-lg-8">
-						<ul class="amounts">
-							<li><strong><?= translate('sub_total') ?> :</strong> <?= currencyFormat($total_paid + $total_discount); ?></li>
-							<li><strong><?= translate('discount') ?> :</strong> <?= currencyFormat($total_discount); ?></li>
-							<li><strong><?= translate('paid') ?> :</strong> <?= currencyFormat($total_paid); ?></li>
-							<li><strong><?= translate('fine') ?> :</strong> <?= currencyFormat($total_fine); ?></li>
-							<li>
-								<strong><?= translate('total_paid') ?> (<?= translate('with_fine') ?>) : </strong> 
-								<?php
-								$grand_paid = currencyFormat($total_paid + $total_fine);
-								echo $grand_paid;
-								?>
-							</li>
-						</ul>
-					</div>
-				</div>
-			</div>
-			<div class="text-center mt-md">Generated at <?php echo _d(date('Y-m-d')) . ', ' . date('h:i A'); ?></div>
+		<div class="slip-copy">
+			<h4><?php echo $copyName; ?></h4>
+			<p class="school"><?php echo html_escape($basic['school_name']); ?></p>
+			<p class="meta">
+				<?php echo html_escape($basic['school_address']); ?><br>
+				<?php echo html_escape($basic['school_mobileno']); ?> · <?php echo html_escape($basic['school_email']); ?>
+			</p>
+			<table class="who">
+				<tr><th><?php echo translate('date'); ?></th><td><?php echo html_escape(_d(date('Y-m-d'))); ?></td></tr>
+				<tr><th><?php echo translate('student_name'); ?></th><td><?php echo html_escape(trim($basic['first_name'] . ' ' . $basic['last_name'])); ?></td></tr>
+				<tr><th><?php echo translate('register_no'); ?></th><td><?php echo html_escape($basic['register_no']); ?></td></tr>
+				<tr><th><?php echo translate('class'); ?></th><td><?php echo html_escape($classLine); ?></td></tr>
+				<tr><th><?php echo translate('father_name'); ?></th><td><?php echo html_escape($basic['father_name']); ?></td></tr>
+			</table>
+			<table class="lines">
+				<thead>
+					<tr>
+						<th>#</th>
+						<th><?php echo translate('fees_type'); ?></th>
+						<th><?php echo translate('amount'); ?></th>
+					</tr>
+				</thead>
+				<tbody>
+				<?php
+				$count = 1;
+				$total_fine = 0;
+				$total_discount = 0;
+				$total_paid = 0;
+				foreach ($paymentHistory as $row) {
+					$paid = $row->amount;
+					$discount = $row->discount;
+					$fine = $row->fine;
+					$total_paid += $paid;
+					$total_discount += $discount;
+					$total_fine += $fine;
+					if (empty($row->transport_fee_details_id)) {
+						$feeName = get_type_name_by_id('fees_type', $row->type_id);
+					} else {
+						$month = get_type_name_by_id('transport_fee_details', $row->transport_fee_details_id, 'month');
+						$month = $this->app_lib->getMonthslist($month);
+						$feeName = translate('transport_fees') . ' - ' . $month;
+					}
+				?>
+					<tr>
+						<td><?php echo $count++; ?></td>
+						<td><?php echo html_escape($feeName); ?></td>
+						<td><?php echo currencyFormat($paid); ?></td>
+					</tr>
+				<?php } ?>
+				</tbody>
+			</table>
+			<table class="lines">
+				<tr><th><?php echo translate('sub_total'); ?></th><td><?php echo currencyFormat($total_paid + $total_discount); ?></td></tr>
+				<tr><th><?php echo translate('discount'); ?></th><td><?php echo currencyFormat($total_discount); ?></td></tr>
+				<tr><th><?php echo translate('paid'); ?></th><td><?php echo currencyFormat($total_paid); ?></td></tr>
+				<tr><th><?php echo translate('fine'); ?></th><td><?php echo currencyFormat($total_fine); ?></td></tr>
+				<tr class="total"><th><?php echo translate('total_paid'); ?> (<?php echo translate('with_fine'); ?>)</th><td><?php echo currencyFormat($total_paid + $total_fine); ?></td></tr>
+			</table>
+			<p class="when">Generated at <?php echo html_escape(_d(date('Y-m-d')) . ', ' . date('h:i A')); ?></p>
 		</div>
 	</div>
 <?php } ?>

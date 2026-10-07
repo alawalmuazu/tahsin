@@ -1,44 +1,42 @@
 <?php
-$currency_symbol = $global_config['currency_symbol'];
 $extINTL = extension_loaded('intl');
+$spellout = null;
 if ($extINTL == true) {
 	$spellout = new NumberFormatter("en", NumberFormatter::SPELLOUT);
 }
+$words = function ($amount) use ($extINTL, $spellout) {
+	$plain = number_format($amount, 2, '.', '');
+	if ($extINTL == true) {
+		return ' (' . html_escape(ucwords($spellout->format($plain))) . ')';
+	}
+	return '';
+};
 ?>
-<div class="row">
-	<div class="col-lg-5 pull-right">
-		<ul class="amounts">
-			<li><strong><?=translate('grand_total')?> :</strong> <?=currencyFormat($total_amount); ?></li>
-			<li><strong><?=translate('discount')?> :</strong> <?=currencyFormat($total_discount); ?></li>
-			<li><strong><?=translate('paid')?> :</strong> <?=currencyFormat($total_paid); ?></li>
-			<li><strong><?=translate('fine')?> :</strong> <?=currencyFormat($total_fine); ?></li>
-			<?php if ($total_balance != 0): ?>
-			<li><strong><?=translate('total_paid')?> (<?=translate('with_fine')?>) :</strong> <?=currencyFormat($total_paid + $total_fine); ?></li>
-			<li>
-				<strong><?=translate('balance')?> : </strong> 
-				<?php
-				$numberSPELL = "";
-				$total_balance = number_format($total_balance, 2, '.', '');
-				if ($extINTL == true) {
-					$numberSPELL = ' </br>( ' . ucwords($spellout->format($total_balance)) . ' )';
-				}
-				echo currencyFormat($total_balance) . $numberSPELL;
-				?>
-			</li>
-			<?php else:
-				$paidWithFine = number_format(($total_paid + $total_fine), 2, '.', '');
-				?>
-			<li>
-				<strong><?=translate('total_paid')?> (with fine) : </strong> 
-				<?php
-				$numberSPELL = "";
-				if ($extINTL == true) {
-					$numberSPELL = ' </br>( ' . ucwords($spellout->format($paidWithFine)) . ' )';
-				}
-				echo currencyFormat(($total_paid + $total_fine)) . $numberSPELL;
-				?>
-			</li>
-			<?php endif; ?>
-		</ul>
-	</div>
-</div>
+<div class="section-h">Selected Fees</div>
+<table class="pay-box">
+	<tr>
+		<th><?=translate('grand_total')?></th>
+		<td><?=currencyFormat($total_amount)?></td>
+		<th><?=translate('discount')?></th>
+		<td><?=currencyFormat($total_discount)?></td>
+	</tr>
+	<tr>
+		<th><?=translate('paid')?></th>
+		<td><?=currencyFormat($total_paid)?></td>
+		<th><?=translate('fine')?></th>
+		<td><?=currencyFormat($total_fine)?></td>
+	</tr>
+	<?php if ($total_balance != 0): ?>
+	<tr>
+		<th><?=translate('total_paid')?> (<?=translate('with_fine')?>)</th>
+		<td><?=currencyFormat($total_paid + $total_fine)?></td>
+		<th><?=translate('balance')?></th>
+		<td class="slip-due"><?=currencyFormat($total_balance) . $words($total_balance)?></td>
+	</tr>
+	<?php else: ?>
+	<tr>
+		<th><?=translate('total_paid')?> (<?=translate('with_fine')?>)</th>
+		<td colspan="3" class="slip-ok"><?=currencyFormat($total_paid + $total_fine) . $words($total_paid + $total_fine)?></td>
+	</tr>
+	<?php endif; ?>
+</table>
