@@ -998,6 +998,61 @@ function nigeria_lgas()
     return $lgas;
 }
 
+function student_app_token($studentId)
+{
+    $id = (int) $studentId;
+    $key = defined('TAHSIN_STUDENT_APP_KEY') ? TAHSIN_STUDENT_APP_KEY : 'tahsin-student-app';
+    $sig = substr(hash_hmac('sha256', 'student-app:' . $id, $key), 0, 20);
+    return $id . '-' . $sig;
+}
+
+function student_app_student_id($token)
+{
+    $token = (string) $token;
+    if (!preg_match('/^(\d+)-([a-f0-9]{20})$/', $token, $m)) {
+        return 0;
+    }
+    $key = defined('TAHSIN_STUDENT_APP_KEY') ? TAHSIN_STUDENT_APP_KEY : 'tahsin-student-app';
+    $expect = substr(hash_hmac('sha256', 'student-app:' . $m[1], $key), 0, 20);
+    if (!hash_equals($expect, $m[2])) {
+        return 0;
+    }
+    return (int) $m[1];
+}
+
+function student_app_root()
+{
+    $CI = get_instance();
+    $root = $CI->config->item('root_url');
+    if (!$root) {
+        $root = $CI->config->slash_item('base_url');
+    }
+    return rtrim($root, '/') . '/';
+}
+
+function student_app_url($studentId, $path = 'install')
+{
+    return student_app_root() . 's/' . student_app_token($studentId) . '/' . ltrim((string) $path, '/');
+}
+
+function student_app_label($token = '')
+{
+    if ($token === '' && defined('TAHSIN_DESK')) {
+        $token = TAHSIN_DESK;
+    }
+    $id = student_app_student_id($token);
+    if ($id < 1) {
+        return '';
+    }
+    $CI = get_instance();
+    $row = $CI->db->select('first_name, last_name')->where('id', $id)->get('student')->row();
+    if (!$row) {
+        return '';
+    }
+    $name = trim($row->first_name . ' ' . $row->last_name);
+    return $name !== '' ? $name : 'Student';
+}
+
 function nigeria_lgas_for_state($state = '', $include_blank = true)
 {
     $all = nigeria_lgas();

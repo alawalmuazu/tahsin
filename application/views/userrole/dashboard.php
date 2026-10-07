@@ -65,6 +65,7 @@
 				</div>
 				<div class="col-md-12 col-lg-3 col-xl-4">
 					<a href="<?=base_url('parents/select_child/' . $row->enroll_id);?>" class="chil-shaw btn btn-primary btn-circle pull-right"><i class="fas fa-tachometer-alt"></i> <?=translate('dashboard')?></a>
+					<a href="<?=html_escape(student_app_url($row->id, 'install'))?>" class="btn btn-default btn-circle pull-right" style="margin-right:8px"><i class="fas fa-mobile-alt"></i> Install app</a>
 				</div>
 			</div>
 		</div>

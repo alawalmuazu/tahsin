@@ -4,8 +4,14 @@
 (function () {
   'use strict';
 
-  var DISMISS_KEY = 'tahsin_pwa_install_dismissed';
+  var DISMISS_KEY = 'tahsin_pwa_install_dismissed:' + location.pathname;
   var deferredPrompt = null;
+
+  function childManifest() {
+    var link = document.querySelector('link[rel="manifest"]');
+    var href = link ? (link.getAttribute('href') || '') : '';
+    return href.indexOf('/s/') !== -1 ? href : '';
+  }
 
   function isStandalone() {
     return window.matchMedia('(display-mode: standalone)').matches
@@ -44,14 +50,18 @@
     var action = el.querySelector('[data-pwa-action]');
     if (mode === 'ios') {
       if (msg) {
-        msg.textContent = 'Add Tahsin to your Home Screen: tap Share, then “Add to Home Screen”.';
+        msg.textContent = childManifest()
+          ? 'Add this child to your Home Screen: tap Share, then “Add to Home Screen”.'
+          : 'Add Tahsin to your Home Screen: tap Share, then “Add to Home Screen”.';
       }
       if (action) {
         action.hidden = true;
       }
     } else {
       if (msg) {
-        msg.textContent = 'Install Tahsin on your phone for quick access.';
+        msg.textContent = childManifest()
+          ? 'Install this child. A brother or sister can have a separate icon on the same phone.'
+          : 'Install Tahsin on your phone for quick access.';
       }
       if (action) {
         action.hidden = false;
@@ -61,8 +71,14 @@
   }
 
   if ('serviceWorker' in navigator) {
-    var swUrl = (typeof base_url === 'string' ? base_url : '/') + 'sw.js';
-    navigator.serviceWorker.register(swUrl).catch(function () { /* silent */ });
+    var childHref = childManifest();
+    if (childHref) {
+      var childScope = childHref.replace(/manifest\.webmanifest.*$/, '');
+      navigator.serviceWorker.register(childScope + 'sw.js', { scope: childScope }).catch(function () { /* silent */ });
+    } else {
+      var swUrl = (typeof base_url === 'string' ? base_url : '/') + 'sw.js';
+      navigator.serviceWorker.register(swUrl).catch(function () { /* silent */ });
+    }
   }
 
   if (isStandalone() || wasDismissed()) {
@@ -70,6 +86,10 @@
   }
 
   window.addEventListener('beforeinstallprompt', function (e) {
+    if (!childManifest()) {
+      e.preventDefault();
+      return;
+    }
     e.preventDefault();
     deferredPrompt = e;
     showBanner('android');
@@ -101,8 +121,8 @@
       closeBtn.addEventListener('click', dismiss);
     }
 
-    // iOS never fires beforeinstallprompt — show tip on small screens
-    if (isIos() && !isStandalone() && window.matchMedia('(max-width: 900px)').matches) {
+    // iOS never fires beforeinstallprompt — show tip on a child's own install page
+    if (childManifest() && isIos() && !isStandalone() && window.matchMedia('(max-width: 900px)').matches) {
       showBanner('ios');
     }
   });

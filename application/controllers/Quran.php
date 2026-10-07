@@ -27,6 +27,13 @@ class Quran extends CI_Controller
             show_404();
             return;
         }
+        if ($hear !== 'hear') {
+            $path = parse_url(isset($_SERVER['REQUEST_URI']) ? $_SERVER['REQUEST_URI'] : '', PHP_URL_PATH);
+            if (is_string($path) && $path !== '' && substr($path, -1) !== '/') {
+                redirect(site_url('quran/' . $token . '/'));
+                return;
+            }
+        }
         $this->load->model('academy_model');
         $install = $this->academy_model->quranInstallName($studentId);
         $clips = $this->academy_model->quranPlaylistClips($studentId);
@@ -92,8 +99,8 @@ class Quran extends CI_Controller
             return;
         }
         $install = $this->academy_model->quranInstallName($studentId);
-        $start = site_url('quran/' . $token);
-        $scope = rtrim(site_url('quran'), '/') . '/';
+        $start = site_url('quran/' . $token . '/');
+        $scope = $start;
         $icon192 = site_url('quran/' . $token . '/icon-192.png');
         $icon512 = site_url('quran/' . $token . '/icon-512.png');
         $manifest = array(

@@ -267,8 +267,13 @@ html.hear .hear-go.gone{display:none}
 </div>
 <script>
 if ('serviceWorker' in navigator) {
-	var quranSwScope = '<?php echo base_url('quran/'); ?>';
-	navigator.serviceWorker.register('<?php echo base_url('quran/sw.js'); ?>?v=6', { scope: quranSwScope, updateViaCache: 'none' }).then(function (reg) {
+	var quranSwScope = '<?php echo site_url('quran/' . $token . '/'); ?>';
+	navigator.serviceWorker.getRegistrations().then(function (regs) {
+		regs.forEach(function (reg) {
+			if (reg.scope && /\/quran\/$/.test(reg.scope)) reg.unregister();
+		});
+	}).catch(function () {});
+	navigator.serviceWorker.register('<?php echo base_url('quran/sw.js'); ?>?v=7', { scope: quranSwScope, updateViaCache: 'none' }).then(function (reg) {
 		return navigator.serviceWorker.ready.then(function () {
 			var worker = reg.active || navigator.serviceWorker.controller;
 			if (!worker) return;

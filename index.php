@@ -331,6 +331,27 @@ switch (ENVIRONMENT)
 
 	define('VIEWPATH', $view_folder.DIRECTORY_SEPARATOR);
 
+	if (!defined('TAHSIN_STUDENT_APP_KEY')) {
+		define('TAHSIN_STUDENT_APP_KEY', 'tahsin-student-app');
+	}
+	if (!defined('TAHSIN_DESK')) {
+		$tahsinDesk = '';
+		$tahsinUri = isset($_SERVER['REQUEST_URI']) ? $_SERVER['REQUEST_URI'] : '';
+		if (preg_match('#/s/(\d+-[a-f0-9]{20})(?=/|\?|$)#', $tahsinUri, $tahsinMatch)) {
+			$tahsinParts = explode('-', $tahsinMatch[1], 2);
+			$tahsinExpect = substr(hash_hmac('sha256', 'student-app:' . $tahsinParts[0], TAHSIN_STUDENT_APP_KEY), 0, 20);
+			if (isset($tahsinParts[1]) && hash_equals($tahsinExpect, $tahsinParts[1])) {
+				$tahsinDesk = $tahsinMatch[1];
+				$tahsinUri = preg_replace('#/s/' . preg_quote($tahsinDesk, '#') . '#', '', $tahsinUri, 1);
+				if ($tahsinUri === '' || $tahsinUri[0] !== '/') {
+					$tahsinUri = '/' . ltrim($tahsinUri, '/');
+				}
+				$_SERVER['REQUEST_URI'] = $tahsinUri;
+			}
+		}
+		define('TAHSIN_DESK', $tahsinDesk);
+	}
+
 /*
  * --------------------------------------------------------------------
  * LOAD THE BOOTSTRAP FILE
