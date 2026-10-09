@@ -11,6 +11,10 @@ $na = function ($v) {
 <head>
     <meta charset="utf-8">
     <title>Admission Slip — <?=html_escape($slip['fullname'])?></title>
+    <?php if (!$is_pdf): ?>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="<?=base_url('assets/vendor/jquery/jquery.min.js')?>"></script>
+    <?php endif; ?>
     <style>
         body { font-family: DejaVu Sans, Arial, Helvetica, sans-serif; color: #1a1a1a; background: #eef1f4; margin: 0; padding: 0; }
         .toolbar { background: #0f5c4c; color: #fff; padding: 12px 20px; text-align: center; }
@@ -54,8 +58,9 @@ $na = function ($v) {
 <body>
 <?php if (!$is_pdf): ?>
 <div class="toolbar">
-    <a href="javascript:window.print()"><i></i> Print</a>
-    <a href="<?=base_url('student/admission_slip/' . $slip['enrollid'] . '?pdf=1')?>">Download PDF</a>
+    <a href="javascript:window.print()"><i class="fas fa-print"></i> Print</a>
+    <a href="<?=base_url('student/admission_slip/' . $slip['enrollid'] . '?pdf=1')?>"><i class="fas fa-file-pdf"></i> Download PDF</a>
+    <a href="javascript:void(0)" id="slipShareBtn" style="background:#25D366;color:#fff;"><i class="fab fa-whatsapp"></i> WhatsApp Slip / Receipt</a>
     <a class="ghost" href="<?=base_url('student/profile/' . $slip['enrollid'])?>">Student Profile</a>
     <a class="ghost" href="<?=base_url('student/add')?>">Admit Another Student</a>
 </div>
@@ -235,5 +240,239 @@ $na = function ($v) {
     </table>
     <div class="note">This slip is issued by <?=html_escape($school)?>. Keep it for your records. Present it when collecting the student ID card or on request by the academy.</div>
 </div>
+
+<?php if (!$is_pdf): ?>
+<div id="slipShareModal" style="display:none;position:fixed;inset:0;background:rgba(15,23,20,.45);z-index:10050;align-items:center;justify-content:center;padding:16px;">
+	<div style="background:#fff;max-width:500px;width:100%;border-top:4px solid #0f5c4c;border-radius:6px;box-shadow:0 12px 40px rgba(0,0,0,.2);padding:20px 24px;text-align:left;">
+		<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+			<h4 style="margin:0;color:#0f5c4c;font-weight:700;font-size:17px;"><i class="fab fa-whatsapp" style="color:#25D366;margin-right:6px;"></i> Send Slip / Receipt to Parent</h4>
+			<button type="button" id="slipShareCloseTop" style="border:none;background:transparent;font-size:24px;line-height:1;color:#888;cursor:pointer;">&times;</button>
+		</div>
+		<p style="margin:0 0 12px;color:#555;font-size:13px;">Send admission slip details directly to the parent's WhatsApp number. You can also download or send the official PDF or Image slip directly into WhatsApp chat.</p>
+
+		<div style="background:#f4f7f5;border:1px solid #d2ded7;border-radius:4px;padding:10px 12px;margin-bottom:14px;font-size:13px;">
+			<div style="font-weight:600;color:#0f5c4c;margin-bottom:5px;">Parent / Guardian WhatsApp Number:</div>
+			<div id="slipSharePhoneWrap" style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;">
+				<span id="slipSharePhoneDisplay" style="font-family:monospace;font-size:14px;font-weight:700;color:#1a1a1a;">Loading…</span>
+			</div>
+		</div>
+
+		<div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:10px;">
+			<a id="slipShareDirectWa" href="#" target="_blank" rel="noopener" style="background:#25D366;color:#fff;border-radius:4px;font-weight:700;padding:8px 14px;text-decoration:none;display:inline-flex;align-items:center;gap:6px;font-size:13px;">
+				<i class="fab fa-whatsapp" style="font-size:16px;"></i> Send on WhatsApp
+			</a>
+			<button type="button" id="slipSharePdf" style="background:#c9a227;color:#1a1a1a;border:none;border-radius:4px;font-weight:700;padding:8px 14px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;font-size:13px;"><i class="fas fa-file-pdf"></i> PDF Slip</button>
+			<button type="button" id="slipShareImage" style="background:#c9a227;color:#1a1a1a;border:none;border-radius:4px;font-weight:700;padding:8px 14px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;font-size:13px;"><i class="fas fa-image"></i> Image Slip</button>
+			<button type="button" id="slipShareClose" style="background:#e5e7eb;color:#374151;border:none;border-radius:4px;font-weight:600;padding:8px 14px;cursor:pointer;font-size:13px;">Close</button>
+		</div>
+
+		<p id="slipShareStatus" style="margin:8px 0 0;color:#0f5c4c;font-size:12.5px;font-weight:500;min-height:18px;"></p>
+
+		<div id="slipShareMessageWrap" style="display:none;margin-top:12px;">
+			<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+				<span style="font-size:12px;color:#666;font-weight:600;">Message Caption:</span>
+				<button type="button" id="slipShareCopyMsg" style="background:#f3f4f6;border:1px solid #d1d5db;border-radius:3px;font-size:11px;padding:3px 8px;cursor:pointer;"><i class="far fa-copy"></i> Copy text</button>
+			</div>
+			<pre id="slipShareMessage" style="white-space:pre-wrap;background:#fdfcf6;border:1px solid #e4d7a4;padding:10px;margin:0;font-size:12px;color:#1a1a1a;max-height:160px;overflow-y:auto;font-family:inherit;"></pre>
+		</div>
+	</div>
+</div>
+
+<script type="text/javascript">
+$(function () {
+	var base_url = "<?=base_url()?>";
+	var enrollID = "<?=$slip['enrollid']?>";
+	var slipShareCurrentData = null;
+	var slipShareSelectedPhone = "";
+
+	function slipShareBytes(b64) {
+		var bin = atob(b64);
+		var len = bin.length;
+		var bytes = new Uint8Array(len);
+		for (var i = 0; i < len; i++) {
+			bytes[i] = bin.charCodeAt(i);
+		}
+		return bytes;
+	}
+
+	function slipShareDownload(data) {
+		if (!data || !data.file || !data.filename) return;
+		var blob = new Blob([slipShareBytes(data.file)], { type: data.mime || 'application/octet-stream' });
+		var a = document.createElement('a');
+		a.href = URL.createObjectURL(blob);
+		a.download = data.filename;
+		document.body.appendChild(a);
+		a.click();
+		setTimeout(function () {
+			URL.revokeObjectURL(a.href);
+			$(a).remove();
+		}, 500);
+	}
+
+	function slipShareBuildWaLink(phone, message) {
+		return 'https://api.whatsapp.com/send?phone=' + encodeURIComponent(phone) + '&text=' + encodeURIComponent(message || '');
+	}
+
+	function slipShareSelectPhone(phone) {
+		slipShareSelectedPhone = phone;
+		$('#slipSharePhoneWrap .fee-phone-btn').each(function () {
+			var $b = $(this);
+			if (String($b.data('phone')) === String(phone)) {
+				$b.css({ background: '#0f5c4c', color: '#fff' });
+			} else {
+				$b.css({ background: '#fff', color: '#0f5c4c' });
+			}
+		});
+		if (slipShareCurrentData) {
+			var wa = slipShareBuildWaLink(phone, slipShareCurrentData.message);
+			$('#slipShareDirectWa').attr('href', wa).attr('target', '_blank');
+			if (phone) {
+				$('#slipShareDirectWa').css('opacity', '1').css('pointer-events', 'auto').html('<i class="fab fa-whatsapp" style="font-size:16px;"></i> Send on WhatsApp (+' + phone + ')');
+			} else {
+				$('#slipShareDirectWa').css('opacity', '0.6').css('pointer-events', 'none').html('<i class="fab fa-whatsapp" style="font-size:16px;"></i> Send on WhatsApp');
+			}
+		}
+	}
+
+	function slipShareAsk() {
+		slipShareCurrentData = null;
+		slipShareSelectedPhone = '';
+		$('#slipShareStatus').text('Loading parent WhatsApp details…');
+		$('#slipShareMessageWrap').hide();
+		$('#slipShareMessage').text('');
+		$('#slipSharePhoneWrap').html('<span id="slipSharePhoneDisplay" style="font-family:monospace;font-size:14px;font-weight:700;color:#1a1a1a;">Loading…</span>');
+		$('#slipShareDirectWa').attr('href', '#').css('opacity', '0.6').css('pointer-events', 'none').html('<i class="fab fa-whatsapp" style="font-size:16px;"></i> Send on WhatsApp');
+		$('#slipSharePdf, #slipShareImage').prop('disabled', true);
+		$('#slipShareModal').css('display', 'flex');
+
+		var payload = { enroll_id: enrollID, format: 'summary' };
+		if (typeof csrfData !== 'undefined') { payload[csrfData.token_name] = csrfData.hash; }
+
+		$.ajax({
+			url: base_url + 'student/admission_share',
+			type: 'POST',
+			dataType: 'json',
+			data: payload,
+			success: function (data) {
+				if (data && data.status === 'access_denied') {
+					window.location.href = base_url + 'dashboard';
+					return;
+				}
+				if (!data || !data.ok) {
+					$('#slipShareStatus').text((data && data.error) ? data.error : 'Could not prepare admission details.');
+					return;
+				}
+				slipShareCurrentData = data;
+				$('#slipShareStatus').text('');
+				$('#slipSharePdf, #slipShareImage').prop('disabled', false);
+
+				var $wrap = $('#slipSharePhoneWrap').empty();
+				var phones = data.phones && data.phones.length ? data.phones : (data.phone ? [data.phone] : []);
+				if (phones.length) {
+					slipShareSelectedPhone = phones[0];
+					for (var i = 0; i < phones.length; i++) {
+						var ph = phones[i];
+						var label = '+' + ph;
+						if (data.guardian) label += ' (' + data.guardian + ')';
+						var $btn = $('<button type="button" class="fee-phone-btn" style="border:1px solid #0f5c4c;background:#fff;color:#0f5c4c;padding:4px 9px;border-radius:4px;font-size:12px;font-family:monospace;cursor:pointer;margin-right:6px;margin-bottom:4px;">')
+							.text(label)
+							.data('phone', ph);
+						if (i === 0) {
+							$btn.css({ background: '#0f5c4c', color: '#fff' });
+						}
+						$btn.on('click', function () {
+							slipShareSelectPhone($(this).data('phone'));
+						});
+						$wrap.append($btn);
+					}
+					slipShareSelectPhone(phones[0]);
+				} else {
+					$wrap.html('<span style="color:#a94442;font-size:12.5px;">No parent phone number recorded for this student.</span>');
+					$('#slipShareDirectWa').css('opacity', '0.6').css('pointer-events', 'none');
+				}
+
+				if (data.message) {
+					$('#slipShareMessage').text(data.message);
+					$('#slipShareMessageWrap').show();
+				}
+			},
+			error: function () {
+				$('#slipShareStatus').text('Could not connect to fetch admission details.');
+			}
+		});
+	}
+
+	function slipShareSend(format) {
+		var $status = $('#slipShareStatus');
+		$status.text('Generating ' + format.toUpperCase() + ' slip…');
+		$('#slipSharePdf, #slipShareImage').prop('disabled', true);
+
+		var payload = {
+			enroll_id: enrollID,
+			format: format,
+			phone: slipShareSelectedPhone,
+			deliver: 'whatsapp'
+		};
+		if (typeof csrfData !== 'undefined') { payload[csrfData.token_name] = csrfData.hash; }
+
+		$.ajax({
+			url: base_url + 'student/admission_share',
+			type: 'POST',
+			dataType: 'json',
+			data: payload,
+			success: function (data) {
+				if (data && data.status === 'access_denied') {
+					window.location.href = base_url + 'dashboard';
+					return;
+				}
+				if (!data || !data.ok) {
+					$status.text((data && data.error) ? data.error : 'The slip could not be prepared.');
+					return;
+				}
+				slipShareDownload(data);
+				var target = slipShareSelectedPhone || data.phone;
+				if (data.sent) {
+					$status.html('<span style="color:green;"><i class="fas fa-check-circle"></i> Admission slip & receipt successfully attached and sent to WhatsApp for <strong>+' + target + '</strong>!</span>');
+				} else if (data.whatsapp) {
+					window.open(data.whatsapp, '_blank');
+					$status.html('Slip downloaded! WhatsApp chat opened' + (target ? ' for <strong>+' + target + '</strong>' : '') + '. You can now attach the downloaded file in the WhatsApp chat.' + (data.error ? '<br><span style="color:#c9302c;">(Auto-send failed: ' + data.error + ')</span>' : ''));
+				} else {
+					$status.text('Slip downloaded successfully.');
+				}
+			},
+			error: function () {
+				$status.text('The admission slip could not be prepared.');
+			},
+			complete: function () {
+				$('#slipSharePdf, #slipShareImage').prop('disabled', false);
+			}
+		});
+	}
+
+	$('#slipShareBtn').on('click', function () {
+		slipShareAsk();
+	});
+	$('#slipSharePdf').on('click', function () { slipShareSend('pdf'); });
+	$('#slipShareImage').on('click', function () { slipShareSend('image'); });
+	$('#slipShareClose, #slipShareCloseTop').on('click', function () { $('#slipShareModal').hide(); });
+
+	$('#slipShareCopyMsg').on('click', function () {
+		var text = $('#slipShareMessage').text();
+		if (navigator.clipboard && navigator.clipboard.writeText) {
+			navigator.clipboard.writeText(text).then(function () {
+				alert('Slip message copied to clipboard!');
+			});
+		} else {
+			var $temp = $('<textarea>');
+			$('body').append($temp);
+			$temp.val(text).select();
+			document.execCommand('copy');
+			$temp.remove();
+			alert('Slip message copied to clipboard!');
+		}
+	});
+});
+</script>
+<?php endif; ?>
 </body>
 </html>

@@ -2087,4 +2087,310 @@ class Student extends Admin_Controller
         return true;
     }
 
+    /**
+     * Share Admission Slip & Fee Receipt directly via WhatsApp / Cloud API / PDF / Image
+     */
+    public function admission_share()
+    {
+        if (!get_permission('student', 'is_view') && !get_permission('student', 'is_edit')) {
+            ajax_access_denied();
+        }
+        $enrollId = (int) $this->input->post('enroll_id');
+        if ($enrollId <= 0) {
+            $this->output->set_content_type('application/json')->set_output(json_encode(array('ok' => false, 'error' => 'Invalid student admission ID.')));
+            return;
+        }
+        $slip = $this->student_model->getAdmissionSlip($enrollId);
+        if (empty($slip)) {
+            $this->output->set_content_type('application/json')->set_output(json_encode(array('ok' => false, 'error' => 'Admission slip could not be found.')));
+            return;
+        }
+        $tuition = $this->student_model->getTuitionSummary($enrollId);
+        $format = (string) $this->input->post('format');
+        if (!in_array($format, array('image', 'pdf', 'summary'), true)) {
+            $format = 'pdf';
+        }
+        $deliver = $this->input->post('deliver') === 'whatsapp';
+
+        $this->load->model('academy_model');
+        $extraPhones = '';
+        if (!empty($slip['parent_id'])) {
+            $parent = $this->db->select('extra_phones')->from('parent')->where('id', $slip['parent_id'])->get()->row();
+            if ($parent && !empty($parent->extra_phones)) {
+                $extraPhones = $parent->extra_phones;
+            }
+        }
+        $phones = $this->academy_model->parentPhoneList(
+            isset($slip['guardian_mobile']) ? $slip['guardian_mobile'] : '',
+            $extraPhones,
+            isset($slip['mobileno']) ? $slip['mobileno'] : ''
+        );
+
+        $selectedPhone = trim((string) $this->input->post('phone'));
+        $targetPhone = !empty($phones) ? (string) $phones[0] : '';
+        if ($selectedPhone !== '') {
+            $norm = $this->academy_model->parentPhoneList($selectedPhone);
+            if (!empty($norm)) {
+                $targetPhone = $norm[0];
+            }
+        }
+
+        $school = !empty($slip['school_name']) ? $slip['school_name'] : SCHOOL_NAME;
+        $lines = array();
+        $lines[] = '_Assalamu alaikum._';
+        $lines[] = '';
+        $lines[] = '*' . $this->receiptAscii($school) . '*';
+        $lines[] = '_Official Admission Slip_';
+        $lines[] = '----------------------------------------';
+        $lines[] = '1. *' . $this->receiptAscii($slip['fullname']) . '* ```' . $slip['barcode_value'] . '```';
+        $classTxt = $slip['class_name'] . (!empty($slip['section_name']) ? ' (' . $slip['section_name'] . ')' : '');
+        $lines[] = 'Class       : ' . $classTxt;
+        $lines[] = 'Session     : ' . $slip['school_year'];
+        $lines[] = 'Admitted on : ' . _d($slip['admission_date']);
+        if (!empty($tuition) && $tuition['paid'] > 0) {
+            $lines[] = '----------------------------------------';
+            $lines[] = '*Tuition Payment:*';
+            $lines[] = 'School fees : ' . currencyFormat($tuition['fee']);
+            $lines[] = 'Paid        : ' . currencyFormat($tuition['paid']) . (!empty($tuition['last']['date']) ? ' _' . _d($tuition['last']['date']) . '_' : '');
+            $lines[] = 'Remaining   : *' . currencyFormat($tuition['balance']) . '*';
+        }
+        $lines[] = '----------------------------------------';
+        $lines[] = 'Issued by ' . $this->receiptAscii($school) . '. Keep this slip for your records.';
+        $message = implode("\n", $lines);
+
+        $link = '';
+        if ($targetPhone !== '') {
+            $link = 'https://api.whatsapp.com/send?phone=' . rawurlencode($targetPhone) . '&text=' . rawurlencode($message);
+        }
+
+        if ($format === 'summary') {
+            $this->output->set_content_type('application/json')->set_output(json_encode(array(
+                'ok' => true,
+                'phone' => $targetPhone,
+                'phones' => $phones,
+                'guardian' => isset($slip['guardian_name']) ? $slip['guardian_name'] : '',
+                'student' => $slip['fullname'],
+                'message' => $message,
+                'whatsapp' => $link,
+                'filename' => '',
+                'mime' => '',
+                'file' => '',
+            )));
+            return;
+        }
+
+        if ($format === 'image') {
+            $binary = $this->admissionSlipImage($slip, $tuition);
+            $mime = 'image/png';
+            $ext = 'png';
+        } else {
+            $qr_file = $this->student_model->getStudentQrFile($slip);
+            $pdfData = array(
+                'slip' => $slip,
+                'tuition' => $tuition,
+                'is_pdf' => true,
+                'barcode_html' => '',
+                'barcode_value' => $slip['barcode_value'],
+                'photo_src' => local_image_path('student', $slip['photo']),
+                'logo_src' => file_exists(FCPATH . 'uploads/app_image/printing-logo.png') ? FCPATH . 'uploads/app_image/printing-logo.png' : base_url('uploads/app_image/printing-logo.png'),
+                'qr_src' => file_exists(FCPATH . $qr_file) ? (FCPATH . $qr_file) : base_url($qr_file),
+            );
+            $html = $this->load->view('student/admission_slip', $pdfData, true);
+            $this->load->library('html2pdf');
+            $this->html2pdf->mpdf->SetTitle('Admission Slip - ' . $slip['fullname']);
+            $this->html2pdf->mpdf->WriteHTML($html);
+            $binary = $this->html2pdf->mpdf->Output('', 'S');
+            $mime = 'application/pdf';
+            $ext = 'pdf';
+        }
+
+        if ($binary === '' || $binary === null) {
+            $this->output->set_content_type('application/json')->set_output(json_encode(array(
+                'ok' => false,
+                'error' => $format === 'image' ? 'Image slip requires the GD extension.' : 'The admission slip could not be prepared.'
+            )));
+            return;
+        }
+
+        $reg = preg_replace('/[^A-Za-z0-9\-]/', '', $slip['barcode_value']);
+        if ($reg === '') {
+            $reg = 'student-' . $enrollId;
+        }
+        $filename = 'admission-slip-' . $reg . '.' . $ext;
+        $sent = false;
+        $sendError = '';
+        if ($deliver) {
+            if ($targetPhone === '') {
+                $sendError = 'Add a parent phone number before sending via WhatsApp.';
+            } else {
+                $sentResult = $this->admissionSendCloud($targetPhone, $format, $filename, $binary, $message);
+                $sent = !empty($sentResult['ok']);
+                $sendError = $sent ? '' : (isset($sentResult['error']) ? $sentResult['error'] : 'WhatsApp could not send the slip.');
+            }
+        }
+
+        $this->output->set_content_type('application/json')->set_output(json_encode(array(
+            'ok' => true,
+            'sent' => $sent,
+            'error' => $sendError,
+            'phone' => $targetPhone,
+            'phones' => $phones,
+            'guardian' => isset($slip['guardian_name']) ? $slip['guardian_name'] : '',
+            'student' => $slip['fullname'],
+            'message' => $message,
+            'whatsapp' => $link,
+            'filename' => $filename,
+            'mime' => $mime,
+            'file' => base64_encode($binary),
+        )));
+    }
+
+    private function admissionSendCloud($phone, $format, $filename, $binary, $message)
+    {
+        $dir = FCPATH . 'uploads/temp/admission_slips';
+        if (!is_dir($dir)) {
+            @mkdir($dir, 0777, true);
+        }
+        if (is_dir($dir)) {
+            $oldFiles = glob($dir . DIRECTORY_SEPARATOR . '*');
+            if (is_array($oldFiles)) {
+                foreach ($oldFiles as $old) {
+                    if (is_file($old) && filemtime($old) < time() - 86400) {
+                        @unlink($old);
+                    }
+                }
+            }
+        }
+        $path = $dir . DIRECTORY_SEPARATOR . $filename;
+        if (is_file($path)) {
+            $path = $dir . DIRECTORY_SEPARATOR . pathinfo($filename, PATHINFO_FILENAME) . '-' . bin2hex(random_bytes(3)) . '.' . pathinfo($filename, PATHINFO_EXTENSION);
+        }
+        file_put_contents($path, $binary);
+        $this->load->library('whatsapp_cloud');
+        $type = $format === 'image' ? 'image' : 'document';
+        $url = base_url('uploads/temp/admission_slips/' . basename($path));
+        $result = $this->whatsapp_cloud->sendMediaByUrl($phone, $type, $url, $message);
+        @unlink($path);
+        return $result;
+    }
+
+    private function admissionSlipImage($slip, $tuition)
+    {
+        if (!function_exists('imagecreatetruecolor') || !function_exists('imagepng')) {
+            return null;
+        }
+        $w = 760;
+        $h = (!empty($tuition) && $tuition['paid'] > 0) ? 740 : 620;
+        $im = imagecreatetruecolor($w, $h);
+        $white = imagecolorallocate($im, 255, 255, 255);
+        $green = imagecolorallocate($im, 15, 92, 76);
+        $gold = imagecolorallocate($im, 201, 162, 39);
+        $cream = imagecolorallocate($im, 248, 241, 216);
+        $ink = imagecolorallocate($im, 26, 26, 26);
+        $muted = imagecolorallocate($im, 90, 90, 90);
+        $line = imagecolorallocate($im, 213, 221, 217);
+
+        imagefilledrectangle($im, 0, 0, $w, $h, $white);
+        imagefilledrectangle($im, 0, 0, $w, 10, $green);
+
+        // School logo
+        $logo = FCPATH . 'uploads/app_image/printing-logo.png';
+        if (is_file($logo)) {
+            $src = @imagecreatefrompng($logo);
+            if ($src) {
+                imagecopyresampled($im, $src, 28, 24, 0, 0, 64, 64, imagesx($src), imagesy($src));
+                imagedestroy($src);
+            }
+        }
+
+        // Student photo on top right
+        $photoFile = local_image_path('student', $slip['photo']);
+        if (is_file($photoFile)) {
+            $ext = strtolower(pathinfo($photoFile, PATHINFO_EXTENSION));
+            $pSrc = null;
+            if ($ext === 'png') {
+                $pSrc = @imagecreatefrompng($photoFile);
+            } elseif ($ext === 'jpg' || $ext === 'jpeg') {
+                $pSrc = @imagecreatefromjpeg($photoFile);
+            } elseif ($ext === 'webp' && function_exists('imagecreatefromwebp')) {
+                $pSrc = @imagecreatefromwebp($photoFile);
+            }
+            if ($pSrc) {
+                imagecopyresampled($im, $pSrc, $w - 28 - 68, 22, 0, 0, 68, 80, imagesx($pSrc), imagesy($pSrc));
+                imagerectangle($im, $w - 28 - 68, 22, $w - 28, 22 + 80, $green);
+                imagedestroy($pSrc);
+            }
+        }
+
+        $schoolName = !empty($slip['school_name']) ? $slip['school_name'] : SCHOOL_NAME;
+        imagestring($im, 5, 108, 26, $this->receiptAscii($schoolName), $green);
+        imagestring($im, 3, 108, 48, $this->receiptAscii(defined('SCHOOL_MOTTO') ? SCHOOL_MOTTO : 'Excellence In Deen & Duniya'), $gold);
+        $contactBits = array();
+        if (!empty($slip['school_address'])) $contactBits[] = $slip['school_address'];
+        if (!empty($slip['school_mobile'])) $contactBits[] = $slip['school_mobile'];
+        imagestring($im, 2, 108, 70, substr($this->receiptAscii(implode(' · ', $contactBits)), 0, 70), $muted);
+
+        imagefilledrectangle($im, 28, 104, $w - 28, 108, $green);
+        imagestring($im, 5, 28, 122, 'OFFICIAL ADMISSION SLIP', $green);
+        imagestring($im, 3, 28, 146, $this->receiptAscii('Session: ' . $slip['school_year'] . '   Issued: ' . _d(date('Y-m-d'))), $muted);
+
+        $y = 176;
+        imagefilledrectangle($im, 28, $y, $w - 28, $y + 22, $green);
+        imagestring($im, 3, 36, $y + 4, 'STUDENT PARTICULARS', $white);
+        $y += 30;
+
+        $classLine = $slip['class_name'] . (!empty($slip['section_name']) ? ' (' . $slip['section_name'] . ')' : '');
+        $facts = array(
+            'Full Name' => $slip['fullname'],
+            'Register No' => $slip['barcode_value'],
+            'Class / Section' => $classLine,
+            'Gender' => !empty($slip['gender']) ? $slip['gender'] : '—',
+            'Admission Date' => _d($slip['admission_date']),
+            'Guardian' => (!empty($slip['guardian_name']) ? $slip['guardian_name'] : '—') . (!empty($slip['guardian_mobile']) ? ' (' . $slip['guardian_mobile'] . ')' : ''),
+        );
+        foreach ($facts as $label => $value) {
+            imagestring($im, 3, 36, $y, $label, $green);
+            imagestring($im, 3, 200, $y, substr($this->receiptAscii($value), 0, 60), $ink);
+            $y += 20;
+        }
+
+        if (!empty($tuition) && $tuition['paid'] > 0) {
+            $y += 8;
+            imagefilledrectangle($im, 28, $y, $w - 28, $y + 22, $green);
+            imagestring($im, 3, 36, $y + 4, 'TUITION PAYMENT DETAILS', $white);
+            $y += 26;
+
+            $tuitionFacts = array(
+                array('School Fees', currencyFormat($tuition['fee'])),
+                array('Amount Paid', currencyFormat($tuition['paid'])),
+                array('Balance', currencyFormat($tuition['balance'])),
+                array('Mode & Date', (!empty($tuition['last']['pay_via_name']) ? $tuition['last']['pay_via_name'] : 'Payment') . ' · ' . (!empty($tuition['last']['date']) ? _d($tuition['last']['date']) : '')),
+            );
+            foreach ($tuitionFacts as $tf) {
+                imagestring($im, 3, 36, $y, $tf[0], $ink);
+                imagestring($im, 3, 200, $y, $this->receiptAscii($tf[1]), $green);
+                $y += 20;
+            }
+        }
+
+        $y += 14;
+        imagefilledrectangle($im, 28, $y, $w - 28, $y + 36, $cream);
+        imagestring($im, 5, 36, $y + 10, 'STATUS: ADMITTED & REGISTERED', $green);
+        $y += 52;
+        imagestring($im, 2, 28, $y, substr($this->receiptAscii('Issued by ' . $schoolName . '. Present when collecting ID card or upon request.'), 0, 92), $muted);
+
+        ob_start();
+        imagepng($im);
+        $binary = ob_get_clean();
+        imagedestroy($im);
+        return $binary;
+    }
+
+    private function receiptAscii($text)
+    {
+        $text = html_entity_decode(strip_tags((string) $text), ENT_QUOTES, 'UTF-8');
+        $text = str_replace(array('₦', '—', '–', '·'), array('NGN ', '-', '-', ' - '), $text);
+        $text = preg_replace('/[^\x20-\x7E]/', '', $text);
+        return trim($text);
+    }
 }
