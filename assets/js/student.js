@@ -159,8 +159,8 @@
 		});
 
 		function refreshSelect2($el) {
-			if ($el && $el.length && $el.data('select2')) {
-				$el.trigger('change.select2');
+			if ($el && $el.length) {
+				$el.trigger('change');
 			}
 		}
 
