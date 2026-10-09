@@ -648,7 +648,7 @@ if ($previous_school_details['status']) {
 					</form>
 				</div>
 			</div>
-<?php if (get_permission('collect_fees', 'is_view')) { ?>
+<?php if (get_permission('collect_fees', 'is_view') || get_permission('collect_fees', 'is_add') || get_permission('invoice', 'is_view')) { ?>
 			<!-- student fees report user Interface -->
             <div class="panel panel-accordion">
 				<div class="panel-heading">
