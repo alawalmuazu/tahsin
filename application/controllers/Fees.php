@@ -1890,11 +1890,12 @@ class Fees extends Admin_Controller
         if (is_file($path)) {
             $path = $dir . DIRECTORY_SEPARATOR . pathinfo($filename, PATHINFO_FILENAME) . '-' . bin2hex(random_bytes(3)) . '.' . pathinfo($filename, PATHINFO_EXTENSION);
         }
-        file_put_contents($path, $binary);
+        if (@file_put_contents($path, $binary) === false || !is_file($path)) {
+            return array('ok' => false, 'wamid' => null, 'error' => 'The receipt file could not be saved for WhatsApp.');
+        }
         $this->load->library('whatsapp_cloud');
         $type = $format === 'image' ? 'image' : 'document';
-        $url = base_url('uploads/temp/fee_receipts/' . basename($path));
-        $result = $this->whatsapp_cloud->sendMediaByUrl($phone, $type, $url, $message);
+        $result = $this->whatsapp_cloud->sendLocalFile($phone, $type, $path, $message, basename($path));
         @unlink($path);
         return $result;
     }

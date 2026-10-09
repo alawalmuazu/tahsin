@@ -465,6 +465,74 @@ class Whatsapp_cloud
     }
 
     /**
+     * Upload a file on this server and send it to one number.
+     * The caption travels with the file. If WhatsApp rejects that caption,
+     * the file is sent on its own and the message follows as text.
+     *
+     * @return array{ok:bool,wamid:?string,error:?string,raw?:mixed}
+     */
+    public function sendLocalFile($toE164, $type, $absolutePath, $caption = '', $downloadName = '')
+    {
+        $to = $this->normalizePhone($toE164);
+        $type = strtolower(trim((string) $type));
+        $allowed = array('audio', 'video', 'document', 'image');
+        if (!in_array($type, $allowed, true)) {
+            return $this->fail('Unsupported media type');
+        }
+        if ($to === '') {
+            return $this->fail('Missing phone number');
+        }
+        if (!$this->isConfigured()) {
+            return $this->fail('WhatsApp Cloud API is not configured');
+        }
+        if (!is_file($absolutePath) || !is_readable($absolutePath)) {
+            return $this->fail('The receipt file was not saved on the server.');
+        }
+
+        $up = $this->uploadMediaFile($absolutePath, $type);
+        if (empty($up['ok']) || empty($up['id'])) {
+            return $this->fail(isset($up['error']) ? $up['error'] : 'WhatsApp could not upload the receipt file.');
+        }
+
+        $name = trim((string) $downloadName);
+        if ($name === '') {
+            $name = basename($absolutePath);
+        }
+        $mediaObj = array('id' => $up['id']);
+        if ($type === 'document') {
+            $mediaObj['filename'] = $name;
+        }
+        $caption = trim((string) $caption);
+        if ($caption !== '' && in_array($type, array('video', 'document', 'image'), true)) {
+            $mediaObj['caption'] = mb_substr($caption, 0, 1024);
+        }
+
+        $payload = array(
+            'messaging_product' => 'whatsapp',
+            'recipient_type' => 'individual',
+            'to' => $to,
+            'type' => $type,
+            $type => $mediaObj,
+        );
+        $result = $this->postMessages($payload);
+        if (!empty($result['ok']) || $caption === '' || empty($mediaObj['caption'])) {
+            return $result;
+        }
+
+        unset($mediaObj['caption']);
+        $payload[$type] = $mediaObj;
+        $fileResult = $this->postMessages($payload);
+        if (empty($fileResult['ok'])) {
+            return $fileResult;
+        }
+        $textResult = $this->sendText($to, $caption);
+        if (empty($textResult['ok'])) {
+            $fileResult['error'] = 'The file was sent. The message was not: ' . (isset($textResult['error']) ? $textResult['error'] : 'WhatsApp rejected the text.');
+        }
+        return $fileResult;
+    }
+
+    /**
      * Prefer sibling .mp3, local ffmpeg, then VPS convert endpoint.
      * Returns public URL when saved under uploads/, and always a local path for Meta upload when possible.
      *

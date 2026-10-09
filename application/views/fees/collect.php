@@ -435,9 +435,9 @@ if (moduleIsEnabled('transport')) {
 		</div>
 
 		<div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:10px;">
-			<a id="feeShareDirectWa" href="#" target="_blank" rel="noopener" class="btn btn-default btn-slip" style="background:#25D366;color:#fff;border-color:#25D366;font-weight:700;padding:7px 14px;display:inline-flex;align-items:center;gap:6px;">
+			<button type="button" id="feeShareDirectWa" class="btn btn-default btn-slip" style="background:#25D366;color:#fff;border-color:#25D366;font-weight:700;padding:7px 14px;display:inline-flex;align-items:center;gap:6px;">
 				<i class="fab fa-whatsapp" style="font-size:16px;"></i> Send on WhatsApp
-			</a>
+			</button>
 			<button type="button" id="feeSharePdf" class="btn btn-default btn-slip"><i class="fas fa-file-pdf"></i> PDF Receipt</button>
 			<button type="button" id="feeShareImage" class="btn btn-default btn-slip"><i class="fas fa-image"></i> Image Receipt</button>
 			<button type="button" id="feeShareClose" class="btn btn-default">Close</button>
@@ -720,32 +720,20 @@ if (moduleIsEnabled('transport')) {
 		link.remove();
 	}
 
-	function feeShareBuildWaLink(phone, message) {
-		if (!message) return '#';
-		if (phone) {
-			return 'https://api.whatsapp.com/send?phone=' + encodeURIComponent(phone) + '&text=' + encodeURIComponent(message);
-		}
-		return 'https://api.whatsapp.com/send?text=' + encodeURIComponent(message);
-	}
-
 	function feeShareSelectPhone(phone) {
-		feeShareSelectedPhone = phone;
+		feeShareSelectedPhone = phone ? String(phone) : '';
 		$('#feeSharePhoneWrap .fee-phone-btn').each(function () {
 			var $btn = $(this);
-			if ($btn.data('phone') == phone) {
+			if (String($btn.attr('data-phone')) === String(phone)) {
 				$btn.addClass('btn-primary').removeClass('btn-default');
 			} else {
 				$btn.addClass('btn-default').removeClass('btn-primary');
 			}
 		});
-		if (feeShareCurrentData) {
-			var wa = feeShareBuildWaLink(phone, feeShareCurrentData.message);
-			$('#feeShareDirectWa').attr('href', wa).attr('target', '_blank');
-			if (phone) {
-				$('#feeShareDirectWa').html('<i class="fab fa-whatsapp" style="font-size:16px;"></i> Send on WhatsApp (+' + phone + ')');
-			} else {
-				$('#feeShareDirectWa').html('<i class="fab fa-whatsapp" style="font-size:16px;"></i> Send on WhatsApp');
-			}
+		if (phone) {
+			$('#feeShareDirectWa').html('<i class="fab fa-whatsapp" style="font-size:16px;"></i> Send PDF to +' + phone);
+		} else {
+			$('#feeShareDirectWa').html('<i class="fab fa-whatsapp" style="font-size:16px;"></i> Send on WhatsApp');
 		}
 	}
 
@@ -757,7 +745,7 @@ if (moduleIsEnabled('transport')) {
 		$('#feeShareMessageWrap').hide();
 		$('#feeShareMessage').text('');
 		$('#feeSharePhoneWrap').html('<span id="feeSharePhoneDisplay" style="font-family:monospace;font-size:14px;font-weight:700;color:#1a1a1a;">Loading…</span>');
-		$('#feeShareDirectWa').attr('href', '#').css('opacity', '0.6').css('pointer-events', 'none').html('<i class="fab fa-whatsapp" style="font-size:16px;"></i> Send on WhatsApp');
+		$('#feeShareDirectWa').css('opacity', '0.6').css('pointer-events', 'none').html('<i class="fab fa-whatsapp" style="font-size:16px;"></i> Send on WhatsApp');
 		$('#feeSharePdf, #feeShareImage').prop('disabled', true);
 		$('#feeShareModal').css('display', 'flex');
 
@@ -786,7 +774,7 @@ if (moduleIsEnabled('transport')) {
 				var phones = data.phones || (data.phone ? [data.phone] : []);
 				var $wrap = $('#feeSharePhoneWrap').empty();
 				if (phones && phones.length > 0) {
-					feeShareSelectedPhone = phones[0];
+					feeShareSelectedPhone = String(phones[0]);
 					if (phones.length === 1) {
 						$wrap.append($('<span>', {
 							style: 'font-family:monospace;font-size:14px;font-weight:700;color:#0f5c4c;',
@@ -801,7 +789,7 @@ if (moduleIsEnabled('transport')) {
 								text: '+' + ph,
 								'data-phone': ph
 							}).on('click', function () {
-								feeShareSelectPhone($(this).data('phone'));
+								feeShareSelectPhone($(this).attr('data-phone'));
 							});
 							$wrap.append($btn);
 						});
@@ -810,10 +798,7 @@ if (moduleIsEnabled('transport')) {
 					$('#feeShareDirectWa').css('opacity', '1').css('pointer-events', 'auto');
 				} else {
 					$wrap.html('<span style="color:#c9302c;font-size:13px;"><i class="fas fa-exclamation-triangle"></i> No parent phone registered for this student.</span>');
-					if (data.message) {
-						var fallbackWa = feeShareBuildWaLink('', data.message);
-						$('#feeShareDirectWa').attr('href', fallbackWa).css('opacity', '1').css('pointer-events', 'auto');
-					}
+					$('#feeShareDirectWa').css('opacity', '0.6').css('pointer-events', 'none');
 				}
 
 				if (data.message) {
@@ -889,11 +874,8 @@ if (moduleIsEnabled('transport')) {
 					return;
 				}
 				feeShareDownload(data);
-				if (data.whatsapp) {
-					window.open(data.whatsapp, '_blank');
-				}
 				var why = data.error ? data.error + ' ' : '';
-				$status.html(why + 'WhatsApp is open' + (target ? ' for <strong>+' + target + '</strong>' : '') + '. Attach the downloaded file and keep the message below.');
+				$status.html(why + 'The ' + label + ' downloaded' + (target ? ' for <strong>+' + target + '</strong>' : '') + '. Attach that file in the parent chat and keep the message below.');
 			},
 			error: function () {
 				$status.text('The receipt could not be prepared.');
@@ -918,6 +900,7 @@ if (moduleIsEnabled('transport')) {
 		}
 		feeShareAsk(ids.join(','));
 	});
+	$('#feeShareDirectWa').on('click', function () { feeShareSend('pdf'); });
 	$('#feeSharePdf').on('click', function () { feeShareSend('pdf'); });
 	$('#feeShareImage').on('click', function () { feeShareSend('image'); });
 	$('#feeShareClose, #feeShareCloseTop').on('click', function () { $('#feeShareModal').hide(); });
