@@ -377,6 +377,9 @@
             <p>Early Childhood & Primary Academic Syllabus Manager (Pre-Nursery, Nursery 1, Nursery 2)</p>
         </div>
         <div class="header-actions">
+            <a href="<?php echo base_url('dashboard'); ?>" class="btn btn-light">
+                <i class="fa fa-arrow-left"></i> Dashboard
+            </a>
             <button class="btn btn-primary" onclick="openAddModal()">
                 <i class="fa fa-plus-circle"></i> Add Scheme Entry
             </button>

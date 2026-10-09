@@ -37,14 +37,8 @@ class Scheme extends MY_Controller {
         $this->data['title'] = 'Curriculum Schemes of Work';
         $this->data['main_menu'] = 'academic';
 
-        // If user is authenticated in Tahsin portal and didn't request standalone mode
-        if (function_exists('is_loggedin') && is_loggedin() && !$this->input->get('standalone')) {
-            $this->data['sub_page'] = 'scheme/portal_view';
-            $this->load->view('layout/index', $this->data);
-        } else {
-            // Render beautiful standalone UI
-            $this->load->view('scheme/standalone_view', $this->data);
-        }
+        // Render comprehensive Scheme of Work UI
+        $this->load->view('scheme/index', $this->data);
     }
 
     /**
