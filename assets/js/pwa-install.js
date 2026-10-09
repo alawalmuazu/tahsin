@@ -86,10 +86,6 @@
   }
 
   window.addEventListener('beforeinstallprompt', function (e) {
-    if (!childManifest()) {
-      e.preventDefault();
-      return;
-    }
     e.preventDefault();
     deferredPrompt = e;
     showBanner('android');
@@ -121,8 +117,8 @@
       closeBtn.addEventListener('click', dismiss);
     }
 
-    // iOS never fires beforeinstallprompt — show tip on a child's own install page
-    if (childManifest() && isIos() && !isStandalone() && window.matchMedia('(max-width: 900px)').matches) {
+    // iOS never fires beforeinstallprompt — show tip when not standalone on mobile
+    if (isIos() && !isStandalone() && window.matchMedia('(max-width: 900px)').matches) {
       showBanner('ios');
     }
   });

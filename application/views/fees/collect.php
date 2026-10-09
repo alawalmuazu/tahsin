@@ -36,7 +36,7 @@ include APPPATH . 'views/fees/_invoice_sheet.php';
 ?>
 						<div class="text-right hidden-print" style="max-width:190mm;margin:12px auto 0;">
 							<?php if ($invoice['status'] != 'unpaid'): ?>
-							<button type="button" id="feeShareOpen" class="btn btn-default btn-slip ml-sm"><i class="fab fa-whatsapp"></i> WhatsApp parent</button>
+							<button type="button" id="feeShareOpen" class="btn btn-default btn-slip ml-sm"><i class="fab fa-whatsapp" style="color:#25D366;"></i> WhatsApp parent<?php if (!empty($parent_phones[0])): ?> (<?php echo html_escape($parent_phones[0]); ?>)<?php endif; ?></button>
 							<?php endif; ?>
 							<button id="invoicePrint" class="btn btn-default btn-slip ml-sm" data-loading-text="<i class='fas fa-spinner fa-spin'></i> Processing"><i class="fas fa-print"></i> <?=translate('print')?></button>
 						</div>
@@ -420,16 +420,38 @@ if (moduleIsEnabled('transport')) {
 </div>
 
 <div id="feeShareModal" style="display:none;position:fixed;inset:0;background:rgba(15,23,20,.45);z-index:10050;align-items:center;justify-content:center;padding:16px;">
-	<div style="background:#fff;max-width:460px;width:100%;border-top:4px solid #0f5c4c;box-shadow:0 12px 40px rgba(0,0,0,.18);padding:18px 18px 16px;">
-		<h4 style="margin:0 0 8px;color:#0f5c4c;">Send receipt to parent</h4>
-		<p style="margin:0 0 12px;color:#444;">Choose PDF or image. WhatsApp gets the receipt attached, with the receipt message as the caption.</p>
-		<div>
-			<button type="button" id="feeSharePdf" class="btn btn-default btn-slip"><i class="fas fa-file-pdf"></i> PDF</button>
-			<button type="button" id="feeShareImage" class="btn btn-default btn-slip ml-sm"><i class="fas fa-image"></i> Image</button>
-			<button type="button" id="feeShareClose" class="btn btn-default ml-sm">Not now</button>
+	<div style="background:#fff;max-width:490px;width:100%;border-top:4px solid #0f5c4c;border-radius:4px;box-shadow:0 12px 40px rgba(0,0,0,.2);padding:20px 22px 18px;">
+		<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+			<h4 style="margin:0;color:#0f5c4c;font-weight:700;"><i class="fab fa-whatsapp" style="color:#25D366;margin-right:6px;"></i> Send receipt to parent</h4>
+			<button type="button" id="feeShareCloseTop" style="border:none;background:transparent;font-size:22px;line-height:1;color:#888;cursor:pointer;">&times;</button>
 		</div>
-		<p id="feeShareStatus" style="margin:12px 0 0;color:#0f5c4c;"></p>
-		<pre id="feeShareMessage" style="display:none;white-space:pre-wrap;background:#f8f1d8;border:1px solid #e4d7a4;padding:10px;margin:10px 0 0;font-size:12px;color:#1a1a1a;"></pre>
+		<p style="margin:0 0 12px;color:#444;font-size:13px;">Send receipt details directly to the parent's WhatsApp number. You can also download the receipt slip (PDF or Image) to attach in the chat.</p>
+
+		<div id="feeShareRecipient" style="background:#f4f7f5;border:1px solid #d2ded7;border-radius:4px;padding:10px 12px;margin-bottom:14px;font-size:13px;">
+			<div style="font-weight:600;color:#0f5c4c;margin-bottom:5px;">Parent / Guardian WhatsApp Number:</div>
+			<div id="feeSharePhoneWrap" style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;">
+				<span id="feeSharePhoneDisplay" style="font-family:monospace;font-size:14px;font-weight:700;color:#1a1a1a;">Loading…</span>
+			</div>
+		</div>
+
+		<div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:10px;">
+			<a id="feeShareDirectWa" href="#" target="_blank" rel="noopener" class="btn btn-default btn-slip" style="background:#25D366;color:#fff;border-color:#25D366;font-weight:700;padding:7px 14px;display:inline-flex;align-items:center;gap:6px;">
+				<i class="fab fa-whatsapp" style="font-size:16px;"></i> Send on WhatsApp
+			</a>
+			<button type="button" id="feeSharePdf" class="btn btn-default btn-slip"><i class="fas fa-file-pdf"></i> PDF Receipt</button>
+			<button type="button" id="feeShareImage" class="btn btn-default btn-slip"><i class="fas fa-image"></i> Image Receipt</button>
+			<button type="button" id="feeShareClose" class="btn btn-default">Close</button>
+		</div>
+
+		<p id="feeShareStatus" style="margin:8px 0 0;color:#0f5c4c;font-size:12.5px;font-weight:500;"></p>
+
+		<div id="feeShareMessageWrap" style="display:none;margin-top:12px;">
+			<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+				<span style="font-size:12px;color:#666;font-weight:600;">Receipt Message:</span>
+				<button type="button" id="feeShareCopyMsg" class="btn btn-xs btn-default" style="font-size:11px;"><i class="far fa-copy"></i> Copy text</button>
+			</div>
+			<pre id="feeShareMessage" style="white-space:pre-wrap;background:#fdfcf6;border:1px solid #e4d7a4;padding:10px;margin:0;font-size:12px;color:#1a1a1a;max-height:180px;overflow-y:auto;"></pre>
+		</div>
 	</div>
 </div>
 
@@ -676,12 +698,9 @@ if (moduleIsEnabled('transport')) {
 
 	var feeWaOpen = <?php $feeWaIds = $this->session->flashdata('fee_wa_ids'); echo json_encode($feeWaIds ? $feeWaIds : ''); ?>;
 	var feeShareIds = '';
-	function feeShareAsk(ids) {
-		feeShareIds = ids || '';
-		$('#feeShareStatus').text('');
-		$('#feeShareMessage').hide().text('');
-		$('#feeShareModal').css('display', 'flex');
-	}
+	var feeShareCurrentData = null;
+	var feeShareSelectedPhone = '';
+
 	function feeShareBytes(b64) {
 		var binary = atob(b64);
 		var bytes = new Uint8Array(binary.length);
@@ -690,6 +709,7 @@ if (moduleIsEnabled('transport')) {
 		}
 		return bytes;
 	}
+
 	function feeShareDownload(data) {
 		var blob = new Blob([feeShareBytes(data.file)], { type: data.mime });
 		var link = document.createElement('a');
@@ -699,48 +719,117 @@ if (moduleIsEnabled('transport')) {
 		link.click();
 		link.remove();
 	}
-	function feeShareCloud(data, format) {
-		var $status = $('#feeShareStatus');
-		if (!data.phone) {
-			feeShareDownload(data);
-			$status.text('The receipt downloaded. Open the parent chat in WhatsApp, attach that file, and paste the message below.');
-			return;
+
+	function feeShareBuildWaLink(phone, message) {
+		if (!message) return '#';
+		if (phone) {
+			return 'https://api.whatsapp.com/send?phone=' + encodeURIComponent(phone) + '&text=' + encodeURIComponent(message);
 		}
-		$status.text('Sending the receipt from the school WhatsApp…');
+		return 'https://api.whatsapp.com/send?text=' + encodeURIComponent(message);
+	}
+
+	function feeShareSelectPhone(phone) {
+		feeShareSelectedPhone = phone;
+		$('#feeSharePhoneWrap .fee-phone-btn').each(function () {
+			var $btn = $(this);
+			if ($btn.data('phone') == phone) {
+				$btn.addClass('btn-primary').removeClass('btn-default');
+			} else {
+				$btn.addClass('btn-default').removeClass('btn-primary');
+			}
+		});
+		if (feeShareCurrentData) {
+			var wa = feeShareBuildWaLink(phone, feeShareCurrentData.message);
+			$('#feeShareDirectWa').attr('href', wa).attr('target', '_blank');
+			if (phone) {
+				$('#feeShareDirectWa').html('<i class="fab fa-whatsapp" style="font-size:16px;"></i> Send on WhatsApp (+' + phone + ')');
+			} else {
+				$('#feeShareDirectWa').html('<i class="fab fa-whatsapp" style="font-size:16px;"></i> Send on WhatsApp');
+			}
+		}
+	}
+
+	function feeShareAsk(ids) {
+		feeShareIds = ids || '';
+		feeShareCurrentData = null;
+		feeShareSelectedPhone = '';
+		$('#feeShareStatus').text('Loading parent WhatsApp details…');
+		$('#feeShareMessageWrap').hide();
+		$('#feeShareMessage').text('');
+		$('#feeSharePhoneWrap').html('<span id="feeSharePhoneDisplay" style="font-family:monospace;font-size:14px;font-weight:700;color:#1a1a1a;">Loading…</span>');
+		$('#feeShareDirectWa').attr('href', '#').css('opacity', '0.6').css('pointer-events', 'none').html('<i class="fab fa-whatsapp" style="font-size:16px;"></i> Send on WhatsApp');
+		$('#feeSharePdf, #feeShareImage').prop('disabled', true);
+		$('#feeShareModal').css('display', 'flex');
+
 		$.ajax({
 			url: base_url + 'fees/receipt_share',
 			type: 'POST',
 			dataType: 'json',
 			data: {
 				enroll_id: studentID,
-				format: format,
-				payment_ids: feeShareIds,
-				deliver: 'whatsapp'
+				format: 'summary',
+				payment_ids: feeShareIds
 			},
-			success: function (sent) {
-				if (sent && sent.sent) {
-					$status.text('Sent to the parent on WhatsApp with the receipt attached.');
+			success: function (data) {
+				if (data && data.status === 'access_denied') {
+					window.location.href = base_url + 'dashboard';
 					return;
 				}
-				feeShareDownload(data);
-				if (data.whatsapp) {
-					window.open(data.whatsapp, '_blank');
+				if (!data || !data.ok) {
+					$('#feeShareStatus').text((data && data.error) ? data.error : 'Could not prepare receipt details.');
+					return;
 				}
-				var why = (sent && sent.error) ? sent.error + ' ' : '';
-				$status.text(why + 'The receipt downloaded. Attach that file in the WhatsApp chat and keep the message below.');
+				feeShareCurrentData = data;
+				$('#feeShareStatus').text('');
+				$('#feeSharePdf, #feeShareImage').prop('disabled', false);
+
+				var phones = data.phones || (data.phone ? [data.phone] : []);
+				var $wrap = $('#feeSharePhoneWrap').empty();
+				if (phones && phones.length > 0) {
+					feeShareSelectedPhone = phones[0];
+					if (phones.length === 1) {
+						$wrap.append($('<span>', {
+							style: 'font-family:monospace;font-size:14px;font-weight:700;color:#0f5c4c;',
+							text: '+' + phones[0] + (data.guardian ? ' (' + data.guardian + ')' : '')
+						}));
+					} else {
+						phones.forEach(function (ph, idx) {
+							var $btn = $('<button>', {
+								type: 'button',
+								class: 'btn btn-xs fee-phone-btn ' + (idx === 0 ? 'btn-primary' : 'btn-default'),
+								style: 'font-family:monospace;font-weight:600;margin-right:6px;',
+								text: '+' + ph,
+								'data-phone': ph
+							}).on('click', function () {
+								feeShareSelectPhone($(this).data('phone'));
+							});
+							$wrap.append($btn);
+						});
+					}
+					feeShareSelectPhone(feeShareSelectedPhone);
+					$('#feeShareDirectWa').css('opacity', '1').css('pointer-events', 'auto');
+				} else {
+					$wrap.html('<span style="color:#c9302c;font-size:13px;"><i class="fas fa-exclamation-triangle"></i> No parent phone registered for this student.</span>');
+					if (data.message) {
+						var fallbackWa = feeShareBuildWaLink('', data.message);
+						$('#feeShareDirectWa').attr('href', fallbackWa).css('opacity', '1').css('pointer-events', 'auto');
+					}
+				}
+
+				if (data.message) {
+					$('#feeShareMessage').text(data.message);
+					$('#feeShareMessageWrap').show();
+				}
 			},
 			error: function () {
-				feeShareDownload(data);
-				if (data.whatsapp) {
-					window.open(data.whatsapp, '_blank');
-				}
-				$status.text('The receipt downloaded. Attach that file in the WhatsApp chat and keep the message below.');
+				$('#feeShareStatus').text('Could not connect to fetch receipt details.');
 			}
 		});
 	}
+
 	function feeShareSend(format) {
 		var $status = $('#feeShareStatus');
-		$status.text('Preparing the receipt…');
+		$status.text('Generating ' + format.toUpperCase() + ' receipt…');
 		$('#feeSharePdf, #feeShareImage').prop('disabled', true);
 		$.ajax({
 			url: base_url + 'fees/receipt_share',
@@ -749,7 +838,8 @@ if (moduleIsEnabled('transport')) {
 			data: {
 				enroll_id: studentID,
 				format: format,
-				payment_ids: feeShareIds
+				payment_ids: feeShareIds,
+				phone: feeShareSelectedPhone
 			},
 			success: function (data) {
 				if (data && data.status === 'access_denied') {
@@ -760,24 +850,14 @@ if (moduleIsEnabled('transport')) {
 					$status.text((data && data.error) ? data.error : 'The receipt could not be prepared.');
 					return;
 				}
-				if (data.message) {
-					$('#feeShareMessage').text(data.message).show();
+				feeShareDownload(data);
+				var target = feeShareSelectedPhone || data.phone;
+				if (data.whatsapp) {
+					window.open(data.whatsapp, '_blank');
+					$status.html('Receipt downloaded! WhatsApp chat opened' + (target ? ' for <strong>+' + target + '</strong>' : '') + '. You can now attach the downloaded file in the WhatsApp chat.');
+				} else {
+					$status.text('Receipt slip downloaded.');
 				}
-				var file = new File([feeShareBytes(data.file)], data.filename, { type: data.mime });
-				if (navigator.canShare && navigator.canShare({ files: [file] })) {
-					$status.text('Opening share. Choose WhatsApp so the receipt stays attached with the message.');
-					navigator.share({ files: [file], text: data.message, title: 'Fee receipt' }).then(function () {
-						$status.text('If the caption is empty in WhatsApp, paste the message below.');
-					}).catch(function (err) {
-						if (err && err.name === 'AbortError') {
-							$status.text('Share cancelled. The message is below if you still want to send it.');
-							return;
-						}
-						feeShareCloud(data, format);
-					});
-					return;
-				}
-				feeShareCloud(data, format);
 			},
 			error: function () {
 				$status.text('The receipt could not be prepared.');
@@ -787,6 +867,7 @@ if (moduleIsEnabled('transport')) {
 			}
 		});
 	}
+
 	$('#feeShareOpen').on('click', function () {
 		feeShareAsk('');
 	});
@@ -803,7 +884,23 @@ if (moduleIsEnabled('transport')) {
 	});
 	$('#feeSharePdf').on('click', function () { feeShareSend('pdf'); });
 	$('#feeShareImage').on('click', function () { feeShareSend('image'); });
-	$('#feeShareClose').on('click', function () { $('#feeShareModal').hide(); });
+	$('#feeShareClose, #feeShareCloseTop').on('click', function () { $('#feeShareModal').hide(); });
+	$('#feeShareCopyMsg').on('click', function () {
+		var text = $('#feeShareMessage').text();
+		if (navigator.clipboard && navigator.clipboard.writeText) {
+			navigator.clipboard.writeText(text).then(function () {
+				alert('Receipt message copied to clipboard!');
+			});
+		} else {
+			var $temp = $('<textarea>');
+			$('body').append($temp);
+			$temp.val(text).select();
+			document.execCommand('copy');
+			$temp.remove();
+			alert('Receipt message copied to clipboard!');
+		}
+	});
+
 	if (feeWaOpen) {
 		feeShareAsk(feeWaOpen);
 	}

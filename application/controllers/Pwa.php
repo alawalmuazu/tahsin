@@ -23,16 +23,15 @@ class Pwa extends CI_Controller
         }
 
         $base = rtrim(base_url(), '/') . '/';
-        $portal = $base . 'portal/';
         $short = (mb_strlen($name) > 12) ? 'Tahsin' : $name;
 
         $manifest = [
-            'id'               => $portal,
+            'id'               => $base . '?app=main',
             'name'             => $name,
             'short_name'       => $short,
             'description'      => $name . ' — portal for facilitators, parents, and students.',
-            'start_url'        => $portal,
-            'scope'            => $portal,
+            'start_url'        => $base,
+            'scope'            => $base,
             'display'          => 'standalone',
             'orientation'      => 'any',
             'background_color' => '#10241e',

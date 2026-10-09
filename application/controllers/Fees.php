@@ -572,6 +572,24 @@ class Fees extends Admin_Controller
         if (moduleIsEnabled('transport')) {
             $this->data['transport_fees'] = $this->fees_model->getStudentTransportFees($enrollID, $basic['stoppage_point_id']);
         }
+        $extra = '';
+        if ($this->db->field_exists('extra_phones', 'parent')) {
+            $parent = $this->db->select('p.extra_phones')
+                ->from('enroll e')
+                ->join('student s', 's.id = e.student_id', 'inner')
+                ->join('parent p', 'p.id = s.parent_id', 'left')
+                ->where('e.id', (int) $enrollID)
+                ->get()->row();
+            if ($parent && !empty($parent->extra_phones)) {
+                $extra = $parent->extra_phones;
+            }
+        }
+        $this->load->model('academy_model');
+        $this->data['parent_phones'] = $this->academy_model->parentPhoneList(
+            isset($basic['guardian_mobile']) ? $basic['guardian_mobile'] : '',
+            $extra,
+            isset($basic['mobileno']) ? $basic['mobileno'] : ''
+        );
         $this->data['invoice'] = $this->fees_model->getInvoiceStatus($enrollID);
         $this->data['basic'] = $basic;
         $this->data['title'] = translate('invoice_history');
@@ -1542,7 +1560,10 @@ class Fees extends Admin_Controller
             ajax_access_denied();
         }
         $enrollId = (int) $this->input->post('enroll_id');
-        $format = $this->input->post('format') === 'image' ? 'image' : 'pdf';
+        $format = (string) $this->input->post('format');
+        if (!in_array($format, array('image', 'pdf', 'summary'), true)) {
+            $format = 'pdf';
+        }
         $deliver = $this->input->post('deliver') === 'whatsapp';
         $onlyIds = $this->receiptIdList($this->input->post('payment_ids'));
         $basic = $this->fees_model->getInvoiceBasic($enrollId);
@@ -1556,6 +1577,38 @@ class Fees extends Admin_Controller
             return;
         }
         $pack = $this->receiptPack($basic, $rows);
+
+        $selectedPhone = trim((string) $this->input->post('phone'));
+        $targetPhone = $pack['phone'];
+        if ($selectedPhone !== '') {
+            $this->load->model('academy_model');
+            $norm = $this->academy_model->parentPhoneList($selectedPhone);
+            if (!empty($norm)) {
+                $targetPhone = $norm[0];
+            }
+        }
+
+        $link = '';
+        if ($targetPhone !== '') {
+            $link = 'https://api.whatsapp.com/send?phone=' . rawurlencode($targetPhone) . '&text=' . rawurlencode($pack['message']);
+        }
+
+        if ($format === 'summary') {
+            $this->receiptJson(array(
+                'ok' => true,
+                'phone' => $targetPhone,
+                'phones' => isset($pack['phones']) ? $pack['phones'] : (!empty($pack['phone']) ? array($pack['phone']) : array()),
+                'guardian' => isset($pack['guardian']) ? $pack['guardian'] : '',
+                'student' => isset($pack['student']) ? $pack['student'] : '',
+                'message' => $pack['message'],
+                'whatsapp' => $link,
+                'filename' => '',
+                'mime' => '',
+                'file' => '',
+            ));
+            return;
+        }
+
         try {
             if ($format === 'image') {
                 $binary = $this->receiptImage($pack);
@@ -1582,23 +1635,22 @@ class Fees extends Admin_Controller
         $sent = false;
         $sendError = '';
         if ($deliver) {
-            if ($pack['phone'] === '') {
+            if ($targetPhone === '') {
                 $sendError = 'Add a parent phone number before sending from the school WhatsApp.';
             } else {
-                $sentResult = $this->receiptSendCloud($pack['phone'], $format, $filename, $binary, $pack['message']);
+                $sentResult = $this->receiptSendCloud($targetPhone, $format, $filename, $binary, $pack['message']);
                 $sent = !empty($sentResult['ok']);
                 $sendError = $sent ? '' : (isset($sentResult['error']) ? $sentResult['error'] : 'WhatsApp could not send the receipt.');
             }
-        }
-        $link = '';
-        if ($pack['phone'] !== '') {
-            $link = 'https://api.whatsapp.com/send?phone=' . rawurlencode($pack['phone']) . '&text=' . rawurlencode($pack['message']);
         }
         $this->receiptJson(array(
             'ok' => true,
             'sent' => $sent,
             'error' => $sendError,
-            'phone' => $pack['phone'],
+            'phone' => $targetPhone,
+            'phones' => isset($pack['phones']) ? $pack['phones'] : (!empty($pack['phone']) ? array($pack['phone']) : array()),
+            'guardian' => isset($pack['guardian']) ? $pack['guardian'] : '',
+            'student' => isset($pack['student']) ? $pack['student'] : '',
             'message' => $pack['message'],
             'whatsapp' => $link,
             'filename' => $filename,
@@ -1804,6 +1856,7 @@ class Fees extends Admin_Controller
             'balance' => $balance,
             'balance_text' => $balanceText,
             'message' => $message,
+            'phones' => $phones,
             'phone' => !empty($phones) ? (string) $phones[0] : '',
         );
     }
