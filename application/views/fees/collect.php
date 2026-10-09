@@ -839,7 +839,8 @@ if (moduleIsEnabled('transport')) {
 				enroll_id: studentID,
 				format: format,
 				payment_ids: feeShareIds,
-				phone: feeShareSelectedPhone
+				phone: feeShareSelectedPhone,
+				deliver: 'whatsapp'
 			},
 			success: function (data) {
 				if (data && data.status === 'access_denied') {
@@ -852,9 +853,11 @@ if (moduleIsEnabled('transport')) {
 				}
 				feeShareDownload(data);
 				var target = feeShareSelectedPhone || data.phone;
-				if (data.whatsapp) {
+				if (data.sent) {
+					$status.html('<span style="color:green;"><i class="fas fa-check-circle"></i> Receipt successfully attached and sent to WhatsApp for <strong>+' + target + '</strong>!</span>');
+				} else if (data.whatsapp) {
 					window.open(data.whatsapp, '_blank');
-					$status.html('Receipt downloaded! WhatsApp chat opened' + (target ? ' for <strong>+' + target + '</strong>' : '') + '. You can now attach the downloaded file in the WhatsApp chat.');
+					$status.html('Receipt downloaded! WhatsApp chat opened' + (target ? ' for <strong>+' + target + '</strong>' : '') + '. You can now attach the downloaded file in the WhatsApp chat.' + (data.error ? '<br><span style="color:#c9302c;">(Auto-send failed: ' + data.error + ')</span>' : ''));
 				} else {
 					$status.text('Receipt slip downloaded.');
 				}
