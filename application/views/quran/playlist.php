@@ -27,7 +27,7 @@ window.__quranStudent = <?php echo json_encode($install['student_name']); ?>;
 window.__quranSchool = <?php echo json_encode($install['school_name']); ?>;
 window.__quranLogo = <?php echo json_encode($install['school_logo']); ?>;
 window.__quranPhoto = <?php echo json_encode($install['photo']); ?>;
-window.__quranStart = <?php echo json_encode(site_url('quran/' . $token)); ?>;
+window.__quranStart = <?php echo json_encode(site_url('quran/' . $token . '/')); ?>;
 window.__quranManifest = <?php echo json_encode($manifest); ?>;
 function quranIsStandalone() {
 	return (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) || window.navigator.standalone === true;
@@ -52,7 +52,7 @@ function quranClearInstalled() {
 })();
 (function () {
 	if (quranIsStandalone()) {
-		quranMarkInstalled();
+		document.documentElement.classList.add('quran-installed');
 		return;
 	}
 	try {

@@ -2256,19 +2256,12 @@ class Academy_model extends MY_Model
         $full = trim($student->first_name . ' ' . $student->last_name);
         $empty['student_name'] = $full !== '' ? $full : 'Student';
         $empty['photo'] = get_image_url('student', $student->photo);
-        $children = 1;
-        if (!empty($student->parent_id)) {
-            $children = (int) $this->db->where('parent_id', (int) $student->parent_id)->count_all_results('student');
-        }
         $first = trim((string) $student->first_name);
-        if ($children <= 1 || $first === '') {
-            return $empty;
-        }
+        $who = $first !== '' ? $first : 'Student';
         $sameFirst = 1;
         if (!empty($student->parent_id)) {
             $sameFirst = (int) $this->db->where('parent_id', (int) $student->parent_id)->where('first_name', $student->first_name)->count_all_results('student');
         }
-        $who = $first;
         if ($sameFirst > 1 && trim((string) $student->last_name) !== '') {
             $who .= ' ' . mb_substr(trim($student->last_name), 0, 1);
         }
@@ -2491,7 +2484,7 @@ class Academy_model extends MY_Model
                 'name' => $name !== '' ? $name : 'Student',
                 'photo' => get_image_url('student', $row->photo),
                 'class_name' => $row->class_name ? $row->class_name : '',
-                'url' => site_url('quran/' . $token),
+                'url' => site_url('quran/' . $token . '/'),
             );
         }
         return $out;
