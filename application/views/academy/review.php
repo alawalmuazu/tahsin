@@ -30,7 +30,7 @@ $labels = array(
 					<table class="table table-bordered table-striped">
 						<thead>
 							<tr>
-								<th>Date</th>
+								<th>Date & Time</th>
 								<th>Teacher</th>
 								<th>Group</th>
 								<th>Category</th>
@@ -43,7 +43,17 @@ $labels = array(
 						<tbody>
 						<?php foreach ($sessions as $row): ?>
 							<tr>
-								<td><?php echo html_escape($row->session_date); ?></td>
+								<td>
+									<div><strong><?php echo html_escape($row->session_date); ?></strong></div>
+									<?php
+									$rawTime = !empty($row->submitted_at) ? $row->submitted_at : (!empty($row->created_at) ? $row->created_at : (!empty($row->updated_at) ? $row->updated_at : ''));
+									if ($rawTime && strtotime($rawTime) > 0):
+									?>
+										<div class="text-muted" style="font-size:11.5px;margin-top:2px;white-space:nowrap;">
+											<i class="far fa-clock"></i> <?php echo date('h:i A', strtotime($rawTime)); ?>
+										</div>
+									<?php endif; ?>
+								</td>
 								<td><?php echo html_escape($row->teacher_name); ?></td>
 								<td><?php echo !empty($row->group_name) ? html_escape($row->group_name) : '<span class="text-muted">All assigned</span>'; ?></td>
 								<td><?php
@@ -54,8 +64,20 @@ $labels = array(
 								<td><?php echo (int) $row->recorded_count; ?> / <?php echo (int) $row->student_total; ?></td>
 								<td><?php echo html_escape(isset($labels[$row->status]) ? $labels[$row->status] : $row->status); ?></td>
 								<td>
-									<?php if ($row->director_note): ?><div><strong>Director:</strong> <?php echo html_escape($row->director_note); ?></div><?php endif; ?>
-									<?php if ($row->admin_note): ?><div><strong>Admin:</strong> <?php echo html_escape($row->admin_note); ?></div><?php endif; ?>
+									<?php if ($row->director_note): ?>
+										<div><strong>Director:</strong> <?php echo html_escape($row->director_note); ?>
+											<?php if (!empty($row->director_at) && strtotime($row->director_at) > 0): ?>
+												<span class="text-muted" style="font-size:11px;">(<?php echo date('h:i A', strtotime($row->director_at)); ?>)</span>
+											<?php endif; ?>
+										</div>
+									<?php endif; ?>
+									<?php if ($row->admin_note): ?>
+										<div><strong>Admin:</strong> <?php echo html_escape($row->admin_note); ?>
+											<?php if (!empty($row->admin_at) && strtotime($row->admin_at) > 0): ?>
+												<span class="text-muted" style="font-size:11px;">(<?php echo date('h:i A', strtotime($row->admin_at)); ?>)</span>
+											<?php endif; ?>
+										</div>
+									<?php endif; ?>
 								</td>
 								<td style="min-width:220px">
 									<?php
