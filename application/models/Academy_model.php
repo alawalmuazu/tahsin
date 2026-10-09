@@ -1157,6 +1157,150 @@ class Academy_model extends MY_Model
     }
 
     /**
+     * Facilitator & Teacher Leaderboard: sessions verified, listening time, students guided.
+     *
+     * @param int $branch_id
+     * @param int $limit
+     * @return array
+     */
+    public function facilitatorLeaderboard($branch_id, $limit = 5)
+    {
+        if (!$this->tahfizReady()) {
+            return array('sessions' => array(), 'listening' => array(), 'students' => array());
+        }
+
+        $branchSql = '';
+        if ((int) $branch_id > 0) {
+            $b = (int) $branch_id;
+            $branchSql = " AND (s.branch_id = {$b} OR tr.branch_id = {$b})";
+        }
+
+        $sql = "
+            SELECT 
+                s.id,
+                s.name,
+                s.photo,
+                COALESCE(NULLIF(sd.name, ''), NULLIF(r.name, ''), 'Facilitator') AS designation_name,
+                COUNT(tr.id) AS sessions_count,
+                COALESCE(SUM(tr.recitation_seconds), 0) AS total_seconds,
+                COUNT(DISTINCT tr.student_id) AS students_count,
+                ROUND(AVG(NULLIF(tr.accuracy_score, 0)), 1) AS avg_accuracy,
+                MAX(tr.completed_at) AS last_active_at
+            FROM staff s
+            LEFT JOIN login_credential lc ON lc.user_id = s.id AND lc.role NOT IN (6, 7)
+            LEFT JOIN roles r ON r.id = lc.role
+            LEFT JOIN staff_designation sd ON sd.id = s.designation
+            LEFT JOIN academy_tahfiz_record tr ON tr.instructor_id = s.id
+            WHERE 1=1 {$branchSql}
+              AND (
+                lc.role IN (3, 15)
+                OR LOWER(COALESCE(sd.name, '')) LIKE '%facilitator%'
+                OR LOWER(COALESCE(sd.name, '')) LIKE '%teacher%'
+                OR LOWER(COALESCE(sd.name, '')) LIKE '%ustaz%'
+                OR tr.id IS NOT NULL
+              )
+            GROUP BY s.id, s.name, s.photo, sd.name, r.name
+        ";
+
+        $rows = $this->db->query($sql)->result_array();
+        if (empty($rows)) {
+            return array('sessions' => array(), 'listening' => array(), 'students' => array());
+        }
+
+        $normalized = array();
+        foreach ($rows as $r) {
+            $secs = (int) $r['total_seconds'];
+            $normalized[] = array(
+                'id' => (int) $r['id'],
+                'name' => trim((string) $r['name']),
+                'photo' => (string) $r['photo'],
+                'photo_url' => get_image_url('staff', $r['photo']),
+                'designation' => trim((string) $r['designation_name']),
+                'sessions_count' => (int) $r['sessions_count'],
+                'total_seconds' => $secs,
+                'duration_label' => $this->formatDuration($secs),
+                'students_count' => (int) $r['students_count'],
+                'avg_accuracy' => $r['avg_accuracy'] !== null ? (float) $r['avg_accuracy'] : null,
+                'last_active_at' => $r['last_active_at'],
+            );
+        }
+
+        $bySessions = $normalized;
+        usort($bySessions, function ($a, $b) {
+            $d = $b['sessions_count'] - $a['sessions_count'];
+            if ($d !== 0) return $d;
+            $d = $b['total_seconds'] - $a['total_seconds'];
+            if ($d !== 0) return $d;
+            return $b['students_count'] - $a['students_count'];
+        });
+
+        $byListening = $normalized;
+        usort($byListening, function ($a, $b) {
+            $d = $b['total_seconds'] - $a['total_seconds'];
+            if ($d !== 0) return $d;
+            $d = $b['sessions_count'] - $a['sessions_count'];
+            if ($d !== 0) return $d;
+            return $b['students_count'] - $a['students_count'];
+        });
+
+        $byStudents = $normalized;
+        usort($byStudents, function ($a, $b) {
+            $d = $b['students_count'] - $a['students_count'];
+            if ($d !== 0) return $d;
+            $d = $b['sessions_count'] - $a['sessions_count'];
+            if ($d !== 0) return $d;
+            return $b['total_seconds'] - $a['total_seconds'];
+        });
+
+        $that = $this;
+        $buildSlice = function ($list, $limit, $mode) use ($that) {
+            $slice = array_slice($list, 0, $limit);
+            $out = array();
+            $rank = 1;
+            foreach ($slice as $item) {
+                $sub = $item['designation'];
+                if ($mode === 'sessions') {
+                    $scoreLabel = $item['sessions_count'] . ' session' . ($item['sessions_count'] === 1 ? '' : 's');
+                    if ($item['avg_accuracy'] !== null && $item['avg_accuracy'] > 0) {
+                        $sub .= ' · 🎯 ' . $item['avg_accuracy'] . '% Accuracy';
+                    } elseif ($item['students_count'] > 0) {
+                        $sub .= ' · ' . $item['students_count'] . ' student' . ($item['students_count'] === 1 ? '' : 's');
+                    }
+                } elseif ($mode === 'listening') {
+                    $scoreLabel = $item['duration_label'] . ' listened';
+                    $sub .= ' · ' . $item['sessions_count'] . ' session' . ($item['sessions_count'] === 1 ? '' : 's');
+                } else {
+                    $scoreLabel = $item['students_count'] . ' student' . ($item['students_count'] === 1 ? '' : 's');
+                    $sub .= ' · ' . $item['sessions_count'] . ' session' . ($item['sessions_count'] === 1 ? '' : 's');
+                }
+
+                $out[] = array(
+                    'rank' => $rank++,
+                    'id' => $item['id'],
+                    'name' => $item['name'],
+                    'photo' => $item['photo'],
+                    'photo_url' => $item['photo_url'],
+                    'designation' => $item['designation'],
+                    'sub_label' => $sub,
+                    'score_label' => $scoreLabel,
+                    'sessions_count' => $item['sessions_count'],
+                    'total_seconds' => $item['total_seconds'],
+                    'duration_label' => $item['duration_label'],
+                    'students_count' => $item['students_count'],
+                    'avg_accuracy' => $item['avg_accuracy'],
+                );
+            }
+            return $out;
+        };
+
+        return array(
+            'sessions' => $buildSlice($bySessions, $limit, 'sessions'),
+            'listening' => $buildSlice($byListening, $limit, 'listening'),
+            'students' => $buildSlice($byStudents, $limit, 'students'),
+        );
+    }
+
+    /**
      * Human label for a tahfiz row, e.g. "Al-Fatihah (Ayah 2)" or "Al-Baqarah (Full Surah)".
      */
     public function formatTahfizMilestoneLabel($row)

@@ -270,6 +270,7 @@ class Academy_students extends Admin_Controller
         $featured = array_slice($roster, 0, 8);
         $activity_kpis = $this->academy_model->cohortActivityKpis($roster);
         $leaderboard = $this->academy_model->cohortLeaderboard($roster, 5);
+        $facilitator_leaderboard = $this->academy_model->facilitatorLeaderboard($branchID, 5);
 
         $rosterPayload = array();
         foreach ($roster as $st) {
@@ -325,6 +326,11 @@ class Academy_students extends Admin_Controller
         $this->data['leaderboard'] = $leaderboard;
         $this->data['leaderboard_json'] = json_encode(
             $leaderboard,
+            JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_UNICODE
+        );
+        $this->data['facilitator_leaderboard'] = $facilitator_leaderboard;
+        $this->data['facilitator_leaderboard_json'] = json_encode(
+            $facilitator_leaderboard,
             JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_UNICODE
         );
         $this->data['surahs'] = $this->academy_model->surahList();

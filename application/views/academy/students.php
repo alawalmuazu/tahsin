@@ -36,23 +36,32 @@
 .academy-period-tabs button.active{background:#0284c7;border-color:#0284c7;color:#fff}
 .academy-p1-row{display:grid;grid-template-columns:1.4fr 1fr;gap:1rem;margin-bottom:1.5rem}
 @media (max-width:900px){.academy-p1-row{grid-template-columns:1fr}}
-.academy-lb-card{background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:1rem}
+.academy-lb-card{background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:1rem;position:relative}
 .academy-lb-head{display:flex;justify-content:space-between;align-items:center;gap:.5rem;flex-wrap:wrap;margin-bottom:.75rem}
-.academy-lb-head h5{margin:0;font-weight:700;font-size:.95rem}
+.academy-lb-title-wrap{display:flex;align-items:center;gap:.6rem;flex-wrap:wrap}
+.academy-lb-head h5{margin:0;font-weight:700;font-size:.95rem;display:flex;align-items:center;gap:.35rem}
+.academy-lb-toggle{display:inline-flex;background:#f1f5f9;border-radius:20px;padding:2px;gap:2px;border:1px solid #e2e8f0}
+.academy-lb-toggle button{border:0;background:transparent;color:#64748b;border-radius:18px;padding:3px 10px;font-size:.68rem;font-weight:700;cursor:pointer;transition:all .15s ease}
+.academy-lb-toggle button.active{background:#fff;color:#0f172a;box-shadow:0 1px 3px rgba(0,0,0,.08)}
 .academy-lb-tabs{display:inline-flex;gap:.3rem}
-.academy-lb-tabs button{border:1px solid #e2e8f0;background:#f8fafc;color:#64748b;border-radius:8px;padding:4px 10px;font-size:.7rem;font-weight:700;cursor:pointer}
+.academy-lb-tabs button{border:1px solid #e2e8f0;background:#f8fafc;color:#64748b;border-radius:8px;padding:4px 10px;font-size:.7rem;font-weight:700;cursor:pointer;transition:all .15s ease}
 .academy-lb-tabs button.active{background:#0f172a;border-color:#0f172a;color:#fff}
 .academy-lb-list{list-style:none;margin:0;padding:0}
 .academy-lb-list li{display:flex;align-items:center;gap:.65rem;padding:.55rem 0;border-top:1px solid #f1f5f9}
 .academy-lb-list li:first-child{border-top:0;padding-top:0}
 .academy-lb-rank{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.75rem;font-weight:800;background:#f1f5f9;color:#475569;flex-shrink:0}
-.academy-lb-rank.gold{background:#fef3c7;color:#b45309}
-.academy-lb-rank.silver{background:#e2e8f0;color:#475569}
-.academy-lb-rank.bronze{background:#ffedd5;color:#c2410c}
+.academy-lb-rank.gold{background:#fef3c7;color:#b45309;box-shadow:0 0 0 2px #fde68a}
+.academy-lb-rank.silver{background:#f1f5f9;color:#475569;box-shadow:0 0 0 2px #e2e8f0}
+.academy-lb-rank.bronze{background:#ffedd5;color:#c2410c;box-shadow:0 0 0 2px #fed7aa}
 .academy-lb-meta{min-width:0;flex:1}
 .academy-lb-name{font-weight:700;font-size:.88rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .academy-lb-sub{font-size:.7rem;color:#94a3b8}
 .academy-lb-score{font-weight:800;font-size:.85rem;color:#0284c7;white-space:nowrap}
+@media (max-width:600px){
+	.academy-lb-head{flex-direction:column;align-items:stretch;gap:.6rem}
+	.academy-lb-title-wrap{justify-content:space-between}
+	.academy-lb-tabs{overflow-x:auto;padding-bottom:2px}
+}
 .academy-card-goal{margin-top:.65rem;padding:.45rem .55rem;border-radius:8px;background:#eff6ff;border:1px solid #bfdbfe;color:#1d4ed8;font-size:.72rem;font-weight:700;line-height:1.3}
 .academy-card-goal span{font-weight:600;color:#64748b}
 .academy-hub-header .btn{display:inline-flex;align-items:center;gap:.4rem}
@@ -131,7 +140,13 @@
 	</div>
 	<div class="academy-lb-card">
 		<div class="academy-lb-head">
-			<h5>🏆 Leaderboard</h5>
+			<div class="academy-lb-title-wrap">
+				<h5 id="academy_lb_title">🏆 Leaderboard</h5>
+				<div class="academy-lb-toggle" id="academy_lb_entity_toggle">
+					<button type="button" class="active" data-entity="students" title="Student Rankings">🎓 Students</button>
+					<button type="button" data-entity="facilitators" title="Facilitator &amp; Teacher Rankings">👨‍🏫 Facilitators</button>
+				</div>
+			</div>
 			<div class="academy-lb-tabs" id="academy_lb_tabs">
 				<button type="button" class="active" data-lb="engagement">Engagement</button>
 				<button type="button" data-lb="completions">Completions</button>
@@ -425,6 +440,7 @@ $this->load->view('academy/_log_surah_modal', array(
 <script>
 window.ACADEMY_ACTIVITY_KPIS = <?php echo isset($activity_kpis_json) ? $activity_kpis_json : '{}'; ?>;
 window.ACADEMY_LEADERBOARD = <?php echo isset($leaderboard_json) ? $leaderboard_json : '{}'; ?>;
+window.ACADEMY_FACILITATOR_LEADERBOARD = <?php echo isset($facilitator_leaderboard_json) ? $facilitator_leaderboard_json : '{}'; ?>;
 
 (function () {
 	var kpis = window.ACADEMY_ACTIVITY_KPIS || {};
@@ -454,10 +470,34 @@ window.ACADEMY_LEADERBOARD = <?php echo isset($leaderboard_json) ? $leaderboard_
 })();
 
 (function () {
-	var lb = window.ACADEMY_LEADERBOARD || {};
+	var studentLb = window.ACADEMY_LEADERBOARD || {};
+	var facilitatorLb = window.ACADEMY_FACILITATOR_LEADERBOARD || {};
+	var entityToggle = document.getElementById('academy_lb_entity_toggle');
 	var tabs = document.getElementById('academy_lb_tabs');
 	var list = document.getElementById('academy_lb_list');
 	if (!tabs || !list) return;
+
+	var currentEntity = 'students';
+	try {
+		var saved = localStorage.getItem('tahsin_academy_lb_entity');
+		if (saved === 'students' || saved === 'facilitators') {
+			currentEntity = saved;
+		}
+	} catch (e) {}
+
+	var currentCategory = currentEntity === 'students' ? 'engagement' : 'sessions';
+
+	var categoryDefs = {
+		students: [
+			{ key: 'engagement', label: 'Engagement' },
+			{ key: 'completions', label: 'Completions' }
+		],
+		facilitators: [
+			{ key: 'sessions', label: 'Sessions' },
+			{ key: 'listening', label: 'Listening Time' },
+			{ key: 'students', label: 'Guided' }
+		]
+	};
 
 	function esc(s) {
 		return String(s == null ? '' : s)
@@ -465,16 +505,54 @@ window.ACADEMY_LEADERBOARD = <?php echo isset($leaderboard_json) ? $leaderboard_
 			.replace(/"/g, '&quot;');
 	}
 
-	function paint(mode) {
-		var rows = lb[mode] || [];
-		if (!rows.length) {
-			list.innerHTML = '<li class="text-muted" style="justify-content:center;padding:.75rem 0">No rankings yet — log a recitation.</li>';
+	function renderTabs() {
+		var defs = categoryDefs[currentEntity] || categoryDefs.students;
+		var validKeys = defs.map(function (d) { return d.key; });
+		if (validKeys.indexOf(currentCategory) === -1) {
+			currentCategory = defs[0].key;
+		}
+
+		tabs.innerHTML = defs.map(function (d) {
+			var activeClass = d.key === currentCategory ? ' class="active"' : '';
+			return '<button type="button"' + activeClass + ' data-lb="' + d.key + '">' + esc(d.label) + '</button>';
+		}).join('');
+
+		tabs.querySelectorAll('button').forEach(function (btn) {
+			btn.addEventListener('click', function () {
+				tabs.querySelectorAll('button').forEach(function (b) { b.classList.remove('active'); });
+				btn.classList.add('active');
+				currentCategory = btn.getAttribute('data-lb') || 'engagement';
+				paint();
+			});
+		});
+	}
+
+	function paint() {
+		var rows = [];
+		var emptyMsg = 'No rankings yet — log a recitation.';
+		if (currentEntity === 'students') {
+			rows = studentLb[currentCategory] || [];
+			emptyMsg = 'No student rankings yet — log a recitation.';
+		} else {
+			rows = facilitatorLb[currentCategory] || [];
+			emptyMsg = 'No facilitator rankings yet — verify recitations in halaqah.';
+		}
+
+		if (!rows || !rows.length) {
+			list.innerHTML = '<li class="text-muted" style="justify-content:center;padding:.75rem 0">' + emptyMsg + '</li>';
 			return;
 		}
+
 		list.innerHTML = rows.map(function (row) {
 			var rankClass = row.rank === 1 ? 'gold' : (row.rank === 2 ? 'silver' : (row.rank === 3 ? 'bronze' : ''));
-			var sub = esc(row.class_level || '');
-			if (row.today_goal) sub += ' · 🎯 ' + esc(row.today_goal);
+			var sub = '';
+			if (currentEntity === 'students') {
+				sub = esc(row.class_level || '');
+				if (row.today_goal) sub += ' · 🎯 ' + esc(row.today_goal);
+			} else {
+				sub = esc(row.sub_label || row.designation || 'Facilitator');
+			}
+
 			return '<li>' +
 				'<div class="academy-lb-rank ' + rankClass + '">' + row.rank + '</div>' +
 				'<div class="academy-lb-meta">' +
@@ -486,13 +564,38 @@ window.ACADEMY_LEADERBOARD = <?php echo isset($leaderboard_json) ? $leaderboard_
 		}).join('');
 	}
 
-	tabs.querySelectorAll('button').forEach(function (btn) {
-		btn.addEventListener('click', function () {
-			tabs.querySelectorAll('button').forEach(function (b) { b.classList.remove('active'); });
-			btn.classList.add('active');
-			paint(btn.getAttribute('data-lb') || 'engagement');
+	function setEntity(entity) {
+		currentEntity = entity;
+		try { localStorage.setItem('tahsin_academy_lb_entity', entity); } catch (e) {}
+		if (entityToggle) {
+			entityToggle.querySelectorAll('button').forEach(function (b) {
+				if (b.getAttribute('data-entity') === entity) {
+					b.classList.add('active');
+				} else {
+					b.classList.remove('active');
+				}
+			});
+		}
+		currentCategory = entity === 'students' ? 'engagement' : 'sessions';
+		renderTabs();
+		paint();
+	}
+
+	if (entityToggle) {
+		entityToggle.querySelectorAll('button').forEach(function (btn) {
+			btn.addEventListener('click', function () {
+				var ent = btn.getAttribute('data-entity') || 'students';
+				setEntity(ent);
+			});
 		});
-	});
+	}
+
+	if (currentEntity !== 'students') {
+		setEntity(currentEntity);
+	} else {
+		renderTabs();
+		paint();
+	}
 })();
 
 (function () {
