@@ -22,6 +22,9 @@ class Dashboard extends Admin_Controller
 
     public function index()
     {
+        if (is_intern_loggedin()) {
+            redirect(base_url('employee/mentor'));
+        }
         if (is_student_loggedin() || is_parent_loggedin()) {
             $studentID = 0;
             if (is_student_loggedin()) {

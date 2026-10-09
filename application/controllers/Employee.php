@@ -40,6 +40,7 @@ class Employee extends Admin_Controller
         $this->form_validation->set_rules('joining_date', translate('joining_date'), 'trim|required');
         $this->form_validation->set_rules('qualification', translate('qualification'), 'callback_valid_qualification');
         $this->form_validation->set_rules('user_role', translate('role'), 'trim|required|callback_valid_role');
+        $this->form_validation->set_rules('mentor_id', translate('mentor'), 'callback_valid_mentor');
         if (isset($_POST['staff_id']) && !empty($_POST['username'])) {
             $this->form_validation->set_rules('username', translate('username'), 'trim|required|callback_unique_username');
         }
@@ -259,6 +260,63 @@ class Employee extends Admin_Controller
         }
     }
 
+
+    public function valid_mentor($id)
+    {
+        $internRole = role_id_by_prefix('intern');
+        if ($internRole < 1 || (int) $this->input->post('user_role') !== $internRole) {
+            return true;
+        }
+        if (!$this->db->field_exists('mentor_id', 'staff')) {
+            $this->form_validation->set_message('valid_mentor', 'Run application/migrations/intern_employee.sql first.');
+            return false;
+        }
+        $mentorId = (int) $id;
+        $staffId = (int) $this->input->post('staff_id');
+        if ($mentorId < 1 || $mentorId === $staffId) {
+            $this->form_validation->set_message('valid_mentor', 'Choose the facilitator who will mentor this intern.');
+            return false;
+        }
+        $facilitatorRole = role_id_by_prefix('facilitator', 3);
+        $mentor = $this->db->select('staff.id')
+            ->from('staff')
+            ->join('login_credential', 'login_credential.user_id = staff.id AND login_credential.role = ' . (int) $facilitatorRole, 'inner')
+            ->where('staff.id', $mentorId)
+            ->where('login_credential.active', 1)
+            ->get()
+            ->row();
+        if (!$mentor) {
+            $this->form_validation->set_message('valid_mentor', 'The mentor must be an active facilitator.');
+            return false;
+        }
+        return true;
+    }
+
+    public function my_interns()
+    {
+        if (!is_facilitator_loggedin() && !get_permission('employee', 'is_view')) {
+            access_denied();
+        }
+        $mentorId = is_facilitator_loggedin() ? (int) get_loggedin_user_id() : 0;
+        $this->data['interns'] = $this->employee_model->listInterns($mentorId);
+        $this->data['own_only'] = $mentorId > 0;
+        $this->data['title'] = translate('my_interns');
+        $this->data['sub_page'] = 'employee/my_interns';
+        $this->data['main_menu'] = 'academy';
+        $this->load->view('layout/index', $this->data);
+    }
+
+    public function mentor()
+    {
+        if (!is_intern_loggedin()) {
+            access_denied();
+        }
+        $this->data['mentor'] = $this->employee_model->mentorForStaff(get_loggedin_user_id());
+        $this->data['title'] = translate('my_mentor');
+        $this->data['sub_page'] = 'employee/mentor';
+        $this->data['main_menu'] = 'intern';
+        $this->load->view('layout/index', $this->data);
+    }
 
     public function valid_role($id)
     {

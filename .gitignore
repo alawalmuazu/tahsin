@@ -49,3 +49,17 @@ lh_audit.mjs
 # Academy proof recordings (keep folder marker only)
 uploads/academy_tahfiz/*
 !uploads/academy_tahfiz/index.html
+
+# User uploaded images
+uploads/images/student/*
+!uploads/images/student/index.html
+!uploads/images/student/.htaccess
+uploads/images/staff/*
+!uploads/images/staff/index.html
+uploads/images/parent/*
+!uploads/images/parent/index.html
+
+# Scratch and temp files
+*.tmp
+*.code-workspace
+

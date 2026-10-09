@@ -302,6 +302,41 @@ function is_teacher_loggedin()
     return is_facilitator_loggedin();
 }
 
+function role_id_by_prefix($prefix, $fallback = 0)
+{
+    static $cache = array();
+    $prefix = strtolower(trim((string) $prefix));
+    if (isset($cache[$prefix])) {
+        return $cache[$prefix];
+    }
+    $id = (int) $fallback;
+    $CI = &get_instance();
+    if (isset($CI->db) && $CI->db) {
+        $row = $CI->db->select('id')
+            ->from('roles')
+            ->group_start()
+                ->where('prefix', $prefix)
+                ->or_where('name', ucfirst($prefix))
+            ->group_end()
+            ->limit(1)
+            ->get()
+            ->row();
+        if ($row) {
+            $id = (int) $row->id;
+        }
+    }
+    $cache[$prefix] = $id;
+    return $id;
+}
+
+function is_intern_loggedin()
+{
+    $CI = &get_instance();
+    $roleId = (int) $CI->session->userdata('loggedin_role_id');
+    $internId = role_id_by_prefix('intern');
+    return $internId > 0 && $roleId === $internId;
+}
+
 // is director logged in @return boolean
 function is_director_loggedin()
 {

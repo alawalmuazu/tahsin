@@ -27,6 +27,9 @@
 							<th><?php echo translate('department'); ?></th>
 							<th><?php echo translate('email'); ?></th>
 							<th><?php echo translate('mobile_no'); ?></th>
+						<?php if ((int) $act_role === role_id_by_prefix('intern')): ?>
+							<th><?php echo translate('mentor'); ?></th>
+						<?php endif; ?>
 						<?php
 						if (!is_multi_school()){
 							$show_custom_fields = custom_form_table('employee', get_loggedin_branch_id());
@@ -51,6 +54,9 @@
 							<td><?php echo $row->department_name; ?></td>
 							<td><?php echo $row->email; ?></td>
 							<td><?php echo $row->mobileno; ?></td>
+						<?php if ((int) $act_role === role_id_by_prefix('intern')): ?>
+							<td><?php echo !empty($row->mentor_name) ? html_escape($row->mentor_name) : 'Not assigned'; ?></td>
+						<?php endif; ?>
 						<?php
 						if (!is_superadmin_loggedin()){
 							if (count($show_custom_fields)) {

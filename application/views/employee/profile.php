@@ -17,6 +17,9 @@
 			<div class="col-md-12 col-lg-5 col-xl-5">
 				<h5><?php echo $staff['name']; ?></h5>
 				<p><?php echo ucfirst($staff['role'])?> / <?php echo $staff['designation_name']; ?></p>
+				<?php if (!empty($staff['mentor_name'])): ?>
+					<p>Mentored by <?php echo html_escape($staff['mentor_name']); ?></p>
+				<?php endif; ?>
 				<ul>
 					<li><div class="icon-holder" data-toggle="tooltip" data-original-title="<?=translate('department')?>"><i class="fas fa-user-tie"></i></div> <?=(!empty($staff['department_name']) ? $staff['department_name'] : 'N/A'); ?></li>
 					<li><div class="icon-holder" data-toggle="tooltip" data-original-title="<?=translate('birthday')?>"><i class="fas fa-birthday-cake"></i></div> <?=_d($staff['birthday'])?></li>
@@ -72,7 +75,7 @@
 											<label class="control-label"><?=translate('role')?> <span class="required">*</span></label>
 											<?php
 												$role_list = $this->app_lib->getRoles();
-												echo form_dropdown("user_role", $role_list, set_value('user_role', $staff['role_id']), "class='form-control'
+												echo form_dropdown("user_role", $role_list, set_value('user_role', $staff['role_id']), "class='form-control' id='user_role'
 												data-plugin-selectTwo data-width='100%' data-minimum-results-for-search='Infinity' ");
 											?>
 											<span class="error"><?php echo form_error('user_role'); ?></span>
@@ -115,6 +118,7 @@
 										</div>
 									</div>
 								</div>
+								<?php $this->load->view('employee/_mentor_field', array('staff' => $staff)); ?>
 
 								<div class="row mb-lg">
 

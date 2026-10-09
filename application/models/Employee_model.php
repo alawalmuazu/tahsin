@@ -39,6 +39,13 @@ class Employee_model extends MY_Model
             'next_of_kin_phone' => isset($data['next_of_kin_phone']) ? $data['next_of_kin_phone'] : null,
             'next_of_kin_relation' => isset($data['next_of_kin_relation']) ? $data['next_of_kin_relation'] : null,
         );
+        if ($this->db->field_exists('mentor_id', 'staff')) {
+            $mentorId = 0;
+            if ((int) $data['user_role'] === role_id_by_prefix('intern')) {
+                $mentorId = isset($data['mentor_id']) ? (int) $data['mentor_id'] : 0;
+            }
+            $inser_data1['mentor_id'] = $mentorId > 0 ? $mentorId : null;
+        }
 
         $inser_data2 = array(
             'role' => $data["user_role"],
@@ -86,6 +93,10 @@ class Employee_model extends MY_Model
         $this->db->join('roles', 'roles.id = login_credential.role', 'left');
         $this->db->join('staff_designation', 'staff_designation.id = staff.designation', 'left');
         $this->db->join('staff_department', 'staff_department.id = staff.department', 'left');
+        if ($this->db->field_exists('mentor_id', 'staff')) {
+            $this->db->select('mentor.name as mentor_name');
+            $this->db->join('staff as mentor', 'mentor.id = staff.mentor_id', 'left');
+        }
         $this->db->where('staff.id', $id);
         if (!is_superadmin_loggedin()) {
             $this->db->where('staff.branch_id', get_loggedin_branch_id());
@@ -106,6 +117,10 @@ class Employee_model extends MY_Model
         $this->db->join('roles', 'roles.id = login_credential.role', 'left');
         $this->db->join('staff_designation', 'staff_designation.id = staff.designation', 'left');
         $this->db->join('staff_department', 'staff_department.id = staff.department', 'left');
+        if ($this->db->field_exists('mentor_id', 'staff')) {
+            $this->db->select('mentor.name as mentor_name');
+            $this->db->join('staff as mentor', 'mentor.id = staff.mentor_id', 'left');
+        }
         if ($branchID != "") {
             $this->db->where('staff.branch_id', $branchID);
         }
@@ -196,5 +211,61 @@ class Employee_model extends MY_Model
         $this->db->where('login_credential.active', 1);
         $this->db->order_by('staff.id', 'ASC');
         return $this->db->get()->result();
+    }
+
+    public function facilitatorOptions($branchId = '')
+    {
+        $roleId = role_id_by_prefix('facilitator', 3);
+        $this->db->select('staff.id, staff.name');
+        $this->db->from('staff');
+        $this->db->join('login_credential', 'login_credential.user_id = staff.id AND login_credential.role = ' . (int) $roleId, 'inner');
+        $this->db->where('login_credential.active', 1);
+        if ($branchId !== '' && $branchId !== null) {
+            $this->db->where('staff.branch_id', $branchId);
+        }
+        $this->db->order_by('staff.name', 'ASC');
+        $rows = $this->db->get()->result();
+        $options = array('' => translate('select'));
+        foreach ($rows as $row) {
+            $options[$row->id] = $row->name;
+        }
+        return $options;
+    }
+
+    public function listInterns($mentorId = 0)
+    {
+        if (!$this->db->field_exists('mentor_id', 'staff')) {
+            return array();
+        }
+        $roleId = role_id_by_prefix('intern');
+        if ($roleId < 1) {
+            return array();
+        }
+        $this->db->select('staff.id, staff.name, staff.mobileno, staff.email, staff.joining_date, staff.photo, staff_designation.name as designation_name, mentor.name as mentor_name');
+        $this->db->from('staff');
+        $this->db->join('login_credential', 'login_credential.user_id = staff.id AND login_credential.role = ' . (int) $roleId, 'inner');
+        $this->db->join('staff_designation', 'staff_designation.id = staff.designation', 'left');
+        $this->db->join('staff as mentor', 'mentor.id = staff.mentor_id', 'left');
+        $this->db->where('login_credential.active', 1);
+        if ((int) $mentorId > 0) {
+            $this->db->where('staff.mentor_id', (int) $mentorId);
+        }
+        $this->db->order_by('staff.name', 'ASC');
+        return $this->db->get()->result();
+    }
+
+    public function mentorForStaff($staffId)
+    {
+        if (!$this->db->field_exists('mentor_id', 'staff')) {
+            return null;
+        }
+        $row = $this->db->select('mentor_id')->where('id', (int) $staffId)->get('staff')->row();
+        if (!$row || empty($row->mentor_id)) {
+            return null;
+        }
+        return $this->db->select('id, name, mobileno, email, photo, designation')
+            ->where('id', (int) $row->mentor_id)
+            ->get('staff')
+            ->row();
     }
 }

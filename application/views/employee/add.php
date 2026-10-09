@@ -37,7 +37,7 @@
 								<label class="control-label"><?=translate('role')?> <span class="required">*</span></label>
 								<?php
 									$role_list = $this->app_lib->getRoles();
-									echo form_dropdown("user_role", $role_list, set_value('user_role'), "class='form-control'
+									echo form_dropdown("user_role", $role_list, set_value('user_role'), "class='form-control' id='user_role'
 									data-plugin-selectTwo data-width='100%' data-minimum-results-for-search='Infinity' ");
 								?>
 								<span class="error"><?php echo form_error('user_role'); ?></span>
@@ -82,6 +82,7 @@
 							</div>
 						</div>
 					</div>
+					<?php $this->load->view('employee/_mentor_field'); ?>
 					<div class="row mb-lg">
 						<div class="col-md-4 mb-sm">
 							<div class="form-group">

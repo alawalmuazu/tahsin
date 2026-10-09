@@ -10,11 +10,19 @@
             <nav id="menu" class="nav-main" role="navigation">
                 <ul class="nav nav-main">
                     <!-- dashboard -->
+                    <?php if (is_intern_loggedin()): ?>
+                    <li class="<?php if ($main_menu == 'intern') echo 'nav-active'; ?>">
+                        <a href="<?=base_url('employee/mentor')?>">
+                            <i class="fas fa-user-tie"></i><span><?=translate('my_mentor')?></span>
+                        </a>
+                    </li>
+                    <?php else: ?>
                     <li class="<?php if ($main_menu == 'dashboard') echo 'nav-active'; ?>">
                         <a href="<?=base_url('dashboard')?>">
                             <i class="icons icon-grid"></i><span><?=translate('dashboard')?></span>
                         </a>
                     </li>
+                    <?php endif; ?>
                     <?php if (is_superadmin_loggedin()): ?>
                     <li class="<?php if ($main_menu == 'health') echo 'nav-active';?>">
                         <a href="<?=base_url('health')?>">
@@ -444,7 +452,7 @@
                     <?php } ?>
                     <?php
                     // Academy hub — always show for staff who can open the ERP
-                    if (is_loggedin() && !is_student_loggedin() && !is_parent_loggedin()) {
+                    if (is_loggedin() && !is_student_loggedin() && !is_parent_loggedin() && !is_intern_loggedin()) {
                         $_ac_sub = isset($sub_page) ? $sub_page : '';
                         $_ac_main = isset($main_menu) ? $main_menu : '';
                     ?>
@@ -510,6 +518,13 @@
                                     <span><i class="fas fa-caret-right"></i>Teachers</span>
                                 </a>
                             </li>
+                            <?php if (is_facilitator_loggedin()) { ?>
+                            <li class="<?php if ($_ac_sub == 'employee/my_interns') echo 'nav-active'; ?>">
+                                <a href="<?php echo base_url('employee/my_interns'); ?>">
+                                    <span><i class="fas fa-caret-right"></i><?php echo translate('my_interns'); ?></span>
+                                </a>
+                            </li>
+                            <?php } ?>
                             <li class="<?php if ($_ac_sub == 'academy/performance') echo 'nav-active'; ?>">
                                 <a href="<?php echo base_url('academy_performance'); ?>">
                                     <span><i class="fas fa-caret-right"></i>Performance (Maths / English / Skills)</span>
@@ -551,6 +566,13 @@
                                     <span><i class="fas fa-caret-right" aria-hidden="true"></i><?php echo translate('employee_list'); ?></span>
                                 </a>
                             </li>
+                            <?php $internRoleId = role_id_by_prefix('intern'); if ($internRoleId > 0) { ?>
+                            <li class="<?php if ($sub_page == 'employee/view' && isset($act_role) && (int) $act_role === $internRoleId) echo 'nav-active'; ?>">
+                                <a href="<?php echo base_url('employee/view/' . $internRoleId); ?>">
+                                    <span><i class="fas fa-caret-right" aria-hidden="true"></i><?php echo translate('intern'); ?></span>
+                                </a>
+                            </li>
+                            <?php } ?>
                         <?php } if(get_permission('department', 'is_view') || get_permission('department', 'is_add')){ ?>
                             <li class="<?php if ($sub_page == 'employee/department') echo 'nav-active'; ?>">
                                 <a href="<?php echo base_url('employee/department'); ?>">
