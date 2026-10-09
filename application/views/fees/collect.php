@@ -425,7 +425,7 @@ if (moduleIsEnabled('transport')) {
 			<h4 style="margin:0;color:#0f5c4c;font-weight:700;"><i class="fab fa-whatsapp" style="color:#25D366;margin-right:6px;"></i> Send receipt to parent</h4>
 			<button type="button" id="feeShareCloseTop" style="border:none;background:transparent;font-size:22px;line-height:1;color:#888;cursor:pointer;">&times;</button>
 		</div>
-		<p style="margin:0 0 12px;color:#444;font-size:13px;">Send receipt details directly to the parent's WhatsApp number. You can also download the receipt slip (PDF or Image) to attach in the chat.</p>
+		<p style="margin:0 0 12px;color:#444;font-size:13px;">Choose PDF or image. WhatsApp gets the receipt attached, with the receipt message as the caption. The number below opens that parent's chat.</p>
 
 		<div id="feeShareRecipient" style="background:#f4f7f5;border:1px solid #d2ded7;border-radius:4px;padding:10px 12px;margin-bottom:14px;font-size:13px;">
 			<div style="font-weight:600;color:#0f5c4c;margin-bottom:5px;">Parent / Guardian WhatsApp Number:</div>
@@ -827,9 +827,56 @@ if (moduleIsEnabled('transport')) {
 		});
 	}
 
+	function feeShareFallback(data, format) {
+		var $status = $('#feeShareStatus');
+		var phone = feeShareSelectedPhone || (data && data.phone) || '';
+		if (!phone) {
+			feeShareDownload(data);
+			if (data.whatsapp) {
+				window.open(data.whatsapp, '_blank');
+			}
+			$status.text('The receipt downloaded. Attach that file in the WhatsApp chat and keep the message below.');
+			return;
+		}
+		$status.text('Sending the receipt to +' + phone + '…');
+		$.ajax({
+			url: base_url + 'fees/receipt_share',
+			type: 'POST',
+			dataType: 'json',
+			data: {
+				enroll_id: studentID,
+				format: format,
+				payment_ids: feeShareIds,
+				phone: phone,
+				deliver: 'whatsapp'
+			},
+			success: function (sent) {
+				var pack = (sent && sent.file) ? sent : data;
+				if (sent && sent.sent) {
+					$status.html('<span style="color:green;"><i class="fas fa-check-circle"></i> Receipt attached and sent to WhatsApp for <strong>+' + phone + '</strong>.</span>');
+					return;
+				}
+				feeShareDownload(pack);
+				var link = (sent && sent.whatsapp) ? sent.whatsapp : data.whatsapp;
+				if (link) {
+					window.open(link, '_blank');
+				}
+				var why = (sent && sent.error) ? sent.error + ' ' : '';
+				$status.html(why + 'The receipt downloaded. WhatsApp is open' + (phone ? ' for <strong>+' + phone + '</strong>' : '') + '. Attach that file and keep the message below.');
+			},
+			error: function () {
+				feeShareDownload(data);
+				if (data.whatsapp) {
+					window.open(data.whatsapp, '_blank');
+				}
+				$status.text('The receipt downloaded. Attach that file in the WhatsApp chat and keep the message below.');
+			}
+		});
+	}
+
 	function feeShareSend(format) {
 		var $status = $('#feeShareStatus');
-		$status.text('Generating ' + format.toUpperCase() + ' receipt…');
+		$status.text('Preparing the ' + format.toUpperCase() + ' receipt…');
 		$('#feeSharePdf, #feeShareImage').prop('disabled', true);
 		$.ajax({
 			url: base_url + 'fees/receipt_share',
@@ -839,28 +886,36 @@ if (moduleIsEnabled('transport')) {
 				enroll_id: studentID,
 				format: format,
 				payment_ids: feeShareIds,
-				phone: feeShareSelectedPhone,
-				deliver: 'whatsapp'
+				phone: feeShareSelectedPhone
 			},
 			success: function (data) {
 				if (data && data.status === 'access_denied') {
 					window.location.href = base_url + 'dashboard';
 					return;
 				}
-				if (!data || !data.ok) {
+				if (!data || !data.ok || !data.file) {
 					$status.text((data && data.error) ? data.error : 'The receipt could not be prepared.');
 					return;
 				}
-				feeShareDownload(data);
-				var target = feeShareSelectedPhone || data.phone;
-				if (data.sent) {
-					$status.html('<span style="color:green;"><i class="fas fa-check-circle"></i> Receipt successfully attached and sent to WhatsApp for <strong>+' + target + '</strong>!</span>');
-				} else if (data.whatsapp) {
-					window.open(data.whatsapp, '_blank');
-					$status.html('Receipt downloaded! WhatsApp chat opened' + (target ? ' for <strong>+' + target + '</strong>' : '') + '. You can now attach the downloaded file in the WhatsApp chat.' + (data.error ? '<br><span style="color:#c9302c;">(Auto-send failed: ' + data.error + ')</span>' : ''));
-				} else {
-					$status.text('Receipt slip downloaded.');
+				if (data.message) {
+					$('#feeShareMessage').text(data.message);
+					$('#feeShareMessageWrap').show();
 				}
+				var file = new File([feeShareBytes(data.file)], data.filename, { type: data.mime });
+				if (navigator.canShare && navigator.canShare({ files: [file] })) {
+					$status.text('Opening share. Choose WhatsApp so the receipt stays attached with the message.');
+					navigator.share({ files: [file], text: data.message || '', title: 'Fee receipt' }).then(function () {
+						$status.text('If the caption is empty in WhatsApp, paste the message below.');
+					}).catch(function (err) {
+						if (err && err.name === 'AbortError') {
+							$status.text('Share cancelled. The message is below if you still want to send it.');
+							return;
+						}
+						feeShareFallback(data, format);
+					});
+					return;
+				}
+				feeShareFallback(data, format);
 			},
 			error: function () {
 				$status.text('The receipt could not be prepared.');
