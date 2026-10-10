@@ -75,11 +75,21 @@ class Authentication extends Authentication_Controller
                                 exit();
                             }
                         } elseif($login_credential->role == 7) {
+                            if (empty($getUser)) {
+                                $getUser = array(
+                                    'id' => $login_credential->user_id,
+                                    'name' => $login_credential->username,
+                                    'email' => '',
+                                    'photo' => 'defualt.png',
+                                    'branch_id' => 1
+                                );
+                            }
                             $studentID = $getUser['id'];
                             $this->session->set_userdata('student_id', $studentID);
                             // check student login status
-                            $getStudentLoginStatus = $this->authentication_model->getStudentLoginStatus($getUser['branch_id']);
-                            if ($getStudentLoginStatus == 0) {
+                            $branchId = !empty($getUser['branch_id']) ? $getUser['branch_id'] : 1;
+                            $getStudentLoginStatus = $this->authentication_model->getStudentLoginStatus($branchId);
+                            if ($getStudentLoginStatus === 0 || $getStudentLoginStatus === '0') {
                                 set_alert('error', translate('student_login_has_been_disabled'));
                                 redirect(base_url('authentication'));
                                 exit();

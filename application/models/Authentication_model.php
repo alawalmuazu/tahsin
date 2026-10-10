@@ -33,8 +33,23 @@ class Authentication_model extends MY_Model
             $sql = "SELECT `name`,`email`,`mobileno`,`photo`,`branch_id` FROM `parent` WHERE `id` = " . $this->db->escape($userID);
             return $this->db->query($sql)->row_array();
         } elseif ($roleID == 7) {
-            $sql = "SELECT `student`.`id`, `mobileno`, CONCAT_WS(' ',`student`.`first_name`, `student`.`last_name`) as `name`, `student`.`email`, `student`.`photo`, `enroll`.`branch_id` FROM `enroll` INNER JOIN `student` ON `student`.`id` = `enroll`.`student_id` WHERE `student`.`id` = " . $this->db->escape($userID) . " LIMIT 1";
-            return $this->db->query($sql)->row_array();
+            $sql = "SELECT `student`.`id`, `student`.`mobileno`, CONCAT_WS(' ',`student`.`first_name`, `student`.`last_name`) as `name`, `student`.`email`, `student`.`photo`, IFNULL(`enroll`.`branch_id`, 1) as `branch_id` FROM `student` LEFT JOIN `enroll` ON `student`.`id` = `enroll`.`student_id` WHERE `student`.`id` = " . $this->db->escape($userID) . " LIMIT 1";
+            $res = $this->db->query($sql)->row_array();
+            if (empty($res)) {
+                $stu = $this->db->select("id, mobileno, CONCAT_WS(' ', first_name, last_name) as name, email, photo, 1 as branch_id")->where('id', $userID)->get('student')->row_array();
+                if (!empty($stu)) {
+                    return $stu;
+                }
+                $enrollRow = $this->db->select("student_id, branch_id")->where('id', $userID)->get('enroll')->row_array();
+                if (!empty($enrollRow)) {
+                    $stu2 = $this->db->select("id, mobileno, CONCAT_WS(' ', first_name, last_name) as name, email, photo")->where('id', $enrollRow['student_id'])->get('student')->row_array();
+                    if (!empty($stu2)) {
+                        $stu2['branch_id'] = !empty($enrollRow['branch_id']) ? $enrollRow['branch_id'] : 1;
+                        return $stu2;
+                    }
+                }
+            }
+            return $res;
         } else {
             $sql = "SELECT `name`,`mobileno`,`email`,`photo`,`branch_id` FROM `staff` WHERE `id` = " . $this->db->escape($userID);
             return $this->db->query($sql)->row_array();
@@ -206,13 +221,25 @@ class Authentication_model extends MY_Model
 
     public function getStudentLoginStatus($id = '')
     {
-        $get = $this->db->select('IFNULL(student_login, 1) as login')->where('id', $id)->get('branch')->row()->login;
-        return $get;
+        if (empty($id)) {
+            $id = 1;
+        }
+        $query = $this->db->select('IFNULL(student_login, 1) as login')->where('id', $id)->get('branch');
+        if ($query && $query->num_rows() > 0) {
+            return (int) $query->row()->login;
+        }
+        return 1;
     }
     
     public function getParentLoginStatus($id = '')
     {
-        $get = $this->db->select('IFNULL(parent_login, 1) as login')->where('id', $id)->get('branch')->row()->login;
-        return $get;
+        if (empty($id)) {
+            $id = 1;
+        }
+        $query = $this->db->select('IFNULL(parent_login, 1) as login')->where('id', $id)->get('branch');
+        if ($query && $query->num_rows() > 0) {
+            return (int) $query->row()->login;
+        }
+        return 1;
     }
 }
