@@ -286,7 +286,7 @@
 </div>
 
 <?php if (!empty($session)): ?>
-<script src="<?php echo base_url('assets/js/tahsin-pulse.js'); ?>"></script>
+<script src="<?php echo base_url('assets/js/tahsin-pulse.js?v=' . (file_exists(FCPATH . 'assets/js/tahsin-pulse.js') ? filemtime(FCPATH . 'assets/js/tahsin-pulse.js') : time())); ?>"></script>
 <script>
 $(document).ready(function() {
     TahsinPulse.init({
