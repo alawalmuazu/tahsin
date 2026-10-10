@@ -12,6 +12,16 @@ class Scheme_model extends CI_Model {
     public function __construct() {
         parent::__construct();
         $this->load->database();
+        $this->ensure_schema();
+    }
+
+    /**
+     * Ensure required columns exist across environments
+     */
+    protected function ensure_schema() {
+        if (!$this->db->field_exists('delivery_status', $this->table)) {
+            $this->db->query("ALTER TABLE `{$this->table}` ADD COLUMN `delivery_status` ENUM('not_started', 'in_progress', 'completed', 'delayed') NOT NULL DEFAULT 'not_started' AFTER `reference_book`");
+        }
     }
 
     /**
@@ -41,6 +51,52 @@ class Scheme_model extends CI_Model {
 
         $query = $this->db->get();
         return $query->result_array();
+    }
+
+    /**
+     * Update delivery pacing status
+     */
+    public function update_delivery_status($id, $status) {
+        $allowed = array('not_started', 'in_progress', 'completed', 'delayed');
+        if (!in_array($status, $allowed)) {
+            $status = 'not_started';
+        }
+        $this->db->where('id', $id);
+        return $this->db->update($this->table, array(
+            'delivery_status' => $status,
+            'updated_at'      => date('Y-m-d H:i:s')
+        ));
+    }
+
+    /**
+     * Calculate curriculum pacing / completion velocity
+     */
+    public function get_pacing_stats($level = null, $term = null, $subject = null, $week = null) {
+        $schemes = $this->get_schemes($level, $term, $subject, $week);
+        $total = count($schemes);
+        $counts = array(
+            'total'       => $total,
+            'completed'   => 0,
+            'in_progress' => 0,
+            'not_started' => 0,
+            'delayed'     => 0,
+            'percentage'  => 0
+        );
+
+        foreach ($schemes as $s) {
+            $st = !empty($s['delivery_status']) ? $s['delivery_status'] : 'not_started';
+            if (isset($counts[$st])) {
+                $counts[$st]++;
+            } else {
+                $counts['not_started']++;
+            }
+        }
+
+        if ($total > 0) {
+            $counts['percentage'] = round(($counts['completed'] / $total) * 100);
+        }
+
+        return $counts;
     }
 
     /**

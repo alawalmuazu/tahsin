@@ -32,6 +32,7 @@ class Scheme extends Admin_Controller {
         $this->data['schemes'] = $this->Scheme_model->get_schemes($level, $term, $subject, $week);
         $this->data['distinct_levels'] = $this->Scheme_model->get_distinct_grade_levels();
         $this->data['distinct_subjects'] = $this->Scheme_model->get_distinct_subjects();
+        $this->data['pacing_stats'] = $this->Scheme_model->get_pacing_stats($level, $term, $subject, $week);
         $this->data['filters'] = array(
             'grade_level'   => $level,
             'academic_term' => $term,
@@ -77,6 +78,7 @@ class Scheme extends Admin_Controller {
                 'teaching_aids'       => $this->input->post('teaching_aids', TRUE),
                 'evaluation_strategy' => $this->input->post('evaluation_strategy', TRUE),
                 'reference_book'      => $this->input->post('reference_book', TRUE),
+                'delivery_status'     => $this->input->post('delivery_status', TRUE) ? $this->input->post('delivery_status', TRUE) : 'not_started',
                 'status'              => 'active'
             );
 
@@ -204,5 +206,83 @@ class Scheme extends Admin_Controller {
         }
 
         $this->load->view('scheme/print_view', $this->data);
+    }
+
+    /**
+     * AJAX endpoint to update delivery pacing status
+     */
+    public function update_pacing_status() {
+        $id = $this->input->post('id', TRUE);
+        $status = $this->input->post('delivery_status', TRUE);
+        if (empty($id) || empty($status)) {
+            $this->output
+                ->set_content_type('application/json')
+                ->set_output(json_encode(array('status' => 'error', 'message' => 'Missing ID or status.')));
+            return;
+        }
+
+        $this->Scheme_model->update_delivery_status($id, $status);
+        $this->output
+            ->set_content_type('application/json')
+            ->set_output(json_encode(array(
+                'status'     => 'success',
+                'id'         => $id,
+                'new_status' => $status
+            )));
+    }
+
+    /**
+     * Dedicated Print-Ready Tahsin Lesson Plan View
+     */
+    public function lesson_plan($id) {
+        $scheme = $this->Scheme_model->get_scheme_by_id($id);
+        if (!$scheme) {
+            show_404();
+        }
+        $this->data['scheme'] = $scheme;
+        $this->data['single_title'] = 'Official Tahsin Academy Lesson Plan Sheet';
+        $this->load->view('scheme/lesson_plan', $this->data);
+    }
+
+    /**
+     * Generate structured WhatsApp curriculum broadcast message
+     */
+    public function whatsapp_digest($id = null) {
+        if ($id) {
+            $s = $this->Scheme_model->get_scheme_by_id($id);
+            if (!$s) {
+                $this->output
+                    ->set_content_type('application/json')
+                    ->set_output(json_encode(array('status' => 'error', 'message' => 'Scheme not found.')));
+                return;
+            }
+            $msg = "🌟 *TAHSIN ACADEMY — WEEKLY ACADEMIC SYLLABUS* 🌟\n";
+            $msg .= "🏫 *Class:* " . $s['grade_level'] . " | *Term:* " . $s['academic_term'] . " | *Week:* " . $s['week_number'] . "\n";
+            $msg .= "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n";
+            $msg .= "📚 *Subject:* " . $s['subject'] . "\n";
+            $msg .= "🎯 *Main Topic:* " . $s['topic'] . "\n";
+            if (!empty($s['sub_topic'])) {
+                $msg .= "📖 *Sub-Topic:* " . $s['sub_topic'] . "\n";
+            }
+            $msg .= "\n🎯 *Learning Objectives (Pupil Outcomes):*\n" . trim($s['objectives']) . "\n";
+            $msg .= "\n✏️ *Classroom Work:* " . $s['class_work'] . "\n";
+            if (!empty($s['home_work'])) {
+                $msg .= "🏠 *Home Reinforcement:* " . $s['home_work'] . "\n";
+            }
+            if (!empty($s['teaching_aids'])) {
+                $msg .= "🎨 *Instructional Aids:* " . $s['teaching_aids'] . "\n";
+            }
+            $msg .= "\n💡 *Parent Reading Tip:* Please review this week's workbook exercises and encourage daily reading practice at home!\n";
+            $msg .= "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n";
+            $msg .= "_Tahsin Academy — Nurturing Faith & Academic Excellence_";
+
+            $this->output
+                ->set_content_type('application/json')
+                ->set_output(json_encode(array(
+                    'status'  => 'success',
+                    'message' => $msg,
+                    'encoded' => rawurlencode($msg)
+                )));
+        }
     }
 }
