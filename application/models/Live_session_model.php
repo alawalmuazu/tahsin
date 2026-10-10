@@ -102,6 +102,11 @@ class Live_session_model extends CI_Model
                 INDEX (`student_id`)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;");
         }
+
+        // Ensure student login is enabled for branches so students can access live classes
+        if ($this->db->table_exists('branch') && $this->db->field_exists('student_login', 'branch')) {
+            $this->db->query("UPDATE `branch` SET `student_login` = 1 WHERE `student_login` = 0 OR `student_login` IS NULL");
+        }
     }
 
     /**
