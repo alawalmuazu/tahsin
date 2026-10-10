@@ -88,7 +88,12 @@ if ((is_parent_loggedin() && !empty(get_activeChildren_id())) || is_student_logg
                         </ul>
                     </li>
 <?php if (is_student_loggedin()) { ?>
-                    <li class="<?php if ($main_menu == 'live_class') echo 'nav-active';?>">
+                    <li class="<?php if ($sub_page == 'live_session/student_room') echo 'nav-active';?>">
+                        <a href="<?=base_url('live_session/student_room')?>">
+                            <i class="fas fa-satellite-dish" style="color:#10b981;"></i><span>Live Classroom Room <span class="badge" style="background:#10b981;font-size:9px;padding:2px 5px;float:right;margin-top:2px;">JOIN</span></span>
+                        </a>
+                    </li>
+                    <li class="<?php if ($main_menu == 'live_class' && $sub_page != 'live_session/student_room') echo 'nav-active';?>">
                         <a href="<?=base_url('userrole/live_class')?>">
                             <i class="icons icon-earphones-alt"></i><span><?=translate('live_class_rooms')?></span>
                         </a>

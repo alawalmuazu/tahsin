@@ -316,20 +316,26 @@ class Live_session extends Admin_Controller
     public function student_room($sessionId = null)
     {
         if (!is_student_loggedin()) {
-            // For testing or direct access without login redirect to student login
-            $this->session->set_flashdata('error', 'Please log into your student account.');
-            redirect('authentication');
-            return;
-        }
-
-        $studentId = get_loggedin_user_id();
-        $classId   = $this->session->userdata('class_id');
-        $sectionId = $this->session->userdata('section_id');
-
-        if (empty($sessionId)) {
-            $session = $this->live_model->get_active_student_session($classId, $sectionId);
+            if (is_loggedin() && !empty($sessionId)) {
+                // Allow facilitator/staff preview for testing and verification
+                $studentId = $this->input->get('student_id') ? (int)$this->input->get('student_id') : 1;
+                $session = $this->live_model->get_session($sessionId);
+            } else {
+                $this->session->set_flashdata('error', 'Please log into your student account.');
+                redirect('authentication');
+                return;
+            }
         } else {
-            $session = $this->live_model->get_session($sessionId);
+            $studentId = get_loggedin_user_id();
+            $studentDetails = $this->application_model->getStudentDetails($studentId);
+            $classId   = !empty($studentDetails['class_id']) ? $studentDetails['class_id'] : $this->session->userdata('class_id');
+            $sectionId = !empty($studentDetails['section_id']) ? $studentDetails['section_id'] : $this->session->userdata('section_id');
+
+            if (empty($sessionId)) {
+                $session = $this->live_model->get_active_student_session($classId, $sectionId);
+            } else {
+                $session = $this->live_model->get_session($sessionId);
+            }
         }
 
         $this->data['session']    = $session;
