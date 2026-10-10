@@ -96,6 +96,16 @@
                 const pollContainer = document.getElementById('tahsin-live-poll-card');
                 if (pollContainer) pollContainer.style.display = 'none';
             }
+
+            // 4. Handle hand-raise dismissal by facilitator
+            if (data.hand_raised === 0 && this.isHandRaised) {
+                this.isHandRaised = false;
+                const btn = document.getElementById('btn-raise-hand');
+                if (btn) {
+                    btn.classList.remove('active');
+                    btn.innerHTML = '<i class="fa fa-hand-paper"></i> Raise Hand for Help';
+                }
+            }
         },
 
         toggleHandRaise: function() {

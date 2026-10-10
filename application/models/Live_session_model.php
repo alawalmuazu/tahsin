@@ -285,9 +285,15 @@ class Live_session_model extends CI_Model
 
         $active_poll = $this->get_active_poll($session_id);
 
+        $presence_current = $this->db->get_where($this->tbl_presence, [
+            'session_id' => $session_id,
+            'student_id' => $student_id
+        ])->row_array();
+
         return [
             'screen_locked' => ($session && $session['screen_lock'] == 1),
             'session_status'=> $session ? $session['status'] : 'ended',
+            'hand_raised'   => $presence_current ? (int)$presence_current['hand_raised'] : 0,
             'latest_merit'  => $latest_merit,
             'active_poll'   => $active_poll
         ];

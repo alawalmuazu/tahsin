@@ -596,17 +596,17 @@ function awardMerit(studentId, badgeName, points) {
 
 function dismissHandRaise() {
     if (!currentTopHandRaiseStudentId) return;
+    var stuId = currentTopHandRaiseStudentId;
+    currentTopHandRaiseStudentId = 0;
+    $('#hand-raise-banner').slideUp(200);
     $.ajax({
         url: "<?php echo base_url('live_session/clear_hand'); ?>",
         type: "POST",
         data: {
             session_id: ACTIVE_SESSION_ID,
-            student_id: currentTopHandRaiseStudentId
+            student_id: stuId
         },
-        dataType: "json",
-        success: function(res) {
-            $('#hand-raise-banner').slideUp(200);
-        }
+        dataType: "json"
     });
 }
 
