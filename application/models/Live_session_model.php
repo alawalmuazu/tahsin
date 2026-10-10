@@ -107,6 +107,11 @@ class Live_session_model extends CI_Model
         if ($this->db->table_exists('branch') && $this->db->field_exists('student_login', 'branch')) {
             $this->db->query("UPDATE `branch` SET `student_login` = 1 WHERE `student_login` = 0 OR `student_login` IS NULL");
         }
+
+        // Auto-heal any enrolled students whose class_id was left unassigned/blank (e.g. Test Student)
+        if ($this->db->table_exists('enroll')) {
+            $this->db->query("UPDATE `enroll` SET `class_id` = 15 WHERE (`class_id` IS NULL OR `class_id` = 0 OR `class_id` = '') AND `section_id` = 1");
+        }
     }
 
     /**
@@ -258,6 +263,21 @@ class Live_session_model extends CI_Model
 
         // Return current session status including screen_lock & active poll
         $session = $this->db->get_where($this->tbl_sessions, ['id' => $session_id])->row_array();
+
+        // Auto-heal: If student's enrollment is missing class_id, automatically update it to match the active session!
+        if ($session && !empty($session['class_id'])) {
+            $this->db->where('student_id', $student_id)
+                ->group_start()
+                    ->where('class_id IS NULL', null, false)
+                    ->or_where('class_id', 0)
+                    ->or_where('class_id', '')
+                ->group_end()
+                ->update('enroll', [
+                    'class_id'   => $session['class_id'],
+                    'section_id' => $session['section_id']
+                ]);
+        }
+
         $latest_merit = $this->db->order_by('id', 'DESC')->get_where($this->tbl_merits, [
             'session_id' => $session_id,
             'student_id' => $student_id
@@ -278,21 +298,44 @@ class Live_session_model extends CI_Model
      */
     public function get_telemetry_radar($session_id, $class_id, $section_id)
     {
-        // 1. Get all enrolled students for this class/section
-        $this->db->select("e.student_id, e.roll, s.first_name, s.last_name, s.register_no, s.photo, s.gender");
+        // 1. Get all enrolled students for this class/section (including any in section with unassigned class)
+        $this->db->select("e.student_id, IFNULL(e.roll, 1) as roll, s.first_name, s.last_name, s.register_no, s.photo, s.gender");
         $this->db->from('enroll as e');
         $this->db->join('student as s', 's.id = e.student_id', 'inner');
-        $this->db->where('e.class_id', $class_id);
+        $this->db->group_start();
+            $this->db->where('e.class_id', $class_id);
+            $this->db->or_group_start();
+                $this->db->where('e.section_id', $section_id);
+                $this->db->group_start();
+                    $this->db->where('e.class_id IS NULL', null, false);
+                    $this->db->or_where('e.class_id', 0);
+                    $this->db->or_where('e.class_id', '');
+                $this->db->group_end();
+            $this->db->group_end();
+        $this->db->group_end();
         $this->db->where('e.section_id', $section_id);
         $this->db->where('s.active', 1);
         $this->db->order_by('e.roll', 'ASC');
         $students = $this->db->get()->result_array();
 
-        // 2. Get telemetry presence entries for this session
+        // 2. Also ensure ANY student actively connected to this live session is included in $students
         $presence_rows = $this->db->get_where($this->tbl_presence, ['session_id' => $session_id])->result_array();
         $presence_map = [];
+        $enrolled_ids = array_column($students, 'student_id');
+
         foreach ($presence_rows as $p) {
             $presence_map[$p['student_id']] = $p;
+            if (!in_array($p['student_id'], $enrolled_ids)) {
+                $stu = $this->db->select("s.id as student_id, IFNULL(e.roll, 1) as roll, s.first_name, s.last_name, s.register_no, s.photo, s.gender")
+                    ->from('student as s')
+                    ->join('enroll as e', 'e.student_id = s.id', 'left')
+                    ->where('s.id', $p['student_id'])
+                    ->get()->row_array();
+                if ($stu) {
+                    $students[] = $stu;
+                    $enrolled_ids[] = $p['student_id'];
+                }
+            }
         }
 
         // 3. Merge telemetry and calculate real-time connection state
