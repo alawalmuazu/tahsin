@@ -923,6 +923,11 @@
                                     <span><i class="fas fa-clipboard-list" aria-hidden="true"></i>Scheme of Work</span>
                                 </a>
                             </li>
+                            <li class="<?php if ($sub_page == 'live_session/index' || $sub_page == 'live_session/cockpit') echo 'nav-active';?>">
+                                <a href="<?=base_url('live_session')?>">
+                                    <span><i class="fas fa-satellite-dish" aria-hidden="true" style="color:#0284c7;"></i>Live Classroom Radar</span>
+                                </a>
+                            </li>
                             <?php if(get_permission('class_timetable', 'is_view')) { ?>
                             <li class="<?php if ($sub_page == 'timetable/viewclass' || $sub_page == 'timetable/update_classwise' || $sub_page == 'timetable/set_classwise') echo 'nav-active';?>">
                                 <a href="<?=base_url('timetable/viewclass')?>">
@@ -957,13 +962,15 @@
                                     <i class="fas fa-laptop-code"></i><span>E-Learning</span>
                                 </a>
                                 <ul class="nav nav-children">
+                                    <li class="<?php if ($sub_page == 'live_session/index' || $sub_page == 'live_session/cockpit') echo 'nav-active'; ?>">
+                                        <a href="<?=base_url('live_session')?>">
+                                            <i class="fas fa-satellite-dish" style="color:#0284c7;"></i><span>Live Cockpit & Radar</span>
+                                        </a>
+                                    </li>
                                     <?php if (moduleIsEnabled('live_class') && get_permission('live_class', 'is_view')): ?>
-                                    <li class="nav-parent <?php if ($main_menu == 'live_class') echo 'nav-expanded nav-active'; ?>">
+                                    <li class="nav-parent <?php if ($main_menu == 'live_class' && $sub_page != 'live_session/index' && $sub_page != 'live_session/cockpit') echo 'nav-expanded nav-active'; ?>">
                                         <a><i class="icons icon-earphones-alt"></i><span><?=translate('live_class_rooms')?></span></a>
                                         <ul class="nav nav-children">
-                                            <li class="<?php if ($sub_page == 'live_session/index' || $sub_page == 'live_session/cockpit') echo 'nav-active'; ?>">
-                                                <a href="<?=base_url('live_session')?>"><span><i class="fas fa-caret-right"></i> Live Cockpit & Radar</span></a>
-                                            </li>
                                             <li class="<?php if ($sub_page == 'live_class/index') echo 'nav-active'; ?>">
                                                 <a href="<?=base_url('live_class')?>"><span><i class="fas fa-caret-right"></i> <?=translate('live_class_rooms')?></span></a>
                                             </li>

@@ -105,6 +105,7 @@
 						<?php } if(get_permission('leave_manage', 'is_view')) { ?>
 							<a href="<?php echo base_url('leave');?>"><i class="fas fa-fill-drip"></i> <?php echo translate('leave_application');?></a>
 						<?php } if(get_permission('live_class', 'is_view')) { ?>
+							<a href="<?php echo base_url('live_session');?>"><i class="fas fa-satellite-dish" style="color:#0284c7;"></i> Live Cockpit & Radar</a>
 							<a href="<?php echo base_url('live_class');?>"><i class="fas fa-video"></i> <?php echo translate('live_class_rooms');?></a>
 						<?php } if(get_permission('due_invoice', 'is_view')) { ?>
 							<a href="<?php echo base_url('fees/due_invoice');?>"><i class="fas fa-hand-holding-usd"></i> <?php echo translate('due_fees_invoice');?></a>
