@@ -8,10 +8,13 @@ defined('BASEPATH') OR exit('No direct script access allowed');
  * Handles Curriculum Schemes of Work management, filtering, creation, 
  * editing, export (CSV/JSON), and print-ready syllabus generation.
  */
-class Scheme extends MY_Controller {
+class Scheme extends Admin_Controller {
 
     public function __construct() {
         parent::__construct();
+        if (is_student_loggedin() || is_parent_loggedin()) {
+            access_denied();
+        }
         $this->load->model('Scheme_model');
         $this->load->helper(array('url', 'form', 'text'));
         $this->load->library(array('session', 'form_validation'));
@@ -27,6 +30,8 @@ class Scheme extends MY_Controller {
         $week    = $this->input->get('week_number') ? $this->input->get('week_number') : 'ALL';
 
         $this->data['schemes'] = $this->Scheme_model->get_schemes($level, $term, $subject, $week);
+        $this->data['distinct_levels'] = $this->Scheme_model->get_distinct_grade_levels();
+        $this->data['distinct_subjects'] = $this->Scheme_model->get_distinct_subjects();
         $this->data['filters'] = array(
             'grade_level'   => $level,
             'academic_term' => $term,
@@ -34,11 +39,10 @@ class Scheme extends MY_Controller {
             'week_number'   => $week
         );
 
-        $this->data['title'] = 'Curriculum Schemes of Work';
+        $this->data['title'] = 'Scheme of Work';
+        $this->data['sub_page'] = 'scheme/index';
         $this->data['main_menu'] = 'academic';
-
-        // Render comprehensive Scheme of Work UI
-        $this->load->view('scheme/index', $this->data);
+        $this->load->view('layout/index', $this->data);
     }
 
     /**
@@ -194,7 +198,8 @@ class Scheme extends MY_Controller {
             $level   = $this->input->get('grade_level') ? $this->input->get('grade_level') : 'ALL';
             $term    = $this->input->get('academic_term') ? $this->input->get('academic_term') : 'ALL';
             $subject = $this->input->get('subject') ? $this->input->get('subject') : 'ALL';
-            $this->data['schemes'] = $this->Scheme_model->get_schemes($level, $term, $subject);
+            $week    = $this->input->get('week_number') ? $this->input->get('week_number') : 'ALL';
+            $this->data['schemes'] = $this->Scheme_model->get_schemes($level, $term, $subject, $week);
             $this->data['single_title'] = 'Comprehensive Termly Scheme of Work';
         }
 

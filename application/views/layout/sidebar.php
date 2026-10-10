@@ -843,13 +843,15 @@
                     get_permission('subject_class_assign', 'is_view') ||
                     get_permission('subject_teacher_assign', 'is_view') ||
                     get_permission('teacher_timetable', 'is_view') ||
-                    get_permission('class_timetable', 'is_view')) {
+                    get_permission('class_timetable', 'is_view') ||
+                    is_loggedin()) {
                     ?>
                     <!-- academic -->
                     <li class="nav-parent <?php if ($main_menu == 'classes' ||
                                                         $main_menu == 'sections' ||
                                                             $main_menu == 'timetable' ||
                                                                 $main_menu == 'subject' ||
+                                                                    $main_menu == 'academic' ||
                                                                     $main_menu == 'transfer') echo 'nav-expanded nav-active';?>">
                         <a>
                             <i class="icons icon-home" aria-hidden="true"></i><span><?=translate('academic')?></span>
@@ -916,6 +918,11 @@
                                 </ul>
                             </li>
                             <?php } ?>
+                            <li class="<?php if ($sub_page == 'scheme/index') echo 'nav-active';?>">
+                                <a href="<?=base_url('scheme')?>">
+                                    <span><i class="fas fa-clipboard-list" aria-hidden="true"></i>Scheme of Work</span>
+                                </a>
+                            </li>
                             <?php if(get_permission('class_timetable', 'is_view')) { ?>
                             <li class="<?php if ($sub_page == 'timetable/viewclass' || $sub_page == 'timetable/update_classwise' || $sub_page == 'timetable/set_classwise') echo 'nav-active';?>">
                                 <a href="<?=base_url('timetable/viewclass')?>">

@@ -83,4 +83,32 @@ class Scheme_model extends CI_Model {
         $this->db->where('status', 'active');
         return $this->db->get($this->table)->result_array();
     }
+
+    /**
+     * Retrieve distinct grade levels present in active schemes
+     */
+    public function get_distinct_grade_levels() {
+        $this->db->distinct();
+        $this->db->select('grade_level');
+        $this->db->where('status', 'active');
+        $this->db->order_by('grade_level', 'ASC');
+        $rows = $this->db->get($this->table)->result_array();
+        $levels = array_filter(array_column($rows, 'grade_level'));
+        $defaults = array('Pre-Nursery', 'Nursery 1', 'Nursery 2');
+        return array_values(array_unique(array_merge($defaults, $levels)));
+    }
+
+    /**
+     * Retrieve distinct subjects present in active schemes
+     */
+    public function get_distinct_subjects() {
+        $this->db->distinct();
+        $this->db->select('subject');
+        $this->db->where('status', 'active');
+        $this->db->order_by('subject', 'ASC');
+        $rows = $this->db->get($this->table)->result_array();
+        $subjects = array_filter(array_column($rows, 'subject'));
+        $defaults = array('English Language / Literacy', 'Mathematics / Numeracy', 'Social & Civic Habits');
+        return array_values(array_unique(array_merge($defaults, $subjects)));
+    }
 }
