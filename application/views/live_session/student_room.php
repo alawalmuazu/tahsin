@@ -180,13 +180,24 @@
         <div class="student-live-container">
 
             <?php if (empty($session)): ?>
-                <div class="student-live-header" style="text-align:center; padding:50px;">
-                    <i class="fa fa-television text-muted" style="font-size:46px; margin-bottom:15px;"></i>
-                    <h3 style="font-weight:700; color:#334155;">No Active Classroom Session Right Now</h3>
-                    <p style="color:#64748b; font-size:14px; margin-top:8px;">
-                        When your facilitator starts today's live class, this screen will connect automatically. Please stay logged in!
+                <div class="student-live-header" style="text-align:center; padding:55px 30px;">
+                    <div style="display:inline-flex; align-items:center; justify-content:center; width:72px; height:72px; border-radius:50%; background:rgba(2, 132, 199, 0.1); margin-bottom:18px;">
+                        <i class="fa fa-radar text-info" style="font-size:36px;"></i>
+                    </div>
+                    <h3 style="font-weight:800; color:#1e293b; margin:0 0 10px 0;">Live Classroom Standby</h3>
+                    <p style="color:#64748b; font-size:14.5px; max-width:520px; margin:0 auto 20px auto; line-height:1.6;">
+                        Your student portal is standing by! As soon as your facilitator starts today's interactive session, your desk will activate automatically.
                     </p>
+                    <div style="display:inline-flex; align-items:center; gap:8px; background:#f1f5f9; padding:8px 18px; border-radius:20px; font-size:12.5px; font-weight:600; color:#475569;">
+                        <span class="pulse-dot"></span> Auto-syncing radar with teacher desk...
+                    </div>
                 </div>
+                <script>
+                // Auto-refresh every 5 seconds to catch the session launch immediately
+                setTimeout(function() {
+                    window.location.reload();
+                }, 5000);
+                </script>
             <?php else: ?>
 
                 <!-- Student Live Header -->

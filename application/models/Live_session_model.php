@@ -165,7 +165,7 @@ class Live_session_model extends CI_Model
     /**
      * Check if there is an active session for a student's class and section
      */
-    public function get_active_student_session($class_id, $section_id)
+    public function get_active_student_session($class_id = null, $section_id = null)
     {
         $this->db->select("s.*, c.name as class_name, sec.name as section_name, sub.name as subject_name, st.name as teacher_name, sch.topic as scheme_topic, sch.sub_topic as scheme_sub_topic, sch.objectives as scheme_objectives, sch.class_work as scheme_class_work");
         $this->db->from("{$this->tbl_sessions} as s");
@@ -174,8 +174,12 @@ class Live_session_model extends CI_Model
         $this->db->join('subject as sub', 'sub.id = s.subject_id', 'left');
         $this->db->join('staff as st', 'st.id = s.teacher_id', 'left');
         $this->db->join('schemes_of_work as sch', 'sch.id = s.scheme_id', 'left');
-        $this->db->where('s.class_id', $class_id);
-        $this->db->where('s.section_id', $section_id);
+        if (!empty($class_id)) {
+            $this->db->where('s.class_id', $class_id);
+        }
+        if (!empty($section_id)) {
+            $this->db->where('s.section_id', $section_id);
+        }
         $this->db->where('s.status', 'active');
         $this->db->order_by('s.id', 'DESC');
         return $this->db->get()->row_array();

@@ -228,6 +228,13 @@ class Ajax extends MY_Controller
                     $this->db->group_by('timetable_class.section_id'); 
                     $result = $this->db->get()->result_array();
                 }
+                if (count($result) == 0) {
+                    $result = $this->db->select('sections_allocation.section_id,section.name as section_name')
+                        ->from('sections_allocation')
+                        ->join('section', 'section.id = sections_allocation.section_id', 'left')
+                        ->where('sections_allocation.class_id', $classID)
+                        ->get()->result_array();
+                }
             } else {
                 $result = $this->db->select('sections_allocation.section_id,section.name as section_name')
                     ->from('sections_allocation')

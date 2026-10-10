@@ -273,21 +273,45 @@
 <script>
 function getSectionByClass(class_id, section_id) {
     if (class_id !== "") {
-        $('#section_id').html('<option value="">Loading...</option>');
+        $('#section_id').html('<option value="">Loading sections...</option>');
         $.ajax({
-            url: "<?php echo base_url('ajax/getSectionByClass'); ?>",
+            url: "<?php echo base_url('live_session/get_sections_by_class'); ?>",
             type: "POST",
             data: { class_id: class_id },
             dataType: 'html',
             success: function(response) {
                 $('#section_id').html(response);
-                if (section_id !== 0) {
+                if (section_id && section_id !== 0) {
                     $('#section_id').val(section_id);
+                } else {
+                    // If only one actual section option exists besides placeholder, auto-select it!
+                    var opts = $('#section_id option');
+                    if (opts.length === 2 && opts.eq(1).val() !== '') {
+                        opts.eq(1).prop('selected', true);
+                    }
                 }
+            },
+            error: function() {
+                $.ajax({
+                    url: "<?php echo base_url('ajax/getSectionByClass'); ?>",
+                    type: "POST",
+                    data: { class_id: class_id },
+                    dataType: 'html',
+                    success: function(response) {
+                        $('#section_id').html(response);
+                    }
+                });
             }
         });
     } else {
         $('#section_id').html('<option value="">Select Section</option>');
     }
 }
+
+$(document).ready(function() {
+    var preselectedClass = $('#class_id').val();
+    if (preselectedClass) {
+        getSectionByClass(preselectedClass, 0);
+    }
+});
 </script>

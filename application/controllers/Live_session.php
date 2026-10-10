@@ -29,9 +29,8 @@ class Live_session extends Admin_Controller
         }
 
         $branchID = $this->application_model->get_branch_id();
-        $teacherID = is_superadmin_loggedin() ? null : get_loggedin_user_id();
 
-        $this->data['sessions']    = $this->live_model->get_sessions_list($branchID, null, $teacherID);
+        $this->data['sessions']    = $this->live_model->get_sessions_list($branchID, null, null);
         $this->data['classes']     = $this->app_lib->getTable('class');
         $this->data['branch_id']   = $branchID;
         $this->data['schemes']     = $this->Scheme_model->get_schemes();
@@ -40,6 +39,31 @@ class Live_session extends Admin_Controller
         $this->data['main_menu']   = 'live_class';
 
         $this->load->view('layout/index', $this->data);
+    }
+
+    /**
+     * AJAX endpoint to get sections by class (unrestricted for live classroom)
+     */
+    public function get_sections_by_class()
+    {
+        $classId = $this->input->post('class_id');
+        $html = '<option value="">Select Section</option>';
+        if (!empty($classId)) {
+            $sections = $this->db->select('sa.section_id, s.name as section_name')
+                ->from('sections_allocation as sa')
+                ->join('section as s', 's.id = sa.section_id', 'left')
+                ->where('sa.class_id', $classId)
+                ->get()->result_array();
+
+            if (empty($sections)) {
+                $sections = $this->db->select('id as section_id, name as section_name')->get('section')->result_array();
+            }
+
+            foreach ($sections as $sec) {
+                $html .= '<option value="' . $sec['section_id'] . '">' . html_escape($sec['section_name']) . '</option>';
+            }
+        }
+        echo $html;
     }
 
     /**
@@ -331,8 +355,22 @@ class Live_session extends Admin_Controller
             $classId   = !empty($studentDetails['class_id']) ? $studentDetails['class_id'] : $this->session->userdata('class_id');
             $sectionId = !empty($studentDetails['section_id']) ? $studentDetails['section_id'] : $this->session->userdata('section_id');
 
+            if (empty($classId)) {
+                $enroll = $this->db->where('student_id', $studentId)->order_by('id', 'DESC')->get('enroll')->row_array();
+                if (!empty($enroll)) {
+                    $classId   = $enroll['class_id'];
+                    $sectionId = $enroll['section_id'];
+                }
+            }
+
             if (empty($sessionId)) {
                 $session = $this->live_model->get_active_student_session($classId, $sectionId);
+                if (empty($session) && !empty($classId)) {
+                    $session = $this->live_model->get_active_student_session($classId, null);
+                }
+                if (empty($session)) {
+                    $session = $this->live_model->get_active_student_session(null, null);
+                }
             } else {
                 $session = $this->live_model->get_session($sessionId);
             }
