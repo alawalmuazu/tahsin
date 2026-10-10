@@ -895,7 +895,6 @@ class Userrole extends User_Controller
     }
     /* End Homework Controller */
 
-    /* Start Live Class Controller */
     public function live_class()
     {
         if (!is_student_loggedin()) {
@@ -906,6 +905,14 @@ class Userrole extends User_Controller
         $this->data['sub_page'] = 'userrole/live_class';
         $this->data['main_menu'] = 'live_class';
         $this->load->view('layout/index', $this->data);
+    }
+
+    public function live_session($sessionId = null)
+    {
+        if (!is_student_loggedin()) {
+            access_denied();
+        }
+        redirect(base_url('live_session/student_room/' . $sessionId));
     }
 
     public function joinModal()

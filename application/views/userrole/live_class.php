@@ -5,6 +5,21 @@
 				<h4 class="panel-title"><i class="fas fa-headset"></i> <?=translate('live_class') . " " . translate('list')?></h4>
 			</header>
 			<div class="panel-body">
+				<div style="background: linear-gradient(135deg, #0f172a, #1e293b); color: #fff; border-radius: 8px; padding: 18px 22px; margin-bottom: 20px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 14px;">
+					<div>
+						<h4 style="margin: 0 0 5px 0; color: #38bdf8; font-weight: 700; font-size: 16px;">
+							<i class="fas fa-radar"></i> Live Classroom Interactive Room & Telemetry
+						</h4>
+						<p style="margin: 0; color: #94a3b8; font-size: 13px;">
+							Connect to your teacher's real-time lesson, interactive formative checks, and syllabus objectives.
+						</p>
+					</div>
+					<div>
+						<a href="<?=base_url('live_session/student_room')?>" class="btn btn-primary" style="font-weight: 700; background: linear-gradient(135deg, #0284c7, #38bdf8); border: none; box-shadow: 0 2px 10px rgba(56, 189, 248, 0.3);">
+							<i class="fas fa-sign-in-alt"></i> Enter Live Interactive Room
+						</a>
+					</div>
+				</div>
 			<div class="tab-pane box active mb-md" id="list">
 				<table class="table table-bordered table-hover mb-none table-condensed table-export">
 					<thead>

@@ -961,6 +961,9 @@
                                     <li class="nav-parent <?php if ($main_menu == 'live_class') echo 'nav-expanded nav-active'; ?>">
                                         <a><i class="icons icon-earphones-alt"></i><span><?=translate('live_class_rooms')?></span></a>
                                         <ul class="nav nav-children">
+                                            <li class="<?php if ($sub_page == 'live_session/index' || $sub_page == 'live_session/cockpit') echo 'nav-active'; ?>">
+                                                <a href="<?=base_url('live_session')?>"><span><i class="fas fa-caret-right"></i> Live Cockpit & Radar</span></a>
+                                            </li>
                                             <li class="<?php if ($sub_page == 'live_class/index') echo 'nav-active'; ?>">
                                                 <a href="<?=base_url('live_class')?>"><span><i class="fas fa-caret-right"></i> <?=translate('live_class_rooms')?></span></a>
                                             </li>
