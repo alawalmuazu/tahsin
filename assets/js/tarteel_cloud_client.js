@@ -185,13 +185,29 @@
         note: "Cloud stack (public): NeMo fine-tune \u2192 Riva streaming ASR \u2192 Triton. Dual-model/tajweed is server-side; watch STATES_UPDATE.mistakeUpdates."
       });
       try {
-        this.mediaStream = await navigator.mediaDevices.getUserMedia({
-          audio: {
-            echoCancellation: true,
-            noiseSuppression: true,
-            autoGainControl: true
-          }
-        });
+        const audioConstraints = {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true,
+          channelCount: { ideal: 1 }
+        };
+        try {
+          const supported = navigator.mediaDevices.getSupportedConstraints?.() || {};
+          if (supported.voiceIsolation) audioConstraints.voiceIsolation = true;
+        } catch (e) {
+        }
+        try {
+          this.mediaStream = await navigator.mediaDevices.getUserMedia({ audio: audioConstraints });
+        } catch (micErr) {
+          delete audioConstraints.voiceIsolation;
+          this.mediaStream = await navigator.mediaDevices.getUserMedia({
+            audio: {
+              echoCancellation: true,
+              noiseSuppression: true,
+              autoGainControl: true
+            }
+          });
+        }
         this.log("\u{1F3A4} Microphone acquired", {
           tracks: this.mediaStream.getAudioTracks().map((t) => {
             var _a2;
@@ -354,6 +370,27 @@
       this.audioContext = new AudioContextClass();
       const source = this.audioContext.createMediaStreamSource(this.mediaStream);
       this.sourceNode = source;
+      const highpass = this.audioContext.createBiquadFilter();
+      highpass.type = "highpass";
+      highpass.frequency.value = 80;
+      highpass.Q.value = 0.7;
+      const presence = this.audioContext.createBiquadFilter();
+      presence.type = "peaking";
+      presence.frequency.value = 2500;
+      presence.Q.value = 0.8;
+      presence.gain.value = 2;
+      const lowpass = this.audioContext.createBiquadFilter();
+      lowpass.type = "lowpass";
+      lowpass.frequency.value = 8000;
+      lowpass.Q.value = 0.7;
+      const compressor = this.audioContext.createDynamicsCompressor();
+      compressor.threshold.value = -20;
+      compressor.knee.value = 16;
+      compressor.ratio.value = 2.6;
+      compressor.attack.value = 0.004;
+      compressor.release.value = 0.22;
+      this._gateLevel = 0;
+      this._gateGain = 0.25;
       const scriptProcessor = this.audioContext.createScriptProcessor(4096, 1, 1);
       this.scriptProcessor = scriptProcessor;
       const gainNode = this.audioContext.createGain();
@@ -367,6 +404,13 @@
           sumSquares += inputChannelData[i] * inputChannelData[i];
         }
         const rms = Math.sqrt(sumSquares / inputChannelData.length);
+        this._gateLevel = (this._gateLevel || 0) * 0.82 + rms * 0.18;
+        const gateTarget = this._gateLevel > 0.015 ? 1 : 0.08;
+        const gateGlide = gateTarget > (this._gateGain || 0) ? 0.35 : 0.1;
+        this._gateGain = (this._gateGain || 0.25) + (gateTarget - (this._gateGain || 0.25)) * gateGlide;
+        for (let g = 0; g < inputChannelData.length; g++) {
+          inputChannelData[g] *= this._gateGain;
+        }
         const volumePercent = Math.min(100, Math.round(rms * 400));
         (_b = (_a = this.callbacks).onAudioVolume) == null ? void 0 : _b.call(_a, volumePercent);
         const currentRate = ((_c = this.audioContext) == null ? void 0 : _c.sampleRate) || 48e3;
@@ -393,8 +437,16 @@
           }
         }
       };
-      source.connect(scriptProcessor);
+      source.connect(highpass);
+      highpass.connect(presence);
+      presence.connect(lowpass);
+      lowpass.connect(compressor);
+      compressor.connect(scriptProcessor);
       scriptProcessor.connect(gainNode);
+      if (this.audioContext.state === "suspended") {
+        this.audioContext.resume().catch(() => {
+        });
+      }
       gainNode.connect(this.audioContext.destination);
     }
     handleServerMessage(event) {

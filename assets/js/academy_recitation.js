@@ -1780,23 +1780,141 @@
     }
   }
 
+  function recitationMicAudio() {
+    var audio = {
+      echoCancellation: true,
+      noiseSuppression: true,
+      autoGainControl: true,
+      channelCount: { ideal: 1 }
+    };
+    try {
+      var supported = navigator.mediaDevices && navigator.mediaDevices.getSupportedConstraints
+        ? navigator.mediaDevices.getSupportedConstraints() : {};
+      if (supported.voiceIsolation) audio.voiceIsolation = true;
+    } catch (e) {}
+    return audio;
+  }
+
+  async function captureRecitationMic(withVideo) {
+    var audio = recitationMicAudio();
+    var video = withVideo ? { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } } : false;
+    try {
+      return await navigator.mediaDevices.getUserMedia({ audio: audio, video: video });
+    } catch (err) {
+      if (audio.voiceIsolation) {
+        delete audio.voiceIsolation;
+        try {
+          return await navigator.mediaDevices.getUserMedia({ audio: audio, video: video });
+        } catch (err2) {}
+      }
+      return navigator.mediaDevices.getUserMedia(withVideo
+        ? { audio: true, video: { facingMode: 'user' } }
+        : { audio: true });
+    }
+  }
+
+  function openCleanVoiceGraph(rawStream) {
+    var Ctx = window.AudioContext || window.webkitAudioContext;
+    if (!Ctx) return null;
+    var ctx = new Ctx();
+    var source = ctx.createMediaStreamSource(rawStream);
+    var highpass = ctx.createBiquadFilter();
+    highpass.type = 'highpass';
+    highpass.frequency.value = 80;
+    highpass.Q.value = 0.7;
+    var presence = ctx.createBiquadFilter();
+    presence.type = 'peaking';
+    presence.frequency.value = 2500;
+    presence.Q.value = 0.8;
+    presence.gain.value = 2;
+    var lowpass = ctx.createBiquadFilter();
+    lowpass.type = 'lowpass';
+    lowpass.frequency.value = 8000;
+    lowpass.Q.value = 0.7;
+    var compressor = ctx.createDynamicsCompressor();
+    compressor.threshold.value = -20;
+    compressor.knee.value = 16;
+    compressor.ratio.value = 2.6;
+    compressor.attack.value = 0.004;
+    compressor.release.value = 0.22;
+    var gate = ctx.createScriptProcessor(2048, 1, 1);
+    var level = 0;
+    var gain = 0.25;
+    gate.onaudioprocess = function (ev) {
+      var input = ev.inputBuffer.getChannelData(0);
+      var output = ev.outputBuffer.getChannelData(0);
+      var sum = 0;
+      var n = input.length;
+      var i;
+      for (i = 0; i < n; i++) sum += input[i] * input[i];
+      var rms = Math.sqrt(sum / n);
+      level = level * 0.82 + rms * 0.18;
+      var target = level > 0.016 ? 1 : 0.07;
+      var glide = target > gain ? 0.42 : 0.1;
+      gain += (target - gain) * glide;
+      for (i = 0; i < n; i++) output[i] = input[i] * gain;
+    };
+    var dest = ctx.createMediaStreamDestination();
+    source.connect(highpass);
+    highpass.connect(presence);
+    presence.connect(lowpass);
+    lowpass.connect(compressor);
+    compressor.connect(gate);
+    gate.connect(dest);
+    if (ctx.state === 'suspended') ctx.resume();
+    return {
+      stream: dest.stream,
+      stop: function () {
+        try { gate.onaudioprocess = null; } catch (e) {}
+        try { gate.disconnect(); } catch (e2) {}
+        try { source.disconnect(); } catch (e3) {}
+        try { ctx.close(); } catch (e4) {}
+      }
+    };
+  }
+
+  function releaseMic() {
+    if (state.voiceClean) {
+      try { state.voiceClean.stop(); } catch (e) {}
+      state.voiceClean = null;
+    }
+    if (state.micStream) {
+      state.micStream.getTracks().forEach(function (t) { try { t.stop(); } catch (e) {} });
+      state.micStream = null;
+    }
+    if (state.stream) {
+      state.stream.getTracks().forEach(function (t) { try { t.stop(); } catch (e) {} });
+      state.stream = null;
+    }
+  }
+
   async function startRecording(withVideo) {
     try {
       stopRecording(true);
-      var constraints = withVideo
-        ? { audio: true, video: { facingMode: 'user' } }
-        : { audio: true };
       if (!window.isSecureContext && location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') {
         throw new Error('Microphone needs HTTPS (or localhost).');
       }
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
         throw new Error('This browser does not support microphone capture.');
       }
-      state.stream = await navigator.mediaDevices.getUserMedia(constraints);
+      state.micStream = await captureRecitationMic(withVideo);
+      var recordStream = state.micStream;
+      try {
+        state.voiceClean = openCleanVoiceGraph(state.micStream);
+        if (state.voiceClean && state.voiceClean.stream) {
+          recordStream = new MediaStream();
+          state.voiceClean.stream.getAudioTracks().forEach(function (t) { recordStream.addTrack(t); });
+          state.micStream.getVideoTracks().forEach(function (t) { recordStream.addTrack(t); });
+        }
+      } catch (cleanErr) {
+        recordStream = state.micStream;
+        state.voiceClean = null;
+      }
+      state.stream = recordStream;
       var preview = byId('ls_video_preview');
       if (withVideo && preview) {
         preview.style.display = '';
-        preview.srcObject = state.stream;
+        preview.srcObject = state.micStream || state.stream;
         preview.muted = true;
         preview.play();
       }
@@ -1832,7 +1950,9 @@
       startTimer();
       playSessionTone('start');
       syncLiveFab();
-      byId('ls_rec_status').textContent = withVideo ? 'Recording audio + video…' : 'Recording proof voice…';
+      byId('ls_rec_status').textContent = withVideo
+        ? 'Recording audio + video — noise reduction on…'
+        : 'Recording proof voice — noise reduction on…';
       setBtnVisible('ls_btn_stop', true);
       setBtnVisible('ls_btn_start_audio', false);
       setBtnVisible('ls_btn_start_video', false);
@@ -1870,10 +1990,7 @@
     state.recording = false;
     state.liveMode = null;
     syncLiveFab();
-    if (state.stream) {
-      state.stream.getTracks().forEach(function (t) { t.stop(); });
-      state.stream = null;
-    }
+    releaseMic();
     var preview = byId('ls_video_preview');
     if (preview) { preview.srcObject = null; preview.style.display = 'none'; }
     if (!silent) {

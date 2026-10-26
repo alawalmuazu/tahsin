@@ -252,7 +252,7 @@
 					<div>
 						<div class="ls-card">
 							<div class="ls-title"><svg class="ls-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0"/><path d="M12 18v3"/><path d="M8 21h8"/></svg> Proof recording</div>
-							<p class="ls-muted">Record Voice stores sound. Record Video stores the child’s face for this portion (online classes). Live check = green mic below.</p>
+							<p class="ls-muted">Record Voice stores sound with noise reduction (room hum and fan noise are turned down). Record Video stores the child’s face for this portion. Live check = green mic below.</p>
 							<div class="ls-actions">
 								<button type="button" class="btn btn-default btn-sm ls-btn-with-ico" id="ls_btn_start_audio"><svg class="ls-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0"/><path d="M12 18v3"/><path d="M8 21h8"/></svg> Record Voice</button>
 								<button type="button" class="btn btn-default btn-sm ls-btn-with-ico" id="ls_btn_start_video"><svg class="ls-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M23 7l-7 5 7 5V7z"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg> Record Video</button>
