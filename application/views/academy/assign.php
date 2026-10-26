@@ -96,7 +96,12 @@
 									?>
 										<tr data-class="<?php echo html_escape($cn); ?>" data-section="<?php echo html_escape($sn); ?>" data-student-cat="<?php echo html_escape($scat); ?>" data-programme="<?php echo html_escape($prog); ?>" data-search="<?php echo html_escape(strtolower($s->fullname . ' ' . $s->register_no)); ?>">
 											<td><input type="checkbox" class="assign-student" name="student_ids[]" value="<?php echo (int) $s->id; ?>" <?php echo !empty($picked[(int) $s->id]) ? 'checked' : ''; ?>></td>
-											<td><?php echo html_escape($s->fullname); ?></td>
+											<td>
+												<div style="display:flex;align-items:center;gap:.5rem">
+													<img src="<?php echo html_escape(get_image_url('student', isset($s->photo) ? $s->photo : '')); ?>" alt="" width="36" height="36" style="width:36px;height:36px;border-radius:50%;object-fit:cover;flex-shrink:0">
+													<span><?php echo html_escape($s->fullname); ?></span>
+												</div>
+											</td>
 											<td><?php echo html_escape($s->register_no); ?></td>
 											<td><?php echo $scat !== '' ? html_escape($scat) : '—'; ?></td>
 											<td><?php echo $sn !== '' ? html_escape($sn) : '—'; ?></td>
@@ -180,7 +185,12 @@
 					<?php foreach ($roster as $row): ?>
 						<tr>
 							<td><?php echo html_escape($row->teacher_name); ?></td>
-							<td><?php echo html_escape($row->student_name); ?></td>
+							<td>
+								<div style="display:flex;align-items:center;gap:.5rem">
+									<img src="<?php echo html_escape(get_image_url('student', isset($row->student_photo) ? $row->student_photo : '')); ?>" alt="" width="36" height="36" style="width:36px;height:36px;border-radius:50%;object-fit:cover;flex-shrink:0">
+									<span><?php echo html_escape($row->student_name); ?></span>
+								</div>
+							</td>
 							<td><?php echo html_escape($row->register_no); ?></td>
 						</tr>
 					<?php endforeach; ?>

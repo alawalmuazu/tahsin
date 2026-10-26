@@ -3234,7 +3234,7 @@ class Academy_model extends MY_Model
         if (!$this->reviewReady()) {
             return array();
         }
-        $this->db->select('ats.*, st.name AS teacher_name, TRIM(CONCAT_WS(" ", s.first_name, NULLIF(s.other_name,""), s.last_name)) AS student_name, s.register_no');
+        $this->db->select('ats.*, st.name AS teacher_name, TRIM(CONCAT_WS(" ", s.first_name, NULLIF(s.other_name,""), s.last_name)) AS student_name, s.register_no, s.photo AS student_photo');
         $this->db->from('academy_teacher_student ats');
         $this->db->join('staff st', 'st.id = ats.teacher_id', 'left');
         $this->db->join('student s', 's.id = ats.student_id', 'left');

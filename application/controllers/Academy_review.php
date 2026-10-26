@@ -374,7 +374,7 @@ class Academy_review extends Admin_Controller
     protected function studentsForAssign($branchID)
     {
         $sessionID = get_session_id();
-        $this->db->select('s.id, s.register_no, TRIM(CONCAT_WS(" ", s.first_name, NULLIF(s.other_name,""), s.last_name)) AS fullname, c.name AS class_name, se.name AS section_name, pc.name AS student_category, sc.name AS programme_category');
+        $this->db->select('s.id, s.register_no, s.photo, TRIM(CONCAT_WS(" ", s.first_name, NULLIF(s.other_name,""), s.last_name)) AS fullname, c.name AS class_name, se.name AS section_name, pc.name AS student_category, sc.name AS programme_category');
         $this->db->from('enroll e');
         $this->db->join('student s', 's.id = e.student_id', 'inner');
         $this->db->join('class c', 'c.id = e.class_id', 'left');
