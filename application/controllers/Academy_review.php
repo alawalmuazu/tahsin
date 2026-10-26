@@ -42,6 +42,10 @@ class Academy_review extends Admin_Controller
             redirect(base_url('academy_review'));
         }
 
+        if ($this->input->post('bulk_decide')) {
+            $this->handleBulk($branchID);
+        }
+
         if ($this->input->post('decide')) {
             $this->handleDecision($branchID);
         }
@@ -53,16 +57,13 @@ class Academy_review extends Admin_Controller
         $today = date('Y-m-d');
         $pendingAdminToday = 0;
         foreach ($sessions as $session) {
-            $session->weak_clip = null;
-            if (in_array($session->status, array('pending_director', 'pending_admin', 'acknowledged'), true)) {
-                $session->weak_clip = $this->academy_model->weakClipForSession(
-                    $branchID,
-                    $session->teacher_id,
-                    $session->session_date,
-                    isset($session->recitation_category) ? $session->recitation_category : '',
-                    isset($session->milestone_id) ? $session->milestone_id : 0
-                );
-            }
+            $session->weak_clip = $this->academy_model->weakClipForSession(
+                $branchID,
+                $session->teacher_id,
+                $session->session_date,
+                isset($session->recitation_category) ? $session->recitation_category : '',
+                isset($session->milestone_id) ? $session->milestone_id : 0
+            );
             if ($session->status === 'pending_admin' && $session->session_date === $today) {
                 $pendingAdminToday++;
             }
@@ -347,6 +348,91 @@ class Academy_review extends Admin_Controller
                 }
             }
         }
+        redirect(base_url('academy_review'));
+    }
+
+    /**
+     * Director and admin can approve a batch, or acknowledge a batch.
+     */
+    protected function handleBulk($branchID)
+    {
+        $action = $this->input->post('bulk_action');
+        $allowed = is_superadmin_loggedin() || is_director_loggedin() || is_admin_loggedin();
+        if (!$allowed || !in_array($action, array('approve', 'acknowledge'), true)) {
+            access_denied();
+        }
+        $ids = $this->input->post('session_ids');
+        if (!is_array($ids) || empty($ids)) {
+            set_alert('error', 'Select at least one session.');
+            redirect(base_url('academy_review'));
+        }
+        $step = $action === 'acknowledge' ? 'admin' : 'director';
+        $note = $this->input->post('bulk_note');
+        $ok = 0;
+        $skipped = 0;
+        $share = array();
+        foreach ($ids as $id) {
+            $id = (int) $id;
+            if ($id < 1) {
+                continue;
+            }
+            $err = $this->academy_model->decideSession(
+                $id,
+                $branchID,
+                get_loggedin_user_id(),
+                $step,
+                true,
+                $note
+            );
+            if ($err !== null) {
+                $skipped++;
+                continue;
+            }
+            $ok++;
+            if ($step !== 'admin') {
+                continue;
+            }
+            $session = $this->db->get_where('academy_class_session', array(
+                'id' => $id,
+                'branch_id' => (int) $branchID,
+            ))->row();
+            if (!$session) {
+                continue;
+            }
+            $messages = $this->academy_model->sessionShareMessages(
+                $branchID,
+                (int) $session->teacher_id,
+                $session->session_date,
+                $this->db->field_exists('group_id', 'academy_class_session') ? (int) $session->group_id : 0,
+                isset($session->milestone_id) ? (int) $session->milestone_id : 0
+            );
+            foreach ((array) $messages as $message) {
+                $share[$message] = true;
+            }
+        }
+        if ($ok < 1) {
+            set_alert('error', $action === 'acknowledge'
+                ? 'None of the selected sessions are waiting for acknowledgement.'
+                : 'None of the selected sessions are waiting for approval.');
+            redirect(base_url('academy_review'));
+        }
+        $sent = trim(implode(' ', $this->academy_model->digestNotices));
+        $noun = $ok === 1 ? 'recording' : 'recordings';
+        if ($action === 'acknowledge') {
+            $msg = 'Acknowledged ' . $ok . ' ' . $noun . '. Parent and student dashboards are updated.';
+            if ($sent !== '') {
+                $msg .= ' ' . $sent;
+            }
+            if (!empty($share)) {
+                $this->session->set_flashdata('wa_group_share', json_encode(array_keys($share)));
+            }
+        } else {
+            $msg = 'Approved ' . $ok . ' ' . $noun . ' and sent them to the admin.';
+        }
+        if ($skipped > 0) {
+            $msg .= ' ' . $skipped . ' selected ' . ($skipped === 1 ? 'row was' : 'rows were') . ' already decided and left unchanged.';
+        }
+        set_alert('success', $msg);
         redirect(base_url('academy_review'));
     }
 

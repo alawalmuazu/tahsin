@@ -7,6 +7,9 @@ $labels = array(
 	'admin_rejected' => 'Admin rejected',
 	'acknowledged' => 'Acknowledged',
 );
+$canBulk = false;
+$bulkDirector = 0;
+$bulkAdmin = 0;
 ?>
 <div class="row">
 	<div class="col-md-12">
@@ -27,10 +30,37 @@ $labels = array(
 						<?php echo form_close(); ?>
 					<?php endif; ?>
 					<p class="text-muted">Listen to the clip and read the Tajweed mistakes before you approve or acknowledge.</p>
+					<?php
+					$canBulk = !empty($can_director) || !empty($can_admin);
+					$bulkDirector = 0;
+					$bulkAdmin = 0;
+					if ($canBulk) {
+						foreach ($sessions as $bulkRow) {
+							if ($bulkRow->status === 'pending_director') {
+								$bulkDirector++;
+							} elseif ($bulkRow->status === 'pending_admin') {
+								$bulkAdmin++;
+							}
+						}
+					}
+					?>
+					<?php if ($canBulk && ($bulkDirector > 0 || $bulkAdmin > 0)): ?>
+						<?php echo form_open('academy_review', array('id' => 'bulk-review', 'style' => 'display:flex;flex-wrap:wrap;align-items:center;gap:.5rem;margin-bottom:1rem')); ?>
+							<input type="hidden" name="bulk_decide" value="1">
+							<input type="text" name="bulk_note" class="form-control input-sm" placeholder="Optional note for the selected sessions" style="max-width:280px">
+							<button class="btn btn-success btn-sm" type="submit" name="bulk_action" value="approve" id="bulk-approve" disabled>Approve selected</button>
+							<button class="btn btn-primary btn-sm" type="submit" name="bulk_action" value="acknowledge" id="bulk-ack" disabled>Acknowledge selected</button>
+							<span class="text-muted" id="bulk-hint"><?php echo (int) $bulkDirector; ?> with the director · <?php echo (int) $bulkAdmin; ?> with the admin</span>
+						<?php echo form_close(); ?>
+					<?php endif; ?>
 					<table class="table table-bordered table-striped">
 						<thead>
 							<tr>
+								<?php if ($canBulk && ($bulkDirector > 0 || $bulkAdmin > 0)): ?>
+									<th style="width:36px"><input type="checkbox" id="bulk-all" title="Select all waiting sessions"></th>
+								<?php endif; ?>
 								<th>Date & Time</th>
+								<th>Student</th>
 								<th>Teacher</th>
 								<th>Group</th>
 								<th>Category</th>
@@ -43,6 +73,13 @@ $labels = array(
 						<tbody>
 						<?php foreach ($sessions as $row): ?>
 							<tr>
+								<?php if ($canBulk && ($bulkDirector > 0 || $bulkAdmin > 0)): ?>
+									<td>
+										<?php if (in_array($row->status, array('pending_director', 'pending_admin'), true)): ?>
+											<input class="bulk-session" type="checkbox" name="session_ids[]" value="<?php echo (int) $row->id; ?>" form="bulk-review" data-status="<?php echo html_escape($row->status); ?>">
+										<?php endif; ?>
+									</td>
+								<?php endif; ?>
 								<td>
 									<div><strong><?php echo html_escape($row->session_date); ?></strong></div>
 									<?php
@@ -52,6 +89,16 @@ $labels = array(
 										<div class="text-muted" style="font-size:11.5px;margin-top:2px;white-space:nowrap;">
 											<i class="far fa-clock"></i> <?php echo date('h:i A', strtotime($rawTime)); ?>
 										</div>
+									<?php endif; ?>
+								</td>
+								<td>
+									<?php if ($clipHead = (!empty($row->weak_clip) ? $row->weak_clip : null)): ?>
+										<div style="display:flex;align-items:center;gap:.55rem;min-width:160px">
+											<img src="<?php echo html_escape(get_image_url('student', isset($clipHead['photo']) ? $clipHead['photo'] : '')); ?>" alt="" width="36" height="36" style="width:36px;height:36px;border-radius:50%;object-fit:cover;flex-shrink:0">
+											<strong><?php echo html_escape(!empty($clipHead['student']) ? $clipHead['student'] : 'Student'); ?></strong>
+										</div>
+									<?php else: ?>
+										<span class="text-muted">—</span>
 									<?php endif; ?>
 								</td>
 								<td><?php echo html_escape($row->teacher_name); ?></td>
@@ -92,14 +139,31 @@ $labels = array(
 									<?php if ($clip && (!empty($can_director) || !empty($can_admin))): ?>
 										<?php if ($clip): ?>
 											<div style="margin-bottom:.6rem;min-width:280px">
-												<div style="margin-bottom:.25rem">
-													<?php echo html_escape($clip['student']); ?>
-													<?php if (!empty($clip['portion'])): ?> · <?php echo html_escape($clip['portion']); ?><?php endif; ?>
-													<?php if ($clip['accuracy'] !== null && $clip['accuracy'] !== ''): ?> · <?php echo html_escape($clip['accuracy']); ?>%<?php endif; ?>
-													<?php if ($clip['mistakes'] !== null && $clip['mistakes'] !== ''): ?> · <?php echo (int) $clip['mistakes']; ?> mistakes<?php endif; ?>
-													<?php if ($clip['seconds'] !== null && $clip['seconds'] !== ''): ?> · <?php echo (int) $clip['seconds']; ?>s<?php endif; ?>
-													<?php if (!empty($clip['tarteel']['engine'])): ?> · <?php echo html_escape($clip['tarteel']['engine']); ?><?php endif; ?>
+												<div style="display:flex;align-items:center;gap:.55rem;margin-bottom:.35rem">
+													<img src="<?php echo html_escape(get_image_url('student', isset($clip['photo']) ? $clip['photo'] : '')); ?>" alt="" width="36" height="36" style="width:36px;height:36px;border-radius:50%;object-fit:cover;flex-shrink:0">
+													<div>
+														<strong><?php echo html_escape(!empty($clip['student']) ? $clip['student'] : 'Student'); ?></strong>
+														<?php if (!empty($clip['portion'])): ?><div class="text-muted" style="font-size:12px"><?php echo html_escape($clip['portion']); ?></div><?php endif; ?>
+													</div>
 												</div>
+												<?php
+												$clipBits = array();
+												if ($clip['accuracy'] !== null && $clip['accuracy'] !== '') {
+													$clipBits[] = html_escape($clip['accuracy']) . '%';
+												}
+												if ($clip['mistakes'] !== null && $clip['mistakes'] !== '') {
+													$clipBits[] = (int) $clip['mistakes'] . ' mistakes';
+												}
+												if ($clip['seconds'] !== null && $clip['seconds'] !== '') {
+													$clipBits[] = (int) $clip['seconds'] . 's';
+												}
+												if (!empty($clip['tarteel']['engine'])) {
+													$clipBits[] = html_escape($clip['tarteel']['engine']);
+												}
+												?>
+												<?php if (!empty($clipBits)): ?>
+													<div style="margin-bottom:.25rem"><?php echo implode(' · ', $clipBits); ?></div>
+												<?php endif; ?>
 												<?php $this->load->view('academy/_tarteel_player', array(
 													'tp_surah' => isset($clip['surah_number']) ? (int) $clip['surah_number'] : 0,
 													'tp_from' => isset($clip['ayah_from']) ? (int) $clip['ayah_from'] : 0,
@@ -167,6 +231,59 @@ $labels = array(
 		</section>
 	</div>
 </div>
+<?php if (!empty($canBulk) && ($bulkDirector > 0 || $bulkAdmin > 0)): ?>
+<script>
+(function () {
+	var form = document.getElementById('bulk-review');
+	var all = document.getElementById('bulk-all');
+	var approveBtn = document.getElementById('bulk-approve');
+	var ackBtn = document.getElementById('bulk-ack');
+	if (!form || !approveBtn || !ackBtn) return;
+	function boxes() {
+		return Array.prototype.slice.call(document.querySelectorAll('.bulk-session'));
+	}
+	function refresh() {
+		var approve = 0;
+		var ack = 0;
+		var total = 0;
+		var checked = 0;
+		boxes().forEach(function (box) {
+			total++;
+			if (!box.checked) return;
+			checked++;
+			if (box.getAttribute('data-status') === 'pending_director') approve++;
+			if (box.getAttribute('data-status') === 'pending_admin') ack++;
+		});
+		approveBtn.disabled = approve < 1;
+		ackBtn.disabled = ack < 1;
+		approveBtn.textContent = approve > 0 ? 'Approve selected (' + approve + ')' : 'Approve selected';
+		ackBtn.textContent = ack > 0 ? 'Acknowledge selected (' + ack + ')' : 'Acknowledge selected';
+		if (all) all.checked = total > 0 && checked === total;
+	}
+	if (all) {
+		all.addEventListener('change', function () {
+			boxes().forEach(function (box) { box.checked = all.checked; });
+			refresh();
+		});
+	}
+	boxes().forEach(function (box) { box.addEventListener('change', refresh); });
+	form.addEventListener('submit', function (ev) {
+		var action = ev.submitter ? ev.submitter.value : '';
+		var n = 0;
+		boxes().forEach(function (box) {
+			if (!box.checked) return;
+			if (action === 'approve' && box.getAttribute('data-status') === 'pending_director') n++;
+			if (action === 'acknowledge' && box.getAttribute('data-status') === 'pending_admin') n++;
+		});
+		var label = action === 'acknowledge' ? 'Acknowledge ' : 'Approve ';
+		if (n < 1 || !window.confirm(label + n + (n === 1 ? ' recording?' : ' recordings?'))) {
+			ev.preventDefault();
+		}
+	});
+	refresh();
+})();
+</script>
+<?php endif; ?>
 <script src="<?php echo base_url('assets/js/tarteel_playback.js?v=4'); ?>"></script>
 <?php
 $waGroupShare = $this->session->flashdata('wa_group_share');

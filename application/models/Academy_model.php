@@ -3899,14 +3899,22 @@ class Academy_model extends MY_Model
 
         if ($submit) {
             $teacherName = get_type_name_by_id('staff', $teacherId, 'name');
-            $stu = $this->db->select('first_name, last_name')->get_where('student', array('id' => (int) $studentId))->row();
-            $studentName = $stu ? trim($stu->first_name . ' ' . $stu->last_name) : 'a student';
+            $stu = $this->db->select('first_name, other_name, last_name, photo')->get_where('student', array('id' => (int) $studentId))->row();
+            $studentName = $stu ? trim(implode(' ', array_filter(array(
+                (string) $stu->first_name,
+                (string) $stu->other_name,
+                (string) $stu->last_name,
+            ), 'strlen'))) : 'a student';
+            $studentMeta = array(
+                'name' => $studentName,
+                'photo' => $stu && !empty($stu->photo) ? (string) $stu->photo : '',
+            );
             $title = 'Academy session ready for review';
             $body = $groupDone
                 ? $teacherName . ' finished ' . $categoryLabel . ' on ' . $date . ' (' . $recorded . '/' . $total . ' students).'
-                : $teacherName . ' sent ' . $studentName . ' · ' . $categoryLabel . ' (' . $date . ') for approval.';
-            $this->notifyRoles(array(1, 9), $branchId, $title, $body, 'academy_review');
-            $this->pushNotice($teacherId, $branchId, 'Session sent to the director', $body, 'academy_review');
+                : $teacherName . ' sent ' . $categoryLabel . ' (' . $date . ') for approval.';
+            $this->notifyRoles(array(1, 9), $branchId, $title, $body, 'academy_review', $studentMeta);
+            $this->pushNotice($teacherId, $branchId, 'Session sent to the director', $body, 'academy_review', $studentMeta);
             return $categoryLabel . ' sent to the director.' . $priorNote;
         }
 
@@ -4188,7 +4196,7 @@ class Academy_model extends MY_Model
             return null;
         }
         $milestoneId = (int) $milestoneId;
-        $rows = $this->db->select('t.*, s.first_name, s.last_name')
+        $rows = $this->db->select('t.*, s.first_name, s.other_name, s.last_name, s.photo')
             ->from('academy_tahfiz_record t')
             ->join('student s', 's.id = t.student_id', 'left')
             ->where('t.branch_id', (int) $branchId)
@@ -4224,8 +4232,14 @@ class Academy_model extends MY_Model
         }
         $cats = $this->recitationCategories();
         $ck = isset($best->recitation_category) ? strtoupper((string) $best->recitation_category) : '';
+        $studentName = trim(implode(' ', array_filter(array(
+            isset($best->first_name) ? $best->first_name : '',
+            isset($best->other_name) ? $best->other_name : '',
+            isset($best->last_name) ? $best->last_name : '',
+        ), 'strlen')));
         return array(
-            'student' => trim((isset($best->first_name) ? $best->first_name : '') . ' ' . (isset($best->last_name) ? $best->last_name : '')),
+            'student' => $studentName,
+            'photo' => isset($best->photo) ? (string) $best->photo : '',
             'portion' => (string) $this->formatTahfizMilestoneLabel($best),
             'category' => isset($cats[$ck]) ? $cats[$ck] : '',
             'accuracy' => isset($best->accuracy_score) ? $best->accuracy_score : null,
@@ -4994,7 +5008,7 @@ class Academy_model extends MY_Model
         return $label . '.';
     }
 
-    protected function notifyRoles($roleIds, $branchId, $title, $body, $link)
+    protected function notifyRoles($roleIds, $branchId, $title, $body, $link, $student = null)
     {
         if (!$this->db->table_exists('login_credential')) {
             return;
@@ -5010,23 +5024,44 @@ class Academy_model extends MY_Model
                 continue;
             }
             $sent[$uid] = true;
-            $this->pushNotice($uid, $branchId, $title, $body, $link);
+            $this->pushNotice($uid, $branchId, $title, $body, $link, $student);
         }
     }
 
-    protected function pushNotice($userId, $branchId, $title, $body, $link)
+    protected function ensureNoticeStudent()
+    {
+        static $done = false;
+        if ($done || !$this->db->table_exists('academy_notice')) {
+            return;
+        }
+        $done = true;
+        if (!$this->db->field_exists('student_name', 'academy_notice')) {
+            $this->db->query("ALTER TABLE `academy_notice` ADD COLUMN `student_name` VARCHAR(160) NULL DEFAULT NULL AFTER `body`");
+        }
+        if (!$this->db->field_exists('student_photo', 'academy_notice')) {
+            $this->db->query("ALTER TABLE `academy_notice` ADD COLUMN `student_photo` VARCHAR(255) NULL DEFAULT NULL AFTER `student_name`");
+        }
+    }
+
+    protected function pushNotice($userId, $branchId, $title, $body, $link, $student = null)
     {
         if (!$this->db->table_exists('academy_notice') || (int) $userId < 1) {
             return;
         }
-        $this->db->insert('academy_notice', array(
+        $this->ensureNoticeStudent();
+        $row = array(
             'branch_id' => (int) $branchId,
             'user_id' => (int) $userId,
             'title' => mb_substr($title, 0, 160),
             'body' => mb_substr((string) $body, 0, 500),
             'link' => $link,
             'is_read' => 0,
-        ));
+        );
+        if (is_array($student) && $this->db->field_exists('student_name', 'academy_notice')) {
+            $row['student_name'] = mb_substr(trim((string) (isset($student['name']) ? $student['name'] : '')), 0, 160);
+            $row['student_photo'] = isset($student['photo']) ? (string) $student['photo'] : '';
+        }
+        $this->db->insert('academy_notice', $row);
     }
 
     /**

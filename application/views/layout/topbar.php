@@ -345,9 +345,17 @@ foreach($languages as $lang) :
 								</li>
 								<?php foreach ($academyNotices as $an): ?>
 								<li style="border-bottom: 1px solid #f1f5f9;">
-									<a href="<?php echo base_url($an->link ? $an->link : 'academy_review'); ?>" class="clearfix" style="padding: 10px 12px; display: block; text-decoration: none;">
-										<strong style="color: #1e293b; font-size: 13px;"><?php echo html_escape($an->title); ?></strong>
-										<div style="font-size: 11px; color: #64748b;"><?php echo html_escape($an->body); ?></div>
+									<a href="<?php echo base_url($an->link ? $an->link : 'academy_review'); ?>" class="clearfix" style="padding: 10px 12px; display: flex; align-items: center; gap: 10px; text-decoration: none;">
+										<?php if (!empty($an->student_name)): ?>
+											<img src="<?php echo html_escape(get_image_url('student', isset($an->student_photo) ? $an->student_photo : '')); ?>" alt="" width="36" height="36" style="width:36px;height:36px;border-radius:50%;object-fit:cover;flex-shrink:0">
+										<?php endif; ?>
+										<span style="min-width:0">
+											<strong style="color: #1e293b; font-size: 13px;"><?php echo html_escape(!empty($an->student_name) ? $an->student_name : $an->title); ?></strong>
+											<?php if (!empty($an->student_name)): ?>
+												<div style="font-size: 11px; color: #047857;"><?php echo html_escape($an->title); ?></div>
+											<?php endif; ?>
+											<div style="font-size: 11px; color: #64748b;"><?php echo html_escape($an->body); ?></div>
+										</span>
 									</a>
 								</li>
 								<?php endforeach; ?>
