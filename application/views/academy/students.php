@@ -64,7 +64,36 @@
 }
 .academy-card-goal{margin-top:.65rem;padding:.45rem .55rem;border-radius:8px;background:#eff6ff;border:1px solid #bfdbfe;color:#1d4ed8;font-size:.72rem;font-weight:700;line-height:1.3}
 .academy-card-goal span{font-weight:600;color:#64748b}
+.academy-hub-actions{display:flex;flex-wrap:wrap;gap:.4rem}
 .academy-hub-header .btn{display:inline-flex;align-items:center;gap:.4rem}
+.academy-label-short{display:none}
+@media (max-width:680px){
+	.academy-hub-header p{font-size:.82rem}
+	.academy-hub-actions{flex-wrap:nowrap;overflow-x:auto;width:100%;padding-bottom:.2rem;-webkit-overflow-scrolling:touch}
+	.academy-hub-actions .btn{flex:0 0 auto;white-space:nowrap}
+	.academy-kpis{grid-template-columns:1fr 1fr;gap:.5rem}
+	.academy-kpi{padding:.7rem .45rem}
+	.academy-kpi .v{font-size:1.2rem}
+	.academy-section-label{align-items:flex-start}
+	.academy-label-long{display:none}
+	.academy-label-short{display:inline}
+	.academy-cards{grid-template-columns:1fr;gap:.55rem}
+	.academy-card{display:grid;grid-template-columns:minmax(0,1fr) auto;column-gap:.7rem;row-gap:.35rem;align-items:center;padding:.75rem .8rem;touch-action:manipulation}
+	.academy-card:hover{transform:none;box-shadow:none}
+	.academy-card-top{grid-column:1;grid-row:1;margin:0}
+	.academy-card-meta{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+	.academy-ring-wrap{grid-column:2;grid-row:1;width:auto;height:auto;margin:0}
+	.academy-ring-wrap svg{display:none}
+	.academy-ring-value{position:static;min-width:2.6rem;text-align:right}
+	.academy-ring-num{font-size:1.05rem}
+	.academy-stats{grid-column:1 / -1;display:flex;flex-wrap:wrap;gap:.15rem .65rem;text-align:left;border-top:0;padding-top:0}
+	.academy-stats > div{display:flex;align-items:baseline;gap:.25rem}
+	.academy-stat-v{font-size:.8rem}
+	.academy-stat-l{text-transform:lowercase;letter-spacing:0;font-size:.68rem}
+	.academy-card-goal{grid-column:1 / -1;margin:0;font-size:.78rem;padding:.5rem .65rem}
+	.academy-filters{flex-direction:column;align-items:stretch}
+	.academy-filters input,.academy-filters select{max-width:none;width:100%}
+}
 .academy-hub-ico{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0}
 </style>
 
@@ -73,7 +102,7 @@
 		<h4 style="display:flex;align-items:center;gap:.45rem"><svg class="academy-hub-ico" viewBox="0 0 24 24"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg> TAHSIN Academy Students</h4>
 		<p>Enrolled cohort roster, Quranic Barakah metrics, and halaqah participation.</p>
 	</div>
-	<div>
+	<div class="academy-hub-actions">
 		<?php if (get_permission('student', 'is_add') || is_superadmin_loggedin()): ?>
 		<a href="<?php echo base_url('student/add'); ?>" class="btn btn-default">
 			<svg class="academy-hub-ico" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg> Enroll Student
@@ -177,8 +206,11 @@
 
 <?php if (!empty($featured)): ?>
 <div class="academy-section-label">
-	<span>Most Recently Active Cohort Profiles (<?php echo count($featured); ?> of <?php echo count($roster); ?>)</span>
-	<span class="academy-tip">Click any student card to log completed recitation</span>
+	<span>
+		<span class="academy-label-long">Most Recently Active Cohort Profiles (<?php echo count($featured); ?> of <?php echo count($roster); ?>)</span>
+		<span class="academy-label-short">Students (<?php echo count($featured); ?>)</span>
+	</span>
+	<span class="academy-tip">Tap a student to log recitation</span>
 </div>
 <div class="academy-cards">
 	<?php foreach ($featured as $st):
