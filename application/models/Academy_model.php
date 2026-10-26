@@ -233,6 +233,77 @@ class Academy_model extends MY_Model
     /**
      * Same facilitator, student, category, and portion already saved today.
      *
+     * @return object|null
+     */
+    public function findTodayMilestone($data)
+    {
+        if (!$this->tahfizReady()) {
+            return null;
+        }
+        $cats = $this->recitationCategories();
+        $cat = isset($data['recitation_category']) ? strtoupper(trim((string) $data['recitation_category'])) : '';
+        $cat = ($cat !== '' && isset($cats[$cat])) ? $cat : '';
+        $studentId = (int) (isset($data['student_id']) ? $data['student_id'] : 0);
+        $teacherId = (int) (isset($data['instructor_id']) ? $data['instructor_id'] : 0);
+        $surah = (int) (isset($data['surah_number']) ? $data['surah_number'] : 0);
+        $ayahFrom = isset($data['ayah_from']) && $data['ayah_from'] !== '' && $data['ayah_from'] !== null ? (int) $data['ayah_from'] : 0;
+        $ayahTo = isset($data['ayah_to']) && $data['ayah_to'] !== '' && $data['ayah_to'] !== null ? (int) $data['ayah_to'] : 0;
+        $when = !empty($data['completed_at']) ? date('Y-m-d', strtotime($data['completed_at'])) : date('Y-m-d');
+        if ($studentId < 1 || $teacherId < 1 || $surah < 1 || $cat === '') {
+            return null;
+        }
+        $this->db->from('academy_tahfiz_record');
+        $this->db->where('student_id', $studentId);
+        $this->db->where('instructor_id', $teacherId);
+        $this->db->where('surah_number', $surah);
+        $this->db->where('DATE(completed_at)', $when);
+        if ($this->db->field_exists('recitation_category', 'academy_tahfiz_record')) {
+            $this->db->where('recitation_category', $cat);
+        }
+        if ($ayahFrom > 0) {
+            $this->db->where('ayah_from', $ayahFrom);
+        }
+        if ($ayahTo > 0) {
+            $this->db->where('ayah_to', $ayahTo);
+        }
+        return $this->db->order_by('id', 'DESC')->limit(1)->get()->row();
+    }
+
+    /**
+     * A repeat save of a recitation that never reached the director forwards that clip.
+     *
+     * @return string empty when there is nothing new to send
+     */
+    public function forwardRecordedMilestone($branchId, $data)
+    {
+        $row = $this->findTodayMilestone($data);
+        if (!$row) {
+            return '';
+        }
+        $status = '';
+        if ($this->db->table_exists('academy_class_session') && $this->db->field_exists('milestone_id', 'academy_class_session')) {
+            $session = $this->db->get_where('academy_class_session', array('milestone_id' => (int) $row->id))->row();
+            $status = $session ? (string) $session->status : '';
+        }
+        if (!in_array($status, array('', 'recording', 'director_rejected', 'admin_rejected'), true)) {
+            return '';
+        }
+        $when = !empty($row->completed_at) ? date('Y-m-d', strtotime($row->completed_at)) : date('Y-m-d');
+        $cat = isset($row->recitation_category) ? $row->recitation_category : (isset($data['recitation_category']) ? $data['recitation_category'] : '');
+        $msg = $this->touchTeacherSession(
+            (int) $branchId,
+            (int) $row->student_id,
+            $when,
+            (int) $row->instructor_id,
+            $cat,
+            (int) $row->id
+        );
+        return $msg ? $msg : '';
+    }
+
+    /**
+     * Same facilitator, student, category, and portion already saved today.
+     *
      * @return string empty when this save is new
      */
     public function priorMilestoneMessage($data)
@@ -252,21 +323,7 @@ class Academy_model extends MY_Model
         if ($studentId < 1 || $teacherId < 1 || $surah < 1 || $cat === '') {
             return '';
         }
-        $this->db->from('academy_tahfiz_record');
-        $this->db->where('student_id', $studentId);
-        $this->db->where('instructor_id', $teacherId);
-        $this->db->where('surah_number', $surah);
-        $this->db->where('DATE(completed_at)', $when);
-        if ($this->db->field_exists('recitation_category', 'academy_tahfiz_record')) {
-            $this->db->where('recitation_category', $cat);
-        }
-        if ($ayahFrom > 0) {
-            $this->db->where('ayah_from', $ayahFrom);
-        }
-        if ($ayahTo > 0) {
-            $this->db->where('ayah_to', $ayahTo);
-        }
-        $row = $this->db->order_by('id', 'DESC')->limit(1)->get()->row();
+        $row = $this->findTodayMilestone($data);
         if (!$row) {
             return '';
         }
@@ -3227,6 +3284,22 @@ class Academy_model extends MY_Model
                 (int) $milestone->id
             );
         }
+        $stuck = $this->db->query(
+            "SELECT cs.branch_id, cs.teacher_id, t.student_id, cs.recitation_category, cs.session_date, cs.milestone_id
+             FROM academy_class_session cs
+             INNER JOIN academy_tahfiz_record t ON t.id = cs.milestone_id
+             WHERE cs.status = 'recording' AND cs.milestone_id > 0 AND cs.session_date = CURDATE()"
+        )->result();
+        foreach ($stuck as $row) {
+            $this->touchTeacherSession(
+                (int) $row->branch_id,
+                (int) $row->student_id,
+                $row->session_date,
+                (int) $row->teacher_id,
+                $row->recitation_category,
+                (int) $row->milestone_id
+            );
+        }
     }
 
     public function studentAssignedToTeacher($studentId, $teacherId, $branchId = null)
@@ -3674,25 +3747,16 @@ class Academy_model extends MY_Model
         $branchId = (int) $branchId;
         $studentId = (int) $studentId;
         $date = $date ? $date : date('Y-m-d');
-        $sessionId = (int) get_session_id();
         $teacherId = (int) ($teacherId ? $teacherId : (function_exists('get_loggedin_user_id') ? get_loggedin_user_id() : 0));
-        if ($teacherId < 1 || !$this->studentAssignedToTeacher($studentId, $teacherId, $branchId)) {
+        $milestoneId = (int) $milestoneId;
+        $assigned = $this->studentAssignedToTeacher($studentId, $teacherId, $branchId);
+        if ($teacherId < 1 || (!$assigned && $milestoneId < 1)) {
             return null;
         }
 
         $groupIds = $this->studentGroupIds($teacherId, $studentId, $branchId);
-        $hasGroups = $this->groupsReady()
-            && $this->db->where(array(
-                'branch_id' => $branchId,
-                'session_id' => $sessionId,
-                'teacher_id' => $teacherId,
-            ))->count_all_results('academy_teacher_group') > 0;
-
-        if ($hasGroups && empty($groupIds)) {
-            return 'Put this student in a facilitator group first (Academy → My Groups), then record again.';
-        }
         if (empty($groupIds)) {
-            $groupIds = array(0); // legacy whole-roster session
+            $groupIds = array(0);
         }
 
         $notes = array();
@@ -3765,11 +3829,19 @@ class Academy_model extends MY_Model
 
         $status = $row ? $row->status : 'recording';
         $open = array('recording', 'director_rejected', 'admin_rejected');
-        $submit = ($total > 0 && $recorded >= $total && in_array($status, $open, true));
+        $groupDone = ($total > 0 && $recorded >= $total);
+        $oneClip = $milestoneId > 0;
+        $submit = ($oneClip || $groupDone) && in_array($status, $open, true);
         if ($submit) {
             $status = 'pending_director';
         } elseif (!$row) {
             $status = 'recording';
+        }
+        if ($oneClip && $recorded < 1) {
+            $recorded = 1;
+        }
+        if ($oneClip && $total < $recorded) {
+            $total = $recorded;
         }
 
         $payload = array(
@@ -3803,7 +3875,17 @@ class Academy_model extends MY_Model
             $payload['branch_id'] = $branchId;
             $payload['teacher_id'] = $teacherId;
             $payload['session_date'] = $date;
-            $this->db->insert('academy_class_session', $payload);
+            $inserted = $this->db->insert('academy_class_session', $payload);
+            if (!$inserted) {
+                $loose = $where;
+                unset($loose['milestone_id']);
+                $fallback = $this->db->order_by('id', 'DESC')->get_where('academy_class_session', $loose)->row();
+                if ($fallback && in_array($fallback->status, $open, true)) {
+                    $this->db->where('id', (int) $fallback->id)->update('academy_class_session', $payload);
+                } else {
+                    return $categoryLabel . ' was saved, but the director review could not be opened.';
+                }
+            }
         }
 
         $priorNote = '';
@@ -3817,8 +3899,12 @@ class Academy_model extends MY_Model
 
         if ($submit) {
             $teacherName = get_type_name_by_id('staff', $teacherId, 'name');
+            $stu = $this->db->select('first_name, last_name')->get_where('student', array('id' => (int) $studentId))->row();
+            $studentName = $stu ? trim($stu->first_name . ' ' . $stu->last_name) : 'a student';
             $title = 'Academy session ready for review';
-            $body = $teacherName . ' finished ' . $categoryLabel . ' on ' . $date . ' (' . $recorded . '/' . $total . ' students).';
+            $body = $groupDone
+                ? $teacherName . ' finished ' . $categoryLabel . ' on ' . $date . ' (' . $recorded . '/' . $total . ' students).'
+                : $teacherName . ' sent ' . $studentName . ' · ' . $categoryLabel . ' (' . $date . ') for approval.';
             $this->notifyRoles(array(1, 9), $branchId, $title, $body, 'academy_review');
             $this->pushNotice($teacherId, $branchId, 'Session sent to the director', $body, 'academy_review');
             return $categoryLabel . ' sent to the director.' . $priorNote;

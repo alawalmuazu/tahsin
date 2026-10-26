@@ -157,7 +157,16 @@ class Academy_students extends Admin_Controller
                     'completed_at' => date('Y-m-d H:i:s'),
                 ));
                 if ($prior !== '') {
-                    set_alert('error', $prior);
+                    $sent = $this->academy_model->forwardRecordedMilestone($branchID, array(
+                        'student_id' => $this->input->post('student_id'),
+                        'instructor_id' => get_loggedin_user_id(),
+                        'surah_number' => $surahNum,
+                        'recitation_category' => $catKey,
+                        'ayah_from' => $ayahFrom,
+                        'ayah_to' => $ayahTo,
+                        'completed_at' => date('Y-m-d H:i:s'),
+                    ));
+                    set_alert($sent !== '' ? 'success' : 'error', $sent !== '' ? $sent : $prior);
                     redirect(base_url('academy_students'));
                 }
 

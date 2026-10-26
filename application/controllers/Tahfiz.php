@@ -77,11 +77,20 @@ class Tahfiz extends Admin_Controller
                     'completed_at' => $completedAt,
                 ));
                 if ($prior !== '') {
-                    set_alert('error', $prior);
+                    $sent = $this->academy_model->forwardRecordedMilestone($branchID, array(
+                        'student_id' => $this->input->post('student_id'),
+                        'instructor_id' => get_loggedin_user_id(),
+                        'surah_number' => $surahNum,
+                        'recitation_category' => $cat,
+                        'ayah_from' => $ayahFrom,
+                        'ayah_to' => $ayahTo,
+                        'completed_at' => $completedAt,
+                    ));
+                    set_alert($sent !== '' ? 'success' : 'error', $sent !== '' ? $sent : $prior);
                     redirect(base_url('tahfiz'));
                 }
 
-                $this->academy_model->saveTahfiz(array(
+                $newId = $this->academy_model->saveTahfiz(array(
                     'branch_id' => $branchID,
                     'student_id' => $this->input->post('student_id'),
                     'instructor_id' => get_loggedin_user_id(),
@@ -103,7 +112,7 @@ class Tahfiz extends Admin_Controller
                     'tarteel_status' => $this->input->post('accuracy_score') !== '' && $this->input->post('accuracy_score') !== null
                         ? 'VERIFIED' : 'UNVERIFIED',
                 ));
-                $progress = $this->academy_model->touchTeacherSession($branchID, (int) $this->input->post('student_id'), null, null, $cat);
+                $progress = $this->academy_model->touchTeacherSession($branchID, (int) $this->input->post('student_id'), null, null, $cat, (int) $newId);
                 set_alert('success', 'Tahfiz record saved.' . ($progress ? ' ' . $progress : ''));
                 redirect(base_url('tahfiz'));
             }

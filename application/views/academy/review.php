@@ -18,9 +18,9 @@ $labels = array(
 				<?php if (empty($ready)): ?>
 					<div class="alert alert-warning">Run <code>application/migrations/academy_session_review.sql</code> first.</div>
 				<?php elseif (empty($sessions)): ?>
-					<p class="text-muted">No class sessions yet. A session appears when a teacher records an assigned student. It is sent to the director only after every assigned student has a drill or tahfiz entry that day.</p>
+					<p class="text-muted">No class sessions yet. A saved recitation is sent to the director for approval.</p>
 				<?php else: ?>
-					<p class="text-muted">Each recitation category is its own session. If the facilitator uses groups, each group submits separately when all of its students are recorded. The director listens, then approves or rejects. Approval waits for the admin to release that category.</p>
+					<p class="text-muted">Each saved recitation is sent to the director. The director listens, then approves or rejects. Approval waits for the admin to release it.</p>
 					<?php if (!empty($can_admin) && !empty($pending_admin_today)): ?>
 						<?php echo form_open('academy_review', array('style' => 'margin-bottom:1rem')); ?>
 							<button class="btn btn-primary" name="release_today" value="1" type="submit">Release today’s sealed sessions (<?php echo (int) $pending_admin_today; ?>)</button>
