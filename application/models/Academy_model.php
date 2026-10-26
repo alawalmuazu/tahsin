@@ -305,6 +305,11 @@ class Academy_model extends MY_Model
         $accuracy = isset($data['accuracy_score']) && $data['accuracy_score'] !== '' && $data['accuracy_score'] !== null
             ? (float) $data['accuracy_score'] : null;
         $tarteel = !empty($data['tarteel_status']) ? $data['tarteel_status'] : ($accuracy !== null ? 'VERIFIED' : 'UNVERIFIED');
+        list($ayahFrom, $ayahTo) = $this->clampAyahBounds(
+            $num,
+            isset($data['ayah_from']) ? $data['ayah_from'] : null,
+            isset($data['ayah_to']) ? $data['ayah_to'] : null
+        );
 
         $row = array(
             'branch_id' => (int) $data['branch_id'],
@@ -313,8 +318,8 @@ class Academy_model extends MY_Model
             'surah_number' => $num,
             'surah_name' => isset($surahs[$num]) ? $surahs[$num] : 'Unknown',
             'portion_mode' => $data['portion_mode'],
-            'ayah_from' => $data['ayah_from'] !== '' && $data['ayah_from'] !== null ? (int) $data['ayah_from'] : null,
-            'ayah_to' => $data['ayah_to'] !== '' && $data['ayah_to'] !== null ? (int) $data['ayah_to'] : null,
+            'ayah_from' => $ayahFrom !== '' && $ayahFrom !== null ? (int) $ayahFrom : null,
+            'ayah_to' => $ayahTo !== '' && $ayahTo !== null ? (int) $ayahTo : null,
             'page_from' => $data['page_from'] !== '' && $data['page_from'] !== null ? (int) $data['page_from'] : null,
             'page_to' => $data['page_to'] !== '' && $data['page_to'] !== null ? (int) $data['page_to'] : null,
             'verified' => !empty($data['verified']) ? 1 : 0,
@@ -881,6 +886,43 @@ class Academy_model extends MY_Model
         });
 
         return $roster;
+    }
+
+    /**
+     * Keep an ayah range inside the selected surah.
+     * Empty values stay empty so page-only portions are unchanged.
+     *
+     * @return array{0:mixed,1:mixed}
+     */
+    public function clampAyahBounds($surahNumber, $from, $to)
+    {
+        $counts = $this->surahAyahCounts();
+        $max = isset($counts[(int) $surahNumber]) ? (int) $counts[(int) $surahNumber] : 0;
+        if ($max < 1) {
+            return array($from, $to);
+        }
+        if ($from !== '' && $from !== null) {
+            $from = (int) $from;
+            if ($from < 1) {
+                $from = 1;
+            }
+            if ($from > $max) {
+                $from = $max;
+            }
+        }
+        if ($to !== '' && $to !== null) {
+            $to = (int) $to;
+            if ($to < 1) {
+                $to = 1;
+            }
+            if ($to > $max) {
+                $to = $max;
+            }
+        }
+        if ($from !== '' && $from !== null && $to !== '' && $to !== null && (int) $to < (int) $from) {
+            $to = (int) $from;
+        }
+        return array($from, $to);
     }
 
     /**

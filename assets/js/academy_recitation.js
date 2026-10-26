@@ -334,16 +334,25 @@
     return { surah: s.number, from: last + 1, to: last + 1, label: s.name + ' (Ayah ' + (last + 1) + ')', portion: 'AYAH' };
   }
 
+  function clampAyah(n, max) {
+    n = parseInt(n, 10);
+    if (!n || n < 1) return 1;
+    if (n > max) return max;
+    return n;
+  }
+
   function setSurah(num, from, to, portion) {
     var s = surahByNum(Number(num) || 1);
     state.surah = s.number;
     state.portion = portion || state.portion || 'FULL_SURAH';
+    var max = s.ayahs;
     if (state.portion === 'FULL_SURAH') {
       state.fromAyah = 1;
-      state.toAyah = s.ayahs;
+      state.toAyah = max;
     } else {
-      state.fromAyah = Number(from) || 1;
-      state.toAyah = Number(to) || state.fromAyah;
+      state.fromAyah = clampAyah(from, max);
+      state.toAyah = clampAyah(to == null || to === '' ? state.fromAyah : to, max);
+      if (state.toAyah < state.fromAyah) state.toAyah = state.fromAyah;
     }
     state.matchedKeys = {};
     state.mistakesByWord = {};
@@ -354,8 +363,16 @@
     var pm = byId('ls_portion_mode');
     var label = byId('ls_surah_selected_label');
     if (sn) sn.value = s.number;
-    if (pf) pf.value = state.fromAyah;
-    if (pt) pt.value = state.toAyah;
+    if (pf) {
+      pf.min = '1';
+      pf.max = String(max);
+      pf.value = state.fromAyah;
+    }
+    if (pt) {
+      pt.min = '1';
+      pt.max = String(max);
+      pt.value = state.toAyah;
+    }
     if (pm) pm.value = state.portion;
     if (label) label.textContent = s.number + '. ' + s.name + ' (Ayahs ' + state.fromAyah + ' – ' + state.toAyah + ')';
     var label2 = byId('ls_surah_selected_label2');
@@ -913,6 +930,7 @@
   function loadArabicText() {
     var el = byId('ls_arabic_text');
     if (!el) return;
+    var loadId = (state.textLoadId = (state.textLoadId || 0) + 1);
     el.innerHTML = '<div class="ls-muted">Loading Arabic text…</div>';
     var banner = byId('ls_highlight_banner');
     if (banner) banner.textContent = 'Highlight Mistakes: loading Mushaf text…';
@@ -925,6 +943,7 @@
     fetch('https://api.alquran.cloud/v1/surah/' + state.surah + '/quran-uthmani')
       .then(function (r) { return r.json(); })
       .then(function (data) {
+        if (loadId !== state.textLoadId) return;
         if (!data || !data.data || !data.data.ayahs) throw new Error('bad');
         var ayahs = data.data.ayahs.filter(function (a) {
           var n = Number(a.numberInSurah);
@@ -1015,6 +1034,7 @@
         applyMushafTheme(state.mushafTheme || 'paper');
       })
       .catch(function () {
+        if (loadId !== state.textLoadId) return;
         el.innerHTML = '<div class="ls-muted">Could not load Surah text (offline / blocked). You can still save the milestone.</div>';
         if (banner) banner.textContent = 'Highlight Mistakes: text unavailable';
         updateProgressStrip();
@@ -1952,12 +1972,31 @@
       if (this.value === 'FULL_SURAH') setSurah(s.number, 1, s.ayahs, 'FULL_SURAH');
       else setSurah(s.number, state.fromAyah || 1, state.toAyah || state.fromAyah || 1, this.value);
     });
-    if (byId('ls_ayah_from')) byId('ls_ayah_from').addEventListener('change', function () {
-      setSurah(state.surah, this.value, byId('ls_ayah_to').value || this.value, state.portion);
-    });
-    if (byId('ls_ayah_to')) byId('ls_ayah_to').addEventListener('change', function () {
-      setSurah(state.surah, byId('ls_ayah_from').value || 1, this.value, state.portion);
-    });
+    function onAyahEdit(el, commit) {
+      var s = surahByNum(state.surah);
+      var raw = String(el.value || '');
+      var capped = false;
+      if (raw !== '' && raw !== '-') {
+        var n = parseInt(raw, 10);
+        if (isFinite(n) && n > s.ayahs) {
+          el.value = String(s.ayahs);
+          capped = true;
+        } else if (isFinite(n) && n < 1) {
+          el.value = '1';
+          capped = true;
+        }
+      }
+      if (!commit && !capped) return;
+      setSurah(state.surah, byId('ls_ayah_from').value || 1, byId('ls_ayah_to').value || byId('ls_ayah_from').value || 1, state.portion);
+    }
+    if (byId('ls_ayah_from')) {
+      byId('ls_ayah_from').addEventListener('change', function () { onAyahEdit(this, true); });
+      byId('ls_ayah_from').addEventListener('input', function () { onAyahEdit(this, false); });
+    }
+    if (byId('ls_ayah_to')) {
+      byId('ls_ayah_to').addEventListener('change', function () { onAyahEdit(this, true); });
+      byId('ls_ayah_to').addEventListener('input', function () { onAyahEdit(this, false); });
+    }
     if (byId('ls_btn_start_audio')) byId('ls_btn_start_audio').onclick = function () { startRecording(false); };
     if (byId('ls_btn_start_video')) byId('ls_btn_start_video').onclick = function () { startRecording(true); };
     if (byId('ls_btn_live')) byId('ls_btn_live').onclick = function () { startLiveRecitation(); };

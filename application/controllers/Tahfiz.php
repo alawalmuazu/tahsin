@@ -56,13 +56,24 @@ class Tahfiz extends Admin_Controller
                 $completedAt = $this->input->post('completed_at')
                     ? date('Y-m-d H:i:s', strtotime($this->input->post('completed_at')))
                     : date('Y-m-d H:i:s');
+                $surahNum = (int) $this->input->post('surah_number');
+                list($ayahFrom, $ayahTo) = $this->academy_model->clampAyahBounds(
+                    $surahNum,
+                    $this->input->post('ayah_from'),
+                    $this->input->post('ayah_to')
+                );
+                if ($mode === 'FULL_SURAH') {
+                    $ayahCounts = $this->academy_model->surahAyahCounts();
+                    $ayahFrom = 1;
+                    $ayahTo = isset($ayahCounts[$surahNum]) ? $ayahCounts[$surahNum] : 1;
+                }
                 $prior = $this->academy_model->priorMilestoneMessage(array(
                     'student_id' => $this->input->post('student_id'),
                     'instructor_id' => get_loggedin_user_id(),
-                    'surah_number' => $this->input->post('surah_number'),
+                    'surah_number' => $surahNum,
                     'recitation_category' => $cat,
-                    'ayah_from' => $this->input->post('ayah_from'),
-                    'ayah_to' => $this->input->post('ayah_to'),
+                    'ayah_from' => $ayahFrom,
+                    'ayah_to' => $ayahTo,
                     'completed_at' => $completedAt,
                 ));
                 if ($prior !== '') {
@@ -74,11 +85,11 @@ class Tahfiz extends Admin_Controller
                     'branch_id' => $branchID,
                     'student_id' => $this->input->post('student_id'),
                     'instructor_id' => get_loggedin_user_id(),
-                    'surah_number' => $this->input->post('surah_number'),
+                    'surah_number' => $surahNum,
                     'portion_mode' => $mode,
                     'recitation_category' => $cat,
-                    'ayah_from' => $this->input->post('ayah_from'),
-                    'ayah_to' => $this->input->post('ayah_to'),
+                    'ayah_from' => $ayahFrom,
+                    'ayah_to' => $ayahTo,
                     'page_from' => $this->input->post('page_from'),
                     'page_to' => $this->input->post('page_to'),
                     'verified' => $this->input->post('verified') ? 1 : 0,

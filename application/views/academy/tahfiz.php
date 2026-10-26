@@ -236,12 +236,47 @@
 	var mode = document.getElementById('portion_mode');
 	var ayah = document.querySelector('.portion-ayah');
 	var page = document.querySelector('.portion-page');
+	var surah = document.querySelector('select[name="surah_number"]');
+	var from = document.querySelector('input[name="ayah_from"]');
+	var to = document.querySelector('input[name="ayah_to"]');
+	var counts = <?php echo json_encode($this->academy_model->surahAyahCounts()); ?>;
+	function maxAyah() {
+		var n = surah ? String(surah.value || '1') : '1';
+		return counts[n] || 1;
+	}
+	function capField(el) {
+		if (!el) return;
+		var max = maxAyah();
+		el.min = '1';
+		el.max = String(max);
+		if (el.value === '') return;
+		var n = parseInt(el.value, 10);
+		if (!isFinite(n) || n < 1) el.value = '1';
+		else if (n > max) el.value = String(max);
+	}
+	function capRange() {
+		capField(from);
+		capField(to);
+		if (from && to && from.value !== '' && to.value !== '' && parseInt(to.value, 10) < parseInt(from.value, 10)) {
+			to.value = from.value;
+		}
+	}
 	function sync() {
 		var v = mode.value;
 		ayah.style.display = (v === 'AYAH' || v === 'FROM_TO_AYAH' || v === 'SUMMUI' || v === 'RUBBUI') ? '' : 'none';
 		page.style.display = (v === 'SAFHA') ? '' : 'none';
+		capRange();
 	}
 	mode.addEventListener('change', sync);
+	if (surah) surah.addEventListener('change', capRange);
+	if (from) {
+		from.addEventListener('input', capRange);
+		from.addEventListener('change', capRange);
+	}
+	if (to) {
+		to.addEventListener('input', capRange);
+		to.addEventListener('change', capRange);
+	}
 	sync();
 })();
 </script>

@@ -232,11 +232,11 @@
 								</div>
 								<div class="col-xs-3">
 									<label class="control-label">Ayah from</label>
-									<input type="number" name="ayah_from" id="ls_ayah_from" class="form-control input-sm" min="1" value="1">
+									<input type="number" name="ayah_from" id="ls_ayah_from" class="form-control input-sm" min="1" max="7" value="1">
 								</div>
 								<div class="col-xs-3">
 									<label class="control-label">Ayah to</label>
-									<input type="number" name="ayah_to" id="ls_ayah_to" class="form-control input-sm" min="1" value="7">
+									<input type="number" name="ayah_to" id="ls_ayah_to" class="form-control input-sm" min="1" max="7" value="7">
 								</div>
 							</div>
 							<div class="ls-muted" id="ls_surah_selected_label" style="margin-top:.4rem">1. Al-Fatihah (Ayahs 1 – 7)</div>
