@@ -26,6 +26,21 @@
     }
     return pcm;
   }
+  function trimTrailingSilence(pcmChunks) {
+    let end = pcmChunks.length;
+    while (end > 0) {
+      const chunk = pcmChunks[end - 1];
+      let peak = 0;
+      for (let i = 0; i < chunk.length; i++) {
+        const a = chunk[i] < 0 ? -chunk[i] : chunk[i];
+        if (a > peak) peak = a;
+      }
+      if (peak > 80) break;
+      end--;
+    }
+    if (end < 1) return pcmChunks;
+    return pcmChunks.slice(0, end);
+  }
   function pcmToWavBlob(pcmChunks, sampleRate = 16e3) {
     let totalSamples = 0;
     for (const chunk of pcmChunks) {
@@ -296,7 +311,8 @@
               return;
             }
             if (this.status === "recording" || this.status === "connecting") {
-              this.setStatus("idle");
+              const dropped = this.callbacks && this.callbacks.onCloudDropped;
+              if (dropped) dropped();
             }
           };
         } catch (e) {
@@ -378,7 +394,7 @@
       presence.type = "peaking";
       presence.frequency.value = 2500;
       presence.Q.value = 0.8;
-      presence.gain.value = 2;
+      presence.gain.value = 0;
       const lowpass = this.audioContext.createBiquadFilter();
       lowpass.type = "lowpass";
       lowpass.frequency.value = 8000;
@@ -391,25 +407,52 @@
       compressor.release.value = 0.22;
       this._gateLevel = 0;
       this._gateGain = 0.25;
+      this._deadMs = 0;
+      this._heardVoice = false;
+      this._stalled = false;
       const scriptProcessor = this.audioContext.createScriptProcessor(4096, 1, 1);
       this.scriptProcessor = scriptProcessor;
       const gainNode = this.audioContext.createGain();
       gainNode.gain.value = 0;
+      const micTrack = this.mediaStream.getAudioTracks()[0];
+      if (micTrack) {
+        micTrack.addEventListener("ended", () => this.noteMicDead());
+      }
+      this.audioContext.addEventListener("statechange", () => {
+        if (this.audioContext && this.audioContext.state === "suspended" && this.status === "recording") {
+          this.audioContext.resume().catch(() => {
+          });
+        }
+      });
       scriptProcessor.onaudioprocess = (audioProcessingEvent) => {
         var _a, _b, _c;
         if (this.status !== "recording") return;
         const inputChannelData = audioProcessingEvent.inputBuffer.getChannelData(0);
         let sumSquares = 0;
+        let peak = 0;
         for (let i = 0; i < inputChannelData.length; i++) {
-          sumSquares += inputChannelData[i] * inputChannelData[i];
+          const sample = inputChannelData[i];
+          const abs = sample < 0 ? -sample : sample;
+          if (abs > peak) peak = abs;
+          sumSquares += sample * sample;
         }
         const rms = Math.sqrt(sumSquares / inputChannelData.length);
+        const rateNow = (this.audioContext && this.audioContext.sampleRate) || 48e3;
+        const bufferMs = inputChannelData.length / rateNow * 1e3;
+        if (peak < 1e-5) this._deadMs = (this._deadMs || 0) + bufferMs;
+        else {
+          this._deadMs = 0;
+          if (peak > 0.01) this._heardVoice = true;
+        }
+        if (this._heardVoice && this._deadMs > 2500) this.noteMicDead();
         this._gateLevel = (this._gateLevel || 0) * 0.82 + rms * 0.18;
-        const gateTarget = this._gateLevel > 0.015 ? 1 : 0.08;
+        const gateTarget = this._gateLevel > 0.015 ? 1 : 0.02;
         const gateGlide = gateTarget > (this._gateGain || 0) ? 0.35 : 0.1;
         this._gateGain = (this._gateGain || 0.25) + (gateTarget - (this._gateGain || 0.25)) * gateGlide;
         for (let g = 0; g < inputChannelData.length; g++) {
-          inputChannelData[g] *= this._gateGain;
+          let x = inputChannelData[g] * this._gateGain;
+          if (x > 0.8 || x < -0.8) x = Math.tanh(x);
+          inputChannelData[g] = x;
         }
         const volumePercent = Math.min(100, Math.round(rms * 400));
         (_b = (_a = this.callbacks).onAudioVolume) == null ? void 0 : _b.call(_a, volumePercent);
@@ -557,6 +600,18 @@
     /**
      * Stop recitation, flush stream, cleanly close connections, and return full telemetry & audio WAV
      */
+    noteMicDead() {
+      if (this._stalled || this.status !== "recording") return;
+      this._stalled = true;
+      const notify = this.callbacks && this.callbacks.onCaptureStalled;
+      if (notify) notify();
+    }
+    resumeAudio() {
+      if (this.audioContext && this.audioContext.state === "suspended") {
+        this.audioContext.resume().catch(() => {
+        });
+      }
+    }
     async stop() {
       this.setStatus("stopping");
       if (this.pcmChunkAccumulator.length > 0) {
@@ -574,13 +629,17 @@
         }
       }
       await new Promise((resolve) => setTimeout(resolve, 350));
-      const audioBlob = pcmToWavBlob(this.recordedPcmChunks, 16e3);
+      const kept = trimTrailingSilence(this.recordedPcmChunks);
+      const audioBlob = pcmToWavBlob(kept, 16e3);
       const audioUrl = URL.createObjectURL(audioBlob);
-      const durationSec = Math.round((Date.now() - this.startTime) / 1e3);
+      let samples = 0;
+      for (const chunk of kept) samples += chunk.length;
+      const durationSec = Math.max(1, Math.round(samples / 16e3));
       const summary = {
         audioBlob,
         audioUrl,
         durationSec,
+        captureStalled: !!this._stalled,
         transcript: this.accumulatedTranscript,
         allStates: [...this.accumulatedStates],
         allMistakes: Array.from(this.accumulatedMistakes.values())

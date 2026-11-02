@@ -53,6 +53,8 @@
     mistakes: 0,
     liveMode: null,
     tarteelClient: null,
+    wakeLock: null,
+    micCutHandled: false,
     tarteelEngine: null,
     engineProbe: null,
     matchedKeys: {},
@@ -1525,8 +1527,51 @@
     return;
   }
 
+  var MIC_CUT_MSG = 'The phone stopped the microphone, so the recording ends here. The part already spoken is kept. Leave the screen on and record the rest.';
+
+  function holdScreenAwake() {
+    if (!navigator.wakeLock || state.wakeLock) return;
+    navigator.wakeLock.request('screen').then(function (lock) {
+      state.wakeLock = lock;
+      lock.addEventListener('release', function () {
+        if (state.wakeLock === lock) state.wakeLock = null;
+      });
+    }).catch(function () {});
+  }
+
+  function releaseScreenAwake() {
+    var lock = state.wakeLock;
+    state.wakeLock = null;
+    if (lock) lock.release().catch(function () {});
+  }
+
+  function noteMicCut() {
+    if (state.micCutHandled) return;
+    state.micCutHandled = true;
+    setTimeout(function () {
+    function explain() {
+      var status = byId('ls_rec_status');
+      if (status) {
+        status.textContent = MIC_CUT_MSG;
+        status.style.color = '#b45309';
+      }
+      lsNotify('The phone cut the microphone. The recitation up to this point is kept.', 'error');
+      releaseScreenAwake();
+    }
+    if (state.tarteelClient || state.liveMode === 'tarteel') {
+      Promise.resolve(stopLiveRecitation(false)).then(explain);
+      return;
+    }
+    if (state.recording) stopRecording(false);
+    explain();
+    }, 0);
+  }
+
   async function startLiveRecitation() {
+    holdScreenAwake();
+    state.micCutHandled = false;
     if (!window.TarteelEngine || !window.TarteelEngine.createTarteelClientAsync) {
+      releaseScreenAwake();
       lsNotify('Tarteel cloud client failed to load. Hard-refresh the page (Ctrl+F5).');
       return;
     }
@@ -1538,6 +1583,7 @@
         throw new Error('Microphone needs HTTPS (or localhost).');
       }
       stopRecording(true);
+      holdScreenAwake();
       state.matchedKeys = {};
       state.mistakesByWord = {};
       state.matched = 0;
@@ -1581,6 +1627,14 @@
           }
         },
         onPartialTranscript: function () {},
+        onCaptureStalled: function () { noteMicCut(); },
+        onCloudDropped: function () {
+          var status = byId('ls_rec_status');
+          if (status && state.recording && !state.micCutHandled) {
+            status.textContent = 'Live check paused. The recording is still going — leave this screen open.';
+            status.style.color = '#b45309';
+          }
+        },
         onError: function (err) {
           var msg = typeof err === 'string' ? err : (err && err.message) || String(err);
           console.error('[Tarteel]', msg);
@@ -1683,6 +1737,7 @@
     } catch (err) {
       state.liveMode = null;
       state.recording = false;
+      releaseScreenAwake();
       if (state.tarteelClient) {
         try { state.tarteelClient.abort(); } catch (e) {}
         state.tarteelClient = null;
@@ -1728,6 +1783,7 @@
 
   async function stopLiveRecitation(silent) {
     stopTimer();
+    releaseScreenAwake();
     var client = state.tarteelClient;
     state.tarteelClient = null;
     state.recording = false;
@@ -1826,7 +1882,7 @@
     presence.type = 'peaking';
     presence.frequency.value = 2500;
     presence.Q.value = 0.8;
-    presence.gain.value = 2;
+    presence.gain.value = 0;
     var lowpass = ctx.createBiquadFilter();
     lowpass.type = 'lowpass';
     lowpass.frequency.value = 8000;
@@ -1840,19 +1896,40 @@
     var gate = ctx.createScriptProcessor(2048, 1, 1);
     var level = 0;
     var gain = 0.25;
+    var deadMs = 0;
+    var heard = false;
+    var noted = false;
     gate.onaudioprocess = function (ev) {
       var input = ev.inputBuffer.getChannelData(0);
       var output = ev.outputBuffer.getChannelData(0);
       var sum = 0;
+      var peak = 0;
       var n = input.length;
       var i;
-      for (i = 0; i < n; i++) sum += input[i] * input[i];
+      for (i = 0; i < n; i++) {
+        var abs = input[i] < 0 ? -input[i] : input[i];
+        if (abs > peak) peak = abs;
+        sum += input[i] * input[i];
+      }
+      var bufferMs = n / (ctx.sampleRate || 48000) * 1000;
+      if (peak < 1e-5) deadMs += bufferMs;
+      else {
+        deadMs = 0;
+        if (peak > 0.01) heard = true;
+      }
+      if (heard && deadMs > 2500 && !noted) {
+        noted = true;
+        noteMicCut();
+      }
       var rms = Math.sqrt(sum / n);
       level = level * 0.82 + rms * 0.18;
-      var target = level > 0.016 ? 1 : 0.07;
+      var target = level > 0.016 ? 1 : 0.02;
       var glide = target > gain ? 0.42 : 0.1;
       gain += (target - gain) * glide;
-      for (i = 0; i < n; i++) output[i] = input[i] * gain;
+      for (i = 0; i < n; i++) {
+        var x = input[i] * gain;
+        output[i] = (x > 0.8 || x < -0.8) ? Math.tanh(x) : x;
+      }
     };
     var dest = ctx.createMediaStreamDestination();
     source.connect(highpass);
@@ -1889,8 +1966,11 @@
   }
 
   async function startRecording(withVideo) {
+    holdScreenAwake();
+    state.micCutHandled = false;
     try {
       stopRecording(true);
+      holdScreenAwake();
       if (!window.isSecureContext && location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') {
         throw new Error('Microphone needs HTTPS (or localhost).');
       }
@@ -1942,6 +2022,8 @@
         appendAkhlaqTag(acc, state.mistakes);
         setHiddenMetrics();
       };
+      var proofTrack = state.micStream && state.micStream.getAudioTracks()[0];
+      if (proofTrack) proofTrack.addEventListener('ended', noteMicCut);
       state.mediaRecorder.start(250);
       state.recording = true;
       state.liveMode = 'media';
@@ -1962,12 +2044,14 @@
       if (/Permission|NotAllowed|denied/i.test(msg)) {
         msg = 'Microphone/camera blocked. Click the lock icon in the address bar → allow Microphone (and Camera). Then hard-refresh (Ctrl+F5).';
       }
+      releaseScreenAwake();
       lsNotify(msg, 'error');
       syncLiveFab();
     }
   }
 
   function stopRecording(silent) {
+    releaseScreenAwake();
     if (state.liveMode === 'tarteel' || state.tarteelClient) {
       if (silent && state.tarteelClient) {
         try { state.tarteelClient.abort(); } catch (e) {}
@@ -2071,6 +2155,12 @@
   }
 
   function wire() {
+    document.addEventListener('visibilitychange', function () {
+      if (document.visibilityState !== 'visible') return;
+      if (!(state.recording || state.liveMode)) return;
+      holdScreenAwake();
+      if (state.tarteelClient && state.tarteelClient.resumeAudio) state.tarteelClient.resumeAudio();
+    });
     if (byId('ls_change_student')) byId('ls_change_student').onclick = showPicker;
     if (byId('ls_student_search')) byId('ls_student_search').addEventListener('input', function () {
       renderStudentPicker(this.value);
