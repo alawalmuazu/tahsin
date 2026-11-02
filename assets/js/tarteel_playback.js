@@ -76,11 +76,18 @@
     }
     box._pack = pack;
     var limit = Number(box.getAttribute('data-limit')) || 0;
+    var follow = Number(box.getAttribute('data-follow')) || 0;
+    var focus = Number(box.getAttribute('data-focus')) || from;
+    if (focus < from) focus = from;
+    if (focus > to) focus = to;
+    var winFrom = follow ? focus : from;
+    var winTo = follow ? Math.min(to, focus + follow - 1) : to;
     var shown = 0;
     var skipped = 0;
     ayahs.forEach(function (a) {
       if (a.numberInSurah < from || a.numberInSurah > to) return;
-      if (limit && shown >= limit) {
+      if (follow && (a.numberInSurah < winFrom || a.numberInSurah > winTo)) return;
+      if (!follow && limit && shown >= limit) {
         skipped++;
         return;
       }
@@ -111,6 +118,19 @@
         paint(box, box._pack || pack);
       });
       text.appendChild(more);
+    }
+    if (follow && (winFrom > from || winTo < to)) {
+      var full = document.createElement('button');
+      full.type = 'button';
+      full.className = 'btn btn-default btn-xs';
+      full.style.marginTop = '.45rem';
+      full.textContent = 'Showing ayahs ' + winFrom + '–' + winTo + '. Show the full portion';
+      full.addEventListener('click', function () {
+        box.removeAttribute('data-follow');
+        box.removeAttribute('data-focus');
+        paint(box, box._pack || pack);
+      });
+      text.appendChild(full);
     }
   }
 
@@ -147,6 +167,13 @@
       if (t >= start && (end == null || t < end)) hit = states[i];
     }
     if (hit && (hit.ayah || hit.word)) {
+      var follow = Number(box.getAttribute('data-follow')) || 0;
+      var focus = Number(box.getAttribute('data-focus')) || Number(box.getAttribute('data-from')) || 1;
+      var ayah = Number(hit.ayah) || 0;
+      if (follow && ayah && (ayah < focus || ayah >= focus + follow)) {
+        box.setAttribute('data-focus', String(ayah));
+        if (box._pack) paint(box, box._pack);
+      }
       mark(box.querySelector('.ta-word[data-a="' + hit.ayah + '"][data-w="' + hit.word + '"]'));
       return;
     }
@@ -164,7 +191,8 @@
     pop.id = 'ta-pop';
     pop.style.cssText = 'display:none;position:fixed;inset:0;background:rgba(15,23,42,.45);z-index:10050;align-items:center;justify-content:center;padding:1rem';
     pop.innerHTML = ''
-      + '<div style="background:#fff;width:min(760px,96vw);max-height:92vh;overflow:auto;border-radius:18px;padding:1rem 1.15rem 1.25rem;box-shadow:0 20px 50px rgba(0,0,0,.18)">'
+      + '<div style="background:#fff;width:min(760px,96vw);max-height:92vh;display:flex;flex-direction:column;border-radius:18px;box-shadow:0 20px 50px rgba(0,0,0,.18);overflow:hidden">'
+      + '<div style="padding:1rem 1.15rem .75rem;border-bottom:1px solid #e2e8f0">'
       + '<div style="display:flex;justify-content:space-between;align-items:center;gap:.5rem;margin-bottom:.6rem">'
       + '<strong id="ta-pop-title"></strong>'
       + '<button type="button" id="ta-pop-close" class="btn btn-default btn-sm">Close</button>'
@@ -181,11 +209,13 @@
       + '</select>'
       + '<span id="ta-pop-format-note" style="font-size:.75rem;color:#64748b"></span>'
       + '</div>'
-      + '<div class="ta-play" id="ta-pop-play" data-surah="0" data-from="1" data-to="1" data-seconds="0">'
+      + '<audio class="ta-audio" controls style="width:100%"></audio>'
+      + '</div>'
+      + '<div style="overflow:auto;padding:1rem 1.15rem 1.25rem">'
+      + '<div class="ta-play" id="ta-pop-play" data-surah="0" data-from="1" data-to="1" data-seconds="0" data-follow="3">'
       + '<div class="ta-text" dir="rtl" style="font-size:1.7rem;line-height:2.4;text-align:center;padding:1.2rem 1rem;background:#f7f4ea;border:2px solid #1e293b;border-radius:16px;min-height:8rem"></div>'
-      + '<audio class="ta-audio" controls style="width:100%;margin-top:.7rem"></audio>'
       + '<div class="ta-states" hidden>[]</div>'
-      + '</div></div>';
+      + '</div></div></div>';
     document.body.appendChild(pop);
     var formatNote = {
       novice: 'Each letter stands apart. Orange marks are the vowels to pronounce.',
@@ -228,6 +258,9 @@
     inner.setAttribute('data-from', box.getAttribute('data-from') || '1');
     inner.setAttribute('data-to', box.getAttribute('data-to') || box.getAttribute('data-from') || '1');
     inner.setAttribute('data-seconds', box.getAttribute('data-seconds') || '0');
+    inner.setAttribute('data-follow', '3');
+    inner.setAttribute('data-focus', box.getAttribute('data-from') || '1');
+    inner.removeAttribute('data-limit');
     var states = box.querySelector('.ta-states');
     inner.querySelector('.ta-states').textContent = states ? states.textContent : '[]';
     var surah = Number(inner.getAttribute('data-surah')) || 0;
