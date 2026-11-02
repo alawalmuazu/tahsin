@@ -104,11 +104,14 @@
 .ls-tip[data-tip]:hover::after,.ls-tip[data-tip]:focus::after,.ls-tip[data-tip]:hover::before,.ls-tip[data-tip]:focus::before{opacity:1;transform:translateX(-50%) translateY(0)}
 .ls-footer-pill.ls-tip[data-tip]::after{bottom:auto;top:calc(100% + 8px)}
 .ls-footer-pill.ls-tip[data-tip]::before{bottom:auto;top:calc(100% + 0px);border-top-color:transparent;border-bottom-color:#111827}
-.ls-mushaf-footer{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:.55rem;margin:.65rem 0 .15rem;padding:.55rem .15rem 0;border-top:1px solid #e2e8f0;overflow:visible}
-.ls-footer-pills{display:inline-flex;flex-wrap:wrap;align-items:center;gap:.4rem}
+.ls-mushaf-footer{display:flex;flex-direction:column;align-items:stretch;gap:.55rem;margin:.65rem 0 .15rem;padding:.65rem .15rem .35rem;border-top:1px solid #e2e8f0;overflow:visible}
+.ls-footer-pills{display:flex;flex-wrap:wrap;align-items:center;gap:.4rem}
 .ls-footer-pill{display:inline-flex;align-items:center;gap:.35rem;padding:6px 12px;border-radius:9999px;background:#fff;border:1px solid #e5e7eb;box-shadow:0 1px 3px rgba(15,23,42,.06);font-size:.72rem;font-weight:700;color:#334155;cursor:pointer}
 .ls-footer-pill:hover{border-color:#94a3b8;background:#f8fafc}
-.ls-footer-tools{display:inline-flex;flex-wrap:wrap;align-items:center;gap:.45rem;overflow:visible;padding-top:.55rem}
+.ls-footer-tools{display:flex;flex-wrap:wrap;align-items:center;justify-content:flex-end;gap:.55rem .45rem;width:100%;overflow:visible;padding:.15rem 0 .2rem}
+.ls-footer-tools .ls-engine-select{width:150px;max-width:150px;flex:0 0 150px}
+.ls-playback-bar{position:relative;z-index:1;clear:both;margin-bottom:.85rem}
+.ls-tool-btn.ls-tool-mic{flex:0 0 56px;margin:2px 2px 8px}
 .ls-arabic.ls-arabic--hidden .ls-word,.ls-arabic.ls-arabic--hidden .ls-ayah-num,.ls-arabic.ls-arabic--hidden .ls-bismillah{filter:blur(7px);user-select:none;opacity:.55}
 .ls-arabic.ls-arabic--hidden .ls-surah-banner{opacity:.9;filter:none}
 .ls-streak-badge{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:9999px;background:#fff7ed;border:1px solid #fdba74;color:#c2410c;font-size:.7rem;font-weight:800;margin-left:.35rem}
@@ -261,14 +264,6 @@
 							<video id="ls_video_preview" playsinline muted style="display:none"></video>
 							<button type="button" id="ls_btn_live" style="display:none" aria-hidden="true" tabindex="-1"></button>
 							<button type="button" id="ls_btn_session_sound" style="display:none" aria-hidden="true" tabindex="-1"></button>
-							<div id="ls_playback_bar" class="ls-playback-bar" style="display:none">
-								<strong id="ls_playback_title">Playing audio</strong>
-								<audio id="ls_audio_player" controls></audio>
-								<div class="ls-playback-actions">
-									<button type="button" class="btn btn-default btn-sm ls-btn-download ls-btn-with-ico" id="ls_btn_download_audio"><svg class="ls-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Download</button>
-									<button type="button" class="btn btn-default btn-sm ls-btn-rerecord ls-btn-with-ico" id="ls_btn_rerecord"><svg class="ls-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg> Re-record</button>
-								</div>
-							</div>
 							<div class="ls-muted" id="ls_rec_status">Proof recorder ready · green mic = live AI check · speaker = Alafasy listen-along</div>
 						</div>
 
@@ -305,6 +300,14 @@
 							<div class="ls-progress-strip" id="ls_progress_strip" style="display:none">0 matched · 100%</div>
 							<div class="ls-muted" id="ls_timer" style="display:none"></div>
 							<div class="ls-arabic" id="ls_arabic_text" lang="ar" dir="rtl"></div>
+							<div id="ls_playback_bar" class="ls-playback-bar" style="display:none">
+								<strong id="ls_playback_title">Playing audio</strong>
+								<audio id="ls_audio_player" controls></audio>
+								<div class="ls-playback-actions">
+									<button type="button" class="btn btn-default btn-sm ls-btn-download ls-btn-with-ico" id="ls_btn_download_audio"><svg class="ls-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Download</button>
+									<button type="button" class="btn btn-default btn-sm ls-btn-rerecord ls-btn-with-ico" id="ls_btn_rerecord"><svg class="ls-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg> Re-record</button>
+								</div>
+							</div>
 							<audio id="ls_reciter_audio" preload="none" style="display:none"></audio>
 							<div class="ls-mushaf-footer">
 								<div class="ls-footer-pills">
