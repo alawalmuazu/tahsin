@@ -157,4 +157,4 @@
 		</section>
 	</div>
 </div>
-<script src="<?php echo base_url('assets/js/tarteel_playback.js?v=4'); ?>"></script>
+<script src="<?php echo base_url('assets/js/tarteel_playback.js?v=' . filemtime(FCPATH . 'assets/js/tarteel_playback.js')); ?>"></script>

@@ -74,8 +74,17 @@
       text.textContent = 'Ayah text could not be loaded.';
       return;
     }
+    box._pack = pack;
+    var limit = Number(box.getAttribute('data-limit')) || 0;
+    var shown = 0;
+    var skipped = 0;
     ayahs.forEach(function (a) {
       if (a.numberInSurah < from || a.numberInSurah > to) return;
+      if (limit && shown >= limit) {
+        skipped++;
+        return;
+      }
+      shown++;
       var line = document.createElement('div');
       String(a.text || '').trim().split(/\s+/).filter(Boolean).forEach(function (w, i) {
         var span = document.createElement('span');
@@ -91,6 +100,18 @@
       line.appendChild(num);
       text.appendChild(line);
     });
+    if (skipped > 0) {
+      var more = document.createElement('button');
+      more.type = 'button';
+      more.className = 'btn btn-default btn-xs';
+      more.style.marginTop = '.45rem';
+      more.textContent = 'Show the rest (' + skipped + ' ayahs)';
+      more.addEventListener('click', function () {
+        box.removeAttribute('data-limit');
+        paint(box, box._pack || pack);
+      });
+      text.appendChild(more);
+    }
   }
 
   function statesOf(box) {

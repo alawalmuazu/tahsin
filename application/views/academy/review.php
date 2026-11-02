@@ -138,13 +138,9 @@ $bulkAdmin = 0;
 									<?php $clip = !empty($row->weak_clip) ? $row->weak_clip : null; ?>
 									<?php if ($clip && (!empty($can_director) || !empty($can_admin))): ?>
 										<?php if ($clip): ?>
-											<div style="margin-bottom:.6rem;min-width:280px">
-												<div style="display:flex;align-items:center;gap:.55rem;margin-bottom:.35rem">
-													<img src="<?php echo html_escape(get_image_url('student', isset($clip['photo']) ? $clip['photo'] : '')); ?>" alt="" width="36" height="36" style="width:36px;height:36px;border-radius:50%;object-fit:cover;flex-shrink:0">
-													<div>
-														<strong><?php echo html_escape(!empty($clip['student']) ? $clip['student'] : 'Student'); ?></strong>
-														<?php if (!empty($clip['portion'])): ?><div class="text-muted" style="font-size:12px"><?php echo html_escape($clip['portion']); ?></div><?php endif; ?>
-													</div>
+											<div class="review-clip" style="margin-bottom:.6rem;min-width:240px">
+												<div style="margin-bottom:.35rem">
+													<strong><?php echo html_escape(!empty($clip['portion']) ? $clip['portion'] : (!empty($clip['student']) ? $clip['student'] : 'Recording')); ?></strong>
 												</div>
 												<?php
 												$clipBits = array();
@@ -164,6 +160,16 @@ $bulkAdmin = 0;
 												<?php if (!empty($clipBits)): ?>
 													<div style="margin-bottom:.25rem"><?php echo implode(' · ', $clipBits); ?></div>
 												<?php endif; ?>
+												<?php if ($step): ?>
+													<?php echo form_open('academy_review', array('style' => 'margin:.15rem 0 .55rem')); ?>
+														<input type="hidden" name="decide" value="1">
+														<input type="hidden" name="session_id" value="<?php echo (int) $row->id; ?>">
+														<input type="hidden" name="step" value="<?php echo html_escape($step); ?>">
+														<input type="text" name="note" class="form-control input-sm mb-xs" placeholder="Optional note">
+														<button class="btn btn-success btn-xs" name="decision" value="approve" type="submit"><?php echo $step === 'admin' ? 'Acknowledge' : 'Approve'; ?></button>
+														<button class="btn btn-danger btn-xs" name="decision" value="reject" type="submit">Reject</button>
+													<?php echo form_close(); ?>
+												<?php endif; ?>
 												<?php $this->load->view('academy/_tarteel_player', array(
 													'tp_surah' => isset($clip['surah_number']) ? (int) $clip['surah_number'] : 0,
 													'tp_from' => isset($clip['ayah_from']) ? (int) $clip['ayah_from'] : 0,
@@ -171,8 +177,11 @@ $bulkAdmin = 0;
 													'tp_audio' => isset($clip['audio_url']) ? (string) $clip['audio_url'] : '',
 													'tp_states' => !empty($clip['tarteel']['states']) ? $clip['tarteel']['states'] : array(),
 													'tp_seconds' => isset($clip['seconds']) ? (int) $clip['seconds'] : 0,
+													'tp_limit' => 3,
 												)); ?>
 												<?php $report = !empty($clip['tarteel']) ? $clip['tarteel'] : array('correct' => array(), 'mistakes' => array(), 'transcript' => ''); ?>
+												<details style="margin-top:.45rem">
+													<summary>Tajweed report</summary>
 												<?php if (!empty($report['transcript'])): ?>
 													<div style="margin-top:.35rem"><strong>Heard</strong> <?php echo html_escape($report['transcript']); ?></div>
 												<?php endif; ?>
@@ -206,19 +215,11 @@ $bulkAdmin = 0;
 												<?php else: ?>
 													<div class="text-muted">No Tajweed mistakes marked.</div>
 												<?php endif; ?>
+												</details>
 											</div>
 										<?php endif; ?>
 									<?php endif; ?>
-									<?php if ($step): ?>
-										<?php echo form_open('academy_review'); ?>
-											<input type="hidden" name="decide" value="1">
-											<input type="hidden" name="session_id" value="<?php echo (int) $row->id; ?>">
-											<input type="hidden" name="step" value="<?php echo html_escape($step); ?>">
-											<input type="text" name="note" class="form-control input-sm mb-xs" placeholder="Optional note">
-											<button class="btn btn-success btn-xs" name="decision" value="approve" type="submit"><?php echo $step === 'admin' ? 'Acknowledge' : 'Approve'; ?></button>
-											<button class="btn btn-danger btn-xs" name="decision" value="reject" type="submit">Reject</button>
-										<?php echo form_close(); ?>
-									<?php elseif (!$clip): ?>
+									<?php if (!$clip): ?>
 										<span class="text-muted">—</span>
 									<?php endif; ?>
 								</td>
@@ -231,6 +232,15 @@ $bulkAdmin = 0;
 		</section>
 	</div>
 </div>
+<style>
+.review-clip { display: flex; flex-direction: column; }
+.review-clip .ta-play { display: contents; }
+.review-clip .ta-audio,
+.review-clip .ta-missing { order: 2; width: 100%; max-width: 420px; margin: .15rem 0 .45rem; }
+.review-clip form { order: 3; }
+.review-clip .ta-text { order: 4; }
+.review-clip details { order: 5; }
+</style>
 <?php if (!empty($canBulk) && ($bulkDirector > 0 || $bulkAdmin > 0)): ?>
 <script>
 (function () {
@@ -284,7 +294,7 @@ $bulkAdmin = 0;
 })();
 </script>
 <?php endif; ?>
-<script src="<?php echo base_url('assets/js/tarteel_playback.js?v=4'); ?>"></script>
+<script src="<?php echo base_url('assets/js/tarteel_playback.js?v=' . filemtime(FCPATH . 'assets/js/tarteel_playback.js')); ?>"></script>
 <?php
 $waGroupShare = $this->session->flashdata('wa_group_share');
 $waGroupLink  = '';
