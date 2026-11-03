@@ -163,10 +163,25 @@
 	}
 
 	var shownAyah = 0;
+	function meaningLang() {
+		try {
+			return localStorage.getItem('quranMeaningLang') === 'ha' ? 'ha' : 'en';
+		} catch (e) {
+			return 'en';
+		}
+	}
+	function paintLang() {
+		var lang = meaningLang();
+		var en = document.getElementById('lang_en');
+		var ha = document.getElementById('lang_ha');
+		if (en) en.classList.toggle('on', lang === 'en');
+		if (ha) ha.classList.toggle('on', lang === 'ha');
+	}
 	function showMeaning(surah, ayah) {
 		var el = document.getElementById('ayah_meaning');
 		if (!el || !surah || !ayah) return;
-		var key = surah + ':' + ayah;
+		var edition = meaningLang() === 'ha' ? 'ha.gumi' : 'en.sahih';
+		var key = surah + ':' + ayah + ':' + edition;
 		if (el.dataset.key === key && el.textContent && el.textContent !== 'Loading the meaning…') return;
 		el.dataset.key = key;
 		window.__meaning = window.__meaning || {};
@@ -175,7 +190,7 @@
 			return;
 		}
 		el.textContent = 'Loading the meaning…';
-		fetch('https://api.alquran.cloud/v1/ayah/' + surah + ':' + ayah + '/en.sahih')
+		fetch('https://api.alquran.cloud/v1/ayah/' + surah + ':' + ayah + '/' + edition)
 			.then(function (res) { return res.json(); })
 			.then(function (body) {
 				var text = body && body.data && body.data.text ? body.data.text : '';
@@ -186,6 +201,122 @@
 				if (el.dataset.key === key) el.textContent = '';
 			});
 	}
+	function pullGloss(chapter, page) {
+		return fetch('https://api.quran.com/api/v4/verses/by_chapter/' + chapter + '?words=true&per_page=50&page=' + page)
+			.then(function (res) { return res.json(); })
+			.catch(function () { return { verses: [] }; });
+	}
+	function readGloss(body, map, counts) {
+		(body.verses || []).forEach(function (verse) {
+			var n = verse.verse_number;
+			var pos = 0;
+			(verse.words || []).forEach(function (word) {
+				if (word.char_type_name !== 'word') return;
+				pos += 1;
+				map[n + ':' + pos] = word.translation && word.translation.text ? word.translation.text : '';
+			});
+			counts[n] = pos;
+		});
+	}
+	function loadGloss(surah, from, to) {
+		var pages = [];
+		var p;
+		var start = Math.floor((Math.max(1, from) - 1) / 50) + 1;
+		var end = Math.floor((Math.max(from, to) - 1) / 50) + 1;
+		for (p = start; p <= end; p++) pages.push(pullGloss(surah, p));
+		if (surah !== 1) pages.push(pullGloss(1, 1));
+		return Promise.all(pages).then(function (bodies) {
+			var map = {};
+			var counts = {};
+			bodies.forEach(function (body, index) {
+				if (surah !== 1 && index === bodies.length - 1) {
+					var basmala = {};
+					readGloss(body, basmala, {});
+					var b;
+					for (b = 1; b <= 4; b++) {
+						if (basmala['1:' + b]) map['b:' + b] = basmala['1:' + b];
+					}
+					return;
+				}
+				readGloss(body, map, counts);
+			});
+			if (surah === 1) {
+				var b;
+				for (b = 1; b <= 4; b++) {
+					if (map['1:' + b]) map['b:' + b] = map['1:' + b];
+				}
+			}
+			return { map: map, counts: counts };
+		});
+	}
+	function showWord(surah, ayah, wordNo, arabic) {
+		var el = document.getElementById('word_meaning');
+		if (!el) return;
+		el.hidden = false;
+		el.textContent = '';
+		var ar = document.createElement('span');
+		ar.className = 'ar';
+		ar.textContent = arabic;
+		el.appendChild(ar);
+		var say = document.createElement('span');
+		say.textContent = ' …';
+		el.appendChild(say);
+		var ready = window.__glossReady;
+		if (!ready) {
+			say.textContent = '';
+			return;
+		}
+		ready.then(function (pack) {
+			var ourCount = 0;
+			var i;
+			for (i = 0; i < words.length; i++) {
+				if (Number(words[i].dataset.a) === ayah) ourCount++;
+			}
+			var apiCount = pack.counts[ayah] || 0;
+			var key = '';
+			if (surah !== 1 && surah !== 9 && ayah === 1 && wordNo <= 4) key = 'b:' + wordNo;
+			else if (surah !== 1 && surah !== 9 && ayah === 1) key = ayah + ':' + (wordNo - 4);
+			else if (apiCount === ourCount) key = ayah + ':' + wordNo;
+			var gloss = key ? (pack.map[key] || '') : '';
+			say.textContent = gloss ? (' — ' + gloss) : '';
+		}).catch(function () {
+			say.textContent = '';
+		});
+	}
+	mushaf.addEventListener('click', function (event) {
+		var span = event.target.closest ? event.target.closest('.w') : null;
+		if (!span || !mushaf.contains(span)) return;
+		var i;
+		for (i = 0; i < words.length; i++) words[i].classList.remove('picked');
+		span.classList.add('picked');
+		var clip = clips[currentIndex()];
+		var surah = clip ? Number(clip.surah) || 0 : 0;
+		var ayah = Number(span.dataset.a) || 0;
+		var wordNo = Number(span.dataset.w) || 0;
+		showWord(surah, ayah, wordNo, span.dataset.word || '');
+		for (i = 0; i < heard.length; i++) {
+			if (Number(heard[i].a) === ayah && Number(heard[i].w) === wordNo) {
+				var at = Number(heard[i].s) || 0;
+				if (isFinite(at)) audio.currentTime = at;
+				highlight(audio.currentTime || 0);
+				break;
+			}
+		}
+	});
+	function setMeaningLang(lang) {
+		try { localStorage.setItem('quranMeaningLang', lang === 'ha' ? 'ha' : 'en'); } catch (e) {}
+		paintLang();
+		var clip = clips[currentIndex()];
+		var ayah = words[active] ? Number(words[active].dataset.a) || 0 : 0;
+		if (!ayah && clip) ayah = Number(clip.from) || 1;
+		shownAyah = ayah;
+		if (clip && ayah) showMeaning(Number(clip.surah) || 0, ayah);
+	}
+	paintLang();
+	var langEn = document.getElementById('lang_en');
+	var langHa = document.getElementById('lang_ha');
+	if (langEn) langEn.addEventListener('click', function () { setMeaningLang('en'); });
+	if (langHa) langHa.addEventListener('click', function () { setMeaningLang('ha'); });
 
 	function renderText(clip) {
 		words = [];
@@ -344,6 +475,9 @@
 				return;
 			}
 			armTimings(clip);
+			shownAyah = from;
+			showMeaning(surahNo, from);
+			window.__glossReady = loadGloss(surahNo, from, to);
 			requestAnimationFrame(function () { fitLines(); });
 		}).catch(function () {
 			if (clips[currentIndex()] !== clip) return;

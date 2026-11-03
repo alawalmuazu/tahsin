@@ -129,7 +129,15 @@ html[data-theme="dark"] .mushaf.tajweed .tj-silent{color:#9ca3af}
 .sw-silent{background:#9ca3af}
 .mushaf.hide-words .w{opacity:0}
 .mushaf.hide-words .w.on{opacity:1}
-.meaning{margin:.35rem 0 .85rem;color:var(--muted);font-size:.92rem;line-height:1.45;direction:ltr;text-align:left}
+.lang-row{display:flex;gap:.4rem;margin:.55rem 0 .15rem}
+.lang-row button{background:var(--card);color:var(--text);border:1px solid var(--line);border-radius:999px;padding:.28rem .75rem;font-size:.78rem;font-weight:700}
+.lang-row button.on{background:#0f766e;color:#fff;border-color:#0f766e}
+.word-meaning{margin:.15rem 0 .1rem;color:var(--text);font-size:.95rem;line-height:1.45;direction:ltr;text-align:left}
+.word-meaning[hidden]{display:none}
+.word-meaning .ar{font-family:"DigitalKhatt New Madina","Traditional Arabic",serif;font-size:1.35rem;margin-inline-end:.35rem}
+.w{cursor:pointer}
+.w.picked{outline:2px solid var(--accent);outline-offset:1px}
+.meaning{margin:.15rem 0 .85rem;color:var(--muted);font-size:.92rem;line-height:1.45;direction:ltr;text-align:left}
 .num{display:inline;margin:0 .08em;border:0;font-family:"DigitalKhatt New Madina","Traditional Arabic",serif;font-size:1em;line-height:1;color:inherit;vertical-align:baseline}
 .player{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:.9rem 1rem;margin:1rem 0 .75rem}
 .transport.solo #btn_shuffle,.transport.solo #btn_prev,.transport.solo #btn_next{display:none}
@@ -272,6 +280,11 @@ html.hear .hear-go.gone{display:none}
 		<p id="share_note" class="share-note">Share a short video for WhatsApp Status, or share the whole recitation.</p>
 	</div>
 	<div id="mushaf" class="mushaf empty" translate="no">The ayahs appear here and light up as the recitation plays.</div>
+	<div class="lang-row">
+		<button type="button" id="lang_en">English</button>
+		<button type="button" id="lang_ha">Hausa</button>
+	</div>
+	<p id="word_meaning" class="word-meaning" dir="ltr" hidden></p>
 	<p id="ayah_meaning" class="meaning" dir="ltr"></p>
 	<div class="queue" id="queue"></div>
 	<audio id="qpl_audio" preload="metadata"></audio>
@@ -308,7 +321,7 @@ if ('serviceWorker' in navigator) {
 			if (reg.scope && /\/quran\/$/.test(reg.scope)) reg.unregister();
 		});
 	}).catch(function () {});
-	navigator.serviceWorker.register('<?php echo base_url('quran/sw.js'); ?>?v=21', { scope: quranSwScope, updateViaCache: 'none' }).then(function (reg) {
+	navigator.serviceWorker.register('<?php echo base_url('quran/sw.js'); ?>?v=22', { scope: quranSwScope, updateViaCache: 'none' }).then(function (reg) {
 		return navigator.serviceWorker.ready.then(function () {
 			var worker = reg.active || navigator.serviceWorker.controller;
 			if (!worker) return;
