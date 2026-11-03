@@ -344,12 +344,41 @@
 				return;
 			}
 			armTimings(clip);
+			requestAnimationFrame(function () { fitLines(); });
 		}).catch(function () {
 			if (clips[currentIndex()] !== clip) return;
 			mushaf.className = 'mushaf empty';
 			mushaf.textContent = 'The Arabic text could not load. The recording still plays.';
 		});
 	}
+
+	function fitLines() {
+		var lines = mushaf.querySelectorAll('.line');
+		if (!lines.length || mushaf.classList.contains('empty')) return;
+		var low = 15;
+		var high = 34;
+		var best = low;
+		while (low <= high) {
+			var mid = (low + high) >> 1;
+			mushaf.style.setProperty('--line-size', mid + 'px');
+			var overflow = false;
+			var i;
+			for (i = 0; i < lines.length; i++) {
+				if (lines[i].scrollWidth > lines[i].clientWidth + 1) {
+					overflow = true;
+					break;
+				}
+			}
+			if (overflow) high = mid - 1;
+			else {
+				best = mid;
+				low = mid + 1;
+			}
+		}
+		mushaf.style.setProperty('--line-size', best + 'px');
+	}
+	window.addEventListener('resize', function () { fitLines(); });
+	if (document.fonts && document.fonts.ready) document.fonts.ready.then(function () { fitLines(); });
 
 	function arabicWeight(word) {
 		var bare = String(word || '').replace(/[\u064B-\u0652\u0670\u0640\u06D6-\u06ED]/g, '');
