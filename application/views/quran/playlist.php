@@ -101,14 +101,25 @@ h1{font-size:1.35rem;margin:0}
 .mushaf{background:var(--mushaf);color:var(--text);border:1px solid var(--mushaf-line);border-radius:16px;padding:1.15rem 1rem 1.3rem;min-height:7.5rem;max-height:46vh;overflow:auto;-webkit-overflow-scrolling:touch;direction:rtl;text-align:justify;text-align-last:center;font-family:"DigitalKhatt New Madina","Traditional Arabic",serif;font-size:1.85rem;line-height:2.35}
 .mushaf.empty{direction:ltr;text-align:left;font-family:system-ui,sans-serif;font-size:.92rem;line-height:1.45;color:var(--muted)}
 .basmala{display:block;text-align:center;text-align-last:center;margin:0 0 .85rem;font-size:1.15em;line-height:2}
+.surah-banner{display:block;text-align:center;margin:0 0 .85rem;padding:.4rem .75rem;border:1px solid var(--mushaf-line);border-radius:10px;font-size:.92em;line-height:1.8}
+.ayah{display:block;text-align:center;margin:.1rem 0 .7rem}
 .w{border-radius:.35em;padding:0 .04em}
 .w.on{background:var(--mark)}
-.mushaf.tajweed .tj-madd{color:#15803d}
-.mushaf.tajweed .tj-ghunnah{color:#b45309}
-.mushaf.tajweed .tj-qalqalah{color:#1d4ed8}
-html[data-theme="dark"] .mushaf.tajweed .tj-madd{color:#4ade80}
-html[data-theme="dark"] .mushaf.tajweed .tj-ghunnah{color:#fbbf24}
-html[data-theme="dark"] .mushaf.tajweed .tj-qalqalah{color:#93c5fd}
+.mushaf.tajweed .tj-madd{color:#1d4ed8}
+.mushaf.tajweed .tj-ghunnah{color:#dc2626}
+.mushaf.tajweed .tj-qalqalah{color:#15803d}
+.mushaf.tajweed .tj-silent{color:#9ca3af}
+html[data-theme="dark"] .mushaf.tajweed .tj-madd{color:#93c5fd}
+html[data-theme="dark"] .mushaf.tajweed .tj-ghunnah{color:#fca5a5}
+html[data-theme="dark"] .mushaf.tajweed .tj-qalqalah{color:#86efac}
+html[data-theme="dark"] .mushaf.tajweed .tj-silent{color:#9ca3af}
+.tajweed-key{display:flex;flex-wrap:wrap;gap:.35rem .85rem;margin:.15rem 0 .35rem;color:var(--muted);font-size:.78rem}
+.tajweed-key[hidden]{display:none}
+.tajweed-key i{display:inline-block;width:.65rem;height:.65rem;border-radius:99px;margin-right:.28rem;vertical-align:-.05rem}
+.sw-madd{background:#1d4ed8}
+.sw-ghunnah{background:#dc2626}
+.sw-qalqalah{background:#15803d}
+.sw-silent{background:#9ca3af}
 .mushaf.hide-words .w{opacity:0}
 .mushaf.hide-words .w.on{opacity:1}
 .meaning{margin:.35rem 0 .85rem;color:var(--muted);font-size:.92rem;line-height:1.45;direction:ltr;text-align:left}
@@ -247,6 +258,7 @@ html.hear .hear-go.gone{display:none}
 			<button type="button" id="btn_tajweed">Tajweed</button>
 			<button type="button" id="btn_hide">Hide words</button>
 		</div>
+		<p id="tajweed_key" class="tajweed-key" hidden><span><i class="sw-madd"></i>Madd</span><span><i class="sw-ghunnah"></i>Ghunnah</span><span><i class="sw-qalqalah"></i>Qalqalah</span><span><i class="sw-silent"></i>Silent</span></p>
 		<button type="button" id="btn_all" class="playall">Play all</button>
 		<button type="button" id="btn_share" class="share-rec">Share a short video</button>
 		<button type="button" id="btn_full" class="share-full">Share the full recitation</button>
@@ -289,7 +301,7 @@ if ('serviceWorker' in navigator) {
 			if (reg.scope && /\/quran\/$/.test(reg.scope)) reg.unregister();
 		});
 	}).catch(function () {});
-	navigator.serviceWorker.register('<?php echo base_url('quran/sw.js'); ?>?v=14', { scope: quranSwScope, updateViaCache: 'none' }).then(function (reg) {
+	navigator.serviceWorker.register('<?php echo base_url('quran/sw.js'); ?>?v=15', { scope: quranSwScope, updateViaCache: 'none' }).then(function (reg) {
 		return navigator.serviceWorker.ready.then(function () {
 			var worker = reg.active || navigator.serviceWorker.controller;
 			if (!worker) return;
@@ -799,7 +811,10 @@ document.getElementById('install_quran').addEventListener('click', function () {
 		var box = document.getElementById('mushaf');
 		if (!box) return;
 		box.classList.toggle('tajweed');
-		this.classList.toggle('on', box.classList.contains('tajweed'));
+		var showing = box.classList.contains('tajweed');
+		this.classList.toggle('on', showing);
+		var key = document.getElementById('tajweed_key');
+		if (key) key.hidden = !showing;
 		box.querySelectorAll('.w').forEach(function (span) { paintWord(span); });
 	});
 	document.getElementById('btn_hide').addEventListener('click', function () {

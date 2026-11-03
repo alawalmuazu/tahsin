@@ -4,6 +4,8 @@
 			.then(function (res) { return res.json(); })
 			.then(function (data) {
 				if (!data || !data.data || !data.data.ayahs) throw new Error('text');
+				window.__surahName = window.__surahName || {};
+				window.__surahName[num] = data.data.name || '';
 				return data.data.ayahs;
 			});
 		return surahCache[num];
@@ -18,27 +20,106 @@
 	function paintWord(span) {
 		var word = span.dataset.word || '';
 		span.textContent = '';
-		if (mushaf.classList.contains('tajweed')) colorWord(span, word);
+		if (mushaf.classList.contains('tajweed')) colorWord(span, word, span.dataset.next || '');
 		else span.textContent = word + ' ';
 	}
 
-	function colorWord(span, word) {
+	function letterClusters(word) {
 		var chars = Array.from(word);
+		var out = [];
+		var i = 0;
+		while (i < chars.length) {
+			var base = chars[i];
+			var marks = '';
+			i += 1;
+			while (i < chars.length && /[\u064B-\u065F\u0670\u06D6-\u06ED]/.test(chars[i])) {
+				marks += chars[i];
+				i += 1;
+			}
+			out.push({ base: base, marks: marks });
+		}
+		return out;
+	}
+
+	function firstLetter(word) {
+		var parts = letterClusters(word);
 		var i;
-		for (i = 0; i < chars.length; i++) {
-			var ch = chars[i];
-			var next = chars[i + 1] || '';
-			var kind = '';
-			if (ch === '\u0653') kind = 'tj-madd';
-			else if ((ch === '\u0646' || ch === '\u0645') && next === '\u0651') kind = 'tj-ghunnah';
-			else if ('\u0642\u0637\u0628\u062c\u062f'.indexOf(ch) !== -1 && next === '\u0652') kind = 'tj-qalqalah';
-			if (!kind) {
-				span.appendChild(document.createTextNode(ch));
+		for (i = 0; i < parts.length; i++) {
+			if (/[\u0621-\u064A\u0671]/.test(parts[i].base)) return parts[i].base;
+		}
+		return '';
+	}
+
+	function colorWord(span, word, nextWord) {
+		var parts = letterClusters(word);
+		var kind = [];
+		var sun = 'تثدذرزسشصضطظلن';
+		var ikhfa = 'تثجدذزسشصضطظفقك';
+		var ghunnahNext = 'ينمو';
+		var qalq = 'قطبجد';
+		var i;
+		for (i = 0; i < parts.length; i++) kind.push('');
+		for (i = 0; i < parts.length; i++) {
+			var base = parts[i].base;
+			var marks = parts[i].marks;
+			var prev = i > 0 ? parts[i - 1] : null;
+			if (i === 0 && base === '\u0671') kind[i] = 'tj-silent';
+			if (base === '\u0644' && prev && (prev.base === '\u0627' || prev.base === '\u0671')) {
+				var after = parts[i + 1] ? parts[i + 1].base : '';
+				if (sun.indexOf(after) !== -1) kind[i] = 'tj-silent';
+			}
+			if (base === '\u0627' && prev && prev.base === '\u0648' && prev.marks.indexOf('\u064F') === -1 && i === parts.length - 1) {
+				var beforeWaw = i > 1 ? parts[i - 2].marks : '';
+				if (beforeWaw.indexOf('\u064F') !== -1) kind[i] = 'tj-silent';
+			}
+		}
+		function noonRule(next) {
+			if (!next) return '';
+			if (next === '\u0628') return 'tj-ghunnah';
+			if (ghunnahNext.indexOf(next) !== -1) return 'tj-ghunnah';
+			if (ikhfa.indexOf(next) !== -1) return 'tj-ghunnah';
+			if (next === '\u0631' || next === '\u0644') return 'tj-silent';
+			return '';
+		}
+		for (i = 0; i < parts.length; i++) {
+			if (kind[i] === 'tj-silent') continue;
+			var base = parts[i].base;
+			var marks = parts[i].marks;
+			var prevMarks = i > 0 ? parts[i - 1].marks : '';
+			var nextBase = parts[i + 1] ? parts[i + 1].base : firstLetter(nextWord);
+			if ((base === '\u0646' || base === '\u0645') && marks.indexOf('\u0651') !== -1) {
+				kind[i] = 'tj-ghunnah';
+				continue;
+			}
+			if (base === '\u0646' && marks.indexOf('\u0652') !== -1) {
+				var noonKind = noonRule(nextBase);
+				if (noonKind) kind[i] = noonKind;
+				continue;
+			}
+			if (i === parts.length - 1 && /[\u064B\u064C\u064D]/.test(marks)) {
+				var tanween = noonRule(firstLetter(nextWord));
+				if (tanween === 'tj-ghunnah') kind[i] = 'tj-ghunnah';
+			}
+			if (qalq.indexOf(base) !== -1 && marks.indexOf('\u0652') !== -1) {
+				kind[i] = 'tj-qalqalah';
+				continue;
+			}
+			if (kind[i]) continue;
+			var open = marks.indexOf('\u064E') === -1 && marks.indexOf('\u064F') === -1 && marks.indexOf('\u0650') === -1 && marks.indexOf('\u0651') === -1 && marks.indexOf('\u0652') === -1;
+			if (base === '\u0622' || marks.indexOf('\u0653') !== -1) kind[i] = 'tj-madd';
+			else if ((base === '\u0627' || base === '\u0671') && prevMarks.indexOf('\u064E') !== -1 && kind[i] !== 'tj-silent') kind[i] = 'tj-madd';
+			else if (base === '\u0648' && prevMarks.indexOf('\u064F') !== -1 && open) kind[i] = 'tj-madd';
+			else if ((base === '\u064A' || base === '\u0649') && prevMarks.indexOf('\u0650') !== -1 && open) kind[i] = 'tj-madd';
+		}
+		for (i = 0; i < parts.length; i++) {
+			var text = parts[i].base + parts[i].marks;
+			if (!kind[i]) {
+				span.appendChild(document.createTextNode(text));
 				continue;
 			}
 			var bit = document.createElement('span');
-			bit.className = kind;
-			bit.textContent = ch;
+			bit.className = kind[i];
+			bit.textContent = text;
 			span.appendChild(bit);
 		}
 		span.appendChild(document.createTextNode(' '));
@@ -72,6 +153,7 @@
 	function renderText(clip) {
 		words = [];
 		active = -1;
+		var keepTajweed = mushaf.classList.contains('tajweed');
 		mushaf.className = 'mushaf empty';
 		if (!clip.surah) {
 			mushaf.textContent = 'This recording has no ayah range to show.';
@@ -98,8 +180,9 @@
 				var n = Number(a.numberInSurah);
 				return n >= from && n <= to;
 			});
+			var tajweedOn = keepTajweed;
 			mushaf.innerHTML = '';
-			mushaf.className = 'mushaf';
+			mushaf.className = tajweedOn ? 'mushaf tajweed' : 'mushaf';
 			function bareArabic(word) {
 				return String(word || '')
 					.replace(/[\u064B-\u065F\u0670\u06D6-\u06ED\u0640]/g, '')
@@ -115,17 +198,25 @@
 				}
 				return { head: bits.slice(0, 4), rest: bits.slice(4) };
 			}
-			function addWord(line, word, ayahNo, wordNo) {
+			function addWord(line, word, ayahNo, wordNo, nextWord) {
 				var span = document.createElement('span');
 				span.className = 'w';
 				span.dataset.a = String(ayahNo);
 				span.dataset.w = String(wordNo);
 				span.dataset.word = word;
+				span.dataset.next = nextWord || '';
 				paintWord(span);
 				line.appendChild(span);
 				words.push(span);
 			}
 			var surahNo = Number(clip.surah) || 0;
+			var startsAtOne = slice.some(function (a) { return Number(a.numberInSurah) === 1; });
+			if (startsAtOne && window.__surahName && window.__surahName[surahNo]) {
+				var banner = document.createElement('span');
+				banner.className = 'surah-banner';
+				banner.textContent = window.__surahName[surahNo];
+				mushaf.appendChild(banner);
+			}
 			slice.forEach(function (a) {
 				var ayahNo = Number(a.numberInSurah);
 				var bits = String(a.text || '').trim().split(/\s+/).filter(Boolean);
@@ -133,14 +224,16 @@
 				if (opened) {
 					var head = document.createElement('span');
 					head.className = 'basmala';
-					opened.head.forEach(function (word, wi) { addWord(head, word, ayahNo, wi + 1); });
+					opened.head.forEach(function (word, wi) {
+						addWord(head, word, ayahNo, wi + 1, opened.head[wi + 1] || opened.rest[0] || '');
+					});
 					mushaf.appendChild(head);
 					bits = opened.rest;
 				}
 				var line = document.createElement('span');
 				line.className = ayahNo === 1 && surahNo === 1 ? 'ayah basmala' : 'ayah';
 				bits.forEach(function (word, wi) {
-					addWord(line, word, ayahNo, (opened ? 4 : 0) + wi + 1);
+					addWord(line, word, ayahNo, (opened ? 4 : 0) + wi + 1, bits[wi + 1] || '');
 				});
 				var num = document.createElement('span');
 				num.className = 'num';
@@ -148,6 +241,11 @@
 				line.appendChild(num);
 				mushaf.appendChild(line);
 			});
+			var link;
+			for (link = 0; link < words.length - 1; link++) {
+				if (!words[link].dataset.next) words[link].dataset.next = words[link + 1].dataset.word || '';
+			}
+			if (tajweedOn) words.forEach(function (span) { paintWord(span); });
 			if (!words.length) {
 				mushaf.className = 'mushaf empty';
 				mushaf.textContent = 'This portion has no Arabic text to show.';
