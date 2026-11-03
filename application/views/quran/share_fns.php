@@ -238,7 +238,12 @@
 				var num = document.createElement('span');
 				num.className = 'num';
 				num.textContent = ayahMark(ayahNo);
-				line.appendChild(num);
+				var tail = document.createElement('span');
+				tail.className = 'ayah-end';
+				var lastWord = line.lastElementChild;
+				if (lastWord) tail.appendChild(lastWord);
+				tail.appendChild(num);
+				line.appendChild(tail);
 				mushaf.appendChild(line);
 			});
 			var link;
