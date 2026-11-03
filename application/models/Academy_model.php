@@ -2617,7 +2617,99 @@ class Academy_model extends MY_Model
             'to' => $to,
             'mistakes' => (isset($row->mistake_word_count) && $row->mistake_word_count !== null && $row->mistake_word_count !== '')
                 ? (int) $row->mistake_word_count : null,
+            'marks' => $this->playlistMarksFor($audio, isset($row->mistake_breakdown) ? $row->mistake_breakdown : ''),
         );
+    }
+
+    /**
+     * Words the live check actually heard, with the time each one started.
+     * The playlist lights these. It does not guess a word that was never heard.
+     *
+     * @return array<int, array{a:int,w:int,s:float}>
+     */
+    protected function playlistMarksFor($audioUrl, $json)
+    {
+        $marks = $this->playlistMarks($json);
+        if ($marks) {
+            return $marks;
+        }
+        $base = pathinfo((string) parse_url((string) $audioUrl, PHP_URL_PATH), PATHINFO_FILENAME);
+        if (!preg_match('/^[A-Za-z0-9_-]{8,80}$/', $base)) {
+            return array();
+        }
+        $path = FCPATH . 'assets/quran_marks/' . $base . '.json';
+        if (!is_file($path)) {
+            return array();
+        }
+        $rows = json_decode((string) file_get_contents($path), true);
+        if (!is_array($rows)) {
+            return array();
+        }
+        $out = array();
+        foreach ($rows as $row) {
+            if (!is_array($row)) {
+                continue;
+            }
+            $ayah = isset($row['a']) ? (int) $row['a'] : 0;
+            $word = isset($row['w']) ? (int) $row['w'] : 0;
+            $start = isset($row['s']) ? (float) $row['s'] : -1;
+            if ($ayah < 1 || $word < 1 || $start < 0) {
+                continue;
+            }
+            $out[] = array('a' => $ayah, 'w' => $word, 's' => round($start, 3));
+            if (count($out) >= 5000) {
+                break;
+            }
+        }
+        return $out;
+    }
+
+    protected function playlistMarks($json)
+    {
+        $raw = json_decode((string) $json, true);
+        if (!is_array($raw) || empty($raw['states']) || !is_array($raw['states'])) {
+            return array();
+        }
+        $rows = array();
+        $max = 0.0;
+        foreach ($raw['states'] as $st) {
+            if (!is_array($st) || !isset($st['startTime']) || $st['startTime'] === '' || $st['startTime'] === null) {
+                continue;
+            }
+            $pos = isset($st['position']) && is_array($st['position']) ? $st['position'] : array();
+            $ayah = isset($pos['ayahNumber']) ? (int) $pos['ayahNumber'] : 0;
+            $word = isset($pos['wordNumber']) ? (int) $pos['wordNumber'] : 0;
+            if ($ayah < 1 || $word < 1) {
+                continue;
+            }
+            $start = (float) $st['startTime'];
+            if ($start > $max) {
+                $max = $start;
+            }
+            $rows[] = array('a' => $ayah, 'w' => $word, 's' => $start);
+            if (count($rows) >= 5000) {
+                break;
+            }
+        }
+        if (!$rows) {
+            return array();
+        }
+        $scale = $max > 1000 ? 0.001 : 1;
+        usort($rows, function ($x, $y) {
+            if ($x['s'] == $y['s']) {
+                return 0;
+            }
+            return ($x['s'] < $y['s']) ? -1 : 1;
+        });
+        $out = array();
+        foreach ($rows as $row) {
+            $out[] = array(
+                'a' => $row['a'],
+                'w' => $row['w'],
+                's' => round($row['s'] * $scale, 3),
+            );
+        }
+        return $out;
     }
 
     /**

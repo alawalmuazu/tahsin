@@ -9,6 +9,53 @@
 		return surahCache[num];
 	}
 
+	function colorWord(span, word) {
+		var chars = Array.from(word);
+		var i;
+		for (i = 0; i < chars.length; i++) {
+			var ch = chars[i];
+			var next = chars[i + 1] || '';
+			var kind = '';
+			if (ch === '\u0653') kind = 'tj-madd';
+			else if ((ch === '\u0646' || ch === '\u0645') && next === '\u0651') kind = 'tj-ghunnah';
+			else if ('\u0642\u0637\u0628\u062c\u062f'.indexOf(ch) !== -1 && next === '\u0652') kind = 'tj-qalqalah';
+			if (!kind) {
+				span.appendChild(document.createTextNode(ch));
+				continue;
+			}
+			var bit = document.createElement('span');
+			bit.className = kind;
+			bit.textContent = ch;
+			span.appendChild(bit);
+		}
+		span.appendChild(document.createTextNode(' '));
+	}
+
+	var shownAyah = 0;
+	function showMeaning(surah, ayah) {
+		var el = document.getElementById('ayah_meaning');
+		if (!el || !surah || !ayah) return;
+		var key = surah + ':' + ayah;
+		if (el.dataset.key === key && el.textContent && el.textContent !== 'Loading the meaning…') return;
+		el.dataset.key = key;
+		window.__meaning = window.__meaning || {};
+		if (window.__meaning[key]) {
+			el.textContent = window.__meaning[key];
+			return;
+		}
+		el.textContent = 'Loading the meaning…';
+		fetch('https://api.alquran.cloud/v1/ayah/' + surah + ':' + ayah + '/en.sahih')
+			.then(function (res) { return res.json(); })
+			.then(function (body) {
+				var text = body && body.data && body.data.text ? body.data.text : '';
+				window.__meaning[key] = text;
+				if (el.dataset.key === key) el.textContent = text;
+			})
+			.catch(function () {
+				if (el.dataset.key === key) el.textContent = '';
+			});
+	}
+
 	function renderText(clip) {
 		words = [];
 		active = -1;
@@ -22,6 +69,18 @@
 			if (clips[currentIndex()] !== clip) return;
 			var from = clip.from || 1;
 			var to = clip.to || from;
+			if (clip.marks && clip.marks.length) {
+				var lo = 0;
+				var hi = 0;
+				clip.marks.forEach(function (m) {
+					var n = Number(m.a) || 0;
+					if (!n) return;
+					if (!lo || n < lo) lo = n;
+					if (n > hi) hi = n;
+				});
+				if (lo) from = lo;
+				if (hi) to = hi;
+			}
 			var slice = ayahs.filter(function (a) {
 				var n = Number(a.numberInSurah);
 				return n >= from && n <= to;
@@ -31,10 +90,12 @@
 			slice.forEach(function (a) {
 				var line = document.createElement('span');
 				line.className = 'ayah';
-				String(a.text || '').trim().split(/\s+/).filter(Boolean).forEach(function (word) {
+				String(a.text || '').trim().split(/\s+/).filter(Boolean).forEach(function (word, wi) {
 					var span = document.createElement('span');
 					span.className = 'w';
-					span.textContent = word + ' ';
+					span.dataset.a = String(a.numberInSurah);
+					span.dataset.w = String(wi + 1);
+					colorWord(span, word);
 					line.appendChild(span);
 					words.push(span);
 				});
@@ -293,43 +354,57 @@
 		return timingCache[key];
 	}
 
+	var heard = [];
+	var heardAt = {};
 	function armTimings(clip) {
-		var token = ++timingToken;
-		var count = words.length;
 		timings = null;
-		if (!count) return;
-		var texts = [];
-		var wi;
-		for (wi = 0; wi < words.length; wi++) texts.push((words[wi].textContent || '').trim());
-		decodeTimings(clip.audio, texts).then(function (built) {
-			if (token !== timingToken || clips[currentIndex()] !== clip) return;
-			timings = built;
-			highlight(audio.currentTime || 0);
-		});
+		heard = [];
+		heardAt = {};
+		var rows = clip && Array.isArray(clip.marks) ? clip.marks : [];
+		if (!rows.length || !words.length) return;
+		var i;
+		for (i = 0; i < words.length; i++) {
+			heardAt[words[i].dataset.a + ':' + words[i].dataset.w] = i;
+		}
+		heard = rows;
+		highlight(audio.currentTime || 0);
+		if (typeof paintButtons === 'function') paintButtons();
 	}
 
-	function wordAt(t) {
-		if (!timings || !timings.length) return -1;
-		if (t < timings[0].start) return -1;
-		var last = timings.length - 1;
-		if (t >= timings[last].end) return -1;
-		var i;
-		for (i = 0; i < timings.length; i++) {
-			if (t >= timings[i].start && t < timings[i].end) return i;
-			if (t < timings[i].start) return i - 1;
+	function heardIndex(t) {
+		if (!heard.length || (audio.paused && t <= 0.05)) return -1;
+		var lo = 0;
+		var hi = heard.length - 1;
+		var hit = -1;
+		while (lo <= hi) {
+			var mid = (lo + hi) >> 1;
+			if (Number(heard[mid].s) <= t + 0.04) {
+				hit = mid;
+				lo = mid + 1;
+			} else {
+				hi = mid - 1;
+			}
 		}
-		return last;
+		if (hit < 0) return -1;
+		var key = heard[hit].a + ':' + heard[hit].w;
+		return heardAt[key] == null ? -1 : heardAt[key];
 	}
 
 	function highlight(t) {
 		if (!words.length) return;
-		var index = (!audio.paused || t > 0.05) ? wordAt(t) : -1;
+		var index = heardIndex(t);
 		if (index === active) return;
 		if (active >= 0 && words[active]) words[active].classList.remove('on');
 		active = index;
 		if (index < 0 || !words[index]) return;
 		words[index].classList.add('on');
 		if (words[index].scrollIntoView) words[index].scrollIntoView({ block: 'nearest', inline: 'nearest' });
+		var ayahNo = Number(words[index].dataset.a) || 0;
+		var surahNo = clips[currentIndex()] ? Number(clips[currentIndex()].surah) || 0 : 0;
+		if (ayahNo && ayahNo !== shownAyah) {
+			shownAyah = ayahNo;
+			showMeaning(surahNo, ayahNo);
+		}
 	}
 
 	function follow() {
