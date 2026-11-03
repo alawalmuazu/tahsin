@@ -104,9 +104,10 @@ h1{font-size:1.35rem;margin:0}
 .surah-banner{display:block;text-align:center;margin:0 0 .45rem;padding:.4rem .8rem .32rem;border:2px solid var(--mushaf-line);border-radius:12px;box-shadow:inset 0 0 0 4px var(--mushaf),inset 0 0 0 5px var(--mushaf-line);line-height:1.45}
 .surah-banner .surah-name{display:block;font-size:.9em}
 .surah-banner .surah-place{display:block;direction:ltr;font-family:system-ui,sans-serif;font-size:.72rem;color:var(--muted);margin-top:.12rem}
-.line{display:block;margin:0;line-height:1.9;white-space:nowrap;font-size:var(--line-size,1.35rem)}
-.line.just{text-align:justify;text-align-last:justify}
-.line.center{text-align:center;text-align-last:center}
+.line{display:flex;flex-wrap:nowrap;justify-content:center;align-items:baseline;gap:.28em;margin:0;line-height:2.05;white-space:nowrap;font-size:var(--line-size,1.35rem)}
+.line.just{justify-content:space-between;gap:0}
+.line.center{justify-content:center;gap:.35em}
+.line .w,.line .ayah-end{flex:0 0 auto;margin-inline:0}
 .ayah{display:block;text-align:justify;text-align-last:center;margin:.2rem 0 .55rem;line-height:2.05}
 .ayah-end{display:inline-block;white-space:nowrap}
 .w{display:inline-block;border-radius:.4em;padding:.02em .08em;margin-inline:.06em;line-height:1.35;vertical-align:baseline}
@@ -307,7 +308,7 @@ if ('serviceWorker' in navigator) {
 			if (reg.scope && /\/quran\/$/.test(reg.scope)) reg.unregister();
 		});
 	}).catch(function () {});
-	navigator.serviceWorker.register('<?php echo base_url('quran/sw.js'); ?>?v=19', { scope: quranSwScope, updateViaCache: 'none' }).then(function (reg) {
+	navigator.serviceWorker.register('<?php echo base_url('quran/sw.js'); ?>?v=20', { scope: quranSwScope, updateViaCache: 'none' }).then(function (reg) {
 		return navigator.serviceWorker.ready.then(function () {
 			var worker = reg.active || navigator.serviceWorker.controller;
 			if (!worker) return;

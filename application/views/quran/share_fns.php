@@ -355,6 +355,11 @@
 	function fitLines() {
 		var lines = mushaf.querySelectorAll('.line');
 		if (!lines.length || mushaf.classList.contains('empty')) return;
+		var i;
+		for (i = 0; i < lines.length; i++) {
+			lines[i].style.justifyContent = '';
+			lines[i].style.gap = '';
+		}
 		var low = 15;
 		var high = 34;
 		var best = low;
@@ -362,7 +367,6 @@
 			var mid = (low + high) >> 1;
 			mushaf.style.setProperty('--line-size', mid + 'px');
 			var overflow = false;
-			var i;
 			for (i = 0; i < lines.length; i++) {
 				if (lines[i].scrollWidth > lines[i].clientWidth + 1) {
 					overflow = true;
@@ -376,6 +380,19 @@
 			}
 		}
 		mushaf.style.setProperty('--line-size', best + 'px');
+		var maxExtra = best * 0.42;
+		for (i = 0; i < lines.length; i++) {
+			var line = lines[i];
+			if (!line.classList.contains('just') || line.children.length < 2) continue;
+			var natural = 0;
+			var k;
+			for (k = 0; k < line.children.length; k++) natural += line.children[k].offsetWidth;
+			var extra = line.clientWidth - natural;
+			if (extra / (line.children.length - 1) > maxExtra) {
+				line.style.justifyContent = 'center';
+				line.style.gap = '0.3em';
+			}
+		}
 	}
 	window.addEventListener('resize', function () { fitLines(); });
 	if (document.fonts && document.fonts.ready) document.fonts.ready.then(function () { fitLines(); });
