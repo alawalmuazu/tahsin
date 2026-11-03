@@ -1,5 +1,5 @@
 /* Quran playlist service worker. Android installs only if this page is served without Cache-Control: no-store. */
-var CACHE = 'quran-playlist-v19';
+var CACHE = 'quran-playlist-v20';
 
 function storeable(response) {
 	var headers = new Headers(response.headers);
