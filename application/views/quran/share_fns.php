@@ -367,6 +367,18 @@
 			heardAt[words[i].dataset.a + ':' + words[i].dataset.w] = i;
 		}
 		heard = rows;
+		var lo = 0;
+		var hi = 0;
+		rows.forEach(function (m) {
+			var n = Number(m.a) || 0;
+			if (!n) return;
+			if (!lo || n < lo) lo = n;
+			if (n > hi) hi = n;
+		});
+		if (lo && clip && clip.portion) {
+			var title = String(clip.portion).replace(/\(Ayah [^)]+\)/, '(Ayah ' + lo + '–' + hi + ')');
+			document.getElementById('now_title').textContent = title;
+		}
 		highlight(audio.currentTime || 0);
 		if (typeof paintButtons === 'function') paintButtons();
 	}
@@ -403,6 +415,8 @@
 		var surahNo = clips[currentIndex()] ? Number(clips[currentIndex()].surah) || 0 : 0;
 		if (ayahNo && ayahNo !== shownAyah) {
 			shownAyah = ayahNo;
+			var ayahLine = document.getElementById('now_ayah');
+			if (ayahLine) ayahLine.textContent = 'Now on ayah ' + ayahNo;
 			showMeaning(surahNo, ayahNo);
 		}
 	}

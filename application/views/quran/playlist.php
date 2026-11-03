@@ -232,6 +232,7 @@ html.hear .hear-go.gone{display:none}
 	<button type="button" id="hear_go" class="hear-go">Hear this recitation</button>
 	<div class="player">
 		<div class="now-title" id="now_title"><?php echo html_escape($clips[0]['portion']); ?></div>
+		<div class="meta" id="now_ayah"></div>
 		<div class="meta" id="now_meta"><?php echo html_escape($clips[0]['date'] . ' · ' . $clips[0]['time']); ?></div>
 		<input id="seek" class="seek" type="range" min="0" max="1000" value="0" aria-label="Position in this recording">
 		<div class="times"><span id="time_now">0:00</span><span id="time_end">0:00</span></div>
@@ -287,7 +288,7 @@ if ('serviceWorker' in navigator) {
 			if (reg.scope && /\/quran\/$/.test(reg.scope)) reg.unregister();
 		});
 	}).catch(function () {});
-	navigator.serviceWorker.register('<?php echo base_url('quran/sw.js'); ?>?v=10', { scope: quranSwScope, updateViaCache: 'none' }).then(function (reg) {
+	navigator.serviceWorker.register('<?php echo base_url('quran/sw.js'); ?>?v=11', { scope: quranSwScope, updateViaCache: 'none' }).then(function (reg) {
 		return navigator.serviceWorker.ready.then(function () {
 			var worker = reg.active || navigator.serviceWorker.controller;
 			if (!worker) return;
