@@ -673,24 +673,55 @@
 				return sheet;
 			}
 			if (pack.l && pack.w) {
+				function lineHits(line) {
+					if (!line || line[1] === 's' || line[2] == null || line[3] == null) return false;
+					var i;
+					for (i = line[2]; i <= line[3]; i++) {
+						if (pack.w[i] && pack.w[i][2] && pack.w[i][1] >= from && pack.w[i][1] <= to) return true;
+					}
+					return false;
+				}
+				var firstHit = -1;
+				var bi;
+				for (bi = 0; bi < pack.l.length; bi++) {
+					if (lineHits(pack.l[bi])) {
+						firstHit = bi;
+						break;
+					}
+				}
+				var openingPage = firstHit >= 0 ? pack.l[firstHit][0] : 0;
+				var showBasmala = false;
+				if (firstHit > 0) {
+					var sawBasmala = false;
+					var skippedWords = false;
+					for (bi = firstHit - 1; bi >= 0; bi--) {
+						var prev = pack.l[bi];
+						if (prev[0] !== openingPage) break;
+						if (prev[1] === 's') continue;
+						if (prev[1] === 'b') {
+							sawBasmala = true;
+							continue;
+						}
+						skippedWords = true;
+						break;
+					}
+					showBasmala = sawBasmala && !skippedWords;
+				}
 				var opened = false;
 				pack.l.forEach(function (line) {
 					if (line[1] === 's') return;
 					var page = line[0];
 					var i0 = line[2];
 					var i1 = line[3];
-					var hit = false;
-					var i;
-					for (i = i0; i <= i1; i++) {
-						if (pack.w[i][2] && pack.w[i][1] >= from && pack.w[i][1] <= to) hit = true;
-					}
-					if (!hit) return;
+					var hit = lineHits(line);
+					if (!hit && !(showBasmala && line[1] === 'b' && page === openingPage)) return;
 					if (!opened) {
 						paintBanner(page, from);
 						opened = true;
 					}
 					var row = document.createElement('span');
 					row.className = 'line' + (line[1] === 'j' ? ' just' : ' center') + (line[1] === 'b' ? ' basmala' : '');
+					var i;
 					for (i = i0; i <= i1; i++) {
 						var item = pack.w[i];
 						if (!item[2]) {

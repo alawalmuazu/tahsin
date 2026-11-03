@@ -86,8 +86,8 @@ window.addEventListener('appinstalled', function () {
 })();
 </script>
 <style>
-html[data-theme="light"]{color-scheme:light;--bg:#f4f7f5;--text:#10241e;--muted:#3d5c50;--card:#fff;--line:#d7e3dc;--mushaf:#fffdf8;--mushaf-line:#eadfc4;--mark:#b7ebc6;--num:#7a5b22;--num-line:#c4a15a;--soft:#f0fdfa;--photo:#d7e3dc;--accent:#0f766e;--bar:#f4f7f5}
-html[data-theme="dark"]{color-scheme:dark;--bg:#101816;--text:#e8f3ee;--muted:#9bb5a8;--card:#1a2622;--line:#2d433b;--mushaf:#1c1812;--mushaf-line:#3a3224;--mark:#1f6b45;--num:#e6c98a;--num-line:#a6843d;--soft:#14332c;--photo:#24332d;--accent:#2dd4bf;--bar:#101816}
+html[data-theme="light"]{color-scheme:light;--bg:#f4f7f5;--text:#10241e;--muted:#3d5c50;--card:#fff;--line:#d7e3dc;--mushaf:#fffdf8;--mushaf-line:#eadfc4;--frame:#1c1914;--basmala-rule:#c47a2a;--mark:#b7ebc6;--num:#7a5b22;--num-line:#c4a15a;--soft:#f0fdfa;--photo:#d7e3dc;--accent:#0f766e;--bar:#f4f7f5}
+html[data-theme="dark"]{color-scheme:dark;--bg:#101816;--text:#e8f3ee;--muted:#9bb5a8;--card:#1a2622;--line:#2d433b;--mushaf:#1c1812;--mushaf-line:#3a3224;--frame:#e6c98a;--basmala-rule:#e6c98a;--mark:#1f6b45;--num:#e6c98a;--num-line:#a6843d;--soft:#14332c;--photo:#24332d;--accent:#2dd4bf;--bar:#101816}
 body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,sans-serif}
 .wrap{max-width:520px;margin:0 auto;padding:1.25rem 1rem 3rem}
 .head{display:flex;gap:.9rem;align-items:center}
@@ -98,17 +98,21 @@ h1{font-size:1.35rem;margin:0}
 .install{margin:1rem 0;padding:1rem;background:var(--card);border-radius:14px;border:1px solid var(--line)}
 .install button,.playall{background:#0f766e;color:#fff;border:0;border-radius:999px;padding:.7rem 1.1rem;font-weight:700;font-size:1rem}
 .install p{margin:.6rem 0 0;font-size:.82rem;color:var(--muted)}
-.mushaf{background:var(--mushaf);color:var(--text);border:1px solid var(--mushaf-line);border-radius:16px;padding:1rem .9rem 1.35rem;min-height:7.5rem;overflow:visible;direction:rtl;text-align:center;font-family:"DigitalKhatt New Madina","Traditional Arabic",serif;font-size:1.85rem;line-height:1.85}
-.mushaf.empty{direction:ltr;text-align:left;font-family:system-ui,sans-serif;font-size:.92rem;line-height:1.45;color:var(--muted)}
+.mushaf{background:var(--mushaf);color:var(--text);border:1px solid var(--mushaf-line);border-radius:12px;box-shadow:inset 0 0 0 3px var(--mushaf),inset 0 0 0 4px var(--mushaf-line);padding:1.15rem 1rem 1.45rem;min-height:7.5rem;overflow:visible;direction:rtl;text-align:center;font-family:"DigitalKhatt New Madina","Traditional Arabic",serif;font-size:1.85rem;line-height:1.85}
+.mushaf.empty{direction:ltr;text-align:left;font-family:system-ui,sans-serif;font-size:.92rem;line-height:1.45;color:var(--muted);box-shadow:none}
 .basmala{display:block;text-align:center;text-align-last:center;margin:.15rem 0 .25rem;font-size:1.12em;line-height:1.65}
-.surah-banner{display:block;text-align:center;margin:0 0 .45rem;padding:.4rem .8rem .32rem;border:2px solid var(--mushaf-line);border-radius:12px;box-shadow:inset 0 0 0 4px var(--mushaf),inset 0 0 0 5px var(--mushaf-line);line-height:1.45}
-.surah-banner .surah-name{display:block;font-size:.9em}
-.surah-banner .surah-place{display:block;direction:ltr;font-family:system-ui,sans-serif;font-size:.72rem;color:var(--muted);margin-top:.12rem}
+.surah-banner{display:block;text-align:center;margin:.1rem 0 .15rem;padding:0;border:0;border-radius:0;box-shadow:none;background:transparent;line-height:1.2}
+.surah-banner .surah-name{display:inline-block;position:relative;margin:.2rem 1.5rem .15rem;padding:.32rem .7rem .26rem;border:2px solid var(--frame);border-radius:2px;box-shadow:inset 0 0 0 1px var(--mushaf),inset 0 0 0 3px var(--frame);background:var(--mushaf);font-size:.8em;line-height:1.35}
+.surah-banner .surah-name::before,.surah-banner .surah-name::after{content:"";position:absolute;top:50%;width:.7rem;height:.7rem;border:2px solid var(--frame);background:var(--mushaf);transform:translateY(-50%) rotate(45deg)}
+.surah-banner .surah-name::before{left:-.46rem}
+.surah-banner .surah-name::after{right:-.46rem}
+.surah-banner .surah-place{display:block;direction:ltr;font-family:system-ui,sans-serif;font-size:.72rem;color:var(--muted);margin-top:.28rem}
 .page{display:block}
 .page + .page{margin-top:.85rem;padding-top:.75rem;border-top:1px solid var(--mushaf-line)}
 .line{display:flex;flex-wrap:nowrap;justify-content:center;align-items:center;gap:.28em;margin:0;line-height:2.05;white-space:nowrap;font-size:var(--line-size,1.35rem);min-height:calc(var(--line-size, 1.35rem) * 2.05)}
 .line.just{justify-content:space-between;gap:0}
 .line.center{justify-content:center;gap:.35em}
+.line.basmala{padding-bottom:.42rem;min-height:calc(var(--line-size, 1.35rem) * 2.05 + .42rem);background-image:linear-gradient(var(--basmala-rule), var(--basmala-rule));background-repeat:no-repeat;background-size:32% 3px;background-position:center bottom .08rem}
 .line .w,.line .ayah-end{flex:0 0 auto;margin-inline:0}
 .ayah{display:block;text-align:justify;text-align-last:center;margin:.2rem 0 .55rem;line-height:2.05}
 .ayah-end{display:inline-block;white-space:nowrap}
@@ -335,7 +339,7 @@ if ('serviceWorker' in navigator) {
 			if (reg.scope && /\/quran\/$/.test(reg.scope)) reg.unregister();
 		});
 	}).catch(function () {});
-	navigator.serviceWorker.register('<?php echo base_url('quran/sw.js'); ?>?v=24', { scope: quranSwScope, updateViaCache: 'none' }).then(function (reg) {
+	navigator.serviceWorker.register('<?php echo base_url('quran/sw.js'); ?>?v=25', { scope: quranSwScope, updateViaCache: 'none' }).then(function (reg) {
 		return navigator.serviceWorker.ready.then(function () {
 			var worker = reg.active || navigator.serviceWorker.controller;
 			if (!worker) return;
