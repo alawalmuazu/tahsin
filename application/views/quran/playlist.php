@@ -104,7 +104,9 @@ h1{font-size:1.35rem;margin:0}
 .surah-banner{display:block;text-align:center;margin:0 0 .45rem;padding:.4rem .8rem .32rem;border:2px solid var(--mushaf-line);border-radius:12px;box-shadow:inset 0 0 0 4px var(--mushaf),inset 0 0 0 5px var(--mushaf-line);line-height:1.45}
 .surah-banner .surah-name{display:block;font-size:.9em}
 .surah-banner .surah-place{display:block;direction:ltr;font-family:system-ui,sans-serif;font-size:.72rem;color:var(--muted);margin-top:.12rem}
-.line{display:flex;flex-wrap:nowrap;justify-content:center;align-items:baseline;gap:.28em;margin:0;line-height:2.05;white-space:nowrap;font-size:var(--line-size,1.35rem)}
+.page{display:block}
+.page + .page{margin-top:.85rem;padding-top:.75rem;border-top:1px solid var(--mushaf-line)}
+.line{display:flex;flex-wrap:nowrap;justify-content:center;align-items:center;gap:.28em;margin:0;line-height:2.05;white-space:nowrap;font-size:var(--line-size,1.35rem);min-height:calc(var(--line-size, 1.35rem) * 2.05)}
 .line.just{justify-content:space-between;gap:0}
 .line.center{justify-content:center;gap:.35em}
 .line .w,.line .ayah-end{flex:0 0 auto;margin-inline:0}
@@ -128,7 +130,7 @@ html[data-theme="dark"] .mushaf.tajweed .tj-silent{color:#9ca3af}
 .sw-qalqalah{background:#15803d}
 .sw-silent{background:#9ca3af}
 .mushaf.hide-words .w{opacity:0}
-.mushaf.hide-words .w.on{opacity:1}
+.mushaf.hide-words .w.on,.mushaf.hide-words .w.held{opacity:1}
 .lang-row{display:flex;gap:.4rem;margin:.55rem 0 .15rem}
 .lang-row button{background:var(--card);color:var(--text);border:1px solid var(--line);border-radius:999px;padding:.28rem .75rem;font-size:.78rem;font-weight:700}
 .lang-row button.on{background:#0f766e;color:#fff;border-color:#0f766e}
@@ -137,6 +139,14 @@ html[data-theme="dark"] .mushaf.tajweed .tj-silent{color:#9ca3af}
 .word-meaning .ar{font-family:"DigitalKhatt New Madina","Traditional Arabic",serif;font-size:1.35rem;margin-inline-end:.35rem}
 .w{cursor:pointer}
 .w.picked{outline:2px solid var(--accent);outline-offset:1px}
+.w.hit{box-shadow:inset 0 -3px 0 var(--accent)}
+.w.held{box-shadow:inset 0 -2px 0 var(--num-line)}
+.w.held.hit{box-shadow:inset 0 -2px 0 var(--num-line), inset 0 -5px 0 var(--accent)}
+.slip-when{display:block;margin:.28rem 0 0;padding:0;border:0;background:transparent;color:var(--muted);font-size:.82rem;font-weight:650;text-align:left}
+.find{display:block;margin:0 0 .45rem}
+.find input{width:100%;box-sizing:border-box;border:1px solid var(--line);background:var(--card);color:var(--text);border-radius:999px;padding:.55rem .9rem;font-size:.92rem}
+.find-note{margin:-.15rem 0 .45rem;color:var(--muted);font-size:.78rem}
+.find-note[hidden]{display:none}
 .meaning{margin:.15rem 0 .85rem;color:var(--muted);font-size:.92rem;line-height:1.45;direction:ltr;text-align:left}
 .num{display:inline;margin:0 .08em;border:0;font-family:"DigitalKhatt New Madina","Traditional Arabic",serif;font-size:1em;line-height:1;color:inherit;vertical-align:baseline}
 .player{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:.9rem 1rem;margin:1rem 0 .75rem}
@@ -279,6 +289,10 @@ html.hear .hear-go.gone{display:none}
 		<button type="button" id="btn_full" class="share-full">Share the full recitation</button>
 		<p id="share_note" class="share-note">Share a short video for WhatsApp Status, or share the whole recitation.</p>
 	</div>
+	<label class="find">
+		<input id="find_quran" type="search" placeholder="Find a word in this recitation" autocomplete="off" enterkeyhint="search">
+	</label>
+	<p id="find_note" class="find-note" hidden></p>
 	<div id="mushaf" class="mushaf empty" translate="no">The ayahs appear here and light up as the recitation plays.</div>
 	<div class="lang-row">
 		<button type="button" id="lang_en">English</button>
@@ -321,7 +335,7 @@ if ('serviceWorker' in navigator) {
 			if (reg.scope && /\/quran\/$/.test(reg.scope)) reg.unregister();
 		});
 	}).catch(function () {});
-	navigator.serviceWorker.register('<?php echo base_url('quran/sw.js'); ?>?v=22', { scope: quranSwScope, updateViaCache: 'none' }).then(function (reg) {
+	navigator.serviceWorker.register('<?php echo base_url('quran/sw.js'); ?>?v=24', { scope: quranSwScope, updateViaCache: 'none' }).then(function (reg) {
 		return navigator.serviceWorker.ready.then(function () {
 			var worker = reg.active || navigator.serviceWorker.controller;
 			if (!worker) return;
@@ -575,6 +589,7 @@ document.getElementById('install_quran').addEventListener('click', function () {
 	var pos = 0;
 	var shuffled = false;
 	var repeat = 'off';
+	var loopAyah = 0;
 	var speeds = [0.75, 1, 1.25, 1.5];
 	var speedAt = 1;
 	var words = [];
@@ -788,6 +803,7 @@ document.getElementById('install_quran').addEventListener('click', function () {
 		if (!next) return false;
 		if (dir > 0 && next.ayah === visit.ayah && next.start <= visit.start) return false;
 		audio.currentTime = next.start;
+		if (repeat === 'ayah') loopAyah = next.ayah;
 		if (audio.paused) {
 			var started = audio.play();
 			if (started && started.catch) started.catch(function () {});
@@ -825,6 +841,12 @@ document.getElementById('install_quran').addEventListener('click', function () {
 	});
 	document.getElementById('btn_repeat').addEventListener('click', function () {
 		repeat = repeat === 'off' ? 'ayah' : (repeat === 'ayah' ? 'all' : 'off');
+		if (repeat === 'ayah') {
+			var visit = visitAt(audio.currentTime || 0);
+			loopAyah = visit ? visit.ayah : 0;
+		} else {
+			loopAyah = 0;
+		}
 		paintButtons();
 	});
 	document.getElementById('btn_tajweed').addEventListener('click', function () {
@@ -882,6 +904,10 @@ document.getElementById('install_quran').addEventListener('click', function () {
 		var duration = knownLength();
 		if (!duration) return;
 		audio.currentTime = (Number(seek.value) / 1000) * duration;
+		if (repeat === 'ayah') {
+			var visit = visitAt(audio.currentTime);
+			loopAyah = visit ? visit.ayah : loopAyah;
+		}
 	});
 	audio.addEventListener('loadedmetadata', showClock);
 	audio.addEventListener('durationchange', showClock);
@@ -889,9 +915,17 @@ document.getElementById('install_quran').addEventListener('click', function () {
 		showClock();
 		if (repeat === 'ayah') {
 			var visit = visitAt(audio.currentTime);
-			var duration = knownLength();
-			if (visit && duration && visit.end < duration - 0.25 && audio.currentTime >= visit.end - 0.08) {
-				audio.currentTime = visit.start;
+			if (visit && !loopAyah) loopAyah = visit.ayah;
+			if (visit && loopAyah && visit.ayah !== loopAyah) {
+				var back = null;
+				var ri;
+				for (ri = 0; ri < heard.length; ri++) {
+					if (Number(heard[ri].a) === loopAyah) {
+						back = Number(heard[ri].s);
+						break;
+					}
+				}
+				if (back != null && Math.abs((audio.currentTime || 0) - back) > 0.05) audio.currentTime = back;
 			}
 		}
 		highlight(isFinite(audio.currentTime) ? audio.currentTime : 0);

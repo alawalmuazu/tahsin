@@ -8,6 +8,20 @@
 		}
 		return n;
 	}
+	function placeText(page, surah, ayah) {
+		var bits = [];
+		if (page) bits.push('Page ' + page);
+		bits.push('Juz ' + juzFor(surah, ayah || 1));
+		var hizb = window.__hizb && window.__hizb[surah + ':' + ayah];
+		if (hizb) bits.push('Hizb ' + hizb);
+		return bits.join(' · ');
+	}
+	function bareFind(text) {
+		return String(text || '')
+			.replace(/[\u064B-\u065F\u0670\u06D6-\u06ED\u0640]/g, '')
+			.replace(/\u0671/g, '\u0627')
+			.toLowerCase();
+	}
 	function finishPack(num, pack) {
 		window.__surahName = window.__surahName || {};
 		window.__surahName[num] = pack.n || '';
@@ -163,6 +177,13 @@
 	}
 
 	var shownAyah = 0;
+	var shownPage = 0;
+	var followAyah = false;
+	var heldAt = {};
+	var heldAyah = {};
+	var heldPin = -1;
+	var slipFromPlay = false;
+	var hearAfter = null;
 	function meaningLang() {
 		try {
 			return localStorage.getItem('quranMeaningLang') === 'ha' ? 'ha' : 'en';
@@ -206,18 +227,70 @@
 			.then(function (res) { return res.json(); })
 			.catch(function () { return { verses: [] }; });
 	}
-	function readGloss(body, map, counts) {
+	function readGloss(body, map, counts, hizb, latin) {
 		(body.verses || []).forEach(function (verse) {
 			var n = verse.verse_number;
+			if (hizb && verse.hizb_number) hizb[n] = verse.hizb_number;
 			var pos = 0;
 			(verse.words || []).forEach(function (word) {
 				if (word.char_type_name !== 'word') return;
 				pos += 1;
 				map[n + ':' + pos] = word.translation && word.translation.text ? word.translation.text : '';
+				if (latin && word.transliteration && word.transliteration.text) latin[n + ':' + pos] = word.transliteration.text;
 			});
 			counts[n] = pos;
 		});
 	}
+	function glossKey(surah, ayah, wordNo) {
+		if (surah !== 1 && surah !== 9 && ayah === 1 && wordNo <= 4) return 'b:' + wordNo;
+		if (surah !== 1 && surah !== 9 && ayah === 1) return ayah + ':' + (wordNo - 4);
+		return ayah + ':' + wordNo;
+	}
+	function findInRecitation() {
+		var input = document.getElementById('find_quran');
+		var note = document.getElementById('find_note');
+		var query = input ? String(input.value || '') : '';
+		var arabicQ = bareFind(query);
+		var englishQ = query.trim().toLowerCase();
+		var i;
+		for (i = 0; i < words.length; i++) words[i].classList.remove('hit');
+		if (!note) return;
+		if (arabicQ.length < 2 && englishQ.length < 2) {
+			note.hidden = true;
+			return;
+		}
+		var clip = clips[currentIndex()];
+		var surah = clip ? Number(clip.surah) || 0 : 0;
+		var shown = {};
+		for (i = 0; i < words.length; i++) {
+			var ayahKey = words[i].dataset.a;
+			shown[ayahKey] = (shown[ayahKey] || 0) + 1;
+		}
+		var pack = window.__glossPack || null;
+		var hits = [];
+		for (i = 0; i < words.length; i++) {
+			var span = words[i];
+			var ayah = Number(span.dataset.a) || 0;
+			var wordNo = Number(span.dataset.w) || 0;
+			if (arabicQ.length >= 2 && bareFind(span.dataset.word).indexOf(arabicQ) !== -1) {
+				hits.push(span);
+				continue;
+			}
+			if (!pack || englishQ.length < 2) continue;
+			var apiCount = pack.counts[ayah] || 0;
+			var shifted = surah !== 1 && surah !== 9 && ayah === 1;
+			if (!shifted && apiCount !== shown[span.dataset.a]) continue;
+			var key = glossKey(surah, ayah, wordNo);
+			var blob = ((pack.map[key] || '') + ' ' + ((pack.latin && pack.latin[key]) || '')).toLowerCase();
+			if (blob.indexOf(englishQ) !== -1) hits.push(span);
+		}
+		hits.forEach(function (span) { span.classList.add('hit'); });
+		note.hidden = false;
+		note.textContent = hits.length ? (hits.length + (hits.length === 1 ? ' word' : ' words')) : 'No match in this recitation';
+		if (hits[0] && hits[0].scrollIntoView) hits[0].scrollIntoView({ block: 'center', inline: 'nearest' });
+	}
+	var findBox = document.getElementById('find_quran');
+	if (findBox) findBox.addEventListener('input', findInRecitation);
 	function loadGloss(surah, from, to) {
 		var pages = [];
 		var p;
@@ -228,25 +301,30 @@
 		return Promise.all(pages).then(function (bodies) {
 			var map = {};
 			var counts = {};
+			var hizb = {};
+			var latin = {};
 			bodies.forEach(function (body, index) {
 				if (surah !== 1 && index === bodies.length - 1) {
 					var basmala = {};
-					readGloss(body, basmala, {});
+					var basmalaLatin = {};
+					readGloss(body, basmala, {}, null, basmalaLatin);
 					var b;
 					for (b = 1; b <= 4; b++) {
 						if (basmala['1:' + b]) map['b:' + b] = basmala['1:' + b];
+						if (basmalaLatin['1:' + b]) latin['b:' + b] = basmalaLatin['1:' + b];
 					}
 					return;
 				}
-				readGloss(body, map, counts);
+				readGloss(body, map, counts, hizb, latin);
 			});
 			if (surah === 1) {
 				var b;
 				for (b = 1; b <= 4; b++) {
 					if (map['1:' + b]) map['b:' + b] = map['1:' + b];
+					if (latin['1:' + b]) latin['b:' + b] = latin['1:' + b];
 				}
 			}
-			return { map: map, counts: counts };
+			return { map: map, counts: counts, hizb: hizb, latin: latin };
 		});
 	}
 	function showWord(surah, ayah, wordNo, arabic) {
@@ -273,35 +351,226 @@
 				if (Number(words[i].dataset.a) === ayah) ourCount++;
 			}
 			var apiCount = pack.counts[ayah] || 0;
-			var key = '';
-			if (surah !== 1 && surah !== 9 && ayah === 1 && wordNo <= 4) key = 'b:' + wordNo;
-			else if (surah !== 1 && surah !== 9 && ayah === 1) key = ayah + ':' + (wordNo - 4);
-			else if (apiCount === ourCount) key = ayah + ':' + wordNo;
+			var shifted = surah !== 1 && surah !== 9 && ayah === 1;
+			var key = (shifted || apiCount === ourCount) ? glossKey(surah, ayah, wordNo) : '';
 			var gloss = key ? (pack.map[key] || '') : '';
-			say.textContent = gloss ? (' — ' + gloss) : '';
+			var spoken = key && pack.latin ? (pack.latin[key] || '') : '';
+			var tail = '';
+			if (spoken) tail += ' — ' + spoken;
+			if (gloss) tail += ' — ' + gloss;
+			say.textContent = tail;
 		}).catch(function () {
 			say.textContent = '';
+		});
+	}
+	function slipSentence(note, displayWord) {
+		var parts = [];
+		var shown = bareFind(displayWord || '');
+		var heardWord = bareFind(note.received || '');
+		var belongs = bareFind(note.expected || '');
+		if (note.label) parts.push(note.label);
+		if (heardWord && belongs && heardWord === belongs) return parts.join(' · ');
+		if (note.received && heardWord && heardWord !== shown) parts.push('heard ' + note.received);
+		if (note.expected && belongs && belongs !== shown && belongs !== heardWord) parts.push('the word is ' + note.expected);
+		return parts.join(' · ');
+	}
+	function fillSlip(el, arabic, notes, history) {
+		el.hidden = false;
+		el.textContent = '';
+		var note = notes[0];
+		var n;
+		for (n = 0; n < notes.length; n++) {
+			if (notes[n].here) {
+				note = notes[n];
+				break;
+			}
+		}
+		if (arabic) {
+			var ar = document.createElement('span');
+			ar.className = 'ar';
+			ar.textContent = arabic;
+			el.appendChild(ar);
+		}
+		var sentence = slipSentence(note, arabic);
+		if (sentence) {
+			var say = document.createElement('span');
+			say.textContent = (arabic ? ' — ' : '') + sentence;
+			el.appendChild(say);
+		}
+		if (notes.length > 1 && !history) {
+			var more = document.createElement('span');
+			more.textContent = ' · ' + notes.length + ' sealings';
+			el.appendChild(more);
+		}
+		if (!history) return;
+		notes.forEach(function (item) {
+			var btn = document.createElement('button');
+			btn.type = 'button';
+			btn.className = 'slip-when';
+			btn.textContent = (item.date || 'Sealed') + (item.time ? ' · ' + item.time : '') + (item.label ? ' · ' + item.label : '');
+			btn.addEventListener('click', function (event) {
+				event.stopPropagation();
+				hearClipWord(item.clipIndex, item.a, item.w);
+			});
+			el.appendChild(btn);
+		});
+	}
+	function showHeld(index, fromPlay, history) {
+		var notes = heldAt[index] || [];
+		var el = document.getElementById('word_meaning');
+		if (!notes.length || !el) return;
+		slipFromPlay = !!fromPlay;
+		if (!fromPlay) heldPin = index;
+		var span = words[index];
+		fillSlip(el, (span && span.dataset.word) || notes[0].text || '', notes, history);
+	}
+	function showAyahSlip(ayah) {
+		var notes = heldAyah[ayah] || [];
+		var el = document.getElementById('word_meaning');
+		if (!notes.length || !el) return;
+		slipFromPlay = true;
+		fillSlip(el, notes[0].text || notes[0].expected || '', notes, false);
+	}
+	function clearSlipPlay() {
+		if (!slipFromPlay) return;
+		slipFromPlay = false;
+		var el = document.getElementById('word_meaning');
+		if (!el) return;
+		el.hidden = true;
+		el.textContent = '';
+	}
+	function revealSlip(index, ayahNo) {
+		if (heldPin >= 0 && index >= 0 && heldPin !== index) {
+			heldPin = -1;
+			var i;
+			for (i = 0; i < words.length; i++) words[i].classList.remove('picked');
+		}
+		if (heldPin >= 0) return;
+		if (index >= 0 && heldAt[index]) {
+			showHeld(index, true, false);
+			return;
+		}
+		if (followAyah && ayahNo && heldAyah[ayahNo]) {
+			showAyahSlip(ayahNo);
+			return;
+		}
+		clearSlipPlay();
+	}
+	function seekHeard(ayah, wordNo, play) {
+		if (followAyah && !play) return false;
+		var i;
+		var at = -1;
+		for (i = 0; i < heard.length; i++) {
+			if (Number(heard[i].a) !== ayah) continue;
+			if (!followAyah && wordNo && Number(heard[i].w) !== wordNo) continue;
+			at = Number(heard[i].s) || 0;
+			break;
+		}
+		if (at < 0) return false;
+		audio.dataset.resume = at > 0.2 ? String(at) : '';
+		try { audio.currentTime = at; } catch (e) {}
+		highlight(at);
+		if (play && audio.paused) {
+			audio.dataset.want = '1';
+			var started = audio.play();
+			if (started && started.catch) started.catch(function () {});
+		}
+		if (repeat === 'ayah') loopAyah = ayah;
+		return true;
+	}
+	function hearClipWord(clipIndex, ayah, wordNo) {
+		hearAfter = { a: ayah, w: wordNo };
+		var place = order.indexOf(clipIndex);
+		if (place < 0) return;
+		if (place === pos) {
+			hearAfter = null;
+			seekHeard(ayah, wordNo, true);
+			return;
+		}
+		pos = place;
+		playClip(true);
+	}
+	function slipNote(clipIndex, slip) {
+		var clip = clips[clipIndex] || {};
+		return {
+			clipIndex: clipIndex,
+			a: Number(slip.a) || 0,
+			w: Number(slip.w) || 0,
+			date: clip.date || '',
+			time: clip.time || '',
+			label: slip.k || '',
+			expected: slip.e || '',
+			received: slip.r || '',
+			text: slip.t || '',
+			here: clipIndex === currentIndex()
+		};
+	}
+	function matchSlip(slip) {
+		var ayah = Number(slip.a) || 0;
+		var want = bareFind(slip.t || '');
+		var i;
+		if (ayah && want.length >= 2) {
+			var hits = [];
+			for (i = 0; i < words.length; i++) {
+				if (Number(words[i].dataset.a) !== ayah) continue;
+				if (bareFind(words[i].dataset.word) === want) hits.push(i);
+			}
+			if (hits.length === 1) return hits[0];
+		}
+		var wordNo = Number(slip.w) || 0;
+		if (ayah && wordNo) {
+			for (i = 0; i < words.length; i++) {
+				if (Number(words[i].dataset.a) === ayah && Number(words[i].dataset.w) === wordNo) return i;
+			}
+		}
+		return -1;
+	}
+	function placeSlips() {
+		heldAt = {};
+		heldAyah = {};
+		var clip = clips[currentIndex()];
+		var surah = clip ? Number(clip.surah) || 0 : 0;
+		if (!surah) return;
+		clips.forEach(function (other, ci) {
+			if (!other || Number(other.surah) !== surah || !Array.isArray(other.slips)) return;
+			other.slips.forEach(function (slip) {
+				var note = slipNote(ci, slip);
+				var at = matchSlip(slip);
+				if (at >= 0) {
+					if (!heldAt[at]) heldAt[at] = [];
+					heldAt[at].push(note);
+					words[at].classList.add('held');
+				} else if (note.a) {
+					if (!heldAyah[note.a]) heldAyah[note.a] = [];
+					heldAyah[note.a].push(note);
+				}
+			});
 		});
 	}
 	mushaf.addEventListener('click', function (event) {
 		var span = event.target.closest ? event.target.closest('.w') : null;
 		if (!span || !mushaf.contains(span)) return;
 		var i;
+		var index = -1;
+		for (i = 0; i < words.length; i++) {
+			if (words[i] === span) index = i;
+		}
+		var again = span.classList.contains('picked') && index >= 0 && heldAt[index] && heldAt[index].length > 1;
 		for (i = 0; i < words.length; i++) words[i].classList.remove('picked');
 		span.classList.add('picked');
 		var clip = clips[currentIndex()];
 		var surah = clip ? Number(clip.surah) || 0 : 0;
 		var ayah = Number(span.dataset.a) || 0;
 		var wordNo = Number(span.dataset.w) || 0;
-		showWord(surah, ayah, wordNo, span.dataset.word || '');
-		for (i = 0; i < heard.length; i++) {
-			if (Number(heard[i].a) === ayah && Number(heard[i].w) === wordNo) {
-				var at = Number(heard[i].s) || 0;
-				if (isFinite(at)) audio.currentTime = at;
-				highlight(audio.currentTime || 0);
-				break;
-			}
+		if (index >= 0 && heldAt[index]) {
+			heldPin = index;
+			showHeld(index, false, again);
+			seekHeard(ayah, wordNo, true);
+			return;
 		}
+		heldPin = -1;
+		showWord(surah, ayah, wordNo, span.dataset.word || '');
+		seekHeard(ayah, wordNo, false);
 	});
 	function setMeaningLang(lang) {
 		try { localStorage.setItem('quranMeaningLang', lang === 'ha' ? 'ha' : 'en'); } catch (e) {}
@@ -321,6 +590,9 @@
 	function renderText(clip) {
 		words = [];
 		active = -1;
+		shownPage = 0;
+		heldPin = -1;
+		slipFromPlay = false;
 		var keepTajweed = mushaf.classList.contains('tajweed');
 		mushaf.className = 'mushaf empty';
 		if (!clip.surah) {
@@ -383,13 +655,23 @@
 				var place = document.createElement('span');
 				place.className = 'surah-place';
 				place.id = 'mushaf_place';
-				var juz = juzFor(surahNo, ayahNo || from);
-				place.textContent = page ? ('Page ' + page + ' · Juz ' + juz) : ('Juz ' + juz);
+				place.textContent = placeText(page, surahNo, ayahNo || from);
 				if (name.textContent) banner.appendChild(name);
 				banner.appendChild(place);
 				mushaf.appendChild(banner);
 			}
 			var surahNo = Number(clip.surah) || 0;
+			var sheet = null;
+			var sheetPage = 0;
+			function pageOf(page) {
+				if (sheet && sheetPage === page) return sheet;
+				sheet = document.createElement('div');
+				sheet.className = 'page';
+				sheet.dataset.page = String(page || '');
+				mushaf.appendChild(sheet);
+				sheetPage = page;
+				return sheet;
+			}
 			if (pack.l && pack.w) {
 				var opened = false;
 				pack.l.forEach(function (line) {
@@ -426,7 +708,7 @@
 						addWord(row, item[0], item[1], item[2], '');
 						row.lastElementChild.dataset.page = String(page);
 					}
-					mushaf.appendChild(row);
+					pageOf(page).appendChild(row);
 				});
 			} else {
 				var slice = ayahs.filter(function (a) {
@@ -469,6 +751,7 @@
 				if (!words[link].dataset.next) words[link].dataset.next = words[link + 1].dataset.word || '';
 			}
 			if (tajweedOn) words.forEach(function (span) { paintWord(span); });
+			placeSlips();
 			if (!words.length) {
 				mushaf.className = 'mushaf empty';
 				mushaf.textContent = 'This portion has no Arabic text to show.';
@@ -478,6 +761,17 @@
 			shownAyah = from;
 			showMeaning(surahNo, from);
 			window.__glossReady = loadGloss(surahNo, from, to);
+			window.__glossReady.then(function (pack) {
+				window.__glossPack = pack;
+				window.__hizb = window.__hizb || {};
+				Object.keys(pack.hizb || {}).forEach(function (ayah) {
+					window.__hizb[surahNo + ':' + ayah] = pack.hizb[ayah];
+				});
+				var place = document.getElementById('mushaf_place');
+				var here = words[active] || words[0];
+				if (place && here) place.textContent = placeText(here.dataset.page, surahNo, Number(here.dataset.a) || from);
+				if (document.getElementById('find_quran') && document.getElementById('find_quran').value) findInRecitation();
+			});
 			requestAnimationFrame(function () { fitLines(); });
 		}).catch(function () {
 			if (clips[currentIndex()] !== clip) return;
@@ -774,7 +1068,11 @@
 		heard = [];
 		heardAt = {};
 		var rows = clip && Array.isArray(clip.marks) ? clip.marks : [];
-		if (!rows.length || !words.length) return;
+		if (!rows.length || !words.length) {
+			followAyah = false;
+			hearAfter = null;
+			return;
+		}
 		var i;
 		for (i = 0; i < words.length; i++) {
 			heardAt[words[i].dataset.a + ':' + words[i].dataset.w] = i;
@@ -783,56 +1081,28 @@
 		for (i = 0; i < rows.length; i++) {
 			if (heardAt[rows[i].a + ':' + rows[i].w] == null) exact = false;
 		}
+		followAyah = !exact;
 		if (!exact) {
 			var ayahStart = {};
-			var ayahLast = {};
 			rows.forEach(function (m) {
 				var a = Number(m.a) || 0;
 				var s = Number(m.s);
 				if (!a || !(s >= 0)) return;
 				if (ayahStart[a] == null || s < ayahStart[a]) ayahStart[a] = s;
-				if (ayahLast[a] == null || s > ayahLast[a]) ayahLast[a] = s;
 			});
 			var order = [];
-			var grouped = {};
+			var seenAyah = {};
 			for (i = 0; i < words.length; i++) {
 				var ayahNo = Number(words[i].dataset.a) || 0;
-				if (!grouped[ayahNo]) {
-					grouped[ayahNo] = [];
-					order.push(ayahNo);
-				}
-				grouped[ayahNo].push(i);
+				if (!ayahNo || seenAyah[ayahNo]) continue;
+				seenAyah[ayahNo] = true;
+				order.push(ayahNo);
 			}
 			rows = [];
-			order.forEach(function (a, pos) {
+			order.forEach(function (a) {
 				if (ayahStart[a] == null) return;
-				var start = ayahStart[a];
-				var end = pos + 1 < order.length && ayahStart[order[pos + 1]] != null
-					? ayahStart[order[pos + 1]]
-					: Math.max(ayahLast[a] || start, start) + 6;
-				if (end <= start) end = start + 0.4;
-				var indexes = grouped[a];
-				var weights = [];
-				var total = 0;
-				var n;
-				for (n = 0; n < indexes.length; n++) {
-					weights.push(arabicWeight(words[indexes[n]].dataset.word));
-					total += weights[n];
-				}
-				var walked = 0;
-				for (n = 0; n < indexes.length; n++) {
-					rows.push({
-						a: a,
-						w: Number(words[indexes[n]].dataset.w),
-						s: Math.round((start + (end - start) * (walked / (total || 1))) * 1000) / 1000
-					});
-					walked += weights[n];
-				}
+				rows.push({ a: a, w: 0, s: Math.round(ayahStart[a] * 1000) / 1000 });
 			});
-			heardAt = {};
-			for (i = 0; i < words.length; i++) {
-				heardAt[words[i].dataset.a + ':' + words[i].dataset.w] = i;
-			}
 		}
 		heard = rows;
 		var lo = 0;
@@ -848,6 +1118,11 @@
 			document.getElementById('now_title').textContent = title;
 		}
 		highlight(audio.currentTime || 0);
+		if (hearAfter) {
+			var want = hearAfter;
+			hearAfter = null;
+			seekHeard(want.a, want.w, true);
+		}
 		if (typeof showClock === 'function') showClock();
 		if (typeof paintButtons === 'function') paintButtons();
 	}
@@ -871,26 +1146,72 @@
 		return heardAt[key] == null ? -1 : heardAt[key];
 	}
 
-	function highlight(t) {
-		if (!words.length) return;
-		var index = heardIndex(t);
-		if (index === active) return;
-		if (active >= 0 && words[active]) words[active].classList.remove('on');
-		active = index;
-		if (index < 0 || !words[index]) return;
-		words[index].classList.add('on');
-		if (words[index].scrollIntoView) words[index].scrollIntoView({ block: 'nearest', inline: 'nearest' });
-		var ayahNo = Number(words[index].dataset.a) || 0;
+	function settle(index, pageNo) {
+		var sheetEl = words[index] && words[index].closest ? words[index].closest('.page') : null;
+		if (pageNo && pageNo !== shownPage) {
+			shownPage = pageNo;
+			if (sheetEl && sheetEl.scrollIntoView) {
+				sheetEl.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+				return;
+			}
+		}
+		if (words[index] && words[index].scrollIntoView) words[index].scrollIntoView({ block: 'nearest', inline: 'nearest' });
+	}
+	function markAyah(index, ayahNo, pageNo) {
 		var surahNo = clips[currentIndex()] ? Number(clips[currentIndex()].surah) || 0 : 0;
-		var pageNo = Number(words[index].dataset.page) || 0;
 		var place = document.getElementById('mushaf_place');
-		if (place && pageNo && ayahNo) place.textContent = 'Page ' + pageNo + ' · Juz ' + juzFor(surahNo, ayahNo);
+		if (place && ayahNo) place.textContent = placeText(pageNo, surahNo, ayahNo);
 		if (ayahNo && ayahNo !== shownAyah) {
 			shownAyah = ayahNo;
 			var ayahLine = document.getElementById('now_ayah');
 			if (ayahLine) ayahLine.textContent = 'Now on ayah ' + ayahNo;
 			showMeaning(surahNo, ayahNo);
 		}
+		if (index >= 0) settle(index, pageNo);
+		revealSlip(index, ayahNo);
+	}
+	function highlight(t) {
+		if (!words.length) return;
+		var i;
+		if (followAyah) {
+			var ayahNow = -1;
+			if (!(audio.paused && t <= 0.05)) {
+				for (i = 0; i < heard.length; i++) {
+					if (Number(heard[i].s) <= t + 0.04) ayahNow = Number(heard[i].a);
+					else break;
+				}
+			}
+			var index = -1;
+			if (ayahNow > 0) {
+				for (i = 0; i < words.length; i++) {
+					if (Number(words[i].dataset.a) === ayahNow) {
+						index = i;
+						break;
+					}
+				}
+			}
+			if (index === active) return;
+			for (i = 0; i < words.length; i++) {
+				words[i].classList.toggle('on', ayahNow > 0 && Number(words[i].dataset.a) === ayahNow);
+			}
+			active = index;
+			if (index < 0) {
+				clearSlipPlay();
+				return;
+			}
+			markAyah(index, ayahNow, Number(words[index].dataset.page) || 0);
+			return;
+		}
+		var index = heardIndex(t);
+		if (index === active) return;
+		if (active >= 0 && words[active]) words[active].classList.remove('on');
+		active = index;
+		if (index < 0 || !words[index]) {
+			clearSlipPlay();
+			return;
+		}
+		words[index].classList.add('on');
+		markAyah(index, Number(words[index].dataset.a) || 0, Number(words[index].dataset.page) || 0);
 	}
 
 	function follow() {
@@ -1060,6 +1381,7 @@
 	}
 
 	function playClip(auto) {
+		loopAyah = 0;
 		var clip = clips[currentIndex()];
 		if (!clip) return;
 		showMeta(clip);

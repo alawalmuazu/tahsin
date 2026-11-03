@@ -2618,6 +2618,7 @@ class Academy_model extends MY_Model
             'mistakes' => (isset($row->mistake_word_count) && $row->mistake_word_count !== null && $row->mistake_word_count !== '')
                 ? (int) $row->mistake_word_count : null,
             'marks' => $this->playlistMarksFor($audio, isset($row->mistake_breakdown) ? $row->mistake_breakdown : ''),
+            'slips' => $this->playlistSlips(isset($row->mistake_breakdown) ? $row->mistake_breakdown : ''),
         );
     }
 
@@ -2662,6 +2663,58 @@ class Academy_model extends MY_Model
             }
         }
         return $out;
+    }
+
+    /**
+     * Words the teacher marked on this sealing, small enough for the public page.
+     *
+     * @return array<int, array{a:int,w:int,k:string,e:string,r:string,t:string}>
+     */
+    protected function playlistSlips($json)
+    {
+        $report = $this->tarteelReport($json);
+        $out = array();
+        $seen = array();
+        foreach ($report['mistakes'] as $m) {
+            $ayah = isset($m['ayah']) ? (int) $m['ayah'] : 0;
+            if ($ayah < 1) {
+                continue;
+            }
+            $word = isset($m['word']) ? (int) $m['word'] : 0;
+            $label = $this->slipClip(isset($m['label']) ? $m['label'] : '');
+            $expected = $this->slipClip(isset($m['expected']) ? $m['expected'] : '');
+            $received = $this->slipClip(isset($m['received']) ? $m['received'] : '');
+            $text = $this->slipClip(isset($m['text']) ? $m['text'] : '');
+            $id = $ayah . '|' . $word . '|' . $label . '|' . $expected . '|' . $received;
+            if (isset($seen[$id])) {
+                if ($text !== '' && $out[$seen[$id]]['t'] === '') {
+                    $out[$seen[$id]]['t'] = $text;
+                }
+                continue;
+            }
+            $seen[$id] = count($out);
+            $out[] = array(
+                'a' => $ayah,
+                'w' => $word,
+                'k' => $label,
+                'e' => $expected,
+                'r' => $received,
+                't' => $text,
+            );
+            if (count($out) >= 40) {
+                break;
+            }
+        }
+        return $out;
+    }
+
+    protected function slipClip($value)
+    {
+        $text = trim(preg_replace('/\s+/u', ' ', (string) $value));
+        if (function_exists('mb_strlen') && mb_strlen($text) > 80) {
+            return mb_substr($text, 0, 79) . '…';
+        }
+        return $text;
     }
 
     protected function playlistMarks($json)
