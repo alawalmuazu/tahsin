@@ -100,22 +100,51 @@
 			});
 			mushaf.innerHTML = '';
 			mushaf.className = 'mushaf';
+			function bareArabic(word) {
+				return String(word || '')
+					.replace(/[\u064B-\u065F\u0670\u06D6-\u06ED\u0640]/g, '')
+					.replace(/\u0671/g, '\u0627');
+			}
+			function basmalaParts(text) {
+				var bits = String(text || '').trim().split(/\s+/).filter(Boolean);
+				var expect = ['بسم', 'الله', 'الرحمن', 'الرحيم'];
+				if (bits.length <= 4) return null;
+				var i;
+				for (i = 0; i < 4; i++) {
+					if (bareArabic(bits[i]) !== expect[i]) return null;
+				}
+				return { head: bits.slice(0, 4), rest: bits.slice(4) };
+			}
+			function addWord(line, word, ayahNo, wordNo) {
+				var span = document.createElement('span');
+				span.className = 'w';
+				span.dataset.a = String(ayahNo);
+				span.dataset.w = String(wordNo);
+				span.dataset.word = word;
+				paintWord(span);
+				line.appendChild(span);
+				words.push(span);
+			}
+			var surahNo = Number(clip.surah) || 0;
 			slice.forEach(function (a) {
+				var ayahNo = Number(a.numberInSurah);
+				var bits = String(a.text || '').trim().split(/\s+/).filter(Boolean);
+				var opened = ayahNo === 1 && surahNo !== 1 && surahNo !== 9 ? basmalaParts(a.text) : null;
+				if (opened) {
+					var head = document.createElement('span');
+					head.className = 'basmala';
+					opened.head.forEach(function (word, wi) { addWord(head, word, ayahNo, wi + 1); });
+					mushaf.appendChild(head);
+					bits = opened.rest;
+				}
 				var line = document.createElement('span');
-				line.className = 'ayah';
-				String(a.text || '').trim().split(/\s+/).filter(Boolean).forEach(function (word, wi) {
-					var span = document.createElement('span');
-					span.className = 'w';
-					span.dataset.a = String(a.numberInSurah);
-					span.dataset.w = String(wi + 1);
-					span.dataset.word = word;
-					paintWord(span);
-					line.appendChild(span);
-					words.push(span);
+				line.className = ayahNo === 1 && surahNo === 1 ? 'ayah basmala' : 'ayah';
+				bits.forEach(function (word, wi) {
+					addWord(line, word, ayahNo, (opened ? 4 : 0) + wi + 1);
 				});
 				var num = document.createElement('span');
 				num.className = 'num';
-				num.textContent = ayahMark(a.numberInSurah);
+				num.textContent = ayahMark(ayahNo);
 				line.appendChild(num);
 				mushaf.appendChild(line);
 			});
@@ -441,6 +470,167 @@
 		if (!audio.paused && !audio.ended) frame = requestAnimationFrame(follow);
 	}
 
+	function webmUrl(url) {
+		return /\.webm(\?|#|$)/i.test(url || '');
+	}
+
+	function mergeChunks(parts) {
+		var total = 0;
+		var i;
+		for (i = 0; i < parts.length; i++) total += parts[i].byteLength;
+		var out = new Uint8Array(total);
+		var at = 0;
+		for (i = 0; i < parts.length; i++) {
+			out.set(parts[i], at);
+			at += parts[i].byteLength;
+		}
+		return out;
+	}
+
+	function clusterStarts(bytes) {
+		var found = [];
+		var i;
+		for (i = 0; i + 3 < bytes.length; i++) {
+			if (bytes[i] === 0x1f && bytes[i + 1] === 0x43 && bytes[i + 2] === 0xb6 && bytes[i + 3] === 0x75) found.push(i);
+		}
+		return found;
+	}
+
+	var streamToken = 0;
+	function openStream(url, autoplay, resumeAt) {
+		var token = ++streamToken;
+		audio.dataset.feed = url;
+		audio.dataset.resume = resumeAt > 0.2 ? String(resumeAt) : '';
+		if (autoplay) audio.dataset.want = '1';
+		if (!webmUrl(url) || !window.MediaSource || !MediaSource.isTypeSupported('audio/webm; codecs=opus')) {
+			audio.dataset.mode = 'file';
+			if (audio.getAttribute('src') !== url) audio.src = url;
+			else if (autoplay) audio.currentTime = 0;
+			if (autoplay) {
+				var direct = audio.play();
+				if (direct && direct.catch) direct.catch(function () { paintButtons(); });
+			}
+			return;
+		}
+		if (!resumeAt && audio.dataset.mode === 'mse' && audio.dataset.feedLive === url && audio.getAttribute('src') && !audio.error) {
+			if (autoplay) {
+				try { audio.currentTime = 0; } catch (e) {}
+				var again = audio.play();
+				if (again && again.catch) again.catch(function () { paintButtons(); });
+			}
+			return;
+		}
+		audio.dataset.mode = 'mse';
+		audio.dataset.feedLive = url;
+		if (audio._obj) URL.revokeObjectURL(audio._obj);
+		var ms = new MediaSource();
+		var obj = URL.createObjectURL(ms);
+		audio._obj = obj;
+		audio.src = obj;
+		ms.addEventListener('sourceopen', function () {
+			if (token !== streamToken || ms.readyState !== 'open') return;
+			var sb;
+			try { sb = ms.addSourceBuffer('audio/webm; codecs=opus'); }
+			catch (e) {
+				audio.dataset.mode = 'file';
+				audio.src = url;
+				if (audio.dataset.want === '1') audio.play();
+				return;
+			}
+			var parts = [];
+			var queue = [];
+			var reading = true;
+			function enqueue(chunk) {
+				if (!chunk || !chunk.byteLength) return;
+				queue.push(chunk);
+				drain();
+			}
+			function drain() {
+				if (token !== streamToken || sb.updating || !queue.length) return;
+				try { sb.appendBuffer(queue.shift()); }
+				catch (e) {
+					audio.dataset.mode = 'file';
+					audio.src = url;
+					if (audio.dataset.want === '1') audio.play();
+				}
+			}
+			function pullReady(finalPass) {
+				var bytes = mergeChunks(parts);
+				if (finalPass) {
+					parts = [];
+					enqueue(bytes);
+					return;
+				}
+				var cuts = clusterStarts(bytes);
+				if (cuts.length < 2) return;
+				var end = cuts[cuts.length - 1];
+				if (end < 1) return;
+				parts = [bytes.subarray(end)];
+				enqueue(bytes.subarray(0, end));
+			}
+			sb.addEventListener('updateend', function () {
+				if (token !== streamToken) return;
+				drain();
+				if (!reading && !queue.length && !sb.updating && ms.readyState === 'open') {
+					try { ms.endOfStream(); } catch (err) {}
+					var resume = Number(audio.dataset.resume) || 0;
+					if (resume > 0.2) {
+						audio.dataset.resume = '';
+						try { audio.currentTime = resume; } catch (err2) {}
+					}
+				}
+				if (audio.dataset.want === '1' && audio.paused) {
+					var started = audio.play();
+					if (started && started.catch) started.catch(function () {});
+				}
+			});
+			fetch(url, { credentials: 'same-origin' }).then(function (res) {
+				if (!res.ok) throw new Error('audio');
+				var len = Number(res.headers.get('Content-Length')) || 0;
+				if (len) audio.dataset.bytes = String(len);
+				if (!res.body || !res.body.getReader) {
+					return res.arrayBuffer().then(function (buf) {
+						if (token !== streamToken) return;
+						parts = [new Uint8Array(buf)];
+						reading = false;
+						pullReady(true);
+					});
+				}
+				var reader = res.body.getReader();
+				function read() {
+					return reader.read().then(function (part) {
+						if (token !== streamToken) return;
+						if (part.done) {
+							reading = false;
+							pullReady(true);
+							return;
+						}
+						parts.push(part.value);
+						pullReady(false);
+						return read();
+					});
+				}
+				return read();
+			}).catch(function () {
+				if (token !== streamToken) return;
+				audio.dataset.mode = 'file';
+				audio.src = url;
+				if (audio.dataset.want === '1') audio.play();
+			});
+		});
+	}
+
+	function stoppedEarly() {
+		var end = 0;
+		if (typeof heard !== 'undefined' && heard.length) end = Number(heard[heard.length - 1].s) || 0;
+		var now = audio.currentTime || 0;
+		if (end > 8 && now + 2 < end) return true;
+		var bytes = Number(audio.dataset.bytes) || 0;
+		var d = audio.duration;
+		if (bytes > 700000 && isFinite(d) && d > 0 && d < 90 && now + 1.2 >= d) return true;
+		return false;
+	}
+
 	function playClip(auto) {
 		var clip = clips[currentIndex()];
 		if (!clip) return;
@@ -448,20 +638,10 @@
 		renderQueue();
 		renderText(clip);
 		audio.playbackRate = speeds[speedAt];
-		if (audio.getAttribute('src') !== clip.audio) {
-			audio.src = clip.audio;
-		} else {
-			audio.currentTime = 0;
-		}
 		document.getElementById('seek').value = '0';
 		document.getElementById('time_now').textContent = '0:00';
-		if (!auto) {
-			paintButtons();
-			return;
-		}
-		var started = audio.play();
-		if (started && started.catch) started.catch(function () { paintButtons(); });
-		paintButtons();
+		openStream(clip.audio, !!auto, 0);
+		if (typeof paintButtons === 'function') paintButtons();
 	}
 
 	function step(dir) {
@@ -489,17 +669,22 @@
 			return;
 		}
 		if (audio.paused) {
-			if (audio.error && audio.getAttribute('src')) {
-				var again = audio.getAttribute('src');
-				audio.removeAttribute('src');
-				audio.load();
-				audio.src = again;
+			audio.dataset.want = '1';
+			if (!audio.getAttribute('src')) {
+				playClip(true);
+				return;
+			}
+			if (audio.dataset.mode !== 'mse' && audio.error && audio.dataset.feed) {
+				openStream(audio.dataset.feed, true, audio.currentTime || 0);
+				paintButtons();
+				return;
 			}
 			var started = audio.play();
 			if (started && started.catch) started.catch(function () {
 				paintButtons();
 			});
 		} else {
+			audio.dataset.want = '0';
 			audio.pause();
 		}
 		paintButtons();

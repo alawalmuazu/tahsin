@@ -100,6 +100,7 @@ h1{font-size:1.35rem;margin:0}
 .install p{margin:.6rem 0 0;font-size:.82rem;color:var(--muted)}
 .mushaf{background:var(--mushaf);color:var(--text);border:1px solid var(--mushaf-line);border-radius:16px;padding:1.15rem 1rem 1.3rem;min-height:7.5rem;max-height:46vh;overflow:auto;-webkit-overflow-scrolling:touch;direction:rtl;text-align:justify;text-align-last:center;font-family:"DigitalKhatt New Madina","Traditional Arabic",serif;font-size:1.85rem;line-height:2.35}
 .mushaf.empty{direction:ltr;text-align:left;font-family:system-ui,sans-serif;font-size:.92rem;line-height:1.45;color:var(--muted)}
+.basmala{display:block;text-align:center;text-align-last:center;margin:0 0 .85rem;font-size:1.15em;line-height:2}
 .w{border-radius:.35em;padding:0 .04em}
 .w.on{background:var(--mark)}
 .mushaf.tajweed .tj-madd{color:#15803d}
@@ -288,7 +289,7 @@ if ('serviceWorker' in navigator) {
 			if (reg.scope && /\/quran\/$/.test(reg.scope)) reg.unregister();
 		});
 	}).catch(function () {});
-	navigator.serviceWorker.register('<?php echo base_url('quran/sw.js'); ?>?v=13', { scope: quranSwScope, updateViaCache: 'none' }).then(function (reg) {
+	navigator.serviceWorker.register('<?php echo base_url('quran/sw.js'); ?>?v=14', { scope: quranSwScope, updateViaCache: 'none' }).then(function (reg) {
 		return navigator.serviceWorker.ready.then(function () {
 			var worker = reg.active || navigator.serviceWorker.controller;
 			if (!worker) return;
@@ -593,7 +594,7 @@ document.getElementById('install_quran').addEventListener('click', function () {
 		repeatBtn.classList.toggle('on', repeat !== 'off');
 		repeatBtn.textContent = repeat === 'ayah' ? 'Repeat ayah' : (repeat === 'all' ? 'Repeat all' : 'Repeat');
 		document.getElementById('btn_speed').textContent = 'Speed ' + speeds[speedAt] + '×';
-		document.getElementById('btn_play').textContent = audio.paused ? 'Play' : 'Pause';
+		document.getElementById('btn_play').textContent = (!audio.paused || audio.dataset.want === '1') ? 'Pause' : 'Play';
 		var transport = document.querySelector('.transport');
 		if (transport) transport.classList.toggle('solo', order.length < 2 && !(heard && heard.length));
 		var all = document.getElementById('btn_all');
@@ -819,13 +820,17 @@ document.getElementById('install_quran').addEventListener('click', function () {
 	seek.addEventListener('pointerdown', function () { seeking = true; });
 	seek.addEventListener('pointerup', function () { seeking = false; });
 	function knownLength() {
-		var d = audio.duration;
-		if (d && isFinite(d) && d > 0 && d < 36000) return d;
+		var marks = 0;
 		if (typeof heard !== 'undefined' && heard.length) {
 			var last = Number(heard[heard.length - 1].s) || 0;
-			if (last > 1) return last + 6;
+			if (last > 1) marks = last + 6;
 		}
-		return 0;
+		var d = audio.duration;
+		if (d && isFinite(d) && d > 0 && d < 36000) {
+			if (marks > d + 1) return marks;
+			return d;
+		}
+		return marks;
 	}
 	function showClock() {
 		var duration = knownLength();
@@ -870,6 +875,16 @@ document.getElementById('install_quran').addEventListener('click', function () {
 		paintButtons();
 	});
 	audio.addEventListener('ended', function () {
+		if (stoppedEarly()) {
+			var tries = Number(audio.dataset.retries) || 0;
+			if (tries < 1 && audio.dataset.feed) {
+				audio.dataset.retries = String(tries + 1);
+				audio.dataset.want = '1';
+				openStream(audio.dataset.feed, true, audio.currentTime || 0);
+				return;
+			}
+		}
+		audio.dataset.want = '0';
 		if (repeat === 'ayah') {
 			var back = visitAt((audio.duration || 1) - 0.05);
 			audio.currentTime = back ? back.start : 0;
@@ -908,7 +923,7 @@ document.getElementById('install_quran').addEventListener('click', function () {
 		if (hearGo) hearGo.addEventListener('click', function () { playClip(true); });
 		playClip(true);
 	} else {
-		audio.src = clips[0].audio;
+		openStream(clips[0].audio, false, 0);
 	}
 })();
 </script>
