@@ -101,7 +101,12 @@ h1{font-size:1.35rem;margin:0}
 .mushaf{background:var(--mushaf);color:var(--text);border:1px solid var(--mushaf-line);border-radius:16px;padding:1rem .9rem 1.15rem;min-height:7.5rem;max-height:68vh;overflow:auto;-webkit-overflow-scrolling:touch;direction:rtl;text-align:center;font-family:"DigitalKhatt New Madina","Traditional Arabic",serif;font-size:1.85rem;line-height:1.85}
 .mushaf.empty{direction:ltr;text-align:left;font-family:system-ui,sans-serif;font-size:.92rem;line-height:1.45;color:var(--muted)}
 .basmala{display:block;text-align:center;text-align-last:center;margin:.15rem 0 .25rem;font-size:1.12em;line-height:1.65}
-.surah-banner{display:block;text-align:center;margin:0 0 .4rem;padding:.28rem .7rem;border:1px solid var(--mushaf-line);border-radius:10px;font-size:.9em;line-height:1.6}
+.surah-banner{display:block;text-align:center;margin:0 0 .45rem;padding:.4rem .8rem .32rem;border:2px solid var(--mushaf-line);border-radius:12px;box-shadow:inset 0 0 0 4px var(--mushaf),inset 0 0 0 5px var(--mushaf-line);line-height:1.45}
+.surah-banner .surah-name{display:block;font-size:.9em}
+.surah-banner .surah-place{display:block;direction:ltr;font-family:system-ui,sans-serif;font-size:.72rem;color:var(--muted);margin-top:.12rem}
+.line{display:block;margin:0;line-height:2.15}
+.line.just{text-align:justify;text-align-last:justify}
+.line.center{text-align:center;text-align-last:center}
 .ayah{display:block;text-align:justify;text-align-last:center;margin:.2rem 0 .55rem;line-height:2.05}
 .ayah-end{display:inline-block;white-space:nowrap}
 .w{display:inline-block;border-radius:.4em;padding:.02em .08em;margin-inline:.06em;line-height:1.35;vertical-align:baseline}
@@ -302,7 +307,7 @@ if ('serviceWorker' in navigator) {
 			if (reg.scope && /\/quran\/$/.test(reg.scope)) reg.unregister();
 		});
 	}).catch(function () {});
-	navigator.serviceWorker.register('<?php echo base_url('quran/sw.js'); ?>?v=17', { scope: quranSwScope, updateViaCache: 'none' }).then(function (reg) {
+	navigator.serviceWorker.register('<?php echo base_url('quran/sw.js'); ?>?v=18', { scope: quranSwScope, updateViaCache: 'none' }).then(function (reg) {
 		return navigator.serviceWorker.ready.then(function () {
 			var worker = reg.active || navigator.serviceWorker.controller;
 			if (!worker) return;

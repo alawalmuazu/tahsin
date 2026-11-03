@@ -136,6 +136,7 @@ if (defined('TAHSIN_DESK') && TAHSIN_DESK !== '') {
 	$route['install'] = 'pwa/student_install';
 	$route['sw.js'] = 'pwa/worker';
 }
+$route['quran/mushaf/(:num)'] = 'quran/mushaf/$1';
 $route['quran/(:any)/manifest.webmanifest'] = 'quran/manifest/$1';
 $route['quran/(:any)/icon-(192|512).png'] = 'quran/icon/$1/$2';
 $route['quran/(:any)/notify'] = 'quran/notify/$1';

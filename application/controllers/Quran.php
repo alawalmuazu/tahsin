@@ -20,6 +20,24 @@ class Quran extends CI_Controller
         $this->output->set_header('Expires: ' . gmdate('D, d M Y H:i:s', time() + 300) . ' GMT');
     }
 
+    /**
+     * Digital Khatt word text and Madinah line breaks for one surah.
+     * The file is not served directly; .json is blocked at the web root.
+     */
+    public function mushaf($surah = 0)
+    {
+        $surah = (int) $surah;
+        $path = ($surah >= 1 && $surah <= 114) ? FCPATH . 'assets/quran/mushaf/' . $surah . '.json' : '';
+        if ($path === '' || !is_file($path)) {
+            show_404();
+            return;
+        }
+        $this->output
+            ->set_content_type('application/json', 'utf-8')
+            ->set_header('Cache-Control: public, max-age=86400')
+            ->set_output((string) file_get_contents($path));
+    }
+
     public function playlist($token = '', $hear = '')
     {
         $studentId = $this->academy_model_id($token);

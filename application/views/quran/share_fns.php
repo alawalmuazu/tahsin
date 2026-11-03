@@ -1,12 +1,49 @@
+	var mushafBase = '<?php echo site_url('quran/mushaf/'); ?>';
+	var JUZ = [[1, 1], [2, 142], [2, 253], [3, 93], [4, 24], [4, 148], [5, 82], [6, 111], [7, 88], [8, 41], [9, 93], [11, 6], [12, 53], [15, 1], [17, 1], [18, 75], [21, 1], [23, 1], [25, 21], [27, 56], [29, 46], [33, 31], [36, 28], [39, 32], [41, 47], [46, 1], [51, 31], [58, 1], [67, 1], [78, 1]];
+	function juzFor(surah, ayah) {
+		var n = 1;
+		var i;
+		for (i = 0; i < JUZ.length; i++) {
+			if (surah > JUZ[i][0] || (surah === JUZ[i][0] && ayah >= JUZ[i][1])) n = i + 1;
+		}
+		return n;
+	}
+	function finishPack(num, pack) {
+		window.__surahName = window.__surahName || {};
+		window.__surahName[num] = pack.n || '';
+		var rows = {};
+		var order = [];
+		(pack.w || []).forEach(function (item) {
+			if (!item[2]) return;
+			var ayah = item[1];
+			if (!rows[ayah]) {
+				rows[ayah] = [];
+				order.push(ayah);
+			}
+			rows[ayah].push(item[0]);
+		});
+		pack.ayahs = order.map(function (ayah) {
+			return { numberInSurah: ayah, text: rows[ayah].join(' ') };
+		});
+		return pack;
+	}
 	function fetchSurah(num) {
 		if (surahCache[num]) return surahCache[num];
-		surahCache[num] = fetch('https://api.alquran.cloud/v1/surah/' + num + '/quran-uthmani')
-			.then(function (res) { return res.json(); })
-			.then(function (data) {
-				if (!data || !data.data || !data.data.ayahs) throw new Error('text');
-				window.__surahName = window.__surahName || {};
-				window.__surahName[num] = data.data.name || '';
-				return data.data.ayahs;
+		surahCache[num] = fetch(mushafBase + num + '.json', { credentials: 'same-origin' })
+			.then(function (res) {
+				if (!res.ok) throw new Error('mushaf');
+				return res.json();
+			})
+			.then(function (pack) { return finishPack(num, pack); })
+			.catch(function () {
+				return fetch('https://api.alquran.cloud/v1/surah/' + num + '/quran-uthmani')
+					.then(function (res) { return res.json(); })
+					.then(function (data) {
+						if (!data || !data.data || !data.data.ayahs) throw new Error('text');
+						window.__surahName = window.__surahName || {};
+						window.__surahName[num] = data.data.name || '';
+						return { n: data.data.name || '', ayahs: data.data.ayahs };
+					});
 			});
 		return surahCache[num];
 	}
@@ -106,7 +143,7 @@
 			}
 			if (kind[i]) continue;
 			var open = marks.indexOf('\u064E') === -1 && marks.indexOf('\u064F') === -1 && marks.indexOf('\u0650') === -1 && marks.indexOf('\u0651') === -1 && marks.indexOf('\u0652') === -1;
-			if (base === '\u0622' || marks.indexOf('\u0653') !== -1) kind[i] = 'tj-madd';
+			if (base === '\u0622' || marks.indexOf('\u0653') !== -1 || marks.indexOf('\u0670') !== -1) kind[i] = 'tj-madd';
 			else if ((base === '\u0627' || base === '\u0671') && prevMarks.indexOf('\u064E') !== -1 && kind[i] !== 'tj-silent') kind[i] = 'tj-madd';
 			else if (base === '\u0648' && prevMarks.indexOf('\u064F') !== -1 && open) kind[i] = 'tj-madd';
 			else if ((base === '\u064A' || base === '\u0649') && prevMarks.indexOf('\u0650') !== -1 && open) kind[i] = 'tj-madd';
@@ -160,8 +197,9 @@
 			return;
 		}
 		mushaf.textContent = 'Loading the ayah…';
-		fetchSurah(clip.surah).then(function (ayahs) {
+		fetchSurah(clip.surah).then(function (pack) {
 			if (clips[currentIndex()] !== clip) return;
+			var ayahs = pack.ayahs || [];
 			var from = clip.from || 1;
 			var to = clip.to || from;
 			if (clip.marks && clip.marks.length) {
@@ -176,10 +214,6 @@
 				if (lo) from = lo;
 				if (hi) to = hi;
 			}
-			var slice = ayahs.filter(function (a) {
-				var n = Number(a.numberInSurah);
-				return n >= from && n <= to;
-			});
 			var tajweedOn = keepTajweed;
 			mushaf.innerHTML = '';
 			mushaf.className = tajweedOn ? 'mushaf tajweed' : 'mushaf';
@@ -209,43 +243,96 @@
 				line.appendChild(span);
 				words.push(span);
 			}
-			var surahNo = Number(clip.surah) || 0;
-			var startsAtOne = slice.some(function (a) { return Number(a.numberInSurah) === 1; });
-			if (startsAtOne && window.__surahName && window.__surahName[surahNo]) {
+			function paintBanner(page, ayahNo) {
 				var banner = document.createElement('span');
 				banner.className = 'surah-banner';
-				banner.textContent = window.__surahName[surahNo];
+				var name = document.createElement('span');
+				name.className = 'surah-name';
+				name.textContent = (window.__surahName && window.__surahName[surahNo]) || '';
+				var place = document.createElement('span');
+				place.className = 'surah-place';
+				place.id = 'mushaf_place';
+				var juz = juzFor(surahNo, ayahNo || from);
+				place.textContent = page ? ('Page ' + page + ' · Juz ' + juz) : ('Juz ' + juz);
+				if (name.textContent) banner.appendChild(name);
+				banner.appendChild(place);
 				mushaf.appendChild(banner);
 			}
-			slice.forEach(function (a) {
-				var ayahNo = Number(a.numberInSurah);
-				var bits = String(a.text || '').trim().split(/\s+/).filter(Boolean);
-				var opened = ayahNo === 1 && surahNo !== 1 && surahNo !== 9 ? basmalaParts(a.text) : null;
-				if (opened) {
-					var head = document.createElement('span');
-					head.className = 'basmala';
-					opened.head.forEach(function (word, wi) {
-						addWord(head, word, ayahNo, wi + 1, opened.head[wi + 1] || opened.rest[0] || '');
-					});
-					mushaf.appendChild(head);
-					bits = opened.rest;
-				}
-				var line = document.createElement('span');
-				line.className = ayahNo === 1 && surahNo === 1 ? 'ayah basmala' : 'ayah';
-				bits.forEach(function (word, wi) {
-					addWord(line, word, ayahNo, (opened ? 4 : 0) + wi + 1, bits[wi + 1] || '');
+			var surahNo = Number(clip.surah) || 0;
+			if (pack.l && pack.w) {
+				var opened = false;
+				pack.l.forEach(function (line) {
+					if (line[1] === 's') return;
+					var page = line[0];
+					var i0 = line[2];
+					var i1 = line[3];
+					var hit = false;
+					var i;
+					for (i = i0; i <= i1; i++) {
+						if (pack.w[i][2] && pack.w[i][1] >= from && pack.w[i][1] <= to) hit = true;
+					}
+					if (!hit) return;
+					if (!opened) {
+						paintBanner(page, from);
+						opened = true;
+					}
+					var row = document.createElement('span');
+					row.className = 'line' + (line[1] === 'j' ? ' just' : ' center') + (line[1] === 'b' ? ' basmala' : '');
+					for (i = i0; i <= i1; i++) {
+						var item = pack.w[i];
+						if (!item[2]) {
+							var num = document.createElement('span');
+							num.className = 'num';
+							num.textContent = item[0];
+							var tail = document.createElement('span');
+							tail.className = 'ayah-end';
+							var lastWord = row.lastElementChild;
+							if (lastWord) tail.appendChild(lastWord);
+							tail.appendChild(num);
+							row.appendChild(tail);
+							continue;
+						}
+						addWord(row, item[0], item[1], item[2], '');
+						row.lastElementChild.dataset.page = String(page);
+					}
+					mushaf.appendChild(row);
 				});
-				var num = document.createElement('span');
-				num.className = 'num';
-				num.textContent = ayahMark(ayahNo);
-				var tail = document.createElement('span');
-				tail.className = 'ayah-end';
-				var lastWord = line.lastElementChild;
-				if (lastWord) tail.appendChild(lastWord);
-				tail.appendChild(num);
-				line.appendChild(tail);
-				mushaf.appendChild(line);
-			});
+			} else {
+				var slice = ayahs.filter(function (a) {
+					var n = Number(a.numberInSurah);
+					return n >= from && n <= to;
+				});
+				if (slice.length) paintBanner(0, from);
+				slice.forEach(function (a) {
+					var ayahNo = Number(a.numberInSurah);
+					var bits = String(a.text || '').trim().split(/\s+/).filter(Boolean);
+					var openedLine = ayahNo === 1 && surahNo !== 1 && surahNo !== 9 ? basmalaParts(a.text) : null;
+					if (openedLine) {
+						var head = document.createElement('span');
+						head.className = 'basmala';
+						openedLine.head.forEach(function (word, wi) {
+							addWord(head, word, ayahNo, wi + 1, openedLine.head[wi + 1] || openedLine.rest[0] || '');
+						});
+						mushaf.appendChild(head);
+						bits = openedLine.rest;
+					}
+					var line = document.createElement('span');
+					line.className = ayahNo === 1 && surahNo === 1 ? 'ayah basmala' : 'ayah';
+					bits.forEach(function (word, wi) {
+						addWord(line, word, ayahNo, (openedLine ? 4 : 0) + wi + 1, bits[wi + 1] || '');
+					});
+					var num = document.createElement('span');
+					num.className = 'num';
+					num.textContent = ayahMark(ayahNo);
+					var tail = document.createElement('span');
+					tail.className = 'ayah-end';
+					var lastWord = line.lastElementChild;
+					if (lastWord) tail.appendChild(lastWord);
+					tail.appendChild(num);
+					line.appendChild(tail);
+					mushaf.appendChild(line);
+				});
+			}
 			var link;
 			for (link = 0; link < words.length - 1; link++) {
 				if (!words[link].dataset.next) words[link].dataset.next = words[link + 1].dataset.word || '';
@@ -512,6 +599,61 @@
 		for (i = 0; i < words.length; i++) {
 			heardAt[words[i].dataset.a + ':' + words[i].dataset.w] = i;
 		}
+		var exact = true;
+		for (i = 0; i < rows.length; i++) {
+			if (heardAt[rows[i].a + ':' + rows[i].w] == null) exact = false;
+		}
+		if (!exact) {
+			var ayahStart = {};
+			var ayahLast = {};
+			rows.forEach(function (m) {
+				var a = Number(m.a) || 0;
+				var s = Number(m.s);
+				if (!a || !(s >= 0)) return;
+				if (ayahStart[a] == null || s < ayahStart[a]) ayahStart[a] = s;
+				if (ayahLast[a] == null || s > ayahLast[a]) ayahLast[a] = s;
+			});
+			var order = [];
+			var grouped = {};
+			for (i = 0; i < words.length; i++) {
+				var ayahNo = Number(words[i].dataset.a) || 0;
+				if (!grouped[ayahNo]) {
+					grouped[ayahNo] = [];
+					order.push(ayahNo);
+				}
+				grouped[ayahNo].push(i);
+			}
+			rows = [];
+			order.forEach(function (a, pos) {
+				if (ayahStart[a] == null) return;
+				var start = ayahStart[a];
+				var end = pos + 1 < order.length && ayahStart[order[pos + 1]] != null
+					? ayahStart[order[pos + 1]]
+					: Math.max(ayahLast[a] || start, start) + 6;
+				if (end <= start) end = start + 0.4;
+				var indexes = grouped[a];
+				var weights = [];
+				var total = 0;
+				var n;
+				for (n = 0; n < indexes.length; n++) {
+					weights.push(arabicWeight(words[indexes[n]].dataset.word));
+					total += weights[n];
+				}
+				var walked = 0;
+				for (n = 0; n < indexes.length; n++) {
+					rows.push({
+						a: a,
+						w: Number(words[indexes[n]].dataset.w),
+						s: Math.round((start + (end - start) * (walked / (total || 1))) * 1000) / 1000
+					});
+					walked += weights[n];
+				}
+			});
+			heardAt = {};
+			for (i = 0; i < words.length; i++) {
+				heardAt[words[i].dataset.a + ':' + words[i].dataset.w] = i;
+			}
+		}
 		heard = rows;
 		var lo = 0;
 		var hi = 0;
@@ -560,6 +702,9 @@
 		if (words[index].scrollIntoView) words[index].scrollIntoView({ block: 'nearest', inline: 'nearest' });
 		var ayahNo = Number(words[index].dataset.a) || 0;
 		var surahNo = clips[currentIndex()] ? Number(clips[currentIndex()].surah) || 0 : 0;
+		var pageNo = Number(words[index].dataset.page) || 0;
+		var place = document.getElementById('mushaf_place');
+		if (place && pageNo && ayahNo) place.textContent = 'Page ' + pageNo + ' · Juz ' + juzFor(surahNo, ayahNo);
 		if (ayahNo && ayahNo !== shownAyah) {
 			shownAyah = ayahNo;
 			var ayahLine = document.getElementById('now_ayah');
@@ -978,7 +1123,7 @@
 		]).then(function (loaded) {
 			var logo = loaded[1];
 			var photo = loaded[2];
-			var ayah = loaded[3] || [];
+			var ayah = loaded[3] && loaded[3].ayahs ? loaded[3].ayahs : (loaded[3] || []);
 			var arabic = [];
 			var ayahOf = [];
 			var wanted = {};
