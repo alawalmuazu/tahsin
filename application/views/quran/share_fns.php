@@ -380,6 +380,7 @@
 			document.getElementById('now_title').textContent = title;
 		}
 		highlight(audio.currentTime || 0);
+		if (typeof showClock === 'function') showClock();
 		if (typeof paintButtons === 'function') paintButtons();
 	}
 
@@ -474,8 +475,16 @@
 			return;
 		}
 		if (audio.paused) {
+			if (audio.error && audio.getAttribute('src')) {
+				var again = audio.getAttribute('src');
+				audio.removeAttribute('src');
+				audio.load();
+				audio.src = again;
+			}
 			var started = audio.play();
-			if (started && started.catch) started.catch(function () {});
+			if (started && started.catch) started.catch(function () {
+				paintButtons();
+			});
 		} else {
 			audio.pause();
 		}

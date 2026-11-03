@@ -110,7 +110,7 @@ html[data-theme="dark"] .mushaf.tajweed .tj-ghunnah{color:#fbbf24}
 html[data-theme="dark"] .mushaf.tajweed .tj-qalqalah{color:#93c5fd}
 .mushaf.hide-words .w{opacity:0}
 .mushaf.hide-words .w.on{opacity:1}
-.meaning{margin:.35rem 0 .85rem;color:var(--muted);font-size:.92rem;line-height:1.45}
+.meaning{margin:.35rem 0 .85rem;color:var(--muted);font-size:.92rem;line-height:1.45;direction:ltr;text-align:left}
 .num{display:inline-flex;align-items:center;justify-content:center;min-width:1.35em;height:1.35em;margin:0 .15em;border:1px solid var(--num-line);border-radius:999px;font-family:system-ui,sans-serif;font-size:.72rem;line-height:1;color:var(--num);vertical-align:middle}
 .player{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:.9rem 1rem;margin:1rem 0 .75rem}
 .transport.solo #btn_shuffle,.transport.solo #btn_prev,.transport.solo #btn_next{display:none}
@@ -251,8 +251,8 @@ html.hear .hear-go.gone{display:none}
 		<button type="button" id="btn_full" class="share-full">Share the full recitation</button>
 		<p id="share_note" class="share-note">Share a short video for WhatsApp Status, or share the whole recitation.</p>
 	</div>
-	<div id="mushaf" class="mushaf empty">The ayahs appear here and light up as the recitation plays.</div>
-	<p id="ayah_meaning" class="meaning"></p>
+	<div id="mushaf" class="mushaf empty" translate="no">The ayahs appear here and light up as the recitation plays.</div>
+	<p id="ayah_meaning" class="meaning" dir="ltr"></p>
 	<div class="queue" id="queue"></div>
 	<audio id="qpl_audio" preload="metadata"></audio>
 	<canvas id="share_canvas" class="share-canvas" width="720" height="1280" aria-hidden="true"></canvas>
@@ -288,7 +288,7 @@ if ('serviceWorker' in navigator) {
 			if (reg.scope && /\/quran\/$/.test(reg.scope)) reg.unregister();
 		});
 	}).catch(function () {});
-	navigator.serviceWorker.register('<?php echo base_url('quran/sw.js'); ?>?v=11', { scope: quranSwScope, updateViaCache: 'none' }).then(function (reg) {
+	navigator.serviceWorker.register('<?php echo base_url('quran/sw.js'); ?>?v=12', { scope: quranSwScope, updateViaCache: 'none' }).then(function (reg) {
 		return navigator.serviceWorker.ready.then(function () {
 			var worker = reg.active || navigator.serviceWorker.controller;
 			if (!worker) return;
@@ -817,47 +817,42 @@ document.getElementById('install_quran').addEventListener('click', function () {
 	var seek = document.getElementById('seek');
 	seek.addEventListener('pointerdown', function () { seeking = true; });
 	seek.addEventListener('pointerup', function () { seeking = false; });
+	function knownLength() {
+		var d = audio.duration;
+		if (d && isFinite(d) && d > 0 && d < 36000) return d;
+		if (typeof heard !== 'undefined' && heard.length) {
+			var last = Number(heard[heard.length - 1].s) || 0;
+			if (last > 1) return last + 6;
+		}
+		return 0;
+	}
+	function showClock() {
+		var duration = knownLength();
+		var now = audio.currentTime;
+		if (!isFinite(now) || now < 0 || now > 36000) now = 0;
+		document.getElementById('time_now').textContent = clock(now);
+		if (duration) document.getElementById('time_end').textContent = clock(duration);
+		if (duration && !seeking) {
+			seek.value = String(Math.round((Math.min(now, duration) / duration) * 1000));
+		}
+	}
 	seek.addEventListener('input', function () {
-		var duration = audio.duration;
-		if (!duration || !isFinite(duration)) return;
+		var duration = knownLength();
+		if (!duration) return;
 		audio.currentTime = (Number(seek.value) / 1000) * duration;
 	});
-
-	function pinDuration() {
-		var d = audio.duration;
-		if (d && isFinite(d) && d > 0) {
-			document.getElementById('time_end').textContent = clock(d);
-			if (audio.dataset.pinned === 'seeking' && audio.paused) {
-				audio.dataset.pinned = 'done';
-				try { audio.currentTime = 0; } catch (e) {}
-			}
-			return;
-		}
-		if (audio.dataset.pinned) return;
-		if (audio.readyState < 1) return;
-		audio.dataset.pinned = 'seeking';
-		try { audio.currentTime = 1e101; } catch (e) { delete audio.dataset.pinned; }
-	}
-	audio.addEventListener('loadstart', function () { delete audio.dataset.pinned; });
-	audio.addEventListener('loadedmetadata', pinDuration);
-	audio.addEventListener('durationchange', pinDuration);
+	audio.addEventListener('loadedmetadata', showClock);
+	audio.addEventListener('durationchange', showClock);
 	audio.addEventListener('timeupdate', function () {
-		var duration = audio.duration;
-		if (duration && isFinite(duration) && !seeking) {
-			seek.value = String(Math.round((audio.currentTime / duration) * 1000));
-		}
-		document.getElementById('time_now').textContent = clock(audio.currentTime);
+		showClock();
 		if (repeat === 'ayah') {
 			var visit = visitAt(audio.currentTime);
-			var duration = audio.duration;
-			if (visit && isFinite(duration) && visit.end < duration - 0.25 && audio.currentTime >= visit.end - 0.08) {
+			var duration = knownLength();
+			if (visit && duration && visit.end < duration - 0.25 && audio.currentTime >= visit.end - 0.08) {
 				audio.currentTime = visit.start;
 			}
 		}
-		if (duration && isFinite(duration)) {
-			document.getElementById('time_end').textContent = clock(duration);
-		}
-		highlight(audio.currentTime);
+		highlight(isFinite(audio.currentTime) ? audio.currentTime : 0);
 	});
 	audio.addEventListener('playing', function () { skips = 0; });
 	audio.addEventListener('play', function () {
