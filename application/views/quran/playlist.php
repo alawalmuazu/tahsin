@@ -18,7 +18,7 @@ $clipsJson = json_encode($clips, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | J
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="<?php echo html_escape($install['short_name']); ?>">
 <link rel="apple-touch-icon" href="<?php echo site_url('quran/' . $token . '/icon-192.png'); ?>">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Scheherazade+New:wght@400;700&display=swap">
+<style>@font-face{font-family:"DigitalKhatt New Madina";src:url("<?php echo base_url('assets/fonts/madina.woff2'); ?>") format("woff2");font-weight:400;font-style:normal;font-display:swap}</style>
 <script>
 window.__quranInstall = null;
 window.__quranInstallWait = [];
@@ -98,7 +98,7 @@ h1{font-size:1.35rem;margin:0}
 .install{margin:1rem 0;padding:1rem;background:var(--card);border-radius:14px;border:1px solid var(--line)}
 .install button,.playall{background:#0f766e;color:#fff;border:0;border-radius:999px;padding:.7rem 1.1rem;font-weight:700;font-size:1rem}
 .install p{margin:.6rem 0 0;font-size:.82rem;color:var(--muted)}
-.mushaf{background:var(--mushaf);color:var(--text);border:1px solid var(--mushaf-line);border-radius:16px;padding:1.15rem 1rem 1.3rem;min-height:7.5rem;max-height:46vh;overflow:auto;-webkit-overflow-scrolling:touch;direction:rtl;text-align:center;font-family:"Scheherazade New","Traditional Arabic",serif;font-size:2.05rem;line-height:2.7}
+.mushaf{background:var(--mushaf);color:var(--text);border:1px solid var(--mushaf-line);border-radius:16px;padding:1.15rem 1rem 1.3rem;min-height:7.5rem;max-height:46vh;overflow:auto;-webkit-overflow-scrolling:touch;direction:rtl;text-align:justify;text-align-last:center;font-family:"DigitalKhatt New Madina","Traditional Arabic",serif;font-size:1.85rem;line-height:2.35}
 .mushaf.empty{direction:ltr;text-align:left;font-family:system-ui,sans-serif;font-size:.92rem;line-height:1.45;color:var(--muted)}
 .w{border-radius:.35em;padding:0 .04em}
 .w.on{background:var(--mark)}
@@ -111,7 +111,7 @@ html[data-theme="dark"] .mushaf.tajweed .tj-qalqalah{color:#93c5fd}
 .mushaf.hide-words .w{opacity:0}
 .mushaf.hide-words .w.on{opacity:1}
 .meaning{margin:.35rem 0 .85rem;color:var(--muted);font-size:.92rem;line-height:1.45;direction:ltr;text-align:left}
-.num{display:inline-flex;align-items:center;justify-content:center;min-width:1.35em;height:1.35em;margin:0 .15em;border:1px solid var(--num-line);border-radius:999px;font-family:system-ui,sans-serif;font-size:.72rem;line-height:1;color:var(--num);vertical-align:middle}
+.num{display:inline;margin:0 .08em;border:0;font-family:"DigitalKhatt New Madina","Traditional Arabic",serif;font-size:1em;line-height:1;color:inherit;vertical-align:baseline}
 .player{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:.9rem 1rem;margin:1rem 0 .75rem}
 .transport.solo #btn_shuffle,.transport.solo #btn_prev,.transport.solo #btn_next{display:none}
 .now-title{font-weight:700}
@@ -288,7 +288,7 @@ if ('serviceWorker' in navigator) {
 			if (reg.scope && /\/quran\/$/.test(reg.scope)) reg.unregister();
 		});
 	}).catch(function () {});
-	navigator.serviceWorker.register('<?php echo base_url('quran/sw.js'); ?>?v=12', { scope: quranSwScope, updateViaCache: 'none' }).then(function (reg) {
+	navigator.serviceWorker.register('<?php echo base_url('quran/sw.js'); ?>?v=13', { scope: quranSwScope, updateViaCache: 'none' }).then(function (reg) {
 		return navigator.serviceWorker.ready.then(function () {
 			var worker = reg.active || navigator.serviceWorker.controller;
 			if (!worker) return;
@@ -799,6 +799,7 @@ document.getElementById('install_quran').addEventListener('click', function () {
 		if (!box) return;
 		box.classList.toggle('tajweed');
 		this.classList.toggle('on', box.classList.contains('tajweed'));
+		box.querySelectorAll('.w').forEach(function (span) { paintWord(span); });
 	});
 	document.getElementById('btn_hide').addEventListener('click', function () {
 		var box = document.getElementById('mushaf');

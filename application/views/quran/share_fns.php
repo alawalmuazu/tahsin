@@ -9,6 +9,19 @@
 		return surahCache[num];
 	}
 
+	function ayahMark(n) {
+		return '\u06DD' + String(n).replace(/\d/g, function (d) {
+			return '٠١٢٣٤٥٦٧٨٩'.charAt(Number(d));
+		});
+	}
+
+	function paintWord(span) {
+		var word = span.dataset.word || '';
+		span.textContent = '';
+		if (mushaf.classList.contains('tajweed')) colorWord(span, word);
+		else span.textContent = word + ' ';
+	}
+
 	function colorWord(span, word) {
 		var chars = Array.from(word);
 		var i;
@@ -95,13 +108,14 @@
 					span.className = 'w';
 					span.dataset.a = String(a.numberInSurah);
 					span.dataset.w = String(wi + 1);
-					colorWord(span, word);
+					span.dataset.word = word;
+					paintWord(span);
 					line.appendChild(span);
 					words.push(span);
 				});
 				var num = document.createElement('span');
 				num.className = 'num';
-				num.textContent = a.numberInSurah;
+				num.textContent = ayahMark(a.numberInSurah);
 				line.appendChild(num);
 				mushaf.appendChild(line);
 			});
@@ -669,7 +683,7 @@
 		if (!ayahs.length || ayahs.length > 40) ayahs = [];
 		var textPromise = clip.surah ? fetchSurah(clip.surah).catch(function () { return []; }) : Promise.resolve([]);
 		return Promise.all([
-			document.fonts && document.fonts.load ? document.fonts.load('700 64px "Scheherazade New"') : Promise.resolve(),
+			document.fonts && document.fonts.load ? document.fonts.load('64px "DigitalKhatt New Madina"') : Promise.resolve(),
 			loadShareImage(window.__quranLogo),
 			loadShareImage(photoUrl),
 			textPromise
@@ -805,7 +819,7 @@
 					var size = pack.arabic.length > 40 ? 30 : (pack.arabic.length > 16 ? 40 : 54);
 					ctx.save();
 					ctx.direction = 'ltr';
-					ctx.font = '700 ' + size + 'px "Scheherazade New", serif';
+					ctx.font = size + 'px "DigitalKhatt New Madina", serif';
 					ctx.textAlign = 'left';
 					ctx.textBaseline = 'alphabetic';
 					var probe = ctx.measureText(pack.arabic[0] || 'بِسْمِ');
@@ -877,7 +891,7 @@
 								ctx.direction = 'ltr';
 								ctx.textAlign = 'left';
 								ctx.textBaseline = 'alphabetic';
-								ctx.font = '700 ' + size + 'px "Scheherazade New", serif';
+								ctx.font = size + 'px "DigitalKhatt New Madina", serif';
 								ctx.fillText(word.text, wordLeft, drawY);
 								cursor = wordLeft - gap;
 							}
