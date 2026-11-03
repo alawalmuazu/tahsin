@@ -98,12 +98,12 @@ h1{font-size:1.35rem;margin:0}
 .install{margin:1rem 0;padding:1rem;background:var(--card);border-radius:14px;border:1px solid var(--line)}
 .install button,.playall{background:#0f766e;color:#fff;border:0;border-radius:999px;padding:.7rem 1.1rem;font-weight:700;font-size:1rem}
 .install p{margin:.6rem 0 0;font-size:.82rem;color:var(--muted)}
-.mushaf{background:var(--mushaf);color:var(--text);border:1px solid var(--mushaf-line);border-radius:16px;padding:1.15rem 1rem 1.3rem;min-height:7.5rem;max-height:46vh;overflow:auto;-webkit-overflow-scrolling:touch;direction:rtl;text-align:justify;text-align-last:center;font-family:"DigitalKhatt New Madina","Traditional Arabic",serif;font-size:1.85rem;line-height:2.35}
+.mushaf{background:var(--mushaf);color:var(--text);border:1px solid var(--mushaf-line);border-radius:16px;padding:1rem .9rem 1.1rem;min-height:7.5rem;max-height:46vh;overflow:auto;-webkit-overflow-scrolling:touch;direction:rtl;text-align:center;font-family:"DigitalKhatt New Madina","Traditional Arabic",serif;font-size:1.85rem;line-height:1.7}
 .mushaf.empty{direction:ltr;text-align:left;font-family:system-ui,sans-serif;font-size:.92rem;line-height:1.45;color:var(--muted)}
-.basmala{display:block;text-align:center;text-align-last:center;margin:0 0 .85rem;font-size:1.15em;line-height:2}
-.surah-banner{display:block;text-align:center;margin:0 0 .85rem;padding:.4rem .75rem;border:1px solid var(--mushaf-line);border-radius:10px;font-size:.92em;line-height:1.8}
-.ayah{display:block;text-align:center;margin:.1rem 0 .7rem}
-.w{border-radius:.35em;padding:0 .04em}
+.basmala{display:block;text-align:center;text-align-last:center;margin:.15rem 0 .25rem;font-size:1.12em;line-height:1.65}
+.surah-banner{display:block;text-align:center;margin:0 0 .4rem;padding:.28rem .7rem;border:1px solid var(--mushaf-line);border-radius:10px;font-size:.9em;line-height:1.6}
+.ayah{display:block;text-align:center;margin:0 0 .28rem;line-height:1.85}
+.w{display:inline-block;border-radius:.4em;padding:.02em .12em;line-height:1.35;vertical-align:baseline}
 .w.on{background:var(--mark)}
 .mushaf.tajweed .tj-madd{color:#1d4ed8}
 .mushaf.tajweed .tj-ghunnah{color:#dc2626}
@@ -301,7 +301,7 @@ if ('serviceWorker' in navigator) {
 			if (reg.scope && /\/quran\/$/.test(reg.scope)) reg.unregister();
 		});
 	}).catch(function () {});
-	navigator.serviceWorker.register('<?php echo base_url('quran/sw.js'); ?>?v=15', { scope: quranSwScope, updateViaCache: 'none' }).then(function (reg) {
+	navigator.serviceWorker.register('<?php echo base_url('quran/sw.js'); ?>?v=16', { scope: quranSwScope, updateViaCache: 'none' }).then(function (reg) {
 		return navigator.serviceWorker.ready.then(function () {
 			var worker = reg.active || navigator.serviceWorker.controller;
 			if (!worker) return;
