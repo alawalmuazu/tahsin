@@ -98,12 +98,13 @@ h1{font-size:1.35rem;margin:0}
 .install{margin:1rem 0;padding:1rem;background:var(--card);border-radius:14px;border:1px solid var(--line)}
 .install button,.playall{background:#0f766e;color:#fff;border:0;border-radius:999px;padding:.7rem 1.1rem;font-weight:700;font-size:1rem}
 .install p{margin:.6rem 0 0;font-size:.82rem;color:var(--muted)}
-.mushaf{background:var(--mushaf);color:var(--text);border:1px solid var(--mushaf-line);border-radius:16px;padding:1.15rem 1rem 1.3rem;min-height:7.5rem;direction:rtl;text-align:center;font-family:"Scheherazade New","Traditional Arabic",serif;font-size:2.05rem;line-height:2.7}
+.mushaf{background:var(--mushaf);color:var(--text);border:1px solid var(--mushaf-line);border-radius:16px;padding:1.15rem 1rem 1.3rem;min-height:7.5rem;max-height:46vh;overflow:auto;-webkit-overflow-scrolling:touch;direction:rtl;text-align:center;font-family:"Scheherazade New","Traditional Arabic",serif;font-size:2.05rem;line-height:2.7}
 .mushaf.empty{direction:ltr;text-align:left;font-family:system-ui,sans-serif;font-size:.92rem;line-height:1.45;color:var(--muted)}
 .w{border-radius:.35em;padding:0 .04em}
 .w.on{background:var(--mark)}
 .num{display:inline-flex;align-items:center;justify-content:center;min-width:1.35em;height:1.35em;margin:0 .15em;border:1px solid var(--num-line);border-radius:999px;font-family:system-ui,sans-serif;font-size:.72rem;line-height:1;color:var(--num);vertical-align:middle}
-.player{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:.9rem 1rem;margin:.75rem 0}
+.player{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:.9rem 1rem;margin:1rem 0 .75rem}
+.transport.solo #btn_shuffle,.transport.solo #btn_prev,.transport.solo #btn_next{display:none}
 .now-title{font-weight:700}
 .meta{color:var(--muted);font-size:.82rem;margin:.2rem 0 .55rem}
 .seek{width:100%;accent-color:#0f766e}
@@ -214,27 +215,14 @@ html.hear .hear-go.gone{display:none}
 		</div>
 		<button type="button" id="theme_toggle" class="theme">Dark</button>
 	</div>
-	<?php if (!empty($vapid_public)): ?>
-	<div class="install notify" id="notify_box">
-		<button type="button" id="notify_on">Turn On Notification</button>
-		<p id="notify_note">When an admin acknowledges a session that includes this child, this phone shows a notification. Tap the notification to hear the recording.</p>
-	</div>
-	<button type="button" id="notify_off" class="notify-off">Turn off notification</button>
-	<?php endif; ?>
-	<div class="install">
-		<button type="button" id="install_quran">Install <?php echo html_escape($install['name']); ?></button>
-		<p id="install_note">Tap Install Quran, then confirm the question Chrome shows. The icon is this student's photo.</p>
-		<p>One child installs as <strong>Quran</strong>. Each other child in the same family installs as <strong>Quran</strong> plus that child's first name<?php if ($install['name'] !== 'Quran'): ?>, so this one is <strong><?php echo html_escape($install['name']); ?></strong><?php endif; ?>.</p>
-	</div>
 	<?php if (empty($clips)): ?>
 		<p>No sealed recitation is on this playlist yet.</p>
 	<?php else: ?>
 	<div id="ayah_row" class="ayah-row" hidden></div>
 	<button type="button" id="hear_go" class="hear-go">Hear this recitation</button>
-	<div id="mushaf" class="mushaf empty">Choose a recording. Its ayahs appear here and light up as it plays.</div>
 	<div class="player">
 		<div class="now-title" id="now_title"><?php echo html_escape($clips[0]['portion']); ?></div>
-		<div class="meta" id="now_meta"><?php echo html_escape($clips[0]['date'] . ' · ' . $clips[0]['time'] . ' · Contact us 08021211053'); ?></div>
+		<div class="meta" id="now_meta"><?php echo html_escape($clips[0]['date'] . ' · ' . $clips[0]['time']); ?></div>
 		<input id="seek" class="seek" type="range" min="0" max="1000" value="0" aria-label="Position in this recording">
 		<div class="times"><span id="time_now">0:00</span><span id="time_end">0:00</span></div>
 		<div class="transport">
@@ -246,10 +234,11 @@ html.hear .hear-go.gone{display:none}
 			<button type="button" id="btn_speed">Speed 1×</button>
 		</div>
 		<button type="button" id="btn_all" class="playall">Play all</button>
-		<button type="button" id="btn_share" class="share-rec">Status 0%</button>
-		<button type="button" id="btn_full" class="share-full">Full video</button>
-		<p id="share_note" class="share-note">Share for Status is a short video. Share full keeps the whole recitation.</p>
+		<button type="button" id="btn_share" class="share-rec">Share a short video</button>
+		<button type="button" id="btn_full" class="share-full">Share the full recitation</button>
+		<p id="share_note" class="share-note">Share a short video for WhatsApp Status, or share the whole recitation.</p>
 	</div>
+	<div id="mushaf" class="mushaf empty">The ayahs appear here and light up as the recitation plays.</div>
 	<div class="queue" id="queue"></div>
 	<audio id="qpl_audio" preload="metadata"></audio>
 	<canvas id="share_canvas" class="share-canvas" width="720" height="1280" aria-hidden="true"></canvas>
@@ -264,6 +253,18 @@ html.hear .hear-go.gone{display:none}
 	</div>
 	<script type="application/json" id="qpl_data"><?php echo $clipsJson; ?></script>
 	<?php endif; ?>
+	<?php if (!empty($vapid_public)): ?>
+	<div class="install notify" id="notify_box">
+		<button type="button" id="notify_on">Turn On Notification</button>
+		<p id="notify_note">When an admin acknowledges a session that includes this child, this phone shows a notification. Tap the notification to hear the recording.</p>
+	</div>
+	<button type="button" id="notify_off" class="notify-off">Turn off notification</button>
+	<?php endif; ?>
+	<div class="install">
+		<button type="button" id="install_quran">Install <?php echo html_escape($install['name']); ?></button>
+		<p id="install_note">Tap Install Quran, then confirm the question Chrome shows. The icon is this student's photo.</p>
+		<p>One child installs as <strong>Quran</strong>. Each other child in the same family installs as <strong>Quran</strong> plus that child's first name<?php if ($install['name'] !== 'Quran'): ?>, so this one is <strong><?php echo html_escape($install['name']); ?></strong><?php endif; ?>.</p>
+	</div>
 </div>
 <script>
 if ('serviceWorker' in navigator) {
@@ -273,7 +274,7 @@ if ('serviceWorker' in navigator) {
 			if (reg.scope && /\/quran\/$/.test(reg.scope)) reg.unregister();
 		});
 	}).catch(function () {});
-	navigator.serviceWorker.register('<?php echo base_url('quran/sw.js'); ?>?v=7', { scope: quranSwScope, updateViaCache: 'none' }).then(function (reg) {
+	navigator.serviceWorker.register('<?php echo base_url('quran/sw.js'); ?>?v=8', { scope: quranSwScope, updateViaCache: 'none' }).then(function (reg) {
 		return navigator.serviceWorker.ready.then(function () {
 			var worker = reg.active || navigator.serviceWorker.controller;
 			if (!worker) return;
@@ -562,7 +563,7 @@ document.getElementById('install_quran').addEventListener('click', function () {
 			btn.className = 'clip' + (place === pos ? ' on' : '');
 			btn.innerHTML = '<strong></strong><div class="meta"></div>';
 			btn.querySelector('strong').textContent = clip.portion;
-			btn.querySelector('.meta').textContent = clip.date + ' · ' + clip.time + ' · Contact us 08021211053';
+			btn.querySelector('.meta').textContent = clip.date + ' · ' + clip.time;
 			btn.addEventListener('click', function () {
 				pos = place;
 				playClip(true);
@@ -579,38 +580,40 @@ document.getElementById('install_quran').addEventListener('click', function () {
 		repeatBtn.textContent = repeat === 'one' ? 'Repeat 1' : (repeat === 'all' ? 'Repeat all' : 'Repeat');
 		document.getElementById('btn_speed').textContent = 'Speed ' + speeds[speedAt] + '×';
 		document.getElementById('btn_play').textContent = audio.paused ? 'Play' : 'Pause';
+		var transport = document.querySelector('.transport');
+		if (transport) transport.classList.toggle('solo', order.length < 2);
+		var all = document.getElementById('btn_all');
+		if (all) all.hidden = order.length < 2;
+		var queue = document.getElementById('queue');
+		if (queue) queue.hidden = order.length < 2;
 	}
 
 	var pendingShareFile = null;
 	var shareKey = '';
 	function showMeta(clip) {
 		document.getElementById('now_title').textContent = clip.portion;
-		document.getElementById('now_meta').textContent = (pos + 1) + ' of ' + order.length + ' · ' + clip.date + ' · ' + clip.time + ' · Contact us 08021211053';
+		var place = order.length > 1 ? ((pos + 1) + ' of ' + order.length + ' · ') : '';
+		document.getElementById('now_meta').textContent = place + clip.date + ' · ' + clip.time;
 		paintAyahRow(clip);
-		if (shareKey !== clip.audio) startShareJobs(clip);
+		if (shareKey !== clip.audio) {
+			shareToken++;
+			shareKey = clip.audio;
+			shareReady.status = null;
+			shareReady.full = null;
+			shareBusy.status = false;
+			shareBusy.full = false;
+			setShareButton('btn_share', 'Share a short video');
+			setShareButton('btn_full', 'Share the full recitation');
+			var note = document.getElementById('share_note');
+			if (note) note.textContent = 'Share a short video for WhatsApp Status, or share the whole recitation.';
+		}
 	}
 
-	function paintAyahRow(clip) {
+	function paintAyahRow() {
 		var row = document.getElementById('ayah_row');
-		if (!row || !clip) return;
-		var from = Number(clip.from) || 0;
-		var to = Number(clip.to) || from;
+		if (!row) return;
+		row.hidden = true;
 		row.innerHTML = '';
-		if (!from || to < from) {
-			row.hidden = true;
-			return;
-		}
-		if (to - from > 40) to = from + 40;
-		row.hidden = false;
-		var n;
-		for (n = from; n <= to; n++) {
-			var cell = document.createElement('button');
-			cell.type = 'button';
-			cell.textContent = String(n);
-			cell.addEventListener('click', function () { playClip(true); });
-			row.appendChild(cell);
-		}
-		lightAyah(!audio.paused);
 	}
 
 	function lightAyah(on) {
@@ -624,6 +627,7 @@ document.getElementById('install_quran').addEventListener('click', function () {
 	<?php $this->load->view('quran/share_fns'); ?>
 	var shareToken = 0;
 	var shareReady = { status: null, full: null };
+	var shareBusy = { status: false, full: false };
 	function shareBaseName(clip, mode) {
 		var who = (window.__quranStudent || 'Student').trim();
 		var base = (who + ' - ' + (clip.portion || 'Recitation')).replace(/[\\/:*?"<>|]+/g, ' ').replace(/\s+/g, ' ').trim();
@@ -661,47 +665,28 @@ document.getElementById('install_quran').addEventListener('click', function () {
 	}
 	function runShareJob(clip, mode, token) {
 		var btnId = mode === 'full' ? 'btn_full' : 'btn_share';
-		var label = mode === 'full' ? 'Full' : 'Status';
-		setShareButton(btnId, label + ' 0%');
+		var doneLabel = mode === 'full' ? 'Share the full recitation' : 'Share a short video';
+		setShareButton(btnId, 'Making 0%');
 		return recordShareVideo(clip, mode, function (frac) {
 			if (token !== shareToken) return;
 			var pct = Math.max(1, Math.min(99, Math.round((frac || 0) * 100)));
-			setShareButton(btnId, label + ' ' + pct + '%');
+			setShareButton(btnId, 'Making ' + pct + '%');
 		}, function () { return token === shareToken; }).then(function (blob) {
 			if (token !== shareToken) return;
 			shareReady[mode] = new File([blob], shareBaseName(clip, mode), { type: 'video/mp4' });
-			setShareButton(btnId, mode === 'full' ? 'Share full' : 'Share for Status');
+			setShareButton(btnId, doneLabel);
 		}).catch(function (err) {
 			if (token !== shareToken) return;
 			if (err && err.message === 'cancel') return;
 			shareReady[mode] = false;
-			setShareButton(btnId, mode === 'full' ? 'Share full' : 'Share for Status');
+			setShareButton(btnId, doneLabel);
 			var note = document.getElementById('share_note');
 			if (note) note.textContent = 'The video could not be made. Open this recitation again.';
 		});
 	}
-	function startShareJobs(clip) {
-		if (!clip || !clip.audio) return;
-		shareToken++;
-		var token = shareToken;
-		shareKey = clip.audio;
-		shareReady.status = null;
-		shareReady.full = null;
-		var note = document.getElementById('share_note');
-		if (!shareMime()) {
-			setShareButton('btn_share', 'Share for Status');
-			setShareButton('btn_full', 'Share full');
-			if (note) note.textContent = 'This phone cannot make an MP4 video.';
-			return;
-		}
-		if (note) note.textContent = 'Share for Status is a short video. Share full keeps the whole recitation.';
-		runShareJob(clip, 'status', token).then(function () {
-			if (token !== shareToken) return;
-			return runShareJob(clip, 'full', token);
-		});
-	}
 	function shareReadyFile(mode) {
 		var clip = clips[currentIndex()];
+		if (!clip) return;
 		if (audioCtx && audioCtx.resume) audioCtx.resume();
 		var file = shareReady[mode];
 		var note = document.getElementById('share_note');
@@ -709,9 +694,24 @@ document.getElementById('install_quran').addEventListener('click', function () {
 			openShareFile(file, clip);
 			return;
 		}
-		if (note) note.textContent = mode === 'full'
-			? 'The full video is still being made. It starts after the Status video.'
-			: 'The Status video is being made. This button opens your apps when it reaches Share for Status.';
+		if (shareBusy[mode]) {
+			if (note) note.textContent = 'The video is still being made.';
+			return;
+		}
+		if (!shareMime()) {
+			if (note) note.textContent = 'This phone cannot make an MP4 video.';
+			return;
+		}
+		shareBusy[mode] = true;
+		shareToken++;
+		var token = shareToken;
+		if (note) note.textContent = 'Making the video. Your apps open when it is ready.';
+		runShareJob(clip, mode, token).then(function () {
+			shareBusy[mode] = false;
+			if (token !== shareToken) return;
+			var ready = shareReady[mode];
+			if (ready && typeof ready !== 'boolean') openShareFile(ready, clip);
+		});
 	}
 	document.getElementById('btn_share').addEventListener('click', function () { shareReadyFile('status'); });
 	document.getElementById('btn_full').addEventListener('click', function () { shareReadyFile('full'); });
@@ -757,11 +757,24 @@ document.getElementById('install_quran').addEventListener('click', function () {
 		audio.currentTime = (Number(seek.value) / 1000) * duration;
 	});
 
-	audio.addEventListener('loadedmetadata', function () {
-		if (audio.duration && isFinite(audio.duration)) {
-			document.getElementById('time_end').textContent = clock(audio.duration);
+	function pinDuration() {
+		var d = audio.duration;
+		if (d && isFinite(d) && d > 0) {
+			document.getElementById('time_end').textContent = clock(d);
+			if (audio.dataset.pinned === 'seeking' && audio.paused) {
+				audio.dataset.pinned = 'done';
+				try { audio.currentTime = 0; } catch (e) {}
+			}
+			return;
 		}
-	});
+		if (audio.dataset.pinned) return;
+		if (audio.readyState < 1) return;
+		audio.dataset.pinned = 'seeking';
+		try { audio.currentTime = 1e101; } catch (e) { delete audio.dataset.pinned; }
+	}
+	audio.addEventListener('loadstart', function () { delete audio.dataset.pinned; });
+	audio.addEventListener('loadedmetadata', pinDuration);
+	audio.addEventListener('durationchange', pinDuration);
 	audio.addEventListener('timeupdate', function () {
 		var duration = audio.duration;
 		if (duration && isFinite(duration) && !seeking) {

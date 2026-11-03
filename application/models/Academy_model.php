@@ -2492,11 +2492,11 @@ class Academy_model extends MY_Model
             'school_name' => $this->quranSchoolName(),
             'school_logo' => base_url('uploads/app_image/logo.png'),
         );
-        $student = $this->db->select('id, first_name, last_name, parent_id, photo')->where('id', (int) $studentId)->get('student')->row();
+        $student = $this->db->select('id, first_name, other_name, last_name, parent_id, photo')->where('id', (int) $studentId)->get('student')->row();
         if (!$student) {
             return $empty;
         }
-        $full = trim($student->first_name . ' ' . $student->last_name);
+        $full = trim(preg_replace('/\s+/', ' ', trim((string) $student->first_name) . ' ' . trim((string) $student->other_name) . ' ' . trim((string) $student->last_name)));
         $empty['student_name'] = $full !== '' ? $full : 'Student';
         $empty['photo'] = get_image_url('student', $student->photo);
         $first = trim((string) $student->first_name);
