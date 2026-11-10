@@ -515,7 +515,11 @@ class Whatsapp_cloud
             $type => $mediaObj,
         );
         $result = $this->postMessages($payload);
-        if (!empty($result['ok']) || $caption === '' || empty($mediaObj['caption'])) {
+        if (!empty($result['ok'])) {
+            $result['together'] = !empty($mediaObj['caption']);
+            return $result;
+        }
+        if ($caption === '' || empty($mediaObj['caption'])) {
             return $result;
         }
 
@@ -525,6 +529,7 @@ class Whatsapp_cloud
         if (empty($fileResult['ok'])) {
             return $fileResult;
         }
+        $fileResult['together'] = false;
         $textResult = $this->sendText($to, $caption);
         if (empty($textResult['ok'])) {
             $fileResult['error'] = 'The file was sent. The message was not: ' . (isset($textResult['error']) ? $textResult['error'] : 'WhatsApp rejected the text.');
