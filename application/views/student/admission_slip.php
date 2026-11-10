@@ -248,7 +248,7 @@ $na = function ($v) {
 			<h4 style="margin:0;color:#0f5c4c;font-weight:700;font-size:17px;"><i class="fab fa-whatsapp" style="color:#25D366;margin-right:6px;"></i> Send Slip / Receipt to Parent</h4>
 			<button type="button" id="slipShareCloseTop" style="border:none;background:transparent;font-size:24px;line-height:1;color:#888;cursor:pointer;">&times;</button>
 		</div>
-		<p style="margin:0 0 12px;color:#555;font-size:13px;">Send admission slip details directly to the parent's WhatsApp number. You can also download or send the official PDF or Image slip directly into WhatsApp chat.</p>
+		<p style="margin:0 0 12px;color:#555;font-size:13px;">One send puts the PDF and the message in the same WhatsApp chat. The words travel with the file, not as a separate text.</p>
 
 		<div style="background:#f4f7f5;border:1px solid #d2ded7;border-radius:4px;padding:10px 12px;margin-bottom:14px;font-size:13px;">
 			<div style="font-weight:600;color:#0f5c4c;margin-bottom:5px;">Parent / Guardian WhatsApp Number:</div>
@@ -258,8 +258,8 @@ $na = function ($v) {
 		</div>
 
 		<div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:10px;">
-			<a id="slipShareDirectWa" href="#" target="_blank" rel="noopener" style="background:#25D366;color:#fff;border-radius:4px;font-weight:700;padding:8px 14px;text-decoration:none;display:inline-flex;align-items:center;gap:6px;font-size:13px;">
-				<i class="fab fa-whatsapp" style="font-size:16px;"></i> Send on WhatsApp
+			<a id="slipShareDirectWa" href="#" style="background:#25D366;color:#fff;border-radius:4px;font-weight:700;padding:8px 14px;text-decoration:none;display:inline-flex;align-items:center;gap:6px;font-size:13px;">
+				<i class="fab fa-whatsapp" style="font-size:16px;"></i> Send PDF and message
 			</a>
 			<button type="button" id="slipSharePdf" style="background:#c9a227;color:#1a1a1a;border:none;border-radius:4px;font-weight:700;padding:8px 14px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;font-size:13px;"><i class="fas fa-file-pdf"></i> PDF Slip</button>
 			<button type="button" id="slipShareImage" style="background:#c9a227;color:#1a1a1a;border:none;border-radius:4px;font-weight:700;padding:8px 14px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;font-size:13px;"><i class="fas fa-image"></i> Image Slip</button>
@@ -309,10 +309,6 @@ $(function () {
 		}, 500);
 	}
 
-	function slipShareBuildWaLink(phone, message) {
-		return 'https://api.whatsapp.com/send?phone=' + encodeURIComponent(phone) + '&text=' + encodeURIComponent(message || '');
-	}
-
 	function slipShareSelectPhone(phone) {
 		slipShareSelectedPhone = phone;
 		$('#slipSharePhoneWrap .fee-phone-btn').each(function () {
@@ -323,15 +319,31 @@ $(function () {
 				$b.css({ background: '#fff', color: '#0f5c4c' });
 			}
 		});
-		if (slipShareCurrentData) {
-			var wa = slipShareBuildWaLink(phone, slipShareCurrentData.message);
-			$('#slipShareDirectWa').attr('href', wa).attr('target', '_blank');
-			if (phone) {
-				$('#slipShareDirectWa').css('opacity', '1').css('pointer-events', 'auto').html('<i class="fab fa-whatsapp" style="font-size:16px;"></i> Send on WhatsApp (+' + phone + ')');
-			} else {
-				$('#slipShareDirectWa').css('opacity', '0.6').css('pointer-events', 'none').html('<i class="fab fa-whatsapp" style="font-size:16px;"></i> Send on WhatsApp');
-			}
+		if (phone) {
+			$('#slipShareDirectWa').css('opacity', '1').css('pointer-events', 'auto').html('<i class="fab fa-whatsapp" style="font-size:16px;"></i> Send PDF and message (+' + phone + ')');
+		} else {
+			$('#slipShareDirectWa').css('opacity', '0.6').css('pointer-events', 'none').html('<i class="fab fa-whatsapp" style="font-size:16px;"></i> Send PDF and message');
 		}
+	}
+
+	function slipShareAttach(data) {
+		if (!data || !data.file) {
+			return false;
+		}
+		var file = new File([slipShareBytes(data.file)], data.filename, { type: data.mime || 'application/pdf' });
+		if (!(navigator.canShare && navigator.canShare({ files: [file] }))) {
+			return false;
+		}
+		var phone = slipShareSelectedPhone || data.phone || '';
+		$('#slipShareStatus').text('Choose WhatsApp in the share window' + (phone ? ' for +' + phone : '') + '. The PDF and the message go together.');
+		navigator.share({ files: [file], text: data.message || '', title: 'Admission slip' }).then(function () {
+			$('#slipShareStatus').text('If the words are missing under the PDF, paste the message below.');
+		}).catch(function (err) {
+			if (err && err.name === 'AbortError') {
+				$('#slipShareStatus').text('Share cancelled. The message is below if you still want to send it.');
+			}
+		});
+		return true;
 	}
 
 	function slipShareAsk() {
@@ -341,7 +353,7 @@ $(function () {
 		$('#slipShareMessageWrap').hide();
 		$('#slipShareMessage').text('');
 		$('#slipSharePhoneWrap').html('<span id="slipSharePhoneDisplay" style="font-family:monospace;font-size:14px;font-weight:700;color:#1a1a1a;">Loading…</span>');
-		$('#slipShareDirectWa').attr('href', '#').css('opacity', '0.6').css('pointer-events', 'none').html('<i class="fab fa-whatsapp" style="font-size:16px;"></i> Send on WhatsApp');
+		$('#slipShareDirectWa').css('opacity', '0.6').css('pointer-events', 'none').html('<i class="fab fa-whatsapp" style="font-size:16px;"></i> Send PDF and message');
 		$('#slipSharePdf, #slipShareImage').prop('disabled', true);
 		$('#slipShareModal').css('display', 'flex');
 
@@ -388,7 +400,7 @@ $(function () {
 					slipShareSelectPhone(phones[0]);
 				} else {
 					$wrap.html('<span style="color:#a94442;font-size:12.5px;">No parent phone number recorded for this student.</span>');
-					$('#slipShareDirectWa').css('opacity', '0.6').css('pointer-events', 'none');
+					$('#slipShareDirectWa').css('opacity', '0.6').css('pointer-events', 'none').html('<i class="fab fa-whatsapp" style="font-size:16px;"></i> Send PDF and message');
 				}
 
 				if (data.message) {
@@ -404,13 +416,20 @@ $(function () {
 
 	function slipShareSend(format) {
 		var $status = $('#slipShareStatus');
-		$status.text('Generating ' + format.toUpperCase() + ' slip…');
+		var phone = slipShareSelectedPhone || '';
+		var label = format === 'image' ? 'image' : 'PDF';
+		if (!phone) {
+			$status.text('Choose a parent number first.');
+			return;
+		}
+		$status.text('Sending the ' + label + ' and the message together to +' + phone + '…');
+		$('#slipShareDirectWa').css('pointer-events', 'none');
 		$('#slipSharePdf, #slipShareImage').prop('disabled', true);
 
 		var payload = {
 			enroll_id: enrollID,
 			format: format,
-			phone: slipShareSelectedPhone,
+			phone: phone,
 			deliver: 'whatsapp'
 		};
 		if (typeof csrfData !== 'undefined') { payload[csrfData.token_name] = csrfData.hash; }
@@ -425,32 +444,45 @@ $(function () {
 					window.location.href = base_url + 'dashboard';
 					return;
 				}
-				if (!data || !data.ok) {
+				if (!data || !data.ok || !data.file) {
 					$status.text((data && data.error) ? data.error : 'The slip could not be prepared.');
 					return;
 				}
-				slipShareDownload(data);
-				var target = slipShareSelectedPhone || data.phone;
-				if (data.sent) {
-					$status.html('<span style="color:green;"><i class="fas fa-check-circle"></i> Admission slip & receipt successfully attached and sent to WhatsApp for <strong>+' + target + '</strong>!</span>');
-				} else if (data.whatsapp) {
-					window.open(data.whatsapp, '_blank');
-					$status.html('Slip downloaded! WhatsApp chat opened' + (target ? ' for <strong>+' + target + '</strong>' : '') + '. You can now attach the downloaded file in the WhatsApp chat.' + (data.error ? '<br><span style="color:#c9302c;">(Auto-send failed: ' + data.error + ')</span>' : ''));
-				} else {
-					$status.text('Slip downloaded successfully.');
+				if (data.message) {
+					$('#slipShareMessage').text(data.message);
+					$('#slipShareMessageWrap').show();
 				}
+				var target = phone || data.phone || '';
+				if (data.sent && target) {
+					$status.html('<span style="color:green;"><i class="fas fa-check-circle"></i> The ' + label + ' and the message were sent together to <strong>+' + target + '</strong>.</span>');
+					return;
+				}
+				if (slipShareAttach(data)) {
+					return;
+				}
+				slipShareDownload(data);
+				var why = data.error ? data.error + ' ' : '';
+				$status.html(why + 'The ' + label + ' downloaded' + (target ? ' for <strong>+' + target + '</strong>' : '') + '. Attach that file in the parent chat. The message is below so you can paste it with the file.');
 			},
 			error: function () {
 				$status.text('The admission slip could not be prepared.');
 			},
 			complete: function () {
 				$('#slipSharePdf, #slipShareImage').prop('disabled', false);
+				if (slipShareSelectedPhone) {
+					$('#slipShareDirectWa').css('pointer-events', 'auto');
+				}
 			}
 		});
 	}
 
-	$('#slipShareBtn').on('click', function () {
+	$('#slipShareBtn').on('click', function (e) {
+		e.preventDefault();
 		slipShareAsk();
+	});
+	$('#slipShareDirectWa').on('click', function (e) {
+		e.preventDefault();
+		slipShareSend('pdf');
 	});
 	$('#slipSharePdf').on('click', function () { slipShareSend('pdf'); });
 	$('#slipShareImage').on('click', function () { slipShareSend('image'); });
