@@ -248,7 +248,7 @@ $na = function ($v) {
 			<h4 style="margin:0;color:#0f5c4c;font-weight:700;font-size:17px;"><i class="fab fa-whatsapp" style="color:#25D366;margin-right:6px;"></i> Send Slip / Receipt to Parent</h4>
 			<button type="button" id="slipShareCloseTop" style="border:none;background:transparent;font-size:24px;line-height:1;color:#888;cursor:pointer;">&times;</button>
 		</div>
-		<p style="margin:0 0 12px;color:#555;font-size:13px;">The button sends the PDF or image and this text straight to the parent’s phone number. That number does not need to be saved in your WhatsApp contacts.</p>
+		<p style="margin:0 0 12px;color:#555;font-size:13px;">The button opens WhatsApp for this phone number even when it is not in your contacts, and the school WhatsApp sends the PDF or image with this text to that same number.</p>
 
 		<div style="background:#f4f7f5;border:1px solid #d2ded7;border-radius:4px;padding:10px 12px;margin-bottom:14px;font-size:13px;">
 			<div style="font-weight:600;color:#0f5c4c;margin-bottom:5px;">Parent / Guardian WhatsApp Number:</div>
@@ -377,7 +377,12 @@ $(function () {
 			$('#slipShareStatus').text('Choose a parent number first.');
 			return;
 		}
-		$('#slipShareStatus').text('Sending the ' + label + ' and the text to +' + phone + '. This number does not need to be in your contacts…');
+		var message = (slipShareCurrentData && slipShareCurrentData.message) ? slipShareCurrentData.message : $('#slipShareMessage').text();
+		var link = 'https://api.whatsapp.com/send?phone=' + encodeURIComponent(phone) + '&text=' + encodeURIComponent(message || '');
+		var popup = window.open(link, 'tahsinSlipWhatsApp');
+		$('#slipShareStatus').text(popup
+			? 'WhatsApp is opening for +' + phone + ', even if that number is not in your contacts. Sending the ' + label + ' as well…'
+			: 'The browser blocked the WhatsApp window. Allow popups for this site. Sending the ' + label + ' to +' + phone + '…');
 		$('#slipShareDirectWa').css('pointer-events', 'none');
 		$('#slipSharePdf, #slipShareImage').prop('disabled', true);
 		var payload = {
@@ -406,7 +411,7 @@ $(function () {
 					$('#slipShareMessageWrap').show();
 				}
 				if (data.sent && data.together) {
-					$('#slipShareStatus').html('<span style="color:green;"><i class="fas fa-check-circle"></i> Sent to <strong>+' + $('<span>').text(phone).html() + '</strong>. The number does not need to be in your contacts. The parent’s phone gets one message from the school WhatsApp: the ' + label + ' with this text under it.</span>');
+					$('#slipShareStatus').html('<span style="color:green;"><i class="fas fa-check-circle"></i> WhatsApp is open for <strong>+' + $('<span>').text(phone).html() + '</strong>. That number does not need to be in your contacts. The ' + label + ' with this text was sent to the parent’s phone from the school WhatsApp. On that phone, open the chat from the school.</span>');
 					return;
 				}
 				if (data.sent) {
