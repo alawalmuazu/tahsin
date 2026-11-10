@@ -33,40 +33,25 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Network-first for navigations and API-ish PHP; cache-first for static assets
+  // Only cache static files. App pages stay with the browser.
+  // A failed fetch here used to answer 503 and look like the WhatsApp send had failed.
   const isStatic = /\.(?:css|js|png|jpe?g|gif|webp|svg|woff2?|ttf|ico)$/i.test(url.pathname);
-
-  if (isStatic) {
-    event.respondWith(
-      caches.match(event.request).then((cached) => {
-        const fetched = fetch(event.request)
-          .then((response) => {
-            if (response && response.ok) {
-              const clone = response.clone();
-              caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
-            }
-            return response;
-          })
-          .catch(() => cached);
-        return cached || fetched;
-      })
-    );
+  if (!isStatic) {
     return;
   }
 
   event.respondWith(
-    fetch(event.request)
-      .then((response) => response)
-      .catch(async () => {
-        const cached = await caches.match(event.request);
-        if (cached) {
-          return cached;
-        }
-        return new Response('Offline — reconnect and try again.', {
-          status: 503,
-          statusText: 'Service Unavailable',
-          headers: { 'Content-Type': 'text/plain; charset=utf-8' }
-        });
-      })
+    caches.match(event.request).then((cached) => {
+      const fetched = fetch(event.request)
+        .then((response) => {
+          if (response && response.ok) {
+            const clone = response.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
+          }
+          return response;
+        })
+        .catch(() => cached);
+      return cached || fetched;
+    })
   );
 });

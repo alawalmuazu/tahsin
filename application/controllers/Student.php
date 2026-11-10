@@ -2219,6 +2219,7 @@ class Student extends Admin_Controller
         $filename = 'admission-slip-' . $reg . '.' . $ext;
         $sent = false;
         $together = false;
+        $wamid = '';
         $sendError = '';
         if ($deliver) {
             if ($targetPhone === '') {
@@ -2227,6 +2228,7 @@ class Student extends Admin_Controller
                 $sentResult = $this->admissionSendCloud($targetPhone, $format, $filename, $binary, $message);
                 $sent = !empty($sentResult['ok']);
                 $together = $sent && !empty($sentResult['together']);
+                $wamid = ($sent && !empty($sentResult['wamid'])) ? (string) $sentResult['wamid'] : '';
                 $sendError = $sent ? '' : (isset($sentResult['error']) ? $sentResult['error'] : 'WhatsApp could not send the slip.');
             }
         }
@@ -2235,6 +2237,7 @@ class Student extends Admin_Controller
             'ok' => true,
             'sent' => $sent,
             'together' => !empty($together),
+            'wamid' => $wamid,
             'error' => $sendError,
             'phone' => $targetPhone,
             'phones' => $phones,

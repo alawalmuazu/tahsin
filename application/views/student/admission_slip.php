@@ -406,7 +406,8 @@ $(function () {
 					$('#slipShareMessageWrap').show();
 				}
 				if (data.sent && data.together) {
-					$('#slipShareStatus').html('<span style="color:green;"><i class="fas fa-check-circle"></i> Sent as one WhatsApp message to <strong>+' + phone + '</strong>. The ' + label + ' and this text went together, with the words under the file. Check the parent’s WhatsApp. It arrives from the school number, so it will not show in a personal chat you opened earlier.</span>');
+					var ref = data.wamid ? ' WhatsApp reference ' + $('<span>').text(data.wamid).html() + '.' : '';
+					$('#slipShareStatus').html('<span style="color:green;"><i class="fas fa-check-circle"></i> The school WhatsApp accepted one message for <strong>+' + $('<span>').text(phone).html() + '</strong>: the ' + label + ' with this text under it.' + ref + ' Open WhatsApp on that parent’s phone and look for a new chat from the school number. The WhatsApp already open on this computer does not receive it.</span>');
 					return;
 				}
 				if (data.sent) {
