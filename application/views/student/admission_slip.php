@@ -248,7 +248,7 @@ $na = function ($v) {
 			<h4 style="margin:0;color:#0f5c4c;font-weight:700;font-size:17px;"><i class="fab fa-whatsapp" style="color:#25D366;margin-right:6px;"></i> Send Slip / Receipt to Parent</h4>
 			<button type="button" id="slipShareCloseTop" style="border:none;background:transparent;font-size:24px;line-height:1;color:#888;cursor:pointer;">&times;</button>
 		</div>
-		<p style="margin:0 0 12px;color:#555;font-size:13px;">Click a button, choose WhatsApp, then press send. The PDF or image and this text go together. The WhatsApp link you saw can only type the text, so it never attaches the file.</p>
+		<p style="margin:0 0 12px;color:#555;font-size:13px;">Click a button, choose WhatsApp, then tick the parent number in WhatsApp’s list and press send. The PDF or image and this text are already attached. WhatsApp does not let the page tick that number for you.</p>
 
 		<div style="background:#f4f7f5;border:1px solid #d2ded7;border-radius:4px;padding:10px 12px;margin-bottom:14px;font-size:13px;">
 			<div style="font-weight:600;color:#0f5c4c;margin-bottom:5px;">Parent / Guardian WhatsApp Number:</div>
@@ -452,10 +452,10 @@ $(function () {
 			shareData = { files: [pack.file], title: 'Admission slip' };
 			textWithFile = false;
 		}
-		$('#slipShareStatus').text('Choose WhatsApp in the window that opened. The ' + label + (textWithFile ? ' and the text go together' : ' is attached') + ', then press send.');
+		$('#slipShareStatus').html('Choose WhatsApp, then tick <strong>+' + $('<span>').text(phone).html() + '</strong>. The ' + label + (textWithFile ? ' and the text are already attached' : ' is already attached') + '. Press the green send button.');
 		navigator.share(shareData).then(function () {
-			var extra = textWithFile ? '' : ' If the text box is empty, paste the caption below, then press send.';
-			$('#slipShareStatus').html('<span style="color:green;"><i class="fas fa-check-circle"></i> WhatsApp has the ' + label + ' for <strong>+' + $('<span>').text(phone).html() + '</strong>.' + extra + '</span>');
+			var extra = textWithFile ? '' : ' If the text box is empty, paste the caption below before you press send.';
+			$('#slipShareStatus').html('<span style="color:green;"><i class="fas fa-check-circle"></i> Tick <strong>+' + $('<span>').text(phone).html() + '</strong> in WhatsApp, then press send. The ' + label + ' is attached.' + extra + '</span>');
 		}).catch(function (err) {
 			if (err && err.name === 'AbortError') {
 				$('#slipShareStatus').text('Cancelled. Nothing was sent.');
