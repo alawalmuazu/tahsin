@@ -248,7 +248,7 @@ $na = function ($v) {
 			<h4 style="margin:0;color:#0f5c4c;font-weight:700;font-size:17px;"><i class="fab fa-whatsapp" style="color:#25D366;margin-right:6px;"></i> Send Slip / Receipt to Parent</h4>
 			<button type="button" id="slipShareCloseTop" style="border:none;background:transparent;font-size:24px;line-height:1;color:#888;cursor:pointer;">&times;</button>
 		</div>
-		<p style="margin:0 0 12px;color:#555;font-size:13px;">One send puts the PDF and the message in the same WhatsApp chat. The words travel with the file, not as a separate text.</p>
+		<p style="margin:0 0 12px;color:#555;font-size:13px;">Send PDF and message opens WhatsApp with the PDF and this text together. Choose WhatsApp in the window that appears, then press send.</p>
 
 		<div style="background:#f4f7f5;border:1px solid #d2ded7;border-radius:4px;padding:10px 12px;margin-bottom:14px;font-size:13px;">
 			<div style="font-weight:600;color:#0f5c4c;margin-bottom:5px;">Parent / Guardian WhatsApp Number:</div>
@@ -284,6 +284,7 @@ $(function () {
 	var enrollID = "<?=$slip['enrollid']?>";
 	var slipShareCurrentData = null;
 	var slipShareSelectedPhone = "";
+	var slipSharePack = null;
 
 	function slipShareBytes(b64) {
 		var bin = atob(b64);
@@ -326,29 +327,116 @@ $(function () {
 		}
 	}
 
-	function slipShareAttach(data) {
-		if (!data || !data.file) {
+	function slipShareFile(data) {
+		return new File(
+			[slipShareBytes(data.file)],
+			data.filename || 'admission-slip.pdf',
+			{ type: data.mime || 'application/pdf' }
+		);
+	}
+
+	function slipShareCanPopup(file) {
+		try {
+			return !!(file && navigator.canShare && navigator.canShare({ files: [file] }));
+		} catch (e) {
 			return false;
 		}
-		var file = new File([slipShareBytes(data.file)], data.filename, { type: data.mime || 'application/pdf' });
-		if (!(navigator.canShare && navigator.canShare({ files: [file] }))) {
-			return false;
+	}
+
+	function slipSharePopup(pack) {
+		$('#slipShareStatus').text('Choose WhatsApp in the window that opened. The PDF and the message go together.');
+		return navigator.share({
+			files: [pack.file],
+			text: pack.message || '',
+			title: 'Admission slip'
+		}).then(function () {
+			$('#slipShareStatus').text('WhatsApp received the PDF and the message. Press send in that chat.');
+		});
+	}
+
+	function slipShareOpenChat(pack, popup) {
+		if (pack && pack.data) {
+			slipShareDownload(pack.data);
 		}
-		var phone = slipShareSelectedPhone || data.phone || '';
-		$('#slipShareStatus').text('Choose WhatsApp in the share window' + (phone ? ' for +' + phone : '') + '. The PDF and the message go together.');
-		navigator.share({ files: [file], text: data.message || '', title: 'Admission slip' }).then(function () {
-			$('#slipShareStatus').text('If the words are missing under the PDF, paste the message below.');
-		}).catch(function (err) {
-			if (err && err.name === 'AbortError') {
-				$('#slipShareStatus').text('Share cancelled. The message is below if you still want to send it.');
+		var phone = slipShareSelectedPhone || '';
+		var link = 'https://api.whatsapp.com/send?phone=' + encodeURIComponent(phone) + '&text=' + encodeURIComponent(pack && pack.message ? pack.message : '');
+		if (popup && !popup.closed) {
+			popup.location = link;
+		} else {
+			window.open(link, '_blank');
+		}
+		$('#slipShareStatus').text('WhatsApp is open and the PDF downloaded. Drop that PDF into the chat, then press send.');
+	}
+
+	function slipShareHandOff(pack, popup) {
+		if (pack && slipShareCanPopup(pack.file)) {
+			if (popup && !popup.closed) {
+				popup.close();
+			}
+			slipSharePopup(pack).catch(function (err) {
+				if (err && err.name === 'AbortError') {
+					$('#slipShareStatus').text('Share cancelled.');
+					return;
+				}
+				slipShareOpenChat(pack, window.open('about:blank', 'tahsinSlipWhatsApp'));
+			});
+			return;
+		}
+		slipShareOpenChat(pack, popup || window.open('about:blank', 'tahsinSlipWhatsApp'));
+	}
+
+	function slipSharePrepare(format, done) {
+		if (format === 'pdf' && slipSharePack && slipSharePack.format === 'pdf') {
+			if (done) done(slipSharePack);
+			return;
+		}
+		var payload = {
+			enroll_id: enrollID,
+			format: format,
+			phone: slipShareSelectedPhone
+		};
+		if (typeof csrfData !== 'undefined') { payload[csrfData.token_name] = csrfData.hash; }
+		$.ajax({
+			url: base_url + 'student/admission_share',
+			type: 'POST',
+			dataType: 'json',
+			data: payload,
+			success: function (data) {
+				if (data && data.status === 'access_denied') {
+					window.location.href = base_url + 'dashboard';
+					return;
+				}
+				if (!data || !data.ok || !data.file) {
+					$('#slipShareStatus').text((data && data.error) ? data.error : 'The slip could not be prepared.');
+					if (done) done(null);
+					return;
+				}
+				if (data.message) {
+					$('#slipShareMessage').text(data.message);
+					$('#slipShareMessageWrap').show();
+				}
+				var pack = {
+					format: format,
+					file: slipShareFile(data),
+					message: data.message || (slipShareCurrentData && slipShareCurrentData.message) || '',
+					data: data
+				};
+				if (format === 'pdf') {
+					slipSharePack = pack;
+				}
+				if (done) done(pack);
+			},
+			error: function () {
+				$('#slipShareStatus').text('The admission slip could not be prepared.');
+				if (done) done(null);
 			}
 		});
-		return true;
 	}
 
 	function slipShareAsk() {
 		slipShareCurrentData = null;
 		slipShareSelectedPhone = '';
+		slipSharePack = null;
 		$('#slipShareStatus').text('Loading parent WhatsApp details…');
 		$('#slipShareMessageWrap').hide();
 		$('#slipShareMessage').text('');
@@ -407,71 +495,17 @@ $(function () {
 					$('#slipShareMessage').text(data.message);
 					$('#slipShareMessageWrap').show();
 				}
+				if (phones.length) {
+					$('#slipShareStatus').text('Preparing the PDF…');
+					slipSharePrepare('pdf', function (pack) {
+						if (pack) {
+							$('#slipShareStatus').text('PDF is ready. Click Send PDF and message to open WhatsApp.');
+						}
+					});
+				}
 			},
 			error: function () {
 				$('#slipShareStatus').text('Could not connect to fetch admission details.');
-			}
-		});
-	}
-
-	function slipShareSend(format) {
-		var $status = $('#slipShareStatus');
-		var phone = slipShareSelectedPhone || '';
-		var label = format === 'image' ? 'image' : 'PDF';
-		if (!phone) {
-			$status.text('Choose a parent number first.');
-			return;
-		}
-		$status.text('Sending the ' + label + ' and the message together to +' + phone + '…');
-		$('#slipShareDirectWa').css('pointer-events', 'none');
-		$('#slipSharePdf, #slipShareImage').prop('disabled', true);
-
-		var payload = {
-			enroll_id: enrollID,
-			format: format,
-			phone: phone,
-			deliver: 'whatsapp'
-		};
-		if (typeof csrfData !== 'undefined') { payload[csrfData.token_name] = csrfData.hash; }
-
-		$.ajax({
-			url: base_url + 'student/admission_share',
-			type: 'POST',
-			dataType: 'json',
-			data: payload,
-			success: function (data) {
-				if (data && data.status === 'access_denied') {
-					window.location.href = base_url + 'dashboard';
-					return;
-				}
-				if (!data || !data.ok || !data.file) {
-					$status.text((data && data.error) ? data.error : 'The slip could not be prepared.');
-					return;
-				}
-				if (data.message) {
-					$('#slipShareMessage').text(data.message);
-					$('#slipShareMessageWrap').show();
-				}
-				var target = phone || data.phone || '';
-				if (data.sent && target) {
-					$status.html('<span style="color:green;"><i class="fas fa-check-circle"></i> The ' + label + ' and the message were sent together to <strong>+' + target + '</strong>.</span>');
-					return;
-				}
-				if (slipShareAttach(data)) {
-					return;
-				}
-				slipShareDownload(data);
-				var why = data.error ? data.error + ' ' : '';
-				$status.html(why + 'The ' + label + ' downloaded' + (target ? ' for <strong>+' + target + '</strong>' : '') + '. Attach that file in the parent chat. The message is below so you can paste it with the file.');
-			},
-			error: function () {
-				$status.text('The admission slip could not be prepared.');
-			},
-			complete: function () {
-				$('#slipSharePdf, #slipShareImage').prop('disabled', false);
-				if (slipShareSelectedPhone) {
-					$('#slipShareDirectWa').css('pointer-events', 'auto');
-				}
 			}
 		});
 	}
@@ -482,10 +516,44 @@ $(function () {
 	});
 	$('#slipShareDirectWa').on('click', function (e) {
 		e.preventDefault();
-		slipShareSend('pdf');
+		if (!slipShareSelectedPhone) {
+			$('#slipShareStatus').text('Choose a parent number first.');
+			return;
+		}
+		if (slipSharePack && slipSharePack.format === 'pdf') {
+			slipShareHandOff(slipSharePack, null);
+			return;
+		}
+		var popup = window.open('about:blank', 'tahsinSlipWhatsApp');
+		$('#slipShareStatus').text('Preparing the PDF, then WhatsApp will open…');
+		slipSharePrepare('pdf', function (pack) {
+			if (!pack) {
+				if (popup && !popup.closed) popup.close();
+				return;
+			}
+			slipShareHandOff(pack, popup);
+		});
 	});
-	$('#slipSharePdf').on('click', function () { slipShareSend('pdf'); });
-	$('#slipShareImage').on('click', function () { slipShareSend('image'); });
+	$('#slipSharePdf').on('click', function () {
+		slipSharePrepare('pdf', function (pack) {
+			if (pack) slipShareDownload(pack.data);
+		});
+	});
+	$('#slipShareImage').on('click', function () {
+		if (!slipShareSelectedPhone) {
+			$('#slipShareStatus').text('Choose a parent number first.');
+			return;
+		}
+		var popup = window.open('about:blank', 'tahsinSlipWhatsApp');
+		$('#slipShareStatus').text('Preparing the image, then WhatsApp will open…');
+		slipSharePrepare('image', function (pack) {
+			if (!pack) {
+				if (popup && !popup.closed) popup.close();
+				return;
+			}
+			slipShareHandOff(pack, popup);
+		});
+	});
 	$('#slipShareClose, #slipShareCloseTop').on('click', function () { $('#slipShareModal').hide(); });
 
 	$('#slipShareCopyMsg').on('click', function () {
