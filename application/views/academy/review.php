@@ -29,7 +29,7 @@ $bulkAdmin = 0;
 							<button class="btn btn-primary" name="release_today" value="1" type="submit">Release today’s sealed sessions (<?php echo (int) $pending_admin_today; ?>)</button>
 						<?php echo form_close(); ?>
 					<?php endif; ?>
-					<p class="text-muted">Listen to the clip and read the Tajweed mistakes before you approve or acknowledge.</p>
+					<p class="text-muted">Listen to the clip and read the Tajweed mistakes before you approve, reject, add a note, or delete.</p>
 					<?php
 					$canBulk = !empty($can_director) || !empty($can_admin);
 					$bulkDirector = 0;
@@ -44,20 +44,27 @@ $bulkAdmin = 0;
 						}
 					}
 					?>
-					<?php if ($canBulk && ($bulkDirector > 0 || $bulkAdmin > 0)): ?>
+					<?php if ($canBulk): ?>
 						<?php echo form_open('academy_review', array('id' => 'bulk-review', 'style' => 'display:flex;flex-wrap:wrap;align-items:center;gap:.5rem;margin-bottom:1rem')); ?>
 							<input type="hidden" name="bulk_decide" value="1">
 							<input type="text" name="bulk_note" class="form-control input-sm" placeholder="Optional note for the selected sessions" style="max-width:280px">
-							<button class="btn btn-success btn-sm" type="submit" name="bulk_action" value="approve" id="bulk-approve" disabled>Approve selected</button>
-							<button class="btn btn-primary btn-sm" type="submit" name="bulk_action" value="acknowledge" id="bulk-ack" disabled>Acknowledge selected</button>
+							<?php if (!empty($can_director)): ?>
+								<button class="btn btn-success btn-sm" type="submit" name="bulk_action" value="approve" id="bulk-approve" disabled>Approve selected</button>
+							<?php endif; ?>
+							<button class="btn btn-danger btn-sm" type="submit" name="bulk_action" value="reject" id="bulk-reject" disabled>Reject selected</button>
+							<button class="btn btn-default btn-sm" type="submit" name="bulk_action" value="note" id="bulk-note" disabled>Add note</button>
+							<button class="btn btn-warning btn-sm" type="submit" name="bulk_action" value="delete" id="bulk-delete" disabled>Delete selected</button>
+							<?php if (!empty($can_admin)): ?>
+								<button class="btn btn-primary btn-sm" type="submit" name="bulk_action" value="acknowledge" id="bulk-ack" disabled>Acknowledge selected</button>
+							<?php endif; ?>
 							<span class="text-muted" id="bulk-hint"><?php echo (int) $bulkDirector; ?> with the director · <?php echo (int) $bulkAdmin; ?> with the admin</span>
 						<?php echo form_close(); ?>
 					<?php endif; ?>
 					<table class="table table-bordered table-striped">
 						<thead>
 							<tr>
-								<?php if ($canBulk && ($bulkDirector > 0 || $bulkAdmin > 0)): ?>
-									<th style="width:36px"><input type="checkbox" id="bulk-all" title="Select all waiting sessions"></th>
+								<?php if ($canBulk): ?>
+									<th style="width:36px"><input type="checkbox" id="bulk-all" title="Select sessions"></th>
 								<?php endif; ?>
 								<th>Date & Time</th>
 								<th>Student</th>
@@ -73,11 +80,14 @@ $bulkAdmin = 0;
 						<tbody>
 						<?php foreach ($sessions as $row): ?>
 							<tr>
-								<?php if ($canBulk && ($bulkDirector > 0 || $bulkAdmin > 0)): ?>
+								<?php if ($canBulk): ?>
 									<td>
-										<?php if (in_array($row->status, array('pending_director', 'pending_admin'), true)): ?>
-											<input class="bulk-session" type="checkbox" name="session_ids[]" value="<?php echo (int) $row->id; ?>" form="bulk-review" data-status="<?php echo html_escape($row->status); ?>">
-										<?php endif; ?>
+										<?php
+										$canApproveRow = $row->status === 'pending_director' && !empty($can_director);
+										$canAckRow = $row->status === 'pending_admin' && !empty($can_admin);
+										$canRejectRow = $canApproveRow || $canAckRow;
+										?>
+										<input class="bulk-session" type="checkbox" name="session_ids[]" value="<?php echo (int) $row->id; ?>" form="bulk-review" data-status="<?php echo html_escape($row->status); ?>" data-approve="<?php echo $canApproveRow ? '1' : '0'; ?>" data-ack="<?php echo $canAckRow ? '1' : '0'; ?>" data-reject="<?php echo $canRejectRow ? '1' : '0'; ?>">
 									</td>
 								<?php endif; ?>
 								<td>
@@ -160,16 +170,20 @@ $bulkAdmin = 0;
 												<?php if (!empty($clipBits)): ?>
 													<div style="margin-bottom:.25rem"><?php echo implode(' · ', $clipBits); ?></div>
 												<?php endif; ?>
-												<?php if ($step): ?>
-													<?php echo form_open('academy_review', array('style' => 'margin:.15rem 0 .55rem')); ?>
-														<input type="hidden" name="decide" value="1">
-														<input type="hidden" name="session_id" value="<?php echo (int) $row->id; ?>">
-														<input type="hidden" name="step" value="<?php echo html_escape($step); ?>">
-														<input type="text" name="note" class="form-control input-sm mb-xs" placeholder="Optional note">
-														<button class="btn btn-success btn-xs" name="decision" value="approve" type="submit"><?php echo $step === 'admin' ? 'Acknowledge' : 'Approve'; ?></button>
-														<button class="btn btn-danger btn-xs" name="decision" value="reject" type="submit">Reject</button>
-													<?php echo form_close(); ?>
-												<?php endif; ?>
+												<?php echo form_open('academy_review', array('class' => 'review-decide', 'style' => 'margin:.15rem 0 .55rem')); ?>
+													<input type="hidden" name="decide" value="1">
+													<input type="hidden" name="session_id" value="<?php echo (int) $row->id; ?>">
+													<input type="hidden" name="step" value="<?php echo html_escape($step ? $step : ''); ?>">
+													<input type="text" name="note" class="form-control input-sm" placeholder="Optional note" style="margin-bottom:.35rem">
+													<div class="review-actions">
+														<?php if ($step): ?>
+															<button class="btn btn-success btn-xs" name="decision" value="approve" type="submit"><?php echo $step === 'admin' ? 'Acknowledge' : 'Approve'; ?></button>
+															<button class="btn btn-danger btn-xs" name="decision" value="reject" type="submit">Reject</button>
+														<?php endif; ?>
+														<button class="btn btn-default btn-xs" name="decision" value="note" type="submit">Add note</button>
+														<button class="btn btn-warning btn-xs" name="decision" value="delete" type="submit" onclick="return confirm('Delete this recording? It leaves the review list. If this row is one recitation, the saved clip is removed.');">Delete</button>
+													</div>
+												<?php echo form_close(); ?>
 												<?php $this->load->view('academy/_tarteel_player', array(
 													'tp_surah' => isset($clip['surah_number']) ? (int) $clip['surah_number'] : 0,
 													'tp_from' => isset($clip['ayah_from']) ? (int) $clip['ayah_from'] : 0,
@@ -219,7 +233,22 @@ $bulkAdmin = 0;
 											</div>
 										<?php endif; ?>
 									<?php endif; ?>
-									<?php if (!$clip): ?>
+									<?php if (!$clip && (!empty($can_director) || !empty($can_admin))): ?>
+										<?php echo form_open('academy_review', array('class' => 'review-decide', 'style' => 'margin:.15rem 0 .55rem')); ?>
+											<input type="hidden" name="decide" value="1">
+											<input type="hidden" name="session_id" value="<?php echo (int) $row->id; ?>">
+											<input type="hidden" name="step" value="<?php echo html_escape($step ? $step : ''); ?>">
+											<input type="text" name="note" class="form-control input-sm" placeholder="Optional note" style="margin-bottom:.35rem">
+											<div class="review-actions">
+												<?php if ($step): ?>
+													<button class="btn btn-success btn-xs" name="decision" value="approve" type="submit"><?php echo $step === 'admin' ? 'Acknowledge' : 'Approve'; ?></button>
+													<button class="btn btn-danger btn-xs" name="decision" value="reject" type="submit">Reject</button>
+												<?php endif; ?>
+												<button class="btn btn-default btn-xs" name="decision" value="note" type="submit">Add note</button>
+												<button class="btn btn-warning btn-xs" name="decision" value="delete" type="submit" onclick="return confirm('Delete this recording? It leaves the review list. If this row is one recitation, the saved clip is removed.');">Delete</button>
+											</div>
+										<?php echo form_close(); ?>
+									<?php elseif (!$clip): ?>
 										<span class="text-muted">—</span>
 									<?php endif; ?>
 								</td>
@@ -240,34 +269,47 @@ $bulkAdmin = 0;
 .review-clip form { order: 3; }
 .review-clip .ta-text { order: 4; }
 .review-clip details { order: 5; }
+.review-actions { display: flex; flex-wrap: wrap; gap: .35rem; align-items: center; }
+.review-actions .btn { margin: 0; }
 </style>
-<?php if (!empty($canBulk) && ($bulkDirector > 0 || $bulkAdmin > 0)): ?>
+<?php if (!empty($canBulk)): ?>
 <script>
 (function () {
 	var form = document.getElementById('bulk-review');
 	var all = document.getElementById('bulk-all');
 	var approveBtn = document.getElementById('bulk-approve');
 	var ackBtn = document.getElementById('bulk-ack');
-	if (!form || !approveBtn || !ackBtn) return;
+	var rejectBtn = document.getElementById('bulk-reject');
+	var noteBtn = document.getElementById('bulk-note');
+	var deleteBtn = document.getElementById('bulk-delete');
+	if (!form || !rejectBtn || !noteBtn || !deleteBtn) return;
 	function boxes() {
 		return Array.prototype.slice.call(document.querySelectorAll('.bulk-session'));
+	}
+	function setCount(btn, n, label) {
+		if (!btn) return;
+		btn.disabled = n < 1;
+		btn.textContent = n > 0 ? label + ' (' + n + ')' : label;
 	}
 	function refresh() {
 		var approve = 0;
 		var ack = 0;
+		var reject = 0;
 		var total = 0;
 		var checked = 0;
 		boxes().forEach(function (box) {
 			total++;
 			if (!box.checked) return;
 			checked++;
-			if (box.getAttribute('data-status') === 'pending_director') approve++;
-			if (box.getAttribute('data-status') === 'pending_admin') ack++;
+			if (box.getAttribute('data-approve') === '1') approve++;
+			if (box.getAttribute('data-ack') === '1') ack++;
+			if (box.getAttribute('data-reject') === '1') reject++;
 		});
-		approveBtn.disabled = approve < 1;
-		ackBtn.disabled = ack < 1;
-		approveBtn.textContent = approve > 0 ? 'Approve selected (' + approve + ')' : 'Approve selected';
-		ackBtn.textContent = ack > 0 ? 'Acknowledge selected (' + ack + ')' : 'Acknowledge selected';
+		setCount(approveBtn, approve, 'Approve selected');
+		setCount(ackBtn, ack, 'Acknowledge selected');
+		setCount(rejectBtn, reject, 'Reject selected');
+		setCount(noteBtn, checked, 'Add note');
+		setCount(deleteBtn, checked, 'Delete selected');
 		if (all) all.checked = total > 0 && checked === total;
 	}
 	if (all) {
@@ -277,16 +319,44 @@ $bulkAdmin = 0;
 		});
 	}
 	boxes().forEach(function (box) { box.addEventListener('change', refresh); });
+	document.querySelectorAll('.review-decide').forEach(function (rowForm) {
+		rowForm.addEventListener('submit', function (ev) {
+			var action = ev.submitter ? ev.submitter.value : '';
+			if (action !== 'note') return;
+			var note = rowForm.querySelector('[name="note"]');
+			if (note && note.value.trim() !== '') return;
+			ev.preventDefault();
+			window.alert('Write a note first.');
+		});
+	});
 	form.addEventListener('submit', function (ev) {
 		var action = ev.submitter ? ev.submitter.value : '';
 		var n = 0;
 		boxes().forEach(function (box) {
 			if (!box.checked) return;
-			if (action === 'approve' && box.getAttribute('data-status') === 'pending_director') n++;
-			if (action === 'acknowledge' && box.getAttribute('data-status') === 'pending_admin') n++;
+			if (action === 'approve' && box.getAttribute('data-approve') === '1') n++;
+			else if (action === 'acknowledge' && box.getAttribute('data-ack') === '1') n++;
+			else if (action === 'reject' && box.getAttribute('data-reject') === '1') n++;
+			else if (action === 'note' || action === 'delete') n++;
 		});
-		var label = action === 'acknowledge' ? 'Acknowledge ' : 'Approve ';
-		if (n < 1 || !window.confirm(label + n + (n === 1 ? ' recording?' : ' recordings?'))) {
+		if (action === 'note') {
+			var note = form.querySelector('[name="bulk_note"]');
+			if (!note || note.value.trim() === '') {
+				ev.preventDefault();
+				window.alert('Write a note first.');
+				return;
+			}
+		}
+		var labels = {
+			approve: 'Approve ',
+			acknowledge: 'Acknowledge ',
+			reject: 'Reject ',
+			note: 'Add this note to ',
+			delete: 'Delete '
+		};
+		var label = labels[action] || 'Update ';
+		var extra = action === 'delete' ? ' The saved clip is removed when the row is one recitation.' : '';
+		if (n < 1 || !window.confirm(label + n + (n === 1 ? ' recording?' : ' recordings?') + extra)) {
 			ev.preventDefault();
 		}
 	});

@@ -301,19 +301,48 @@ class Academy_review extends Admin_Controller
 
     protected function handleDecision($branchID)
     {
+        if (!is_superadmin_loggedin() && !is_director_loggedin() && !is_admin_loggedin()) {
+            access_denied();
+        }
+        $decision = (string) $this->input->post('decision');
+        $sessionId = (int) $this->input->post('session_id');
+        $actor = get_loggedin_user_id();
+        if ($decision === 'delete') {
+            $err = $this->academy_model->deleteReviewSession($sessionId, $branchID, $actor);
+            if ($err) {
+                set_alert('error', $err);
+            } else {
+                $extra = !empty($this->academy_model->removedClip)
+                    ? ' The saved clip was removed, so it can be recorded again.'
+                    : '';
+                set_alert('success', 'Deleted. It is off the review list.' . $extra);
+            }
+            redirect(base_url('academy_review'));
+        }
+        if ($decision === 'note') {
+            $err = $this->academy_model->addSessionNote(
+                $sessionId,
+                $branchID,
+                $actor,
+                $this->input->post('note'),
+                is_superadmin_loggedin() || is_director_loggedin(),
+                is_superadmin_loggedin() || is_admin_loggedin()
+            );
+            set_alert($err ? 'error' : 'success', $err ? $err : 'Note added.');
+            redirect(base_url('academy_review'));
+        }
         $step = $this->input->post('step');
-        $approve = $this->input->post('decision') === 'approve';
+        $approve = $decision === 'approve';
         if ($step === 'director' && !is_superadmin_loggedin() && !is_director_loggedin()) {
             access_denied();
         }
         if ($step === 'admin' && !is_superadmin_loggedin() && !is_admin_loggedin()) {
             access_denied();
         }
-        $sessionId = (int) $this->input->post('session_id');
         $err = $this->academy_model->decideSession(
             $sessionId,
             $branchID,
-            get_loggedin_user_id(),
+            $actor,
             $step,
             $approve,
             $this->input->post('note')
@@ -352,13 +381,21 @@ class Academy_review extends Admin_Controller
     }
 
     /**
-     * Director and admin can approve a batch, or acknowledge a batch.
+     * Approve, reject, note, or delete the ticked rows. Admin acknowledge stays its own action.
      */
     protected function handleBulk($branchID)
     {
-        $action = $this->input->post('bulk_action');
-        $allowed = is_superadmin_loggedin() || is_director_loggedin() || is_admin_loggedin();
-        if (!$allowed || !in_array($action, array('approve', 'acknowledge'), true)) {
+        $action = (string) $this->input->post('bulk_action');
+        $canDirector = is_superadmin_loggedin() || is_director_loggedin();
+        $canAdmin = is_superadmin_loggedin() || is_admin_loggedin();
+        $allowed = array('approve', 'acknowledge', 'reject', 'note', 'delete');
+        if ((!$canDirector && !$canAdmin) || !in_array($action, $allowed, true)) {
+            access_denied();
+        }
+        if ($action === 'approve' && !$canDirector) {
+            access_denied();
+        }
+        if ($action === 'acknowledge' && !$canAdmin) {
             access_denied();
         }
         $ids = $this->input->post('session_ids');
@@ -366,30 +403,40 @@ class Academy_review extends Admin_Controller
             set_alert('error', 'Select at least one session.');
             redirect(base_url('academy_review'));
         }
-        $step = $action === 'acknowledge' ? 'admin' : 'director';
         $note = $this->input->post('bulk_note');
+        if ($action === 'note' && trim((string) $note) === '') {
+            set_alert('error', 'Write a note first.');
+            redirect(base_url('academy_review'));
+        }
+        $actor = get_loggedin_user_id();
         $ok = 0;
         $skipped = 0;
+        $clips = 0;
         $share = array();
         foreach ($ids as $id) {
             $id = (int) $id;
             if ($id < 1) {
                 continue;
             }
-            $err = $this->academy_model->decideSession(
-                $id,
-                $branchID,
-                get_loggedin_user_id(),
-                $step,
-                true,
-                $note
-            );
-            if ($err !== null) {
-                $skipped++;
+            if ($action === 'delete') {
+                $err = $this->academy_model->deleteReviewSession($id, $branchID, $actor);
+                if ($err !== null) {
+                    $skipped++;
+                    continue;
+                }
+                $ok++;
+                if (!empty($this->academy_model->removedClip)) {
+                    $clips++;
+                }
                 continue;
             }
-            $ok++;
-            if ($step !== 'admin') {
+            if ($action === 'note') {
+                $err = $this->academy_model->addSessionNote($id, $branchID, $actor, $note, $canDirector, $canAdmin);
+                if ($err !== null) {
+                    $skipped++;
+                    continue;
+                }
+                $ok++;
                 continue;
             }
             $session = $this->db->get_where('academy_class_session', array(
@@ -397,6 +444,38 @@ class Academy_review extends Admin_Controller
                 'branch_id' => (int) $branchID,
             ))->row();
             if (!$session) {
+                $skipped++;
+                continue;
+            }
+            if ($action === 'approve') {
+                $step = ($session->status === 'pending_director' && $canDirector) ? 'director' : null;
+            } elseif ($action === 'acknowledge') {
+                $step = ($session->status === 'pending_admin' && $canAdmin) ? 'admin' : null;
+            } elseif ($action === 'reject' && $session->status === 'pending_director' && $canDirector) {
+                $step = 'director';
+            } elseif ($action === 'reject' && $session->status === 'pending_admin' && $canAdmin) {
+                $step = 'admin';
+            } else {
+                $step = null;
+            }
+            if (!$step) {
+                $skipped++;
+                continue;
+            }
+            $err = $this->academy_model->decideSession(
+                $id,
+                $branchID,
+                $actor,
+                $step,
+                $action !== 'reject',
+                $note
+            );
+            if ($err !== null) {
+                $skipped++;
+                continue;
+            }
+            $ok++;
+            if ($action !== 'acknowledge') {
                 continue;
             }
             $messages = $this->academy_model->sessionShareMessages(
@@ -411,9 +490,14 @@ class Academy_review extends Admin_Controller
             }
         }
         if ($ok < 1) {
-            set_alert('error', $action === 'acknowledge'
-                ? 'None of the selected sessions are waiting for acknowledgement.'
-                : 'None of the selected sessions are waiting for approval.');
+            $fail = array(
+                'acknowledge' => 'None of the selected sessions are waiting for acknowledgement.',
+                'approve' => 'None of the selected sessions are waiting for approval.',
+                'reject' => 'None of the selected sessions can be rejected.',
+                'note' => 'No note was saved.',
+                'delete' => 'Nothing was deleted.',
+            );
+            set_alert('error', isset($fail[$action]) ? $fail[$action] : 'Nothing changed.');
             redirect(base_url('academy_review'));
         }
         $sent = trim(implode(' ', $this->academy_model->digestNotices));
@@ -426,11 +510,20 @@ class Academy_review extends Admin_Controller
             if (!empty($share)) {
                 $this->session->set_flashdata('wa_group_share', json_encode(array_keys($share)));
             }
-        } else {
+        } elseif ($action === 'approve') {
             $msg = 'Approved ' . $ok . ' ' . $noun . ' and sent them to the admin.';
+        } elseif ($action === 'reject') {
+            $msg = 'Rejected ' . $ok . ' ' . $noun . '. The teacher has been notified.';
+        } elseif ($action === 'note') {
+            $msg = 'Note added to ' . $ok . ' ' . $noun . '.';
+        } else {
+            $msg = 'Deleted ' . $ok . ' ' . $noun . '.';
+            if ($clips > 0) {
+                $msg .= ' ' . $clips . ' saved clip' . ($clips === 1 ? '' : 's') . ' removed, so they can be recorded again.';
+            }
         }
         if ($skipped > 0) {
-            $msg .= ' ' . $skipped . ' selected ' . ($skipped === 1 ? 'row was' : 'rows were') . ' already decided and left unchanged.';
+            $msg .= ' ' . $skipped . ' selected ' . ($skipped === 1 ? 'row was' : 'rows were') . ' left unchanged.';
         }
         set_alert('success', $msg);
         redirect(base_url('academy_review'));

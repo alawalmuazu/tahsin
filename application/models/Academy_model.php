@@ -6,6 +6,9 @@ class Academy_model extends MY_Model
     /** Sentences from WhatsApp sends fired by acknowledgement. */
     public $digestNotices = array();
 
+    /** True after deleteReviewSession removed the linked recitation clip. */
+    public $removedClip = false;
+
     public function __construct()
     {
         parent::__construct();
@@ -4153,6 +4156,129 @@ class Academy_model extends MY_Model
         }
 
         return 'Unknown review step.';
+    }
+
+    /**
+     * Save a reviewer note and leave the status unchanged.
+     *
+     * @param bool $canDirector
+     * @param bool $canAdmin
+     * @return string|null
+     */
+    public function addSessionNote($id, $branchId, $actorId, $note, $canDirector, $canAdmin)
+    {
+        if (!$this->reviewReady()) {
+            return 'Run academy_session_review.sql first.';
+        }
+        $note = mb_substr(trim((string) $note), 0, 500);
+        if ($note === '') {
+            return 'Write a note first.';
+        }
+        $row = $this->db->get_where('academy_class_session', array(
+            'id' => (int) $id,
+            'branch_id' => (int) $branchId,
+        ))->row();
+        if (!$row) {
+            return 'Session not found.';
+        }
+        $adminSide = in_array($row->status, array('pending_admin', 'admin_rejected', 'acknowledged'), true);
+        if ($canAdmin && !$canDirector) {
+            $side = 'admin';
+        } elseif ($canDirector && !$canAdmin) {
+            $side = 'director';
+        } else {
+            $side = $adminSide ? 'admin' : 'director';
+        }
+        $this->db->where('id', (int) $row->id)->update('academy_class_session', array(
+            $side . '_user_id' => (int) $actorId,
+            $side . '_note' => $note,
+            $side . '_at' => date('Y-m-d H:i:s'),
+        ));
+        return null;
+    }
+
+    /**
+     * Remove a review row. A one-recitation row also drops its saved clip.
+     *
+     * @return string|null
+     */
+    public function deleteReviewSession($id, $branchId, $actorId)
+    {
+        $this->removedClip = false;
+        if (!$this->reviewReady()) {
+            return 'Run academy_session_review.sql first.';
+        }
+        $row = $this->db->get_where('academy_class_session', array(
+            'id' => (int) $id,
+            'branch_id' => (int) $branchId,
+        ))->row();
+        if (!$row) {
+            return 'Session not found.';
+        }
+        $student = array('name' => '', 'photo' => '');
+        $milestoneId = ($this->db->field_exists('milestone_id', 'academy_class_session') && isset($row->milestone_id))
+            ? (int) $row->milestone_id : 0;
+        if ($milestoneId > 0 && $this->tahfizReady()) {
+            $clip = $this->db->get_where('academy_tahfiz_record', array(
+                'id' => $milestoneId,
+                'branch_id' => (int) $branchId,
+            ))->row();
+            if ($clip) {
+                $this->unlinkAcademyClip(isset($clip->audio_url) ? $clip->audio_url : '');
+                if (isset($clip->video_url)) {
+                    $this->unlinkAcademyClip($clip->video_url);
+                }
+                $this->db->where(array(
+                    'id' => $milestoneId,
+                    'branch_id' => (int) $branchId,
+                ))->delete('academy_tahfiz_record');
+                $this->removedClip = true;
+                $stu = $this->db->select('first_name, other_name, last_name, photo')->get_where('student', array(
+                    'id' => (int) $clip->student_id,
+                ))->row();
+                if ($stu) {
+                    $student['name'] = trim(implode(' ', array_filter(array(
+                        (string) $stu->first_name,
+                        (string) $stu->other_name,
+                        (string) $stu->last_name,
+                    ), 'strlen')));
+                    $student['photo'] = !empty($stu->photo) ? (string) $stu->photo : '';
+                }
+            }
+        }
+        $this->db->where(array(
+            'id' => (int) $row->id,
+            'branch_id' => (int) $branchId,
+        ))->delete('academy_class_session');
+        $who = $student['name'] !== '' ? $student['name'] . ' · ' : '';
+        $this->pushNotice(
+            (int) $row->teacher_id,
+            $branchId,
+            'Recording removed from review',
+            $who . $row->session_date . ' was removed. Record it again if it should still be sent.',
+            'academy_review',
+            $student['name'] !== '' ? $student : null
+        );
+        return null;
+    }
+
+    /**
+     * Delete a file only when it is a plain filename inside uploads/academy_tahfiz.
+     */
+    protected function unlinkAcademyClip($url)
+    {
+        $url = trim((string) $url);
+        if ($url === '' || !preg_match('#(?:^|/)(uploads/academy_tahfiz/([A-Za-z0-9._-]+))$#', $url, $m)) {
+            return;
+        }
+        $dir = realpath(FCPATH . 'uploads' . DIRECTORY_SEPARATOR . 'academy_tahfiz');
+        if ($dir === false) {
+            return;
+        }
+        $full = $dir . DIRECTORY_SEPARATOR . $m[2];
+        if (is_file($full)) {
+            @unlink($full);
+        }
     }
 
     public function sessionsForViewer($branchId, $viewerId)
