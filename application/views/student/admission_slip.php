@@ -248,7 +248,7 @@ $na = function ($v) {
 			<h4 style="margin:0;color:#0f5c4c;font-weight:700;font-size:17px;"><i class="fab fa-whatsapp" style="color:#25D366;margin-right:6px;"></i> Send Slip / Receipt to Parent</h4>
 			<button type="button" id="slipShareCloseTop" style="border:none;background:transparent;font-size:24px;line-height:1;color:#888;cursor:pointer;">&times;</button>
 		</div>
-		<p style="margin:0 0 12px;color:#555;font-size:13px;">Each button sends the file and this text as one WhatsApp message. The words sit under the PDF or image. A browser window cannot attach the file, so the school WhatsApp sends them together.</p>
+		<p style="margin:0 0 12px;color:#555;font-size:13px;">Each button opens WhatsApp with this text, and the school number sends the PDF or image with the same text under the file.</p>
 
 		<div style="background:#f4f7f5;border:1px solid #d2ded7;border-radius:4px;padding:10px 12px;margin-bottom:14px;font-size:13px;">
 			<div style="font-weight:600;color:#0f5c4c;margin-bottom:5px;">Parent / Guardian WhatsApp Number:</div>
@@ -370,6 +370,13 @@ $(function () {
 		});
 	}
 
+	function slipShareOpenWindow(phone) {
+		var message = (slipShareCurrentData && slipShareCurrentData.message) ? slipShareCurrentData.message : $('#slipShareMessage').text();
+		var link = 'https://api.whatsapp.com/send?phone=' + encodeURIComponent(phone) + '&text=' + encodeURIComponent(message || '');
+		var popup = window.open(link, 'tahsinSlipWhatsApp');
+		return !!popup;
+	}
+
 	function slipShareDeliver(format) {
 		var phone = slipShareSelectedPhone || '';
 		var label = format === 'image' ? 'image' : 'PDF';
@@ -377,7 +384,10 @@ $(function () {
 			$('#slipShareStatus').text('Choose a parent number first.');
 			return;
 		}
-		$('#slipShareStatus').text('Sending the ' + label + ' and the message as one WhatsApp message to +' + phone + '…');
+		var opened = slipShareOpenWindow(phone);
+		$('#slipShareStatus').text(opened
+			? 'WhatsApp is opening. Sending the ' + label + ' and the message together to +' + phone + '…'
+			: 'The browser blocked the WhatsApp window. Allow popups for this site, then click again. Sending the ' + label + ' anyway…');
 		$('#slipShareDirectWa').css('pointer-events', 'none');
 		$('#slipSharePdf, #slipShareImage').prop('disabled', true);
 		var payload = {
@@ -406,8 +416,7 @@ $(function () {
 					$('#slipShareMessageWrap').show();
 				}
 				if (data.sent && data.together) {
-					var ref = data.wamid ? ' WhatsApp reference ' + $('<span>').text(data.wamid).html() + '.' : '';
-					$('#slipShareStatus').html('<span style="color:green;"><i class="fas fa-check-circle"></i> The school WhatsApp accepted one message for <strong>+' + $('<span>').text(phone).html() + '</strong>: the ' + label + ' with this text under it.' + ref + ' Open WhatsApp on that parent’s phone and look for a new chat from the school number. The WhatsApp already open on this computer does not receive it.</span>');
+					$('#slipShareStatus').html('<span style="color:green;"><i class="fas fa-check-circle"></i> WhatsApp is open for <strong>+' + $('<span>').text(phone).html() + '</strong> with this text. The ' + label + ' and the same text were sent together from the school number. Press send in the open window only if you also want the text from this computer.</span>');
 					return;
 				}
 				if (data.sent) {
